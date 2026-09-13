@@ -697,21 +697,26 @@ export function articleFromManualImport(input: {
       .map((p) => `<p>${p.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`)
       .join("") ||
     "";
-  const built = buildArticle({
+  const contentHtml = sanitizeHtml(rawHtml, href);
+  const plain = textFromHtml(contentHtml);
+  const words = countWords(plain);
+  if (!plain || words < 8) {
+    throw new Error("Not enough readable text to import. Paste more of the article.");
+  }
+  return {
     url: href,
     canonicalUrl: href,
-    title: input.title.trim() || "Untitled",
+    title: input.title.trim() || excerptOf(plain, 90),
     author: "",
     siteName: host,
     published: null,
-    contentHtml: rawHtml,
+    excerpt: excerptOf(plain),
+    contentHtml,
+    wordCount: words,
+    readingMinutes: Math.max(1, Math.round(words / 200)),
     source: "blog",
     heroImage: null,
-  });
-  if (!built) {
-    throw new Error("Not enough readable text to import. Paste more of the article.");
-  }
-  return built;
+  };
 }
 
 export async function extractArticleFromUrl(rawUrl: string): Promise<ExtractResult> {
