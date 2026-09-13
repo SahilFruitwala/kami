@@ -33,6 +33,8 @@ export type LibraryItem = {
   tags: string[];
   folderId: string | null;
   highlights: Highlight[];
+  favorited: boolean;
+  note: string;
 };
 
 export function articleIdFromUrl(url: string): string {
@@ -85,6 +87,8 @@ export function articleToItem(article: Article, extras: Partial<LibraryItem> = {
     tags: [],
     folderId: null,
     highlights: [],
+    favorited: false,
+    note: "",
     ...extras,
   };
 }
@@ -112,6 +116,8 @@ type LibraryState = {
   addHighlight: (itemId: string, text: string) => Highlight | null;
   removeHighlight: (itemId: string, highlightId: string) => void;
   setHighlightNote: (itemId: string, highlightId: string, note: string) => void;
+  setFavorited: (itemId: string, favorited: boolean) => void;
+  setItemNote: (itemId: string, note: string) => void;
   clearLibrary: () => void;
 };
 
@@ -154,7 +160,26 @@ function migrateItem(row: Persisted["library"] extends (infer T)[] | undefined ?
     tags,
     folderId: row.folderId || null,
     highlights,
+    favorited: Boolean(row.favorited),
+    note: typeof row.note === "string" ? row.note.slice(0, 2000) : "",
   };
+}
+
+function trimLibrary(items: LibraryItem[], max = 200): LibraryItem[] {
+  if (items.length <= max) return items;
+  const next = [...items];
+  while (next.length > max) {
+    let idx = -1;
+    for (let i = next.length - 1; i >= 0; i -= 1) {
+      if (next[i].archived && !next[i].favorited) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx < 0) idx = next.length - 1;
+    next.splice(idx, 1);
+  }
+  return next;
 }
 
 function mapItem(library: LibraryItem[], id: string, fn: (row: LibraryItem) => LibraryItem): LibraryItem[] {
@@ -179,9 +204,11 @@ export const useLibraryStore = create<LibraryState>()(
             folderId: existing?.folderId ?? item.folderId ?? null,
             highlights: existing?.highlights?.length ? existing.highlights : item.highlights ?? [],
             archived: existing?.archived ?? item.archived,
+            favorited: existing?.favorited ?? item.favorited ?? false,
+            note: existing?.note || item.note || "",
           };
           const rest = state.library.filter((row) => row.id !== merged.id && row.url !== merged.url);
-          return { library: [merged, ...rest].slice(0, 60), openId: merged.id };
+          return { library: trimLibrary([merged, ...rest]), openId: merged.id };
         }),
       archiveItem: (id, archived) =>
         set((state) => ({ library: mapItem(state.library, id, (row) => ({ ...row, archived })) })),
@@ -262,11 +289,17 @@ export const useLibraryStore = create<LibraryState>()(
             ),
           })),
         })),
+      setFavorited: (itemId, favorited) =>
+        set((state) => ({ library: mapItem(state.library, itemId, (row) => ({ ...row, favorited })) })),
+      setItemNote: (itemId, note) =>
+        set((state) => ({
+          library: mapItem(state.library, itemId, (row) => ({ ...row, note: note.slice(0, 2000) })),
+        })),
       clearLibrary: () => set({ library: [], openId: null }),
     }),
     {
       name: "quarto-library",
-      version: 5,
+      version: 6,
       migrate: (persisted) => {
         const raw = (persisted || {}) as Persisted;
         const library = (raw.library || []).map(migrateItem).filter((row): row is LibraryItem => Boolean(row));
