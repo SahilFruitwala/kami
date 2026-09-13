@@ -4,6 +4,7 @@ dist/
 .nitro/
 .tanstack/
 .vite/
+.vercel/
 *.log
 .DS_Store
 .env
