@@ -1,4 +1,4 @@
-import { BookOpen, Trash2 } from "lucide-react";
+import { BookOpen, Star, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { previewImageSrc } from "@/lib/image-url.ts";
@@ -51,8 +51,13 @@ export function ArticleList({
                   {item.readingMinutes} min · {relativeTime(item.savedAt)}
                 </span>
               </span>
-              <span className="mt-1.5 block font-display text-xl leading-snug tracking-tight text-ink">
-                {item.title}
+              <span className="mt-1.5 flex items-start gap-2">
+                <span className="min-w-0 flex-1 font-display text-xl leading-snug tracking-tight text-ink">
+                  {item.title}
+                </span>
+                {item.favorited ? (
+                  <Star className="mt-1 size-4 shrink-0 fill-ink text-ink" aria-label="Favorited" />
+                ) : null}
               </span>
               {item.excerpt ? (
                 <span className="mt-1 line-clamp-2 block text-sm leading-normal text-ink-soft">
