@@ -28,7 +28,7 @@ export function assertPublicHttpUrl(raw: string): URL {
     throw new Error("That does not look like a valid URL.");
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new Error("Only http and https URLs can be sent to Kindle.");
+    throw new Error("Only http and https URLs can be saved.");
   }
   const host = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
   if (BLOCKED_HOSTS.has(host) || host.endsWith(".local") || host.endsWith(".internal")) {
