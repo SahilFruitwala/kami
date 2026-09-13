@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Folder, Plus, X } from "lucide-react";
-import { useKindleStore, type LibraryItem } from "@/lib/store.ts";
+import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
 
 export function OrganizeRow({ item }: { item: LibraryItem }) {
-  const folders = useKindleStore((s) => s.folders);
-  const addFolder = useKindleStore((s) => s.addFolder);
-  const setItemFolder = useKindleStore((s) => s.setItemFolder);
-  const addTag = useKindleStore((s) => s.addTag);
-  const removeTag = useKindleStore((s) => s.removeTag);
+  const folders = useLibraryStore((s) => s.folders);
+  const addFolder = useLibraryStore((s) => s.addFolder);
+  const setItemFolder = useLibraryStore((s) => s.setItemFolder);
+  const addTag = useLibraryStore((s) => s.addTag);
+  const removeTag = useLibraryStore((s) => s.removeTag);
   const [folderOpen, setFolderOpen] = useState(false);
   const [addingTag, setAddingTag] = useState(false);
   const [folderDraft, setFolderDraft] = useState("");

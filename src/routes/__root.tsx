@@ -15,7 +15,7 @@ export const Route = createRootRoute({
       { title: APP_NAME },
       {
         name: "description",
-        content: "Save articles to read later. A quiet reader, with optional send to Kindle.",
+        content: "Save blogs and X articles to read later — clean pages, tags, and highlights.",
       },
       { name: "theme-color", content: "#F3EEE4" },
     ],

@@ -1,36 +1,22 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  Archive,
-  ArrowRight,
-  BookMarked,
-  Inbox,
-  LoaderCircle,
-  Settings2,
-} from "lucide-react";
+import { Archive, ArrowRight, BookMarked, Inbox, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ArticleList } from "@/components/article-list.tsx";
 import { LibraryFilters } from "@/components/library-filters.tsx";
 import { ReaderView } from "@/components/reader-view.tsx";
-import { SetupDialog } from "@/components/setup-dialog.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import type { Article } from "@/lib/article-types.ts";
-import { bindEpub, extractArticle } from "@/lib/kindle-fns.ts";
-import {
-  gmailComposeUrl,
-  isKindleEmail,
-} from "@/lib/kindle-email.ts";
+import { extractArticle } from "@/lib/article-fns.ts";
 import {
   normalizeSourceUrl,
   readDraftUrl,
   writeDraftUrl,
 } from "@/lib/session-article.ts";
 import {
-  articleIdFromUrl,
   articleToItem,
   itemToArticle,
-  useKindleStore,
+  useLibraryStore,
   type LibraryItem,
 } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
@@ -40,7 +26,7 @@ export const Route = createFileRoute("/")({ component: Home });
 const SAMPLES = [
   {
     label: "Wikipedia",
-    url: "https://en.wikipedia.org/wiki/Amazon_Kindle",
+    url: "https://en.wikipedia.org/wiki/Read-it-later",
   },
   {
     label: "Essay",
@@ -52,45 +38,24 @@ const SAMPLES = [
   },
 ] as const;
 
-function downloadBase64(filename: string, mime: string, base64: string): File {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-  const file = new File([bytes], filename, { type: mime });
-  const href = URL.createObjectURL(file);
-  const a = document.createElement("a");
-  a.href = href;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(href);
-  return file;
-}
-
 function Home() {
   const [url, setUrl] = useState("");
-  const [busy, setBusy] = useState<"extract" | "send" | "download" | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"inbox" | "archive">("inbox");
   const [folderFilter, setFolderFilter] = useState<"all" | "none" | string>("all");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
-  const [setupOpen, setSetupOpen] = useState(false);
-  const [pendingSend, setPendingSend] = useState(false);
   const booted = useRef(false);
   const inFlight = useRef<string | null>(null);
 
-  const kindleEmail = useKindleStore((s) => s.kindleEmail);
-  const library = useKindleStore((s) => s.library);
-  const openId = useKindleStore((s) => s.openId);
-  const readerSize = useKindleStore((s) => s.readerSize);
-  const upsertItem = useKindleStore((s) => s.upsertItem);
-  const archiveItem = useKindleStore((s) => s.archiveItem);
-  const markStatus = useKindleStore((s) => s.markStatus);
-  const removeItem = useKindleStore((s) => s.removeItem);
-  const setOpenId = useKindleStore((s) => s.setOpenId);
-  const setReaderSize = useKindleStore((s) => s.setReaderSize);
-  const connected = isKindleEmail(kindleEmail);
+  const library = useLibraryStore((s) => s.library);
+  const openId = useLibraryStore((s) => s.openId);
+  const readerSize = useLibraryStore((s) => s.readerSize);
+  const upsertItem = useLibraryStore((s) => s.upsertItem);
+  const archiveItem = useLibraryStore((s) => s.archiveItem);
+  const removeItem = useLibraryStore((s) => s.removeItem);
+  const setOpenId = useLibraryStore((s) => s.setOpenId);
+  const setReaderSize = useLibraryStore((s) => s.setReaderSize);
 
   const openItem = useMemo(
     () => library.find((row) => row.id === openId) ?? null,
@@ -118,11 +83,11 @@ function Home() {
       setError("Paste a blog or X URL first.");
       return;
     }
-    if (inFlight.current === trimmed && busy === "extract") return;
+    if (inFlight.current === trimmed && busy) return;
     setUrl(trimmed);
     writeDraftUrl(trimmed);
     inFlight.current = trimmed;
-    setBusy("extract");
+    setBusy(true);
     setError("");
     try {
       const result = await extractArticle({ data: { url: trimmed } });
@@ -135,13 +100,14 @@ function Home() {
       writeDraftUrl("");
       setUrl("");
       if (!thenOpen) setOpenId(null);
+      else toast.success("Saved to your list");
     } catch {
       if (inFlight.current !== trimmed) return;
       setError("Something went wrong while reading that page. Try again.");
     } finally {
       if (inFlight.current === trimmed) {
         inFlight.current = null;
-        setBusy(null);
+        setBusy(false);
       }
     }
   }
@@ -165,102 +131,24 @@ function Home() {
     }
   }, []);
 
-  async function buildFile(target: Article): Promise<File | null> {
-    const result = await bindEpub({ data: { article: target } });
-    if (!result.ok) {
-      toast.error(result.error);
-      return null;
-    }
-    return downloadBase64(result.filename, result.mime, result.base64);
-  }
-
-  async function downloadOnly() {
-    if (!article) return;
-    setBusy("download");
-    try {
-      const file = await buildFile(article);
-      if (!file) return;
-      markStatus(articleIdFromUrl(article.canonicalUrl || article.url), "downloaded");
-      toast.success("EPUB saved. Drop it on Amazon Send to Kindle or email it.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function sendToKindle() {
-    if (!article) return;
-    const email = useKindleStore.getState().kindleEmail;
-    if (!isKindleEmail(email)) {
-      setPendingSend(true);
-      setSetupOpen(true);
-      return;
-    }
-    setBusy("send");
-    try {
-      const file = await buildFile(article);
-      if (!file) return;
-      markStatus(articleIdFromUrl(article.canonicalUrl || article.url), "sent");
-      const shareData = {
-        files: [file],
-        title: article.title,
-        text: `Send “${article.title}” to Kindle`,
-      };
-      if (typeof navigator.canShare === "function" && navigator.canShare(shareData)) {
-        try {
-          await navigator.share(shareData);
-          toast.success("Pick Kindle, Gmail, or Files to finish delivery.");
-          return;
-        } catch {
-          // cancelled
-        }
-      }
-      window.open(gmailComposeUrl(email, article.title), "_blank", "noopener,noreferrer");
-      toast.success("EPUB downloaded. Attach it in the email window and send.");
-    } finally {
-      setBusy(null);
-    }
-  }
-
   if (article && openItem) {
     return (
-      <>
-        <ReaderView
-          item={openItem}
-          article={article}
-          busy={busy}
-          kindleEmail={kindleEmail}
-          readerSize={readerSize}
-          onBack={() => setOpenId(null)}
-          onArchive={() => {
-            if (!openItem) return;
-            archiveItem(openItem.id, !openItem.archived);
-            if (!openItem.archived) {
-              setOpenId(null);
-              toast.success("Archived");
-            } else {
-              toast.success("Moved to inbox");
-            }
-          }}
-          onSend={() => void sendToKindle()}
-          onDownload={() => void downloadOnly()}
-          onToggleSize={() => setReaderSize(readerSize === "lg" ? "md" : "lg")}
-        />
-        <SetupDialog
-          open={setupOpen}
-          onOpenChange={(open) => {
-            setSetupOpen(open);
-            if (!open && !isKindleEmail(useKindleStore.getState().kindleEmail)) {
-              setPendingSend(false);
-            }
-          }}
-          onSaved={() => {
-            if (pendingSend) {
-              setPendingSend(false);
-              void sendToKindle();
-            }
-          }}
-        />
-      </>
+      <ReaderView
+        item={openItem}
+        article={article}
+        readerSize={readerSize}
+        onBack={() => setOpenId(null)}
+        onArchive={() => {
+          archiveItem(openItem.id, !openItem.archived);
+          if (!openItem.archived) {
+            setOpenId(null);
+            toast.success("Archived");
+          } else {
+            toast.success("Moved to inbox");
+          }
+        }}
+        onToggleSize={() => setReaderSize(readerSize === "lg" ? "md" : "lg")}
+      />
     );
   }
 
@@ -277,24 +165,20 @@ function Home() {
           </span>
           <div>
             <p className="text-sm font-semibold tracking-tight">Quarto</p>
-            <p className="hidden text-xs text-muted sm:block">Read later</p>
+            <p className="hidden text-xs text-muted sm:block">Save & read later</p>
           </div>
         </div>
-        <Button variant="ghost" className="gap-2 px-3" onClick={() => setSetupOpen(true)}>
-          <Settings2 className="size-4" />
-          <span className="hidden sm:inline">{connected ? "Kindle" : "Connect Kindle"}</span>
-        </Button>
       </header>
 
       <div className="relative mx-auto w-full max-w-3xl px-4 pb-20 sm:px-6">
         <section className="stagger-in pt-4">
-          <p className="text-sm text-muted">Save. Read here. Kindle if you want.</p>
+          <p className="text-sm text-muted">Save blogs and X articles. Read them later.</p>
           <h1 className="mt-3 font-display text-3xl leading-tight tracking-tight text-ink sm:text-4xl">
-            A quiet place to read the web.
+            Your quiet reading list.
           </h1>
           <p className="mt-3 max-w-lg text-base leading-normal text-ink-soft">
-            Save a blog, essay, or X article. Read it here without the chrome. Send
-            it to your Kindle only if you want it on paper.
+            Paste a link, strip the clutter, and keep a clean copy on this device — with
+            tags, folders, highlights, and listen mode.
           </p>
 
           <div className="mt-8">
@@ -310,7 +194,7 @@ function Home() {
                 autoCorrect="off"
                 autoComplete="off"
                 spellCheck={false}
-                placeholder="Paste a URL to save"
+                placeholder="Paste a blog or X URL"
                 value={url}
                 onChange={(e) => {
                   setUrl(e.target.value);
@@ -336,10 +220,10 @@ function Home() {
               <Button
                 type="button"
                 className="sm:w-32"
-                disabled={busy === "extract"}
+                disabled={busy}
                 onClick={() => void save()}
               >
-                {busy === "extract" ? (
+                {busy ? (
                   <LoaderCircle className="size-4 animate-spin" />
                 ) : (
                   <>
@@ -409,7 +293,7 @@ function Home() {
           onTag={setTagFilter}
         />
 
-        {busy === "extract" && !openId ? (
+        {busy && !openId ? (
           <p className="mt-6 text-sm text-muted">Saving a clean copy…</p>
         ) : null}
 
@@ -419,28 +303,12 @@ function Home() {
           emptyCopy={
             tab === "archive"
               ? "Archive a piece after you finish it. It will wait here."
-              : "Paste a URL above. Read it in a quiet view, then send it to Kindle if you like."
+              : "Paste a URL above to save a blog or X article for later."
           }
           onOpen={(item) => void openItemOrFetch(item)}
           onRemove={removeItem}
         />
       </div>
-
-      <SetupDialog
-        open={setupOpen}
-        onOpenChange={(open) => {
-          setSetupOpen(open);
-          if (!open && !isKindleEmail(useKindleStore.getState().kindleEmail)) {
-            setPendingSend(false);
-          }
-        }}
-        onSaved={() => {
-          if (pendingSend) {
-            setPendingSend(false);
-            void sendToKindle();
-          }
-        }}
-      />
     </main>
   );
 }
