@@ -630,6 +630,90 @@ async function extractViaGrok(html: string, pageUrl: string): Promise<Article | 
   }
 }
 
+function looksLikeChallengePage(html: string): boolean {
+  const sample = html.slice(0, 12_000).toLowerCase();
+  const signals = [
+    "cf-browser-verification",
+    "cf-challenge",
+    "challenge-platform",
+    "attention required",
+    "just a moment...",
+    "enable javascript and cookies",
+    "checking your browser",
+    "verify you are human",
+    "access denied",
+    "bot detection",
+    "captcha",
+  ];
+  if (signals.some((s) => sample.includes(s))) return true;
+  const plain = textFromHtml(html);
+  return plain.length < 80 && /cloudflare|akamai|perimeter|datadome|recaptcha/i.test(sample);
+}
+
+export function articleFromLinkOnly(rawUrl: string, title?: string): Article {
+  const pageUrl = assertPublicHttpUrl(rawUrl);
+  const href = pageUrl.href;
+  const host = pageUrl.hostname.replace(/^www\./, "");
+  const safeTitle = (title || "").trim() || host;
+  const contentHtml = sanitizeHtml(
+    `<p><em>Saved as a link.</em> Automatic capture was blocked — open the original, or paste the article / use the Quarto bookmarklet.</p><p><a href="${href.replace(/"/g, "&quot;")}">Open original</a></p>`,
+    href,
+  );
+  return {
+    url: href,
+    canonicalUrl: href,
+    title: safeTitle,
+    author: "",
+    siteName: host,
+    published: null,
+    excerpt: "Saved as a link. Paste the article or use the bookmarklet for a full offline copy.",
+    contentHtml,
+    wordCount: countWords(textFromHtml(contentHtml)),
+    readingMinutes: 1,
+    source: "blog",
+    heroImage: null,
+  };
+}
+
+export function articleFromManualImport(input: {
+  url?: string;
+  title: string;
+  contentHtml?: string;
+  contentText?: string;
+}): Article {
+  let href = "https://imported.local/article";
+  let host = "imported";
+  if (input.url?.trim()) {
+    const pageUrl = assertPublicHttpUrl(input.url.trim());
+    href = pageUrl.href;
+    host = pageUrl.hostname.replace(/^www\./, "");
+  }
+  const rawHtml =
+    input.contentHtml?.trim() ||
+    (input.contentText || "")
+      .split(/\n{2,}/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => `<p>${p.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</p>`)
+      .join("") ||
+    "";
+  const built = buildArticle({
+    url: href,
+    canonicalUrl: href,
+    title: input.title.trim() || "Untitled",
+    author: "",
+    siteName: host,
+    published: null,
+    contentHtml: rawHtml,
+    source: "blog",
+    heroImage: null,
+  });
+  if (!built) {
+    throw new Error("Not enough readable text to import. Paste more of the article.");
+  }
+  return built;
+}
+
 export async function extractArticleFromUrl(rawUrl: string): Promise<ExtractResult> {
   let pageUrl: URL;
   try {
@@ -661,20 +745,27 @@ export async function extractArticleFromUrl(rawUrl: string): Promise<ExtractResu
   }
 
   const source: Article["source"] = classified.kind === "web" ? "blog" : "x";
-  const fromDom = readabilityFromHtml(fetched.text, fetched.finalUrl || pageUrl.href, source);
-  if (fromDom) return { ok: true, article: fromDom };
+  const challenge = looksLikeChallengePage(fetched.text);
+
+  if (!challenge) {
+    const fromDom = readabilityFromHtml(fetched.text, fetched.finalUrl || pageUrl.href, source);
+    if (fromDom) return { ok: true, article: fromDom };
+  }
 
   const viaJina = await extractViaJina(fetched.finalUrl || pageUrl.href);
   if (viaJina) return { ok: true, article: viaJina };
 
-  const viaGrok = await extractViaGrok(fetched.text, fetched.finalUrl || pageUrl.href);
-  if (viaGrok) return { ok: true, article: viaGrok };
+  if (!challenge) {
+    const viaGrok = await extractViaGrok(fetched.text, fetched.finalUrl || pageUrl.href);
+    if (viaGrok) return { ok: true, article: viaGrok };
+  }
 
   return {
     ok: false,
-    error:
-      classified.kind === "web"
-        ? "Not enough readable text on that page. Try a public article, not a homepage or app screen."
+    error: challenge
+      ? "That site blocked automatic capture (bot check). Use Paste article or the bookmarklet, or save the link for later."
+      : classified.kind === "web"
+        ? "Not enough readable text on that page. Try Paste article, the bookmarklet, or save the link."
         : "That post could not be read. It may be private, deleted, or behind a login.",
   };
 }
