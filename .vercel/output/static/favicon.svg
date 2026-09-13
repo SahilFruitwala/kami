@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Quarto">
+  <rect width="32" height="32" rx="7" fill="#1C1916"/>
+  <!-- open folio: warm paper pages -->
+  <path
+    d="M16 7.2c-2.1 1.4-4.6 2.1-7.2 2.1v13.4c2.6 0 5.1-.7 7.2-2.1 2.1 1.4 4.6 2.1 7.2 2.1V9.3c-2.6 0-5.1-.7-7.2-2.1Z"
+    fill="#F3EEE4"
+  />
+  <path d="M16 7.4v13.1" stroke="#1C1916" stroke-width="0.85" stroke-linecap="round" opacity="0.28"/>
+  <!-- left page lines -->
+  <path
+    d="M9.4 13.2h4.6M9.4 15.4h4.2M9.4 17.6h3.4"
+    stroke="#3D4A55"
+    stroke-width="0.85"
+    stroke-linecap="round"
+    opacity="0.55"
+  />
+  <!-- right page lines -->
+  <path
+    d="M18 13.2h4.6M18.4 15.4h4.2M19.2 17.6h3.4"
+    stroke="#3D4A55"
+    stroke-width="0.85"
+    stroke-linecap="round"
+    opacity="0.45"
+  />
+  <!-- warm paper edge tip -->
+  <path d="M22.8 9.6l2.4-.2v2.8l-2.4.8V9.6Z" fill="#E8E0D2"/>
+</svg>

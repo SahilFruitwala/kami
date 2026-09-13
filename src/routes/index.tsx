@@ -25,12 +25,12 @@ export const Route = createFileRoute("/")({ component: Home });
 
 const SAMPLES = [
   {
-    label: "Wikipedia",
-    url: "https://en.wikipedia.org/wiki/Read-it-later",
-  },
-  {
     label: "Essay",
     url: "http://www.paulgraham.com/ds.html",
+  },
+  {
+    label: "Blog",
+    url: "https://blog.cloudflare.com/workers-announcement/",
   },
   {
     label: "X article",
