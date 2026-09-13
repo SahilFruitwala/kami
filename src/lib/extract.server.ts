@@ -1,0 +1,682 @@
+import { Readability } from "@mozilla/readability";
+import { parseHTML } from "linkedom";
+import type { Article, ExtractResult } from "./article-types.ts";
+import { pickImageSrc, preferReadableImage } from "./image-url.ts";
+import { absoluteUrl, assertPublicHttpUrl } from "./safe-url.ts";
+import { decodeBasicEntities, xmlEscape } from "./xml.ts";
+import {
+  isBareXArticleLink,
+  xArticleBlocksToHtml,
+  type FxXArticle,
+} from "./x-article.ts";
+
+const FETCH_TIMEOUT_MS = 12_000;
+const MAX_HTML_BYTES = 2_000_000;
+const USER_AGENT =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
+
+
+async function fetchText(
+  url: string,
+  accept: string,
+  extraHeaders: Record<string, string> = {},
+): Promise<{ text: string; finalUrl: string; contentType: string }> {
+  const res = await fetch(url, {
+    method: "GET",
+    redirect: "follow",
+    signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+    headers: {
+      "user-agent": USER_AGENT,
+      accept,
+      "accept-language": "en-US,en;q=0.9",
+      ...extraHeaders,
+    },
+  });
+  if (!res.ok) {
+    throw new Error(`The page returned ${res.status}.`);
+  }
+  const contentType = res.headers.get("content-type") ?? "";
+  const buf = new Uint8Array(await res.arrayBuffer());
+  if (buf.byteLength > MAX_HTML_BYTES) {
+    throw new Error("That page is too large to convert.");
+  }
+  const text = new TextDecoder("utf-8").decode(buf);
+  return { text, finalUrl: res.url || url, contentType };
+}
+
+type UrlKind =
+  | { kind: "x-status"; id: string; url: URL }
+  | { kind: "x-article"; id: string; url: URL }
+  | { kind: "web"; url: URL };
+
+function classify(url: URL): UrlKind {
+  const host = url.hostname.replace(/^www\./, "").toLowerCase();
+  const isX =
+    host === "x.com" ||
+    host === "twitter.com" ||
+    host === "mobile.twitter.com" ||
+    host === "fxtwitter.com" ||
+    host === "vxtwitter.com";
+  if (isX) {
+    const status = url.pathname.match(/\/status\/(\d+)/);
+    if (status?.[1]) return { kind: "x-status", id: status[1], url };
+    const article = url.pathname.match(/\/(?:i\/)?(?:[^/]+\/)?article\/(\d+)/) || url.pathname.match(/\/article\/(\d+)/);
+    if (article?.[1]) return { kind: "x-article", id: article[1], url };
+  }
+  return { kind: "web", url };
+}
+
+function textFromHtml(html: string): string {
+  return decodeBasicEntities(
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<[^>]+>/g, " "),
+  )
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function countWords(text: string): number {
+  if (!text) return 0;
+  return text.split(/\s+/).filter(Boolean).length;
+}
+
+function excerptOf(text: string, max = 220): string {
+  if (text.length <= max) return text;
+  const slice = text.slice(0, max);
+  const cut = slice.lastIndexOf(" ");
+  return `${(cut > 80 ? slice.slice(0, cut) : slice).trim()}…`;
+}
+
+const ALLOWED_TAGS = new Set([
+  "P",
+  "H1",
+  "H2",
+  "H3",
+  "H4",
+  "H5",
+  "H6",
+  "BLOCKQUOTE",
+  "UL",
+  "OL",
+  "LI",
+  "STRONG",
+  "EM",
+  "B",
+  "I",
+  "A",
+  "IMG",
+  "FIGURE",
+  "FIGCAPTION",
+  "PRE",
+  "CODE",
+  "BR",
+  "HR",
+  "DIV",
+  "SPAN",
+  "TABLE",
+  "THEAD",
+  "TBODY",
+  "TR",
+  "TH",
+  "TD",
+  "SUP",
+  "SUB",
+]);
+
+function sanitizeHtml(html: string, baseUrl: string): string {
+  const { document } = parseHTML(`<div id="root">${html}</div>`);
+  const root = document.getElementById("root");
+  if (!root) return "";
+
+  const walk = (node: Element) => {
+    const children = Array.from(node.childNodes);
+    for (const child of children) {
+      if (child.nodeType === 8) {
+        child.remove();
+        continue;
+      }
+      if (child.nodeType !== 1) continue;
+      const el = child as Element;
+      const tag = el.tagName.toUpperCase();
+      if (tag === "SCRIPT" || tag === "STYLE" || tag === "IFRAME" || tag === "OBJECT" || tag === "NOSCRIPT") {
+        el.remove();
+        continue;
+      }
+      walk(el);
+      if (tag === "A" && (el.textContent || "").trim().toLowerCase() === "edit") {
+        el.remove();
+        continue;
+      }
+      if (!ALLOWED_TAGS.has(tag)) {
+        const parent = el.parentNode;
+        if (parent) {
+          while (el.firstChild) parent.insertBefore(el.firstChild, el);
+          el.remove();
+        }
+        continue;
+      }
+      const keep = new Map<string, string>();
+      if (tag === "A") {
+        const href = el.getAttribute("href");
+        if (href) {
+          const abs = absoluteUrl(href, baseUrl);
+          if (abs) keep.set("href", abs);
+        }
+      }
+      if (tag === "IMG") {
+        const abs = pickImageSrc(el, baseUrl);
+        if (!abs) {
+          el.remove();
+          continue;
+        }
+        keep.set("src", abs);
+        const alt = el.getAttribute("alt");
+        if (alt) keep.set("alt", alt);
+      }
+      for (const attr of Array.from(el.attributes)) {
+        el.removeAttribute(attr.name);
+      }
+      for (const [k, v] of keep) el.setAttribute(k, v);
+    }
+  };
+
+  walk(root);
+  return root.innerHTML.trim();
+}
+
+function tweetTextToHtml(text: string, baseUrl: string): string {
+  const escaped = xmlEscape(text);
+  const linked = escaped.replace(
+    /(https?:\/\/[^\s<]+)/g,
+    (url) => `<a href="${url}">${url}</a>`,
+  );
+  const withHandles = linked.replace(
+    /(^|[\s])@([A-Za-z0-9_]+)/g,
+    `$1<a href="https://x.com/$2">@$2</a>`,
+  );
+  const paragraphs = withHandles
+    .split(/\n{2,}/)
+    .map((block) => `<p>${block.replace(/\n/g, "<br/>")}</p>`)
+    .join("");
+  return sanitizeHtml(paragraphs, baseUrl);
+}
+
+function formatTweetDate(value: unknown): string | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const ms = value > 10_000_000_000 ? value : value * 1000;
+    return new Date(ms).toISOString();
+  }
+  if (typeof value === "string" && value.trim()) {
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+  }
+  return null;
+}
+
+type FxTweet = {
+  id?: string;
+  url?: string;
+  text?: string;
+  raw_text?: { text?: string };
+  author?: { name?: string; screen_name?: string };
+  created_at?: string;
+  created_timestamp?: number;
+  media?: { photos?: { url?: string; altText?: string }[] };
+  quote?: FxTweet;
+  article?: FxXArticle;
+};
+
+function tweetToArticle(tweet: FxTweet, sourceUrl: string): Article | null {
+  if (tweet.article?.content?.blocks?.length) {
+    const html = xArticleBlocksToHtml(tweet.article);
+    const handle = tweet.author?.screen_name ? `@${tweet.author.screen_name}` : "";
+    const author = tweet.author?.name
+      ? `${tweet.author.name}${handle ? ` (${handle})` : ""}`
+      : handle || "X";
+    const canonical = tweet.url || sourceUrl;
+    const cover = tweet.article.cover_media?.media_info?.original_img_url ?? null;
+    return buildArticle({
+      url: sourceUrl,
+      canonicalUrl: canonical,
+      title: tweet.article.title || "X article",
+      author,
+      siteName: "X",
+      published: formatTweetDate(tweet.created_timestamp ?? tweet.created_at),
+      contentHtml: html,
+      source: "x",
+      heroImage: cover,
+    });
+  }
+
+  const text = (tweet.text || tweet.raw_text?.text || "").trim();
+  if (!text || isBareXArticleLink(text)) return null;
+  const handle = tweet.author?.screen_name ? `@${tweet.author.screen_name}` : "";
+  const author = tweet.author?.name
+    ? `${tweet.author.name}${handle ? ` (${handle})` : ""}`
+    : handle || "X";
+  const canonical = tweet.url || sourceUrl;
+  const photos = tweet.media?.photos ?? [];
+  const figures = photos
+    .map((photo) => {
+      if (!photo.url) return "";
+      const alt = xmlEscape(photo.altText || "Posted image");
+      return `<figure><img src="${xmlEscape(photo.url)}" alt="${alt}"/></figure>`;
+    })
+    .join("");
+  let quoteHtml = "";
+  if (tweet.quote?.text) {
+    const qAuthor = tweet.quote.author?.screen_name
+      ? `@${tweet.quote.author.screen_name}`
+      : tweet.quote.author?.name || "quoted post";
+    quoteHtml = `<blockquote><p><strong>${xmlEscape(qAuthor)}</strong></p>${tweetTextToHtml(tweet.quote.text, canonical)}</blockquote>`;
+  }
+  const contentHtml = sanitizeHtml(
+    `${tweetTextToHtml(text, canonical)}${quoteHtml}${figures}`,
+    canonical,
+  );
+  const plain = textFromHtml(contentHtml);
+  const words = countWords(plain);
+  if (!plain) return null;
+  return {
+    url: sourceUrl,
+    canonicalUrl: canonical,
+    title: excerptOf(text.replace(/\s+/g, " "), 90),
+    author,
+    siteName: "X",
+    published: formatTweetDate(tweet.created_timestamp ?? tweet.created_at),
+    excerpt: excerptOf(plain),
+    contentHtml,
+    wordCount: words,
+    readingMinutes: Math.max(1, Math.round(words / 200)),
+    source: "x",
+    heroImage: photos[0]?.url ?? null,
+  };
+}
+
+async function extractTweet(id: string, sourceUrl: string): Promise<Article | null> {
+  const endpoints = [
+    `https://api.fxtwitter.com/status/${id}`,
+    `https://api.vxtwitter.com/Twitter/status/${id}`,
+  ];
+  for (const endpoint of endpoints) {
+    try {
+      const { text } = await fetchText(endpoint, "application/json");
+      const json = JSON.parse(text) as { tweet?: FxTweet; text?: string; user_name?: string; user_screen_name?: string; date?: string; media_extended?: { type?: string; url?: string }[]; tweetURL?: string };
+      if (json.tweet) {
+        const article = tweetToArticle(json.tweet, sourceUrl);
+        if (article) return article;
+      }
+      if (typeof json.text === "string" && json.text.trim()) {
+        const fake: FxTweet = {
+          text: json.text,
+          url: json.tweetURL || sourceUrl,
+          author: { name: json.user_name, screen_name: json.user_screen_name },
+          created_at: json.date,
+          media: {
+            photos: (json.media_extended ?? [])
+              .filter((m) => m.type === "image" && m.url)
+              .map((m) => ({ url: m.url })),
+          },
+        };
+        const article = tweetToArticle(fake, sourceUrl);
+        if (article) return article;
+      }
+    } catch {
+      // try next
+    }
+  }
+
+  try {
+    const oembedUrl = `https://publish.twitter.com/oembed?omit_script=1&dnt=1&url=${encodeURIComponent(sourceUrl)}`;
+    const { text } = await fetchText(oembedUrl, "application/json");
+    const json = JSON.parse(text) as { html?: string; author_name?: string; author_url?: string };
+    if (json.html) {
+      const { document } = parseHTML(`<div id="root">${json.html}</div>`);
+      const plain = (document.getElementById("root")?.textContent ?? "").replace(/\s+/g, " ").trim();
+      if (plain) {
+        const contentHtml = tweetTextToHtml(plain, sourceUrl);
+        const words = countWords(plain);
+        return {
+          url: sourceUrl,
+          canonicalUrl: sourceUrl,
+          title: excerptOf(plain, 90),
+          author: json.author_name || "X",
+          siteName: "X",
+          published: null,
+          excerpt: excerptOf(plain),
+          contentHtml,
+          wordCount: words,
+          readingMinutes: Math.max(1, Math.round(words / 200)),
+          source: "x",
+          heroImage: null,
+        };
+      }
+    }
+  } catch {
+    // fall through to page fetch
+  }
+  return null;
+}
+
+function metaContent(document: Document, selectors: string[]): string {
+  for (const selector of selectors) {
+    const el = document.querySelector(selector);
+    const content =
+      el?.getAttribute("content") ||
+      el?.getAttribute("href") ||
+      el?.textContent ||
+      "";
+    if (content.trim()) return content.trim();
+  }
+  return "";
+}
+
+function extractJsonLd(document: Document): { title?: string; author?: string; date?: string; image?: string } {
+  const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+  for (const script of scripts) {
+    try {
+      const raw = JSON.parse(script.textContent || "");
+      const nodes = Array.isArray(raw) ? raw : raw["@graph"] ? raw["@graph"] : [raw];
+      for (const node of nodes) {
+        if (!node || typeof node !== "object") continue;
+        const type = String(node["@type"] ?? "");
+        if (!/Article|BlogPosting|NewsArticle|WebPage/i.test(type) && !node.headline) continue;
+        const author = node.author;
+        const authorName =
+          typeof author === "string"
+            ? author
+            : Array.isArray(author)
+              ? author.map((a) => a?.name).filter(Boolean).join(", ")
+              : author?.name;
+        const image = typeof node.image === "string" ? node.image : node.image?.url;
+        return {
+          title: node.headline || node.name,
+          author: authorName,
+          date: node.datePublished || node.dateCreated,
+          image,
+        };
+      }
+    } catch {
+      // ignore bad json-ld
+    }
+  }
+  return {};
+}
+
+function buildArticle(params: {
+  url: string;
+  canonicalUrl: string;
+  title: string;
+  author: string;
+  siteName: string;
+  published: string | null;
+  contentHtml: string;
+  source: Article["source"];
+  heroImage: string | null;
+}): Article | null {
+  const contentHtml = sanitizeHtml(params.contentHtml, params.canonicalUrl);
+  const plain = textFromHtml(contentHtml);
+  const words = countWords(plain);
+  if (params.source !== "x" && words < 40) return null;
+  if (!plain) return null;
+  return {
+    url: params.url,
+    canonicalUrl: params.canonicalUrl,
+    title: params.title.trim() || excerptOf(plain, 90),
+    author: params.author.trim(),
+    siteName: params.siteName.trim() || new URL(params.canonicalUrl).hostname.replace(/^www\./, ""),
+    published: params.published,
+    excerpt: excerptOf(plain),
+    contentHtml,
+    wordCount: words,
+    readingMinutes: Math.max(1, Math.round(words / 200)),
+    source: params.source,
+    heroImage: params.heroImage ? preferReadableImage(params.heroImage) : null,
+  };
+}
+
+function readabilityFromHtml(html: string, pageUrl: string, source: Article["source"]): Article | null {
+  const { document } = parseHTML(html);
+  const base = document.createElement("base");
+  base.setAttribute("href", pageUrl);
+  document.head?.appendChild(base);
+
+  const ld = extractJsonLd(document as unknown as Document);
+  const ogTitle = metaContent(document as unknown as Document, [
+    'meta[property="og:title"]',
+    'meta[name="twitter:title"]',
+    "title",
+  ]);
+  const ogSite = metaContent(document as unknown as Document, [
+    'meta[property="og:site_name"]',
+  ]);
+  const ogAuthor = metaContent(document as unknown as Document, [
+    'meta[name="author"]',
+    'meta[property="article:author"]',
+  ]);
+  const ogDate = metaContent(document as unknown as Document, [
+    'meta[property="article:published_time"]',
+    'meta[name="date"]',
+    "time[datetime]",
+  ]);
+  const ogImage = metaContent(document as unknown as Document, [
+    'meta[property="og:image"]',
+    'meta[name="twitter:image"]',
+  ]);
+
+  let parsed: { title?: string | null; byline?: string | null; content?: string | null; excerpt?: string | null } | null = null;
+  try {
+    parsed = new Readability(document as never, {
+      charThreshold: 80,
+    }).parse();
+  } catch {
+    parsed = null;
+  }
+
+  const contentHtml = parsed?.content || "";
+  const title = (parsed?.title || ld.title || ogTitle || "").trim();
+  const author = (parsed?.byline || ld.author || ogAuthor || "").trim();
+  const published = formatTweetDate(ld.date || ogDate);
+  const hero = ld.image || ogImage || null;
+
+  return buildArticle({
+    url: pageUrl,
+    canonicalUrl: pageUrl,
+    title,
+    author,
+    siteName: ogSite,
+    published,
+    contentHtml:
+      contentHtml ||
+      (title ? `<p>${xmlEscape(textFromHtml(html).slice(0, 4000))}</p>` : ""),
+    source,
+    heroImage: hero ? absoluteUrl(hero, pageUrl) : null,
+  });
+}
+
+function markdownToHtml(md: string): string {
+  const lines = md.replace(/\r\n/g, "\n").split("\n");
+  const out: string[] = [];
+  let para: string[] = [];
+  let list: string[] = [];
+  const flushPara = () => {
+    if (!para.length) return;
+    out.push(`<p>${para.join("<br/>")}</p>`);
+    para = [];
+  };
+  const flushList = () => {
+    if (!list.length) return;
+    out.push(`<ul>${list.map((item) => `<li>${item}</li>`).join("")}</ul>`);
+    list = [];
+  };
+  const inline = (s: string) =>
+    xmlEscape(s)
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, `<img alt="$1" src="$2"/>`)
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, `<a href="$2">$1</a>`)
+      .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+      .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    if (!line.trim()) {
+      flushPara();
+      flushList();
+      continue;
+    }
+    const heading = /^(#{1,4})\s+(.*)$/.exec(line);
+    if (heading) {
+      flushPara();
+      flushList();
+      const level = heading[1].length;
+      out.push(`<h${level}>${inline(heading[2])}</h${level}>`);
+      continue;
+    }
+    if (/^>\s?/.test(line)) {
+      flushPara();
+      flushList();
+      out.push(`<blockquote><p>${inline(line.replace(/^>\s?/, ""))}</p></blockquote>`);
+      continue;
+    }
+    if (/^[-*]\s+/.test(line)) {
+      flushPara();
+      list.push(inline(line.replace(/^[-*]\s+/, "")));
+      continue;
+    }
+    para.push(inline(line.trim()));
+  }
+  flushPara();
+  flushList();
+  return out.join("");
+}
+
+async function extractViaJina(url: string): Promise<Article | null> {
+  try {
+    const { text } = await fetchText(`https://r.jina.ai/${url}`, "text/plain", {
+      "X-Timeout": "15",
+    });
+    if (!text.trim()) return null;
+    const titleMatch = text.match(/^Title:\s*(.+)$/m);
+    const title = titleMatch?.[1]?.trim() || "";
+    const mdIndex = text.search(/Markdown Content:\s*/i);
+    const markdown = mdIndex >= 0 ? text.slice(mdIndex).replace(/Markdown Content:\s*/i, "") : text;
+    const html = markdownToHtml(markdown);
+    return buildArticle({
+      url,
+      canonicalUrl: url,
+      title,
+      author: "",
+      siteName: new URL(url).hostname.replace(/^www\./, ""),
+      published: null,
+      contentHtml: html,
+      source: "blog",
+      heroImage: null,
+    });
+  } catch {
+    return null;
+  }
+}
+
+async function extractViaGrok(html: string, pageUrl: string): Promise<Article | null> {
+  const apiKey = process.env.XAI_API_KEY;
+  if (!apiKey) return null;
+  const stripped = textFromHtml(html).slice(0, 12_000);
+  if (stripped.length < 80) return null;
+  try {
+    const res = await fetch("https://api.x.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      signal: AbortSignal.timeout(20_000),
+      body: JSON.stringify({
+        model: "grok-4.5",
+        max_tokens: 2500,
+        messages: [
+          {
+            role: "system",
+            content:
+              "Extract the main article from the page text. Return JSON only: {\"title\":\"\",\"author\":\"\",\"content_html\":\"\"}. content_html must be simple HTML using p, h2, h3, blockquote, ul, ol, li, strong, em, a. No scripts or classes.",
+          },
+          {
+            role: "user",
+            content: `URL: ${pageUrl}\n\n${stripped}`,
+          },
+        ],
+      }),
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const content = body.choices?.[0]?.message?.content ?? "";
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    const parsed = JSON.parse(jsonMatch[0]) as { title?: string; author?: string; content_html?: string };
+    if (!parsed.content_html) return null;
+    return buildArticle({
+      url: pageUrl,
+      canonicalUrl: pageUrl,
+      title: parsed.title || "",
+      author: parsed.author || "",
+      siteName: new URL(pageUrl).hostname.replace(/^www\./, ""),
+      published: null,
+      contentHtml: parsed.content_html,
+      source: "blog",
+      heroImage: null,
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function extractArticleFromUrl(rawUrl: string): Promise<ExtractResult> {
+  let pageUrl: URL;
+  try {
+    pageUrl = assertPublicHttpUrl(rawUrl);
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : "Invalid URL." };
+  }
+
+  const classified = classify(pageUrl);
+
+  if (classified.kind === "x-status" || classified.kind === "x-article") {
+    const tweet = await extractTweet(classified.id, classified.url.href);
+    if (tweet) return { ok: true, article: tweet };
+  }
+
+  let fetched: { text: string; finalUrl: string; contentType: string } | null = null;
+  try {
+    fetched = await fetchText(pageUrl.href, "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8");
+  } catch (err) {
+    const viaJina = await extractViaJina(pageUrl.href);
+    if (viaJina) return { ok: true, article: viaJina };
+    return {
+      ok: false,
+      error:
+        err instanceof Error
+          ? `Could not reach that page. ${err.message}`
+          : "Could not reach that page.",
+    };
+  }
+
+  const source: Article["source"] = classified.kind === "web" ? "blog" : "x";
+  const fromDom = readabilityFromHtml(fetched.text, fetched.finalUrl || pageUrl.href, source);
+  if (fromDom) return { ok: true, article: fromDom };
+
+  const viaJina = await extractViaJina(fetched.finalUrl || pageUrl.href);
+  if (viaJina) return { ok: true, article: viaJina };
+
+  const viaGrok = await extractViaGrok(fetched.text, fetched.finalUrl || pageUrl.href);
+  if (viaGrok) return { ok: true, article: viaGrok };
+
+  return {
+    ok: false,
+    error:
+      classified.kind === "web"
+        ? "Not enough readable text on that page. Try a public article, not a homepage or app screen."
+        : "That post could not be read. It may be private, deleted, or behind a login.",
+  };
+}
+
+export { assertPublicHttpUrl, fetchText, sanitizeHtml, USER_AGENT, FETCH_TIMEOUT_MS };
