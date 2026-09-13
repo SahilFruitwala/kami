@@ -2,24 +2,20 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type MouseEven
 import {
   Archive,
   ArrowLeft,
-  Download,
   ExternalLink,
   Highlighter,
   Inbox,
-  LoaderCircle,
   Pause,
   Play,
-  Send,
   Square,
   Type,
 } from "lucide-react";
 import type { Article } from "@/lib/article-types.ts";
 import { applyHighlights } from "@/lib/highlight-html.ts";
 import { rewriteHtmlImages, previewImageSrc } from "@/lib/image-url.ts";
-import { isKindleEmail } from "@/lib/kindle-email.ts";
 import { listVoices, speakArticle, ttsAvailable, voiceLabel, type TtsStatus, type TtsWord } from "@/lib/tts.ts";
 import { clearSpokenWord, collectSpokenText, paintSpokenWord } from "@/lib/spoken-range.ts";
-import { useKindleStore, type LibraryItem } from "@/lib/store.ts";
+import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
 import { OrganizeRow } from "@/components/organize-row.tsx";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button.tsx";
@@ -91,24 +87,16 @@ function selectionMenu(): SelMenu | null {
 export function ReaderView({
   item,
   article,
-  busy,
-  kindleEmail,
   readerSize,
   onBack,
   onArchive,
-  onSend,
-  onDownload,
   onToggleSize,
 }: {
   item: LibraryItem;
   article: Article;
-  busy: "extract" | "send" | "download" | null;
-  kindleEmail: string;
   readerSize: "md" | "lg";
   onBack: () => void;
   onArchive: () => void;
-  onSend: () => void;
-  onDownload: () => void;
   onToggleSize: () => void;
 }) {
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -125,16 +113,15 @@ export function ReaderView({
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [listenOpen, setListenOpen] = useState(false);
   const canSpeak = ttsAvailable();
-  const connected = isKindleEmail(kindleEmail);
   const hasLeadImage = /<img\b/i.test(article.contentHtml.slice(0, 1200));
 
-  const ttsRate = useKindleStore((s) => s.ttsRate);
-  const ttsVoiceURI = useKindleStore((s) => s.ttsVoiceURI);
-  const setTtsRate = useKindleStore((s) => s.setTtsRate);
-  const setTtsVoiceURI = useKindleStore((s) => s.setTtsVoiceURI);
-  const addHighlight = useKindleStore((s) => s.addHighlight);
-  const removeHighlight = useKindleStore((s) => s.removeHighlight);
-  const setHighlightNote = useKindleStore((s) => s.setHighlightNote);
+  const ttsRate = useLibraryStore((s) => s.ttsRate);
+  const ttsVoiceURI = useLibraryStore((s) => s.ttsVoiceURI);
+  const setTtsRate = useLibraryStore((s) => s.setTtsRate);
+  const setTtsVoiceURI = useLibraryStore((s) => s.setTtsVoiceURI);
+  const addHighlight = useLibraryStore((s) => s.addHighlight);
+  const removeHighlight = useLibraryStore((s) => s.removeHighlight);
+  const setHighlightNote = useLibraryStore((s) => s.setHighlightNote);
 
   const html = useMemo(
     () => applyHighlights(rewriteHtmlImages(article.contentHtml), item.highlights),
@@ -302,27 +289,6 @@ export function ReaderView({
             <Button variant="ghost" className="gap-2 px-3" onClick={onArchive}>
               {item.archived ? <Inbox className="size-4" /> : <Archive className="size-4" />}
               <span className="hidden sm:inline">{item.archived ? "Inbox" : "Archive"}</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              disabled={busy === "download"}
-              aria-label="Download EPUB"
-              onClick={onDownload}
-            >
-              {busy === "download" ? (
-                <LoaderCircle className="size-4 animate-spin" />
-              ) : (
-                <Download className="size-4" />
-              )}
-            </Button>
-            <Button className="gap-2" disabled={busy === "send"} onClick={onSend}>
-              {busy === "send" ? (
-                <LoaderCircle className="size-4 animate-spin" />
-              ) : (
-                <Send className="size-4" />
-              )}
-              <span className="hidden sm:inline">Kindle</span>
             </Button>
           </div>
         </div>

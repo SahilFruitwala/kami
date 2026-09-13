@@ -18,7 +18,3 @@ export type Article = {
 export type ExtractResult =
   | { ok: true; article: Article }
   | { ok: false; error: string };
-
-export type EpubResult =
-  | { ok: true; filename: string; mime: string; base64: string }
-  | { ok: false; error: string };

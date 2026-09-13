@@ -2,7 +2,7 @@ import { useState, type ReactNode } from "react";
 import { FolderPlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { useKindleStore } from "@/lib/store.ts";
+import { useLibraryStore } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
 
 export function LibraryFilters({
@@ -16,10 +16,10 @@ export function LibraryFilters({
   onFolder: (value: string | "all" | "none") => void;
   onTag: (tag: string | null) => void;
 }) {
-  const folders = useKindleStore((s) => s.folders);
-  const library = useKindleStore((s) => s.library);
-  const addFolder = useKindleStore((s) => s.addFolder);
-  const removeFolder = useKindleStore((s) => s.removeFolder);
+  const folders = useLibraryStore((s) => s.folders);
+  const library = useLibraryStore((s) => s.library);
+  const addFolder = useLibraryStore((s) => s.addFolder);
+  const removeFolder = useLibraryStore((s) => s.removeFolder);
   const [draft, setDraft] = useState("");
 
   const tags = Array.from(

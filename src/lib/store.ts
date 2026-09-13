@@ -29,13 +29,10 @@ export type LibraryItem = {
   heroImage: string | null;
   published: string | null;
   savedAt: number;
-  preparedAt: number;
   archived: boolean;
   tags: string[];
   folderId: string | null;
   highlights: Highlight[];
-  sentAt?: number;
-  status: "prepared" | "downloaded" | "sent";
 };
 
 export function articleIdFromUrl(url: string): string {
@@ -84,28 +81,23 @@ export function articleToItem(article: Article, extras: Partial<LibraryItem> = {
     heroImage: article.heroImage,
     published: article.published,
     savedAt: now,
-    preparedAt: now,
     archived: false,
     tags: [],
     folderId: null,
     highlights: [],
-    status: "prepared",
     ...extras,
   };
 }
 
-type KindleState = {
-  kindleEmail: string;
+type LibraryState = {
   library: LibraryItem[];
   folders: Folder[];
   openId: string | null;
   readerSize: "md" | "lg";
   ttsRate: number;
   ttsVoiceURI: string;
-  setKindleEmail: (email: string) => void;
   upsertItem: (item: LibraryItem) => void;
   archiveItem: (id: string, archived: boolean) => void;
-  markStatus: (id: string, status: LibraryItem["status"]) => void;
   removeItem: (id: string) => void;
   setOpenId: (id: string | null) => void;
   setReaderSize: (size: "md" | "lg") => void;
@@ -125,7 +117,7 @@ type KindleState = {
 
 type Persisted = {
   kindleEmail?: string;
-  library?: Array<Partial<LibraryItem> & { id?: string; url?: string; title?: string }>;
+  library?: Array<Partial<LibraryItem> & { id?: string; url?: string; title?: string; preparedAt?: number }>;
   folders?: Folder[];
   openId?: string | null;
   readerSize?: "md" | "lg";
@@ -158,13 +150,10 @@ function migrateItem(row: Persisted["library"] extends (infer T)[] | undefined ?
     heroImage: row.heroImage ?? null,
     published: row.published ?? null,
     savedAt: row.savedAt || row.preparedAt || Date.now(),
-    preparedAt: row.preparedAt || row.savedAt || Date.now(),
     archived: Boolean(row.archived),
     tags,
     folderId: row.folderId || null,
     highlights,
-    sentAt: row.sentAt,
-    status: row.status === "sent" || row.status === "downloaded" ? row.status : "prepared",
   };
 }
 
@@ -172,17 +161,15 @@ function mapItem(library: LibraryItem[], id: string, fn: (row: LibraryItem) => L
   return library.map((row) => (row.id === id ? fn(row) : row));
 }
 
-export const useKindleStore = create<KindleState>()(
+export const useLibraryStore = create<LibraryState>()(
   persist(
     (set, get) => ({
-      kindleEmail: "",
       library: [],
       folders: [],
       openId: null,
       readerSize: "md",
       ttsRate: 1,
       ttsVoiceURI: "",
-      setKindleEmail: (email) => set({ kindleEmail: email.trim() }),
       upsertItem: (item) =>
         set((state) => {
           const existing = state.library.find((row) => row.id === item.id || row.url === item.url);
@@ -194,18 +181,10 @@ export const useKindleStore = create<KindleState>()(
             archived: existing?.archived ?? item.archived,
           };
           const rest = state.library.filter((row) => row.id !== merged.id && row.url !== merged.url);
-          return { library: [merged, ...rest].slice(0, 30), openId: merged.id };
+          return { library: [merged, ...rest].slice(0, 60), openId: merged.id };
         }),
       archiveItem: (id, archived) =>
         set((state) => ({ library: mapItem(state.library, id, (row) => ({ ...row, archived })) })),
-      markStatus: (id, status) =>
-        set((state) => ({
-          library: mapItem(state.library, id, (row) => ({
-            ...row,
-            status,
-            sentAt: status === "sent" ? Date.now() : row.sentAt,
-          })),
-        })),
       removeItem: (id) =>
         set((state) => ({
           library: state.library.filter((row) => row.id !== id),
@@ -286,13 +265,12 @@ export const useKindleStore = create<KindleState>()(
       clearLibrary: () => set({ library: [], openId: null }),
     }),
     {
-      name: "quarto-kindle",
-      version: 4,
+      name: "quarto-library",
+      version: 5,
       migrate: (persisted) => {
         const raw = (persisted || {}) as Persisted;
         const library = (raw.library || []).map(migrateItem).filter((row): row is LibraryItem => Boolean(row));
         return {
-          kindleEmail: raw.kindleEmail || "",
           library,
           folders: Array.isArray(raw.folders) ? raw.folders.filter((f) => f?.id && f?.name) : [],
           openId: raw.openId ?? null,
