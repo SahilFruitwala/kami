@@ -8,6 +8,7 @@ import {
   Pause,
   Play,
   Square,
+  Star,
   Type,
 } from "lucide-react";
 import type { Article } from "@/lib/article-types.ts";
@@ -122,6 +123,8 @@ export function ReaderView({
   const addHighlight = useLibraryStore((s) => s.addHighlight);
   const removeHighlight = useLibraryStore((s) => s.removeHighlight);
   const setHighlightNote = useLibraryStore((s) => s.setHighlightNote);
+  const setFavorited = useLibraryStore((s) => s.setFavorited);
+  const setItemNote = useLibraryStore((s) => s.setItemNote);
 
   const html = useMemo(
     () => applyHighlights(rewriteHtmlImages(article.contentHtml), item.highlights),
@@ -281,6 +284,17 @@ export function ReaderView({
             <Button
               variant="ghost"
               size="icon"
+              aria-label={item.favorited ? "Remove favorite" : "Favorite"}
+              onClick={() => {
+                setFavorited(item.id, !item.favorited);
+                toast.success(item.favorited ? "Removed from favorites" : "Favorited");
+              }}
+            >
+              <Star className={cn("size-4", item.favorited && "fill-ink text-ink")} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
               aria-label={readerSize === "lg" ? "Smaller type" : "Larger type"}
               onClick={onToggleSize}
             >
@@ -368,6 +382,15 @@ export function ReaderView({
         </h1>
 
         <OrganizeRow item={item} />
+        <label className="mt-4 block">
+          <span className="text-xs font-medium uppercase tracking-wide text-muted">Notes</span>
+          <textarea
+            className="mt-1.5 min-h-24 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink/20"
+            placeholder="Private notes for this article…"
+            value={item.note || ""}
+            onChange={(e) => setItemNote(item.id, e.target.value)}
+          />
+        </label>
 
         {article.heroImage && !hasLeadImage ? (
           <img

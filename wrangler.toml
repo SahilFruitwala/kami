@@ -1,0 +1,14 @@
+name = "quarto-api"
+main = "worker/index.ts"
+compatibility_date = "2026-09-12"
+compatibility_flags = ["nodejs_compat"]
+
+# Optional: bind secrets with `wrangler secret put XAI_API_KEY`
+# [vars]
+# PUBLIC_APP_ORIGIN = "https://your-quarto.example"
+
+# When serving the React UI from Workers Static Assets later, uncomment:
+# [assets]
+# directory = "./dist/client"
+# binding = "ASSETS"
+# not_found_handling = "single-page-application"

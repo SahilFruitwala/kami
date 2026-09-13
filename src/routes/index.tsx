@@ -1,13 +1,35 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Archive, ArrowRight, BookMarked, Inbox, LoaderCircle } from "lucide-react";
+import {
+  Archive,
+  ArrowRight,
+  BookMarked,
+  ClipboardPaste,
+  Inbox,
+  Link2,
+  LoaderCircle,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import { ArticleList } from "@/components/article-list.tsx";
 import { LibraryFilters } from "@/components/library-filters.tsx";
 import { ReaderView } from "@/components/reader-view.tsx";
 import { Button } from "@/components/ui/button.tsx";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { extractArticle } from "@/lib/article-fns.ts";
+import {
+  apiExtract,
+  apiImport,
+  apiSaveLink,
+  buildBookmarklet,
+  decodeImportPayload,
+} from "@/lib/api-client.ts";
 import {
   normalizeSourceUrl,
   readDraftUrl,
@@ -24,14 +46,8 @@ import { cn } from "@/lib/utils.ts";
 export const Route = createFileRoute("/")({ component: Home });
 
 const SAMPLES = [
-  {
-    label: "Essay",
-    url: "http://www.paulgraham.com/ds.html",
-  },
-  {
-    label: "Blog",
-    url: "https://blog.cloudflare.com/workers-announcement/",
-  },
+  { label: "Essay", url: "http://www.paulgraham.com/ds.html" },
+  { label: "Blog", url: "https://blog.cloudflare.com/workers-announcement/" },
   {
     label: "X article",
     url: "https://x.com/VibeMarketer_/article/2093330541177352217",
@@ -45,6 +61,14 @@ function Home() {
   const [tab, setTab] = useState<"inbox" | "archive">("inbox");
   const [folderFilter, setFolderFilter] = useState<"all" | "none" | string>("all");
   const [tagFilter, setTagFilter] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [pasteTitle, setPasteTitle] = useState("");
+  const [pasteBody, setPasteBody] = useState("");
+  const [pasteUrl, setPasteUrl] = useState("");
+  const [bookmarklet, setBookmarklet] = useState("");
   const booted = useRef(false);
   const inFlight = useRef<string | null>(null);
 
@@ -61,21 +85,46 @@ function Home() {
     () => library.find((row) => row.id === openId) ?? null,
     [library, openId],
   );
-  const article = openItem && openItem.contentHtml ? itemToArticle(openItem) : null;
+  const article = openItem?.contentHtml ? itemToArticle(openItem) : null;
 
   const inbox = useMemo(() => library.filter((row) => !row.archived), [library]);
-  const archived = useMemo(() => library.filter((row) => row.archived), [library]);
+  const archivedItems = useMemo(() => library.filter((row) => row.archived), [library]);
   const visible = useMemo(() => {
-    const base = tab === "archive" ? archived : inbox;
+    const base = tab === "archive" ? archivedItems : inbox;
+    const q = query.trim().toLowerCase();
     return base.filter((row) => {
+      if (favoritesOnly && !row.favorited) return false;
       if (folderFilter === "none" && row.folderId) return false;
-      if (folderFilter !== "all" && folderFilter !== "none" && row.folderId !== folderFilter) return false;
-      if (tagFilter && !(row.tags ?? []).some((tag) => tag.toLowerCase() === tagFilter.toLowerCase())) {
+      if (folderFilter !== "all" && folderFilter !== "none" && row.folderId !== folderFilter) {
         return false;
       }
-      return true;
+      if (
+        tagFilter &&
+        !(row.tags ?? []).some((tag) => tag.toLowerCase() === tagFilter.toLowerCase())
+      ) {
+        return false;
+      }
+      if (!q) return true;
+      const hay = [row.title, row.author, row.siteName, row.excerpt, row.note, ...(row.tags ?? [])]
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
     });
-  }, [tab, archived, inbox, folderFilter, tagFilter]);
+  }, [tab, archivedItems, inbox, folderFilter, tagFilter, query, favoritesOnly]);
+
+  function acceptResult(result: Awaited<ReturnType<typeof apiExtract>>, thenOpen: boolean) {
+    if (!result.ok) {
+      setError(result.error);
+      return false;
+    }
+    upsertItem(articleToItem(result.article));
+    writeDraftUrl("");
+    setUrl("");
+    setError("");
+    if (!thenOpen) setOpenId(null);
+    else toast.success("Saved to your list");
+    return true;
+  }
 
   async function save(nextUrl = url, thenOpen = true) {
     const trimmed = normalizeSourceUrl(nextUrl);
@@ -90,17 +139,9 @@ function Home() {
     setBusy(true);
     setError("");
     try {
-      const result = await extractArticle({ data: { url: trimmed } });
+      const result = await apiExtract(trimmed);
       if (inFlight.current !== trimmed) return;
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      upsertItem(articleToItem(result.article));
-      writeDraftUrl("");
-      setUrl("");
-      if (!thenOpen) setOpenId(null);
-      else toast.success("Saved to your list");
+      acceptResult(result, thenOpen);
     } catch {
       if (inFlight.current !== trimmed) return;
       setError("Something went wrong while reading that page. Try again.");
@@ -109,6 +150,55 @@ function Home() {
         inFlight.current = null;
         setBusy(false);
       }
+    }
+  }
+
+  async function saveLinkOnly() {
+    const trimmed = normalizeSourceUrl(url);
+    if (!trimmed) {
+      setError("Paste a URL first.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const result = await apiSaveLink(trimmed);
+      acceptResult(result, true);
+    } catch {
+      setError("Could not save that link.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function importPasted() {
+    if (!pasteTitle.trim() || !pasteBody.trim()) {
+      toast.error("Add a title and the article text.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const looksHtml = /<\/?[a-z][\s\S]*>/i.test(pasteBody);
+      const result = await apiImport({
+        url: pasteUrl.trim() || undefined,
+        title: pasteTitle.trim(),
+        contentHtml: looksHtml ? pasteBody : undefined,
+        contentText: looksHtml ? undefined : pasteBody,
+      });
+      if (!result.ok) {
+        toast.error(result.error);
+        return;
+      }
+      upsertItem(articleToItem(result.article));
+      setPasteOpen(false);
+      setPasteTitle("");
+      setPasteBody("");
+      setPasteUrl("");
+      toast.success("Imported article");
+    } catch {
+      toast.error("Import failed. Try again.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -124,11 +214,29 @@ function Home() {
   useEffect(() => {
     if (booted.current) return;
     booted.current = true;
+    setBookmarklet(buildBookmarklet(window.location.origin));
+
+    const params = new URLSearchParams(window.location.search);
+    const importRaw = params.get("import");
+    if (importRaw) {
+      const payload = decodeImportPayload(importRaw);
+      if (payload) {
+        setPasteOpen(true);
+        setPasteTitle(payload.title);
+        setPasteUrl(payload.url);
+        setPasteBody(payload.html);
+        toast.message("Captured from bookmarklet — review and import.");
+      }
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+
     const draft = readDraftUrl();
     if (draft && !openId) {
       setUrl(draft);
       void save(draft, true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (article && openItem) {
@@ -168,6 +276,10 @@ function Home() {
             <p className="hidden text-xs text-muted sm:block">Save & read later</p>
           </div>
         </div>
+        <Button type="button" variant="ghost" className="h-11 gap-2" onClick={() => setToolsOpen(true)}>
+          <Sparkles className="size-4" />
+          <span className="hidden sm:inline">Capture tools</span>
+        </Button>
       </header>
 
       <div className="relative mx-auto w-full max-w-3xl px-4 pb-20 sm:px-6">
@@ -177,8 +289,8 @@ function Home() {
             Your quiet reading list.
           </h1>
           <p className="mt-3 max-w-lg text-base leading-normal text-ink-soft">
-            Paste a link, strip the clutter, and keep a clean copy on this device — with
-            tags, folders, highlights, and listen mode.
+            Paste a link for automatic capture. When a site blocks scraping, paste the article or
+            use the bookmarklet — your browser already has the page.
           </p>
 
           <div className="mt-8">
@@ -217,12 +329,7 @@ function Home() {
                 }}
                 className="sm:flex-1"
               />
-              <Button
-                type="button"
-                className="sm:w-32"
-                disabled={busy}
-                onClick={() => void save()}
-              >
+              <Button type="button" className="sm:w-32" disabled={busy} onClick={() => void save()}>
                 {busy ? (
                   <LoaderCircle className="size-4 animate-spin" />
                 ) : (
@@ -234,12 +341,37 @@ function Home() {
               </Button>
             </div>
             {error ? (
-              <p className="mt-2 text-sm text-danger" role="alert">
-                {error}
-              </p>
+              <div className="mt-2 space-y-2" role="alert">
+                <p className="text-sm text-danger">{error}</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => void saveLinkOnly()}
+                  >
+                    <Link2 className="size-3.5" />
+                    Save link anyway
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      setPasteUrl(url);
+                      setPasteOpen(true);
+                    }}
+                  >
+                    <ClipboardPaste className="size-3.5" />
+                    Paste article
+                  </Button>
+                </div>
+              </div>
             ) : (
               <p className="mt-2 text-sm text-muted">
-                Public pages only. Your list stays on this device.
+                Public pages only. Library stays on this device. Capture API is Hono-ready for
+                Cloudflare.
               </p>
             )}
           </div>
@@ -256,6 +388,13 @@ function Home() {
                 {sample.label}
               </button>
             ))}
+            <button
+              type="button"
+              className="h-11 rounded-full border border-line px-3 text-sm text-ink-soft hover:bg-paper-warm hover:text-ink"
+              onClick={() => setPasteOpen(true)}
+            >
+              Paste article
+            </button>
           </div>
         </section>
 
@@ -282,20 +421,22 @@ function Home() {
           >
             <Archive className="size-4" />
             Archive
-            <span className="tabular-nums text-muted">{archived.length}</span>
+            <span className="tabular-nums text-muted">{archivedItems.length}</span>
           </button>
         </div>
 
         <LibraryFilters
           folderFilter={folderFilter}
           tagFilter={tagFilter}
+          query={query}
+          favoritesOnly={favoritesOnly}
           onFolder={setFolderFilter}
           onTag={setTagFilter}
+          onQuery={setQuery}
+          onFavoritesOnly={setFavoritesOnly}
         />
 
-        {busy && !openId ? (
-          <p className="mt-6 text-sm text-muted">Saving a clean copy…</p>
-        ) : null}
+        {busy && !openId ? <p className="mt-6 text-sm text-muted">Saving a clean copy…</p> : null}
 
         <ArticleList
           items={visible}
@@ -309,6 +450,71 @@ function Home() {
           onRemove={removeItem}
         />
       </div>
+
+      <Dialog open={pasteOpen} onOpenChange={setPasteOpen}>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Paste article</DialogTitle>
+            <DialogDescription>
+              When automatic capture is blocked, paste the title and body from the page.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input
+              placeholder="Title"
+              value={pasteTitle}
+              onChange={(e) => setPasteTitle(e.target.value)}
+            />
+            <Input
+              placeholder="Source URL (optional)"
+              value={pasteUrl}
+              onChange={(e) => setPasteUrl(e.target.value)}
+            />
+            <textarea
+              className="min-h-48 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink/20"
+              placeholder="Paste article text or HTML"
+              value={pasteBody}
+              onChange={(e) => setPasteBody(e.target.value)}
+            />
+            <Button type="button" className="w-full" disabled={busy} onClick={() => void importPasted()}>
+              {busy ? <LoaderCircle className="size-4 animate-spin" /> : "Import to library"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={toolsOpen} onOpenChange={setToolsOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Capture tools</DialogTitle>
+            <DialogDescription>
+              Bypass bot walls by capturing in your browser, then sending the HTML into Quarto.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 text-sm text-ink-soft">
+            <p>
+              Copy this bookmarklet into a bookmark. On any article page, click it to open Quarto
+              with the content ready to import.
+            </p>
+            <Button
+              type="button"
+              className="w-full"
+              onClick={() => {
+                void navigator.clipboard.writeText(bookmarklet).then(
+                  () => toast.success("Bookmarklet copied — paste it as a new bookmark URL"),
+                  () => toast.error("Could not copy"),
+                );
+              }}
+            >
+              Copy Quarto bookmarklet
+            </Button>
+            <p className="text-xs text-muted">
+              API routes live under <code className="text-ink">/api/v1/*</code> (Hono). Deploy that
+              Worker to Cloudflare with <code className="text-ink">npm run worker:deploy</code>.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
