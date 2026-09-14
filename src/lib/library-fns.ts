@@ -1,7 +1,9 @@
+import { and, asc, count, desc, eq, or, sql } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
-import { getSql } from "@/lib/db";
+import { getDb } from "@/lib/db";
+import { articles, folders } from "@/lib/schema";
 import type { Highlight, HighlightColorId, LibraryItem, Folder } from "@/lib/store";
 import { HIGHLIGHT_COLORS, normalizeTag, uid } from "@/lib/store";
 
@@ -41,31 +43,6 @@ const libraryItemSchema = z.object({
   note: z.string().max(2000).default(""),
 });
 
-type ArticleRow = {
-  id: string;
-  url: string;
-  canonical_url: string;
-  title: string;
-  author: string;
-  site_name: string;
-  source: string;
-  word_count: number;
-  reading_minutes: number;
-  excerpt: string;
-  content_html: string;
-  hero_image: string | null;
-  published: string | null;
-  saved_at: Date | string;
-  archived: boolean;
-  favorited: boolean;
-  note: string;
-  folder_id: string | null;
-  tags: unknown;
-  highlights: unknown;
-};
-
-type FolderRow = { id: string; name: string };
-
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.map((v) => String(v)).filter(Boolean);
@@ -81,31 +58,25 @@ function asHighlights(value: unknown): Highlight[] {
     .filter((h): h is Highlight => Boolean(h));
 }
 
-function savedAtMs(value: Date | string): number {
-  if (value instanceof Date) return value.getTime();
-  const ms = Date.parse(String(value));
-  return Number.isFinite(ms) ? ms : Date.now();
-}
-
-function rowToItem(row: ArticleRow): LibraryItem {
+function rowToItem(row: typeof articles.$inferSelect): LibraryItem {
   return {
     id: row.id,
     url: row.url,
-    canonicalUrl: row.canonical_url,
+    canonicalUrl: row.canonicalUrl,
     title: row.title,
     author: row.author || "",
-    siteName: row.site_name || "",
+    siteName: row.siteName || "",
     source: row.source === "x" ? "x" : "blog",
-    wordCount: Number(row.word_count) || 0,
-    readingMinutes: Number(row.reading_minutes) || 1,
+    wordCount: Number(row.wordCount) || 0,
+    readingMinutes: Number(row.readingMinutes) || 1,
     excerpt: row.excerpt || "",
-    contentHtml: row.content_html || "",
-    heroImage: row.hero_image,
+    contentHtml: row.contentHtml || "",
+    heroImage: row.heroImage,
     published: row.published,
-    savedAt: savedAtMs(row.saved_at),
+    savedAt: row.savedAt instanceof Date ? row.savedAt.getTime() : Date.now(),
     archived: Boolean(row.archived),
     tags: asStringArray(row.tags).map(normalizeTag).filter(Boolean).slice(0, 12),
-    folderId: row.folder_id,
+    folderId: row.folderId,
     highlights: asHighlights(row.highlights),
     favorited: Boolean(row.favorited),
     note: row.note || "",
@@ -117,86 +88,110 @@ export type LibrarySnapshot = {
   folders: Folder[];
 };
 
+async function loadSnapshot(userId: string): Promise<LibrarySnapshot> {
+  const db = await getDb();
+  const folderRows = await db
+    .select({ id: folders.id, name: folders.name })
+    .from(folders)
+    .where(eq(folders.userId, userId))
+    .orderBy(asc(folders.createdAt));
+  const articleRows = await db
+    .select()
+    .from(articles)
+    .where(eq(articles.userId, userId))
+    .orderBy(desc(articles.savedAt));
+  return {
+    folders: folderRows.map((f) => ({ id: f.id, name: f.name })),
+    library: articleRows.map(rowToItem),
+  };
+}
+
 export const getLibrary = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }): Promise<LibrarySnapshot> => {
-    const sql = await getSql();
-    const folders = await sql<FolderRow>`
-      select id, name from folders
-      where user_id = ${context.userId}
-      order by created_at asc
-    `;
-    const articles = await sql<ArticleRow>`
-      select * from articles
-      where user_id = ${context.userId}
-      order by saved_at desc
-    `;
-    return {
-      folders: folders.map((f) => ({ id: f.id, name: f.name })),
-      library: articles.map(rowToItem),
-    };
+    return loadSnapshot(context.userId);
   });
 
 export const upsertLibraryItem = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((input: unknown) => libraryItemSchema.parse(input))
   .handler(async ({ context, data }): Promise<LibraryItem> => {
-    const sql = await getSql();
+    const db = await getDb();
     const tags = data.tags.map(normalizeTag).filter(Boolean).slice(0, 12);
     const highlights = data.highlights.slice(0, 80);
     const savedAt = new Date(data.savedAt);
 
-    const existing = await sql<{ id: string }>`
-      select id from articles
-      where user_id = ${context.userId}
-        and (id = ${data.id} or canonical_url = ${data.canonicalUrl} or url = ${data.url})
-      limit 1
-    `;
+    const existing = await db
+      .select({ id: articles.id })
+      .from(articles)
+      .where(
+        and(
+          eq(articles.userId, context.userId),
+          or(
+            eq(articles.id, data.id),
+            eq(articles.canonicalUrl, data.canonicalUrl),
+            eq(articles.url, data.url),
+          ),
+        ),
+      )
+      .limit(1);
 
     if (existing[0]) {
       const id = existing[0].id;
-      await sql`
-        update articles set
-          url = ${data.url},
-          canonical_url = ${data.canonicalUrl},
-          title = ${data.title},
-          author = ${data.author},
-          site_name = ${data.siteName},
-          source = ${data.source},
-          word_count = ${data.wordCount},
-          reading_minutes = ${data.readingMinutes},
-          excerpt = ${data.excerpt},
-          content_html = ${data.contentHtml},
-          hero_image = ${data.heroImage},
-          published = ${data.published},
-          archived = ${data.archived},
-          favorited = ${data.favorited},
-          note = ${data.note},
-          folder_id = ${data.folderId},
-          tags = ${JSON.stringify(tags)}::jsonb,
-          highlights = ${JSON.stringify(highlights)}::jsonb
-        where id = ${id} and user_id = ${context.userId}
-      `;
-      const rows = await sql<ArticleRow>`
-        select * from articles where id = ${id} and user_id = ${context.userId} limit 1
-      `;
+      await db
+        .update(articles)
+        .set({
+          url: data.url,
+          canonicalUrl: data.canonicalUrl,
+          title: data.title,
+          author: data.author,
+          siteName: data.siteName,
+          source: data.source,
+          wordCount: data.wordCount,
+          readingMinutes: data.readingMinutes,
+          excerpt: data.excerpt,
+          contentHtml: data.contentHtml,
+          heroImage: data.heroImage,
+          published: data.published,
+          archived: data.archived,
+          favorited: data.favorited,
+          note: data.note,
+          folderId: data.folderId,
+          tags,
+          highlights,
+        })
+        .where(and(eq(articles.id, id), eq(articles.userId, context.userId)));
+      const rows = await db
+        .select()
+        .from(articles)
+        .where(and(eq(articles.id, id), eq(articles.userId, context.userId)))
+        .limit(1);
       return rowToItem(rows[0]!);
     }
 
-    await sql`
-      insert into articles (
-        id, user_id, url, canonical_url, title, author, site_name, source,
-        word_count, reading_minutes, excerpt, content_html, hero_image, published,
-        saved_at, archived, favorited, note, folder_id, tags, highlights
-      ) values (
-        ${data.id}, ${context.userId}, ${data.url}, ${data.canonicalUrl}, ${data.title},
-        ${data.author}, ${data.siteName}, ${data.source}, ${data.wordCount},
-        ${data.readingMinutes}, ${data.excerpt}, ${data.contentHtml}, ${data.heroImage},
-        ${data.published}, ${savedAt.toISOString()}, ${data.archived}, ${data.favorited},
-        ${data.note}, ${data.folderId}, ${JSON.stringify(tags)}::jsonb,
-        ${JSON.stringify(highlights)}::jsonb
-      )
-    `;
+    await db.insert(articles).values({
+      id: data.id,
+      userId: context.userId,
+      url: data.url,
+      canonicalUrl: data.canonicalUrl,
+      title: data.title,
+      author: data.author,
+      siteName: data.siteName,
+      source: data.source,
+      wordCount: data.wordCount,
+      readingMinutes: data.readingMinutes,
+      excerpt: data.excerpt,
+      contentHtml: data.contentHtml,
+      heroImage: data.heroImage,
+      published: data.published,
+      savedAt,
+      archived: data.archived,
+      favorited: data.favorited,
+      note: data.note,
+      folderId: data.folderId,
+      tags,
+      highlights,
+    });
     return { ...data, tags, highlights };
   });
 
@@ -216,11 +211,14 @@ export const patchLibraryItem = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ context, data }): Promise<LibraryItem | null> => {
-    const sql = await getSql();
-    const current = await sql<ArticleRow>`
-      select * from articles where id = ${data.id} and user_id = ${context.userId} limit 1
-    `;
+    const db = await getDb();
+    const current = await db
+      .select()
+      .from(articles)
+      .where(and(eq(articles.id, data.id), eq(articles.userId, context.userId)))
+      .limit(1);
     if (!current[0]) return null;
+
     const next = rowToItem(current[0]);
     if (data.archived !== undefined) next.archived = data.archived;
     if (data.favorited !== undefined) next.favorited = data.favorited;
@@ -231,16 +229,17 @@ export const patchLibraryItem = createServerFn({ method: "POST" })
     }
     if (data.highlights !== undefined) next.highlights = data.highlights.slice(0, 80);
 
-    await sql`
-      update articles set
-        archived = ${next.archived},
-        favorited = ${next.favorited},
-        note = ${next.note},
-        folder_id = ${next.folderId},
-        tags = ${JSON.stringify(next.tags)}::jsonb,
-        highlights = ${JSON.stringify(next.highlights)}::jsonb
-      where id = ${data.id} and user_id = ${context.userId}
-    `;
+    await db
+      .update(articles)
+      .set({
+        archived: next.archived,
+        favorited: next.favorited,
+        note: next.note,
+        folderId: next.folderId,
+        tags: next.tags,
+        highlights: next.highlights,
+      })
+      .where(and(eq(articles.id, data.id), eq(articles.userId, context.userId)));
     return next;
   });
 
@@ -248,10 +247,10 @@ export const removeLibraryItem = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((input: unknown) => z.object({ id: z.string().min(1) }).parse(input))
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
-    const sql = await getSql();
-    await sql`
-      delete from articles where id = ${data.id} and user_id = ${context.userId}
-    `;
+    const db = await getDb();
+    await db
+      .delete(articles)
+      .where(and(eq(articles.id, data.id), eq(articles.userId, context.userId)));
     return { ok: true };
   });
 
@@ -266,41 +265,51 @@ export const addLibraryFolder = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ context, data }): Promise<Folder> => {
-    const sql = await getSql();
+    const db = await getDb();
     const name = data.name.trim().slice(0, 32);
-    const existing = await sql<FolderRow>`
-      select id, name from folders
-      where user_id = ${context.userId} and lower(name) = lower(${name})
-      limit 1
-    `;
+    const existing = await db
+      .select({ id: folders.id, name: folders.name })
+      .from(folders)
+      .where(
+        and(
+          eq(folders.userId, context.userId),
+          sql`lower(${folders.name}) = lower(${name})`,
+        ),
+      )
+      .limit(1);
     if (existing[0]) return { id: existing[0].id, name: existing[0].name };
 
-    const count = await sql<{ n: number }>`
-      select count(*)::int as n from folders where user_id = ${context.userId}
-    `;
-    if ((count[0]?.n ?? 0) >= 24) {
+    const [{ value: folderCount }] = await db
+      .select({ value: count() })
+      .from(folders)
+      .where(eq(folders.userId, context.userId));
+    if (Number(folderCount) >= 24) {
       throw new Error("Folder limit reached.");
     }
 
     const id = data.id || uid();
-    await sql`
-      insert into folders (id, user_id, name) values (${id}, ${context.userId}, ${name})
-      on conflict (id) do update set name = excluded.name
-    `;
+    await db
+      .insert(folders)
+      .values({ id, userId: context.userId, name })
+      .onConflictDoUpdate({
+        target: folders.id,
+        set: { name },
+      });
     return { id, name };
   });
+
 export const renameLibraryFolder = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((input: unknown) =>
     z.object({ id: z.string().min(1), name: z.string().trim().min(1).max(32) }).parse(input),
   )
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
-    const sql = await getSql();
+    const db = await getDb();
     const name = data.name.trim().slice(0, 32);
-    await sql`
-      update folders set name = ${name}
-      where id = ${data.id} and user_id = ${context.userId}
-    `;
+    await db
+      .update(folders)
+      .set({ name })
+      .where(and(eq(folders.id, data.id), eq(folders.userId, context.userId)));
     return { ok: true };
   });
 
@@ -308,14 +317,14 @@ export const removeLibraryFolder = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((input: unknown) => z.object({ id: z.string().min(1) }).parse(input))
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
-    const sql = await getSql();
-    await sql`
-      update articles set folder_id = null
-      where user_id = ${context.userId} and folder_id = ${data.id}
-    `;
-    await sql`
-      delete from folders where id = ${data.id} and user_id = ${context.userId}
-    `;
+    const db = await getDb();
+    await db
+      .update(articles)
+      .set({ folderId: null })
+      .where(and(eq(articles.userId, context.userId), eq(articles.folderId, data.id)));
+    await db
+      .delete(folders)
+      .where(and(eq(folders.id, data.id), eq(folders.userId, context.userId)));
     return { ok: true };
   });
 
@@ -330,60 +339,58 @@ export const importLibrarySnapshot = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ context, data }): Promise<LibrarySnapshot> => {
-    const sql = await getSql();
-    const existing = await sql<{ n: number }>`
-      select count(*)::int as n from articles where user_id = ${context.userId}
-    `;
+    const db = await getDb();
+    const [{ value: existingCount }] = await db
+      .select({ value: count() })
+      .from(articles)
+      .where(eq(articles.userId, context.userId));
+
     // Only import local leftovers when the account library is empty.
-    if ((existing[0]?.n ?? 0) > 0) {
-      const folders = await sql<FolderRow>`
-        select id, name from folders where user_id = ${context.userId} order by created_at asc
-      `;
-      const articles = await sql<ArticleRow>`
-        select * from articles where user_id = ${context.userId} order by saved_at desc
-      `;
-      return {
-        folders: folders.map((f) => ({ id: f.id, name: f.name })),
-        library: articles.map(rowToItem),
-      };
+    if (Number(existingCount) > 0) {
+      return loadSnapshot(context.userId);
     }
 
     for (const folder of data.folders.slice(0, 24)) {
-      await sql`
-        insert into folders (id, user_id, name)
-        values (${folder.id}, ${context.userId}, ${folder.name.trim().slice(0, 32)})
-        on conflict (id) do nothing
-      `;
+      await db
+        .insert(folders)
+        .values({
+          id: folder.id,
+          userId: context.userId,
+          name: folder.name.trim().slice(0, 32),
+        })
+        .onConflictDoNothing({ target: folders.id });
     }
 
     for (const item of data.library.slice(0, 200)) {
       const tags = item.tags.map(normalizeTag).filter(Boolean).slice(0, 12);
       const highlights = item.highlights.slice(0, 80);
-      await sql`
-        insert into articles (
-          id, user_id, url, canonical_url, title, author, site_name, source,
-          word_count, reading_minutes, excerpt, content_html, hero_image, published,
-          saved_at, archived, favorited, note, folder_id, tags, highlights
-        ) values (
-          ${item.id}, ${context.userId}, ${item.url}, ${item.canonicalUrl}, ${item.title},
-          ${item.author}, ${item.siteName}, ${item.source}, ${item.wordCount},
-          ${item.readingMinutes}, ${item.excerpt}, ${item.contentHtml}, ${item.heroImage},
-          ${item.published}, ${new Date(item.savedAt).toISOString()}, ${item.archived},
-          ${item.favorited}, ${item.note}, ${item.folderId}, ${JSON.stringify(tags)}::jsonb,
-          ${JSON.stringify(highlights)}::jsonb
-        )
-        on conflict (id) do nothing
-      `;
+      await db
+        .insert(articles)
+        .values({
+          id: item.id,
+          userId: context.userId,
+          url: item.url,
+          canonicalUrl: item.canonicalUrl,
+          title: item.title,
+          author: item.author,
+          siteName: item.siteName,
+          source: item.source,
+          wordCount: item.wordCount,
+          readingMinutes: item.readingMinutes,
+          excerpt: item.excerpt,
+          contentHtml: item.contentHtml,
+          heroImage: item.heroImage,
+          published: item.published,
+          savedAt: new Date(item.savedAt),
+          archived: item.archived,
+          favorited: item.favorited,
+          note: item.note,
+          folderId: item.folderId,
+          tags,
+          highlights,
+        })
+        .onConflictDoNothing({ target: articles.id });
     }
 
-    const folders = await sql<FolderRow>`
-      select id, name from folders where user_id = ${context.userId} order by created_at asc
-    `;
-    const articles = await sql<ArticleRow>`
-      select * from articles where user_id = ${context.userId} order by saved_at desc
-    `;
-    return {
-      folders: folders.map((f) => ({ id: f.id, name: f.name })),
-      library: articles.map(rowToItem),
-    };
+    return loadSnapshot(context.userId);
   });
