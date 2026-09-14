@@ -8,7 +8,13 @@ import { useLibraryFilters } from "@/hooks/use-library-filters.ts";
 import { useLibraryNav } from "@/hooks/use-library-nav.ts";
 import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
+import { RedirectToSignIn } from "@/lib/auth/gates";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { buildBookmarklet, decodeImportPayload } from "@/lib/bookmarklet.ts";
+import {
+  bootstrapLibraryFromServer,
+  clearLibraryLocal,
+} from "@/lib/library-remote";
 import { readDraftUrl } from "@/lib/session-article.ts";
 import {
   itemToArticle,
@@ -27,8 +33,107 @@ export const Route = createFileRoute("/")({
     import:
       typeof search.import === "string" && search.import.length > 0 ? search.import : undefined,
   }),
-  component: Home,
+  component: QuartoApp,
 });
+
+function QuartoApp() {
+  const { user, isPending } = useCurrentUserState();
+  const [libraryReady, setLibraryReady] = useState(false);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isPending) return;
+    if (!user) {
+      clearLibraryLocal();
+      setLibraryReady(false);
+      setLibraryError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLibraryReady(false);
+    setLibraryError(null);
+
+    void bootstrapLibraryFromServer()
+      .then(() => {
+        if (!cancelled) setLibraryReady(true);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        const message =
+          error instanceof Error ? error.message : "Could not load your library.";
+        setLibraryError(message);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, isPending]);
+
+  if (isPending) {
+    return <AuthLoadingScreen label="Checking your session…" />;
+  }
+
+  if (!user) {
+    return <RedirectToSignIn />;
+  }
+
+  if (libraryError) {
+    return (
+      <AuthLoadingScreen
+        label={libraryError}
+        actionLabel="Try again"
+        onAction={() => {
+          setLibraryError(null);
+          setLibraryReady(false);
+          void bootstrapLibraryFromServer()
+            .then(() => setLibraryReady(true))
+            .catch((error: unknown) => {
+              const message =
+                error instanceof Error
+                  ? error.message
+                  : "Could not load your library.";
+              setLibraryError(message);
+            });
+        }}
+      />
+    );
+  }
+
+  if (!libraryReady) {
+    return <AuthLoadingScreen label="Loading your library…" />;
+  }
+
+  return <Home />;
+}
+
+function AuthLoadingScreen({
+  label,
+  actionLabel,
+  onAction,
+}: {
+  label: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  return (
+    <div className="flex min-h-dvh items-center justify-center bg-paper px-6 text-ink">
+      <div className="flex max-w-sm flex-col items-center gap-4 text-center">
+        <p className="font-display text-2xl tracking-tight">Quarto</p>
+        <p className="text-sm text-muted">{label}</p>
+        {actionLabel && onAction ? (
+          <button
+            type="button"
+            onClick={onAction}
+            className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper transition hover:opacity-90"
+          >
+            {actionLabel}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 
 function Home() {
   const [toolsOpen, setToolsOpen] = useState(false);

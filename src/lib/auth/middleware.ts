@@ -8,14 +8,16 @@ import { createMiddleware } from "@tanstack/react-start";
  * thread it themselves.
  *
  *   import { createServerFn } from "@tanstack/react-start";
- *   import { getSql } from "@/lib/db";
+ *   import { eq } from "drizzle-orm";
+ *   import { getDb } from "@/lib/db";
+ *   import { todos } from "@/lib/schema";
  *   import { authMiddleware } from "@/lib/auth/middleware";
  *
  *   export const listTodos = createServerFn({ method: "GET" })
  *     .middleware([authMiddleware])
  *     .handler(async ({ context }) => {
- *       const sql = await getSql();
- *       return sql`select * from todos where user_id = ${context.userId}`;
+ *       const db = await getDb();
+ *       return db.select().from(todos).where(eq(todos.userId, context.userId));
  *     });
  *
  * Signed out with auth on (live preview included) -> throws `UnauthorizedError`
