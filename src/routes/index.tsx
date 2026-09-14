@@ -8,7 +8,8 @@ import { useLibraryFilters } from "@/hooks/use-library-filters.ts";
 import { useLibraryNav } from "@/hooks/use-library-nav.ts";
 import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
-import { RedirectToSignIn, useCurrentUserState } from "@/lib/auth/gates";
+import { RedirectToSignIn } from "@/lib/auth/gates";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { buildBookmarklet, decodeImportPayload } from "@/lib/bookmarklet.ts";
 import {
   bootstrapLibraryFromServer,
