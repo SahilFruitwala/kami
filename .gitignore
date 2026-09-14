@@ -17,3 +17,6 @@ screenshots/
 # Local preview runtime
 .grok/preview.pid
 .grok/preview.log
+
+# clerk configuration (can include secrets)
+/.clerk/

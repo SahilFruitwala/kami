@@ -9,7 +9,12 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
-/** Better Auth tables — column names match `migrations/0001_auth.sql` (camelCase). */
+/**
+ * Local user mirror for Clerk identities.
+ * Clerk owns auth; we keep a row so library tables can FK `user_id`.
+ * Legacy Better Auth session/account/verification tables may still exist in
+ * older databases but are unused.
+ */
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -19,58 +24,6 @@ export const user = pgTable("user", {
   createdAt: timestamp("createdAt", { withTimezone: true }).notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).notNull(),
 });
-
-export const session = pgTable(
-  "session",
-  {
-    id: text("id").primaryKey(),
-    expiresAt: timestamp("expiresAt", { withTimezone: true }).notNull(),
-    token: text("token").notNull().unique(),
-    createdAt: timestamp("createdAt", { withTimezone: true }).notNull(),
-    updatedAt: timestamp("updatedAt", { withTimezone: true }).notNull(),
-    ipAddress: text("ipAddress"),
-    userAgent: text("userAgent"),
-    userId: text("userId")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-  },
-  (t) => [index("session_userId_idx").on(t.userId)],
-);
-
-export const account = pgTable(
-  "account",
-  {
-    id: text("id").primaryKey(),
-    accountId: text("accountId").notNull(),
-    providerId: text("providerId").notNull(),
-    userId: text("userId")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    accessToken: text("accessToken"),
-    refreshToken: text("refreshToken"),
-    idToken: text("idToken"),
-    accessTokenExpiresAt: timestamp("accessTokenExpiresAt", { withTimezone: true }),
-    refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt", { withTimezone: true }),
-    scope: text("scope"),
-    password: text("password"),
-    createdAt: timestamp("createdAt", { withTimezone: true }).notNull(),
-    updatedAt: timestamp("updatedAt", { withTimezone: true }).notNull(),
-  },
-  (t) => [index("account_userId_idx").on(t.userId)],
-);
-
-export const verification = pgTable(
-  "verification",
-  {
-    id: text("id").primaryKey(),
-    identifier: text("identifier").notNull(),
-    value: text("value").notNull(),
-    expiresAt: timestamp("expiresAt", { withTimezone: true }).notNull(),
-    createdAt: timestamp("createdAt", { withTimezone: true }).notNull(),
-    updatedAt: timestamp("updatedAt", { withTimezone: true }).notNull(),
-  },
-  (t) => [index("verification_identifier_idx").on(t.identifier)],
-);
 
 /** App tables — snake_case columns match `migrations/0002_library.sql`. */
 export const folders = pgTable(
@@ -122,9 +75,6 @@ export const articles = pgTable(
 
 export const schema = {
   user,
-  session,
-  account,
-  verification,
   folders,
   articles,
 };

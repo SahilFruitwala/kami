@@ -46,8 +46,7 @@ function LoginPage() {
             <SignInButtons />
           </div>
           <p className="mt-6 text-xs text-muted">
-            Use email and password, or continue with Google or X. Signing in creates a private
-            library for this app.
+            Sign in or create an account with Clerk. Your library stays private to this app.
           </p>
         </SignedOut>
 
