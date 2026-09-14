@@ -1,6 +1,6 @@
 import { BookMarked, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
-import { UserButton } from "@/lib/auth/gates";
+import { Show, SignInButton, SignUpButton, UserButton } from "@/lib/auth/gates";
 
 export function LibraryHeader({ onOpenTools }: { onOpenTools: () => void }) {
   return (
@@ -22,6 +22,18 @@ export function LibraryHeader({ onOpenTools }: { onOpenTools: () => void }) {
           <Sparkles className="size-4" />
           <span className="hidden sm:inline">Capture tools</span>
         </Button>
+        <Show when="signed-out">
+          <SignInButton mode="modal">
+            <Button type="button" variant="outline" className="h-11">
+              Sign in
+            </Button>
+          </SignInButton>
+          <SignUpButton mode="modal">
+            <Button type="button" className="h-11">
+              Sign up
+            </Button>
+          </SignUpButton>
+        </Show>
         <UserButton />
       </div>
     </header>

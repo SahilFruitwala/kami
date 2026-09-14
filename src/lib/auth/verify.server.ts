@@ -1,28 +1,31 @@
-import { getRequest } from "@tanstack/react-start/server";
-import { gateIdentityEnabled } from "./gate-identity.server";
-import { auth, authConfigured } from "./server";
+import { eq } from "drizzle-orm";
+import { auth, clerkClient } from "@clerk/tanstack-react-start/server";
+import { getDb } from "@/lib/db";
+import { user } from "@/lib/schema";
 
 /**
- * Server-side session resolution (server-only).
+ * Server-side session resolution via Clerk (server-only).
  *
- * Because this app runs its OWN Better Auth at same-origin `/api/auth/*`, the
- * session cookie is sent with every request to this app — server functions AND
- * SSR loaders included. So we resolve the user straight from the request cookies
- * via `auth.api.getSession` (no client-minted JWT needed). Never trust a
- * client-supplied user id — only the result of this verification.
+ * Never trust a client-supplied user id — only `auth()` from Clerk.
  */
 
 /** True when a real database is configured server-side. */
 const databaseConfigured = Boolean(process.env.DATABASE_URL?.trim());
 
-/** Re-export so callers can branch on it without importing `server.ts`. */
-export { authConfigured };
+/**
+ * True when Clerk is configured (publishable + secret keys present).
+ * Mirrors the old Better Auth `authConfigured` gate for fail-closed DB use.
+ */
+export const authConfigured =
+  Boolean(process.env.VITE_CLERK_PUBLISHABLE_KEY?.trim()) &&
+  Boolean(process.env.CLERK_SECRET_KEY?.trim()) &&
+  process.env.VITE_AUTH_ENABLED !== "false";
 
 if (databaseConfigured && !authConfigured) {
   console.error(
-    "[auth] DATABASE_URL is set but auth is disabled (VITE_AUTH_ENABLED=false) " +
-      "— requireUserId() will reject every request (fail closed) rather than " +
-      "share one dev user on a real database.",
+    "[auth] DATABASE_URL is set but Clerk keys are missing or auth is disabled " +
+      "(VITE_AUTH_ENABLED=false) — requireUserId() will reject every request " +
+      "(fail closed) rather than share one dev user on a real database.",
   );
 }
 
@@ -45,53 +48,72 @@ export class UnauthorizedError extends Error {
 export type VerifiedUser = { id: string; email: string | null };
 
 /**
- * Resolve the signed-in user from the current request, or `null` when auth isn't
- * configured / nobody is signed in. Safe to call from server functions and SSR
- * loaders.
- *
- * `bearerToken` is for the LIVE PREVIEW: the app runs in a partitioned iframe
- * whose cookies don't reach the server, so `authMiddleware` forwards the session
- * as a bearer token, which we present as `Authorization: Bearer …` (the `bearer`
- * plugin resolves it). When deployed no token is passed and the cookie is used.
+ * Ensure a local `user` row exists for FK'd library tables.
+ * Clerk owns identity; we mirror the id so articles/folders can reference it.
  */
-export async function getSessionUser(
-  bearerToken?: string,
-): Promise<VerifiedUser | null> {
-  if (!authConfigured && !gateIdentityEnabled()) return null;
-  const request = getRequest();
-  if (!request) return null;
-  let headers = request.headers;
-  if (bearerToken) {
-    headers = new Headers(request.headers);
-    headers.set("Authorization", `Bearer ${bearerToken}`);
+async function ensureLocalUser(userId: string): Promise<void> {
+  const db = await getDb();
+  const existing = await db.select({ id: user.id }).from(user).where(eq(user.id, userId)).limit(1);
+  if (existing.length > 0) return;
+
+  let name = "User";
+  let email = `${userId}@users.clerk`;
+  let image: string | null = null;
+
+  try {
+    const clerkUser = await clerkClient().users.getUser(userId);
+    name =
+      [clerkUser.firstName, clerkUser.lastName].filter(Boolean).join(" ").trim() ||
+      clerkUser.username ||
+      "User";
+    email = clerkUser.emailAddresses[0]?.emailAddress ?? email;
+    image = clerkUser.imageUrl ?? null;
+  } catch (err) {
+    console.warn("[auth] could not fetch Clerk user for local upsert:", err);
   }
-  const session = await auth.api.getSession({ headers });
-  if (!session?.user) return null;
-  return { id: session.user.id, email: session.user.email ?? null };
+
+  const now = new Date();
+  await db
+    .insert(user)
+    .values({
+      id: userId,
+      name,
+      email,
+      emailVerified: true,
+      image,
+      createdAt: now,
+      updatedAt: now,
+    })
+    .onConflictDoNothing();
+}
+
+/**
+ * Resolve the signed-in user from Clerk, or `null` when nobody is signed in /
+ * auth isn't configured.
+ */
+export async function getSessionUser(): Promise<VerifiedUser | null> {
+  if (!authConfigured) return null;
+  const session = await auth();
+  if (!session.userId) return null;
+  return { id: session.userId, email: null };
 }
 
 /**
  * Resolve the current user id for a server function, or throw when unauthorized.
  * Prefer `authMiddleware` (`./middleware`), which calls this for you.
- * - Auth enabled -> the verified session user id; throws
- *   `UnauthorizedError` when signed out. Works in the sandbox preview too (real
- *   sign-in via the baked preview client).
- * - Auth disabled (`VITE_AUTH_ENABLED=false`) + `DATABASE_URL` set -> throw (fail
- *   closed): one shared dev user on a real database would let every visitor
- *   read/write everyone's rows.
- * - Auth disabled + no database -> the shared dev user id.
  */
-export async function requireUserId(bearerToken?: string): Promise<string> {
-  if (!authConfigured && !gateIdentityEnabled()) {
+export async function requireUserId(): Promise<string> {
+  if (!authConfigured) {
     if (databaseConfigured) {
       throw new Error(
-        "Auth is disabled (VITE_AUTH_ENABLED=false) but DATABASE_URL is set — " +
+        "Auth is disabled or Clerk keys are missing but DATABASE_URL is set — " +
           "refusing to fall back to the shared dev user against a real database.",
       );
     }
     return DEV_USER_ID;
   }
-  const user = await getSessionUser(bearerToken);
-  if (!user) throw new UnauthorizedError();
-  return user.id;
+  const session = await auth();
+  if (!session.userId) throw new UnauthorizedError();
+  await ensureLocalUser(session.userId);
+  return session.userId;
 }

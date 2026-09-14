@@ -11,7 +11,7 @@
  * Precedence (lowest → highest): dotenv files, then `.grok/app-env.json`
  * (`VITE_` keys only), then explicit shell `process.env`. Only `VITE_` keys
  * from app-env are honored; dotenv may also set server secrets (`DATABASE_URL`,
- * `BETTER_AUTH_*`). A real `process.env` entry always wins.
+ * `CLERK_*` / `VITE_CLERK_*`). A real `process.env` entry always wins.
  *
  * That precedence also means the file governs this workspace only. A deployed
  * build runs with the provider's project env, where the deployer sets
