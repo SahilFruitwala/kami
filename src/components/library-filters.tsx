@@ -39,7 +39,7 @@ export function LibraryFilters({
   }
 
   return (
-    <div className="mt-6 space-y-3">
+    <search aria-label="Search and filter library" className="mt-6 space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <label htmlFor="library-search" className="sr-only">
           Search your library
@@ -57,7 +57,10 @@ export function LibraryFilters({
         <Button
           type="button"
           variant={favoritesOnly ? "default" : "secondary"}
-          className="h-11 gap-2"
+          className={cn(
+            "h-11 gap-2 font-medium",
+            !favoritesOnly && "text-ink bg-paper-warm hover:bg-paper-warm/80",
+          )}
           aria-pressed={favoritesOnly}
           onClick={() => onFavoritesOnly(!favoritesOnly)}
         >
@@ -79,14 +82,14 @@ export function LibraryFilters({
             </FilterChip>
             <button
               type="button"
-              className="ml-0.5 size-8 rounded-full text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30"
+              className="ml-1 flex size-7 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30"
               aria-label={`Delete folder ${folder.name}`}
               onClick={() => {
                 if (folderFilter === folder.id) onFolder("all");
                 removeFolder(folder.id);
               }}
             >
-              <X className="mx-auto size-3.5" aria-hidden="true" />
+              <X className="size-3.5" aria-hidden="true" />
             </button>
           </span>
         ))}
@@ -107,24 +110,30 @@ export function LibraryFilters({
           autoComplete="off"
           className="h-11 w-36"
         />
-        <Button variant="ghost" size="icon" aria-label="Create folder" onClick={createFolder}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-11 text-ink-soft hover:text-ink"
+          aria-label="Create folder"
+          onClick={createFolder}
+        >
           <FolderPlus className="size-4" aria-hidden="true" />
         </Button>
       </div>
       {tags.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 pt-1" aria-label="Tags">
           {tags.map((tag) => (
             <FilterChip
               key={tag}
               active={tagFilter === tag}
               onClick={() => onTag(tagFilter === tag ? null : tag)}
             >
-              {tag}
+              #{tag}
             </FilterChip>
           ))}
         </div>
       ) : null}
-    </div>
+    </search>
   );
 }
 
@@ -143,8 +152,10 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "h-11 rounded-full px-3 text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30",
-        active ? "bg-ink text-paper" : "bg-paper-warm text-ink-soft hover:text-ink",
+        "h-10 rounded-full px-3.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 shadow-border",
+        active
+          ? "bg-ink text-paper font-semibold shadow-sm"
+          : "bg-surface text-ink hover:bg-paper-warm hover:text-ink",
       )}
     >
       {children}

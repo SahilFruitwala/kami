@@ -11,7 +11,7 @@ export function HighlightsSection({
   onRemove: (highlightId: string) => void;
 }) {
   if (highlights.length === 0) {
-    return <p className="mt-12 text-sm text-muted">Select a passage to highlight it.</p>;
+    return <p className="mt-12 text-sm text-ink-muted">Select a passage to highlight it.</p>;
   }
 
   return (
@@ -38,7 +38,7 @@ export function HighlightsSection({
               />
               <button
                 type="button"
-                className="mt-2 text-xs text-muted underline decoration-faint underline-offset-2"
+                className="mt-2 text-xs text-ink-muted underline decoration-faint underline-offset-2"
                 onClick={() => onRemove(highlight.id)}
               >
                 Remove

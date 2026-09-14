@@ -103,7 +103,15 @@ export function ReaderView({
 
   return (
     <div className="relative">
-      <div aria-hidden className="fixed inset-x-0 top-0 z-30 h-0.5 bg-line">
+      {/* Reading progress bar */}
+      <div
+        role="progressbar"
+        aria-label="Reading progress"
+        aria-valuenow={Math.round(progress * 100)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        className="fixed inset-x-0 top-0 z-30 h-0.5 bg-line"
+      >
         <div
           className="h-full bg-ink transition-[width] duration-150"
           style={{ width: `${Math.round(progress * 100)}%` }}
@@ -153,31 +161,39 @@ export function ReaderView({
       ) : null}
 
       <article className="mx-auto w-full max-w-2xl px-4 pb-24 pt-10 sm:px-6">
-        <p className="text-xs font-medium tracking-wide text-muted">
-          {[article.source === "x" ? "X" : article.siteName, article.author]
-            .filter(Boolean)
-            .join(" · ")}
-          {` · ${article.readingMinutes} min`}
-        </p>
-        <ViewTransition name={`article-title-${item.id}`} share="text-morph">
-          <h1
-            className="mt-3 text-3xl leading-tight tracking-tight sm:text-4xl"
-            style={{ fontFamily }}
-          >
-            {article.title}
-          </h1>
-        </ViewTransition>
+        {/* Article header: source, author, reading time */}
+        <header>
+          <p className="text-xs font-semibold tracking-wide text-ink-muted uppercase">
+            {[article.source === "x" ? "X" : article.siteName, article.author]
+              .filter(Boolean)
+              .join(" · ")}
+            {` · ${article.readingMinutes} min read`}
+          </p>
+          <ViewTransition name={`article-title-${item.id}`} share="text-morph">
+            <h1
+              className="mt-3 text-3xl leading-tight tracking-tight sm:text-4xl"
+              style={{ fontFamily }}
+            >
+              {article.title}
+            </h1>
+          </ViewTransition>
+        </header>
 
+        {/* Article organization: folders, tags */}
         <OrganizeRow item={item} />
-        <label className="mt-4 block">
-          <span className="text-xs font-medium uppercase tracking-wide text-muted">Notes</span>
-          <textarea
-            className="mt-1.5 min-h-24 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink/20"
-            placeholder="Private notes for this article…"
-            value={item.note || ""}
-            onChange={(e) => setItemNote(item.id, e.target.value)}
-          />
-        </label>
+
+        {/* Notes */}
+        <aside aria-label="Article notes" className="mt-4">
+          <label className="block">
+            <span className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Notes</span>
+            <textarea
+              className="mt-1.5 min-h-24 w-full rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/20"
+              placeholder="Private notes for this article…"
+              value={item.note || ""}
+              onChange={(e) => setItemNote(item.id, e.target.value)}
+            />
+          </label>
+        </aside>
 
         {article.heroImage && !hasLeadImage ? (
           <ViewTransition name={`article-image-${item.id}`} share="morph">
@@ -204,17 +220,20 @@ export function ReaderView({
           onRemove={(highlightId) => removeHighlight(item.id, highlightId)}
         />
 
-        <p className="mt-10 flex items-center gap-2 text-sm text-muted">
-          <ExternalLink className="size-3.5" />
-          <a
-            href={article.canonicalUrl || article.url}
-            target="_blank"
-            rel="noreferrer"
-            className="underline decoration-faint underline-offset-2 hover:text-ink"
-          >
-            View original
-          </a>
-        </p>
+        {/* Article footer: source link */}
+        <footer className="mt-10">
+          <p className="flex items-center gap-2 text-sm font-medium text-ink-muted">
+            <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
+            <a
+              href={article.canonicalUrl || article.url}
+              target="_blank"
+              rel="noreferrer"
+              className="underline decoration-faint underline-offset-2 hover:text-ink transition-colors"
+            >
+              View original article
+            </a>
+          </p>
+        </footer>
       </article>
     </div>
   );

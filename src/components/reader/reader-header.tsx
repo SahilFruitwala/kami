@@ -65,12 +65,15 @@ export function ReaderHeader({
       className="sticky top-0 z-20 border-b border-line bg-paper/90 backdrop-blur-sm"
       style={{ viewTransitionName: "reader-header" }}
     >
-      <div className="mx-auto flex w-full max-w-3xl items-center gap-1 px-2 py-2 sm:px-6">
-        <Button variant="ghost" className="gap-2 px-3" onClick={onBack}>
-          <ArrowLeft className="size-4" />
+      <nav
+        aria-label="Reader navigation and tools"
+        className="mx-auto flex w-full max-w-3xl items-center gap-1 px-2 py-2 sm:px-6"
+      >
+        <Button variant="ghost" className="gap-2 px-3 text-ink font-medium" onClick={onBack}>
+          <ArrowLeft className="size-4" aria-hidden="true" />
           <span className="hidden sm:inline">Library</span>
         </Button>
-        <div className="ml-auto flex items-center gap-1">
+        <div className="ml-auto flex items-center gap-1" role="toolbar" aria-label="Reading controls">
           {canSpeak ? (
             <>
               <Button
@@ -79,14 +82,23 @@ export function ReaderHeader({
                 onClick={onToggleListen}
                 aria-label={tts === "playing" ? "Pause reading" : "Listen"}
               >
-                {tts === "playing" ? <Pause className="size-4" /> : <Play className="size-4" />}
+                {tts === "playing" ? (
+                  <Pause className="size-4" aria-hidden="true" />
+                ) : (
+                  <Play className="size-4" aria-hidden="true" />
+                )}
                 <span className="hidden sm:inline">
                   {tts === "playing" ? "Pause" : tts === "paused" ? "Resume" : "Listen"}
                 </span>
               </Button>
               {tts !== "idle" || listenOpen ? (
-                <Button variant="ghost" size="icon" aria-label="Stop reading" onClick={onStopTts}>
-                  <Square className="size-3.5" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Stop reading"
+                  onClick={onStopTts}
+                >
+                  <Square className="size-3.5" aria-hidden="true" />
                 </Button>
               ) : null}
             </>
@@ -94,10 +106,11 @@ export function ReaderHeader({
           <Button
             variant="ghost"
             size="icon"
-            aria-label={favorited ? "Remove favorite" : "Favorite"}
+            aria-label={favorited ? "Remove favorite" : "Add to favorites"}
+            aria-pressed={favorited}
             onClick={onToggleFavorite}
           >
-            <Star className={cn("size-4", favorited && "fill-ink text-ink")} />
+            <Star className={cn("size-4", favorited && "fill-ink text-ink")} aria-hidden="true" />
           </Button>
           <ThemeToggle className="size-11" />
           <div className="relative" ref={prefsRef}>
@@ -106,21 +119,29 @@ export function ReaderHeader({
               size="icon"
               aria-label="Reading preferences"
               aria-expanded={prefsOpen}
+              aria-haspopup="dialog"
               onClick={onTogglePrefs}
             >
-              <Type className="size-4" />
+              <Type className="size-4" aria-hidden="true" />
             </Button>
             {prefsOpen ? prefsPanel : null}
           </div>
           <Button variant="ghost" className="gap-2 px-3" onClick={onArchive}>
-            {archived ? <Inbox className="size-4" /> : <Archive className="size-4" />}
+            {archived ? (
+              <Inbox className="size-4" aria-hidden="true" />
+            ) : (
+              <Archive className="size-4" aria-hidden="true" />
+            )}
             <span className="hidden sm:inline">{archived ? "Inbox" : "Archive"}</span>
           </Button>
         </div>
-      </div>
+      </nav>
       {tts !== "idle" || listenOpen ? (
-        <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3 px-4 pb-3 sm:px-6">
-          <p className="min-w-0 flex-1 font-display text-2xl leading-tight tracking-tight text-ink">
+        <section
+          aria-label="Audio reader controls"
+          className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3 px-4 pb-3 sm:px-6"
+        >
+          <p className="min-w-0 flex-1 font-display text-2xl leading-tight tracking-tight text-ink" aria-live="polite">
             {word || (tts === "paused" ? "Paused" : "Listening")}
           </p>
           <label className="sr-only" htmlFor="tts-voice">
@@ -128,7 +149,7 @@ export function ReaderHeader({
           </label>
           <select
             id="tts-voice"
-            className="h-11 max-w-40 rounded-md bg-surface px-2 text-sm text-ink shadow-border"
+            className="h-10 max-w-40 rounded-lg bg-surface px-2 text-sm font-medium text-ink shadow-border"
             value={ttsVoiceURI}
             onChange={(e) => onTtsVoice(e.target.value)}
           >
@@ -144,7 +165,7 @@ export function ReaderHeader({
           </label>
           <select
             id="tts-rate"
-            className="h-11 rounded-md bg-surface px-2 text-sm text-ink shadow-border"
+            className="h-10 rounded-lg bg-surface px-2 text-sm font-medium text-ink shadow-border"
             value={String(ttsRate)}
             onChange={(e) => onTtsRate(Number(e.target.value))}
           >
@@ -154,7 +175,7 @@ export function ReaderHeader({
               </option>
             ))}
           </select>
-        </div>
+        </section>
       ) : null}
     </header>
   );

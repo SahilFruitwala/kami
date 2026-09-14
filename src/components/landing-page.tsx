@@ -169,7 +169,7 @@ export function LandingPage() {
                   <a href="#how-it-works">See How It Works</a>
                 </Button>
               </div>
-              <p className="mt-3 text-xs text-muted" aria-live="polite">
+              <p className="mt-3 text-xs text-ink-muted" aria-live="polite">
                 Free to start · No extension required · Works on mobile &amp; desktop
               </p>
             </div>
@@ -183,18 +183,18 @@ export function LandingPage() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">Quarto</p>
-                    <p className="text-xs text-muted">Save &amp; read later</p>
+                    <p className="text-xs text-ink-muted">Save &amp; read later</p>
                   </div>
                   <span className="rounded-full bg-paper-warm px-2.5 py-1 text-xs text-ink-soft">
                     12 saved
                   </span>
                 </div>
                 <div className="mt-3 rounded-xl bg-paper px-3.5 py-3 shadow-border">
-                  <p className="text-[11px] font-medium tracking-wide text-muted uppercase">
+                  <p className="text-[11px] font-medium tracking-wide text-ink-muted uppercase">
                     Save a link
                   </p>
                   <div className="mt-2 flex items-center gap-2">
-                    <div className="flex h-9 flex-1 items-center rounded-md bg-surface px-3 text-sm text-muted shadow-border">
+                    <div className="flex h-9 flex-1 items-center rounded-md bg-surface px-3 text-sm text-ink-muted shadow-border">
                       <span className="truncate">Paste a blog or X URL…</span>
                     </div>
                     <span className="rounded-md bg-ink px-3.5 py-2 text-sm font-medium text-paper">
@@ -215,7 +215,7 @@ export function LandingPage() {
                           <span className="rounded-full bg-paper-warm px-2 py-0.5 text-[11px] text-ink-soft">
                             {row.tag}
                           </span>
-                          <span className="text-[11px] text-muted tabular-nums">{row.meta}</span>
+                          <span className="text-[11px] text-ink-muted tabular-nums">{row.meta}</span>
                         </span>
                         <span className="mt-0.5 block truncate font-display text-[15px] tracking-tight">
                           {row.title}
@@ -238,7 +238,7 @@ export function LandingPage() {
 
         {/* Strip */}
         <section aria-label="Who Quarto is for" className="border-y border-line bg-surface/60">
-          <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 py-4 text-sm text-muted sm:px-6">
+          <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 py-4 text-sm text-ink-muted sm:px-6">
             <span className="font-medium text-ink-soft">Built for</span>
             <span>Essay collectors</span>
             <span aria-hidden="true" className="text-faint">·</span>
@@ -252,7 +252,7 @@ export function LandingPage() {
 
         {/* Features */}
         <section aria-labelledby="features-heading" id="features" className="mx-auto w-full max-w-5xl scroll-mt-20 px-4 py-14 sm:px-6">
-          <p className="text-xs font-semibold tracking-widest text-muted uppercase">Features</p>
+          <p className="text-xs font-semibold tracking-widest text-ink-muted uppercase">Features</p>
           <h2 id="features-heading" className="mt-2 max-w-xl font-display text-3xl tracking-tight text-balance sm:text-4xl">
             Everything a Reading List Should Do
           </h2>
@@ -278,7 +278,7 @@ export function LandingPage() {
         {/* How it works */}
         <section aria-labelledby="how-heading" id="how-it-works" className="border-y border-line bg-surface/60 scroll-mt-20">
           <div className="mx-auto w-full max-w-5xl px-4 py-14 sm:px-6">
-            <p className="text-xs font-semibold tracking-widest text-muted uppercase">How It Works</p>
+            <p className="text-xs font-semibold tracking-widest text-ink-muted uppercase">How It Works</p>
             <h2 id="how-heading" className="mt-2 max-w-xl font-display text-3xl tracking-tight text-balance sm:text-4xl">
               From Link to Library in Seconds
             </h2>
@@ -310,7 +310,7 @@ export function LandingPage() {
         <section aria-labelledby="reader-heading" className="mx-auto w-full max-w-5xl px-4 py-14 sm:px-6">
           <div className="grid items-center gap-8 lg:grid-cols-2">
             <div>
-              <p className="text-xs font-semibold tracking-widest text-muted uppercase">Reader</p>
+              <p className="text-xs font-semibold tracking-widest text-ink-muted uppercase">Reader</p>
               <h2 id="reader-heading" className="mt-2 font-display text-3xl tracking-tight text-balance sm:text-4xl">
                 Read Like It’s Printed for You
               </h2>
@@ -347,14 +347,14 @@ export function LandingPage() {
                   />
                 ))}
               </div>
-              <p className="mt-4 font-display text-sm text-muted italic">Set in Newsreader, 19px, 1.65 line height</p>
+              <p className="mt-4 font-display text-sm text-ink-muted italic">Set in Newsreader, 19px, 1.65 line height</p>
             </div>
           </div>
         </section>
 
         {/* FAQ */}
         <section aria-labelledby="faq-heading" id="faq" className="mx-auto w-full max-w-3xl scroll-mt-20 px-4 pb-14 sm:px-6">
-          <p className="text-xs font-semibold tracking-widest text-muted uppercase">FAQ</p>
+          <p className="text-xs font-semibold tracking-widest text-ink-muted uppercase">FAQ</p>
           <h2 id="faq-heading" className="mt-2 font-display text-3xl tracking-tight text-balance sm:text-4xl">
             Questions, Answered
           </h2>
@@ -363,7 +363,7 @@ export function LandingPage() {
               <details key={f.q} className="group py-4">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left text-[15px] font-medium tracking-tight hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 rounded-sm [&::-webkit-details-marker]:hidden">
                   {f.q}
-                  <span aria-hidden="true" className="text-xl leading-none text-muted transition-transform duration-150 group-open:rotate-45">+</span>
+                  <span aria-hidden="true" className="text-xl leading-none text-ink-muted transition-transform duration-150 group-open:rotate-45">+</span>
                 </summary>
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ink-soft">{f.a}</p>
               </details>
@@ -406,7 +406,7 @@ export function LandingPage() {
       </main>
 
       <footer className="border-t border-line">
-        <div className="mx-auto flex w-full max-w-5xl flex-col items-start justify-between gap-3 px-4 py-6 text-sm text-muted sm:flex-row sm:items-center sm:px-6">
+        <div className="mx-auto flex w-full max-w-5xl flex-col items-start justify-between gap-3 px-4 py-6 text-sm text-ink-muted sm:flex-row sm:items-center sm:px-6">
           <span className="inline-flex items-center gap-2">
             <span className="flex size-6 items-center justify-center rounded-md bg-ink text-paper">
               <BookMarked className="size-3.5" aria-hidden="true" />

@@ -13,7 +13,7 @@ function LoginPage() {
 
   if (isPending) {
     return (
-      <main className="grid min-h-dvh place-items-center bg-paper px-4 text-sm text-muted">
+      <main className="grid min-h-dvh place-items-center bg-paper px-4 text-sm text-ink-muted">
         Checking your session…
       </main>
     );
@@ -49,7 +49,7 @@ function LoginPage() {
           <div className="mt-8">
             <SignInButtons />
           </div>
-          <p className="mt-6 text-xs text-muted">
+          <p className="mt-6 text-xs text-ink-muted">
             Sign in or create an account with Clerk. Your library stays private to this app.
           </p>
         </SignedOut>
