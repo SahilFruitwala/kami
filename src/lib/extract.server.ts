@@ -578,58 +578,6 @@ async function extractViaJina(url: string): Promise<Article | null> {
   }
 }
 
-async function extractViaGrok(html: string, pageUrl: string): Promise<Article | null> {
-  const apiKey = process.env.XAI_API_KEY;
-  if (!apiKey) return null;
-  const stripped = textFromHtml(html).slice(0, 12_000);
-  if (stripped.length < 80) return null;
-  try {
-    const res = await fetch("https://api.x.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      signal: AbortSignal.timeout(20_000),
-      body: JSON.stringify({
-        model: "grok-4.5",
-        max_tokens: 2500,
-        messages: [
-          {
-            role: "system",
-            content:
-              "Extract the main article from the page text. Return JSON only: {\"title\":\"\",\"author\":\"\",\"content_html\":\"\"}. content_html must be simple HTML using p, h2, h3, blockquote, ul, ol, li, strong, em, a. No scripts or classes.",
-          },
-          {
-            role: "user",
-            content: `URL: ${pageUrl}\n\n${stripped}`,
-          },
-        ],
-      }),
-    });
-    if (!res.ok) return null;
-    const body = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const content = body.choices?.[0]?.message?.content ?? "";
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) return null;
-    const parsed = JSON.parse(jsonMatch[0]) as { title?: string; author?: string; content_html?: string };
-    if (!parsed.content_html) return null;
-    return buildArticle({
-      url: pageUrl,
-      canonicalUrl: pageUrl,
-      title: parsed.title || "",
-      author: parsed.author || "",
-      siteName: new URL(pageUrl).hostname.replace(/^www\./, ""),
-      published: null,
-      contentHtml: parsed.content_html,
-      source: "blog",
-      heroImage: null,
-    });
-  } catch {
-    return null;
-  }
-}
-
 function looksLikeChallengePage(html: string): boolean {
   const sample = html.slice(0, 12_000).toLowerCase();
   const signals = [
@@ -759,11 +707,6 @@ export async function extractArticleFromUrl(rawUrl: string): Promise<ExtractResu
 
   const viaJina = await extractViaJina(fetched.finalUrl || pageUrl.href);
   if (viaJina) return { ok: true, article: viaJina };
-
-  if (!challenge) {
-    const viaGrok = await extractViaGrok(fetched.text, fetched.finalUrl || pageUrl.href);
-    if (viaGrok) return { ok: true, article: viaGrok };
-  }
 
   return {
     ok: false,

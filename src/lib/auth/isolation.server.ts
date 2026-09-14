@@ -8,17 +8,10 @@ import { getRequest } from "@tanstack/react-start/server";
  * client/server module under a non-`.server` name, Vite ships it to the browser
  * and the app dies with: `AsyncLocalStorage is not a constructor`.
  *
- * Apps deployed on `*.grok.me` are "same-site" to each other but MUTUALLY
- * UNTRUSTED, and a `SameSite=Lax` session cookie IS sent on same-site
- * subrequests — so without this, a malicious sibling could make a SCRIPTED
- * (fetch/XHR/form-POST) request to this app's server functions and ride this
- * app's session cookie.
- *
- * We allow only: same-origin requests (this app's own client), non-browser
- * requests (SSR / server-to-server, which send no `Sec-Fetch-Site`), and
- * top-level GET navigations (how OAuth callbacks and normal page loads
- * arrive). Every cross-site / same-site *scripted* request is rejected.
- * Enforced at the `authMiddleware` chokepoint (see `middleware.ts`).
+ * Blocks scripted cross-site requests that would otherwise ride a
+ * `SameSite=Lax` session cookie. Allows same-origin requests, non-browser
+ * clients (no `Sec-Fetch-Site`), and top-level GET navigations (OAuth
+ * callbacks / normal page loads). Enforced at `authMiddleware`.
  */
 export class CrossSiteRequestError extends Error {
   readonly status = 403;

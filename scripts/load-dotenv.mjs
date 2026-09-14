@@ -4,7 +4,7 @@
  *
  * Existing `process.env` keys always win. `.env.local` overrides `.env`.
  * Used by `with-app-env.mjs` and `migrate.mjs` so local Docker Postgres
- * (`DATABASE_URL`) and auth secrets reach Node without a Grok platform inject.
+ * (`DATABASE_URL`) and auth secrets reach Node for local development.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";

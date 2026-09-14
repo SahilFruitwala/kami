@@ -56,17 +56,18 @@ test("non-.sql entries are dropped (readdir also yields the auth/ directory)", (
   assert.deepEqual(pendingMigrations(["auth", "README.md"], []), []);
 });
 
-test("the auth schema ships outside the globbed directory", () => {
+test("the auth schema source still ships under migrations/auth", () => {
   const migrationsDir = join(projectRoot(), "migrations");
-  assert.deepEqual(pendingMigrations(readdirSync(migrationsDir), []), []);
   assert.ok(readdirSync(join(migrationsDir, "auth")).includes("0001_auth.sql"));
+  // Non-.sql entries (the auth/ directory itself) are not treated as migrations.
+  assert.equal(isMigrationFile("auth"), false);
 });
 
 test("this workspace's auth schema copy is byte-identical to its source", () => {
   // An edited copy diverges silently: basename keying skips it on a database
-  // that already ran the original, and applies it on a fresh PGLite preview.
+  // that already ran the original, and applies it on a fresh install.
   const pair = authSchemaCopy(projectRoot());
-  if (pair === null) return; // sign-in off — nothing has been copied up
+  assert.ok(pair, "expected migrations/0001_auth.sql (Clerk auth is enabled)");
   assert.equal(
     pair.copy,
     pair.source,
