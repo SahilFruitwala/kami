@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { FolderPlus, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { collectLibraryTags } from "@/lib/filter-library.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
 
@@ -28,11 +29,8 @@ export function LibraryFilters({
   const library = useLibraryStore((s) => s.library);
   const addFolder = useLibraryStore((s) => s.addFolder);
   const removeFolder = useLibraryStore((s) => s.removeFolder);
+  const tags = useMemo(() => collectLibraryTags(library), [library]);
   const [draft, setDraft] = useState("");
-
-  const tags = Array.from(new Set(library.flatMap((item) => item.tags.map((tag) => tag)))).sort((a, b) =>
-    a.localeCompare(b),
-  );
 
   function createFolder() {
     const id = addFolder(draft);
