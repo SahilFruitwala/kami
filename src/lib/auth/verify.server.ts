@@ -13,19 +13,16 @@ import { user } from "@/lib/schema";
 const databaseConfigured = Boolean(process.env.DATABASE_URL?.trim());
 
 /**
- * True when Clerk is configured (publishable + secret keys present).
- * Mirrors the old Better Auth `authConfigured` gate for fail-closed DB use.
+ * True when sign-in is on. Clerk may use env keys or keyless/dev credentials;
+ * either way we resolve the user via `auth()` rather than a shared dev id.
  */
-export const authConfigured =
-  Boolean(process.env.VITE_CLERK_PUBLISHABLE_KEY?.trim()) &&
-  Boolean(process.env.CLERK_SECRET_KEY?.trim()) &&
-  process.env.VITE_AUTH_ENABLED !== "false";
+export const authConfigured = process.env.VITE_AUTH_ENABLED !== "false";
 
 if (databaseConfigured && !authConfigured) {
   console.error(
-    "[auth] DATABASE_URL is set but Clerk keys are missing or auth is disabled " +
-      "(VITE_AUTH_ENABLED=false) — requireUserId() will reject every request " +
-      "(fail closed) rather than share one dev user on a real database.",
+    "[auth] DATABASE_URL is set but auth is disabled (VITE_AUTH_ENABLED=false) " +
+      "— requireUserId() will reject every request (fail closed) rather than " +
+      "share one dev user on a real database.",
   );
 }
 
@@ -106,7 +103,7 @@ export async function requireUserId(): Promise<string> {
   if (!authConfigured) {
     if (databaseConfigured) {
       throw new Error(
-        "Auth is disabled or Clerk keys are missing but DATABASE_URL is set — " +
+        "Auth is disabled (VITE_AUTH_ENABLED=false) but DATABASE_URL is set — " +
           "refusing to fall back to the shared dev user against a real database.",
       );
     }
