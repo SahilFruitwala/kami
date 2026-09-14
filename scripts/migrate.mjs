@@ -9,14 +9,19 @@
  * The read is non-recursive, so the opt-in auth schema under migrations/auth/
  * is not applied to an app that never asked for sign-in.
  *
- * No DATABASE_URL (local / preview builds) -> skip; the PGLite fallback applies
- * the same files at startup instead (see src/lib/db.ts).
+ * Loads `.env` / `.env.local` first (see `load-dotenv.mjs`). No DATABASE_URL
+ * (and no dotenv) -> skip; the PGLite fallback applies the same files at
+ * startup instead (see src/lib/db.ts).
  */
 import { readdir, readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import pg from "pg";
+import { loadDotenv } from "./load-dotenv.mjs";
 import { pendingMigrations } from "./migration-plan.mjs";
+
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+loadDotenv(root);
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
