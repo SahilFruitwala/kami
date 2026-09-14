@@ -19,13 +19,14 @@ export function HighlightsSection({
       <h2 className="font-display text-xl">Highlights</h2>
       <ul className="mt-4 space-y-4">
         {highlights.map((highlight) => {
-          const swatch =
-            HIGHLIGHT_COLORS.find((c) => c.id === highlight.color)?.swatch ?? "#e8c97a";
+          const color = HIGHLIGHT_COLORS.some((c) => c.id === highlight.color)
+            ? highlight.color
+            : "amber";
           return (
             <li key={highlight.id} className="rounded-md bg-surface p-3 shadow-border">
               <p
-                className="rounded-sm px-1.5 py-0.5 font-display text-base leading-normal italic text-ink-soft"
-                style={{ background: `color-mix(in oklab, ${swatch} 55%, transparent)` }}
+                data-hl={color}
+                className="hl-quote rounded-sm px-1.5 py-0.5 font-display text-base leading-normal italic"
               >
                 {highlight.text}
               </p>

@@ -91,10 +91,6 @@
     outline-color: rgba(236, 228, 212, 0.12);
   }
 
-  .dark .reader-body mark {
-    color: #1c1916;
-  }
-
   html,
   body,
   #app {
@@ -477,6 +473,69 @@
 }
 .reader-body mark[data-color="rose"] {
   background: color-mix(in oklab, #e8b4c0 72%, transparent);
+}
+
+/* Dark mode: deeper, saturated washes paired with light text so the
+   highlight stays readable (pastel + light text is ~1.3:1 contrast). */
+.dark .reader-body mark {
+  color: #ece4d4;
+}
+.dark .reader-body mark[data-color="amber"] {
+  background: color-mix(in oklab, #7a5c14 70%, transparent);
+}
+.dark .reader-body mark[data-color="lemon"] {
+  background: color-mix(in oklab, #6b5a10 78%, transparent);
+}
+.dark .reader-body mark[data-color="mint"] {
+  background: color-mix(in oklab, #2f6b4a 72%, transparent);
+}
+.dark .reader-body mark[data-color="sky"] {
+  background: color-mix(in oklab, #2c5a80 72%, transparent);
+}
+.dark .reader-body mark[data-color="rose"] {
+  background: color-mix(in oklab, #8a3d4d 72%, transparent);
+}
+
+/* Highlights list quotes mirror the in-article mark colors per theme. */
+.hl-quote[data-hl="amber"] {
+  background: color-mix(in oklab, #e8c97a 55%, transparent);
+  color: #1c1916;
+}
+.hl-quote[data-hl="lemon"] {
+  background: color-mix(in oklab, #f0e07a 55%, transparent);
+  color: #1c1916;
+}
+.hl-quote[data-hl="mint"] {
+  background: color-mix(in oklab, #a8d5b5 55%, transparent);
+  color: #1c1916;
+}
+.hl-quote[data-hl="sky"] {
+  background: color-mix(in oklab, #a8c8e8 55%, transparent);
+  color: #1c1916;
+}
+.hl-quote[data-hl="rose"] {
+  background: color-mix(in oklab, #e8b4c0 55%, transparent);
+  color: #1c1916;
+}
+.dark .hl-quote[data-hl="amber"] {
+  background: color-mix(in oklab, #7a5c14 60%, transparent);
+  color: #ece4d4;
+}
+.dark .hl-quote[data-hl="lemon"] {
+  background: color-mix(in oklab, #6b5a10 60%, transparent);
+  color: #ece4d4;
+}
+.dark .hl-quote[data-hl="mint"] {
+  background: color-mix(in oklab, #2f6b4a 60%, transparent);
+  color: #ece4d4;
+}
+.dark .hl-quote[data-hl="sky"] {
+  background: color-mix(in oklab, #2c5a80 60%, transparent);
+  color: #ece4d4;
+}
+.dark .hl-quote[data-hl="rose"] {
+  background: color-mix(in oklab, #8a3d4d 60%, transparent);
+  color: #ece4d4;
 }
 
 ::highlight(spoken) {

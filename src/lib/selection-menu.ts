@@ -5,8 +5,8 @@ export type SelMenu = {
   rects: { top: number; left: number; width: number; height: number }[];
 };
 
-const MENU_WIDTH = 232;
-const MENU_HEIGHT = 132;
+const MENU_WIDTH = 208;
+const MENU_HEIGHT = 100;
 const GAP = 8;
 const TOP_SAFE = 64;
 

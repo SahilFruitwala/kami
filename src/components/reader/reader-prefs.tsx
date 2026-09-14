@@ -1,4 +1,4 @@
-import { Minus, Plus } from "lucide-react";
+import { Minus, Moon, Plus, Sun } from "lucide-react";
 import {
   HIGHLIGHT_COLORS,
   READER_FONTS,
@@ -6,6 +6,7 @@ import {
   type HighlightColorId,
   type ReaderFontId,
 } from "@/lib/store.ts";
+import { useThemeStore } from "@/hooks/use-theme.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { cn } from "@/lib/utils.ts";
 
@@ -24,6 +25,8 @@ export function ReaderPrefsPanel({
   onFont: (font: ReaderFontId) => void;
   onHighlightColor: (color: HighlightColorId) => void;
 }) {
+  const theme = useThemeStore((s) => s.theme);
+  const setTheme = useThemeStore((s) => s.setTheme);
   return (
     <div className="absolute right-0 top-full z-40 mt-2 w-64 rounded-lg bg-surface p-3 shadow-border">
       <p className="text-xs font-medium uppercase tracking-wide text-muted">Text size</p>
@@ -76,6 +79,38 @@ export function ReaderPrefsPanel({
             {font.label}
           </button>
         ))}
+      </div>
+
+      <p className="mt-4 text-xs font-medium uppercase tracking-wide text-muted">Theme</p>
+      <div className="mt-2 grid grid-cols-2 gap-1">
+        <button
+          type="button"
+          aria-pressed={theme === "light"}
+          className={cn(
+            "flex items-center justify-center gap-1.5 rounded-md px-2.5 py-2 text-sm transition-colors",
+            theme === "light"
+              ? "bg-paper-warm text-ink"
+              : "text-ink-soft hover:bg-paper-warm/60 hover:text-ink",
+          )}
+          onClick={() => setTheme("light")}
+        >
+          <Sun className="size-3.5" />
+          Light
+        </button>
+        <button
+          type="button"
+          aria-pressed={theme === "dark"}
+          className={cn(
+            "flex items-center justify-center gap-1.5 rounded-md px-2.5 py-2 text-sm transition-colors",
+            theme === "dark"
+              ? "bg-paper-warm text-ink"
+              : "text-ink-soft hover:bg-paper-warm/60 hover:text-ink",
+          )}
+          onClick={() => setTheme("dark")}
+        >
+          <Moon className="size-3.5" />
+          Dark
+        </button>
       </div>
 
       <p className="mt-4 text-xs font-medium uppercase tracking-wide text-muted">Default highlight</p>
