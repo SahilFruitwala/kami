@@ -17,7 +17,7 @@ function textNodes(root: Element): Text[] {
   return nodes;
 }
 
-function wrapQuote(root: Element, quote: string, id: string): boolean {
+function wrapQuote(root: Element, quote: string, id: string, color: string): boolean {
   const nodes = textNodes(root);
   if (!nodes.length) return false;
 
@@ -65,6 +65,7 @@ function wrapQuote(root: Element, quote: string, id: string): boolean {
     const doc = slice.node.ownerDocument;
     const mark = doc.createElement("mark");
     mark.setAttribute("data-hid", id);
+    mark.setAttribute("data-color", color);
     mark.appendChild(doc.createTextNode(mid));
     const frag = doc.createDocumentFragment();
     if (before) frag.appendChild(doc.createTextNode(before));
@@ -84,7 +85,7 @@ export function applyHighlights(html: string, highlights: Highlight[]): string {
   for (const highlight of sorted) {
     const quote = highlight.text.trim();
     if (quote.length < 8) continue;
-    wrapQuote(root, quote, highlight.id);
+    wrapQuote(root, quote, highlight.id, highlight.color || "amber");
   }
   return root.innerHTML;
 }

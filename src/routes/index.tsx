@@ -39,7 +39,18 @@ import {
 import type { ExtractResult } from "@/lib/article-types.ts";
 import { cn } from "@/lib/utils.ts";
 
-export const Route = createFileRoute("/")({ component: Home });
+type HomeSearch = {
+  id?: string;
+  import?: string;
+};
+
+export const Route = createFileRoute("/")({
+  validateSearch: (search: Record<string, unknown>): HomeSearch => ({
+    id: typeof search.id === "string" && search.id.length > 0 ? search.id : undefined,
+    import: typeof search.import === "string" && search.import.length > 0 ? search.import : undefined,
+  }),
+  component: Home,
+});
 
 const SAMPLES = [
   { label: "Essay", url: "http://www.paulgraham.com/ds.html" },
@@ -68,14 +79,28 @@ function Home() {
   const booted = useRef(false);
   const inFlight = useRef<string | null>(null);
 
+  const navigate = Route.useNavigate();
+  const search = Route.useSearch();
+
   const library = useLibraryStore((s) => s.library);
   const openId = useLibraryStore((s) => s.openId);
-  const readerSize = useLibraryStore((s) => s.readerSize);
   const upsertItem = useLibraryStore((s) => s.upsertItem);
   const archiveItem = useLibraryStore((s) => s.archiveItem);
   const removeItem = useLibraryStore((s) => s.removeItem);
   const setOpenId = useLibraryStore((s) => s.setOpenId);
-  const setReaderSize = useLibraryStore((s) => s.setReaderSize);
+
+  function goOpen(id: string | null, replace = false) {
+    setOpenId(id);
+    void navigate({
+      search: (prev) => {
+        const next: HomeSearch = { ...prev };
+        if (id) next.id = id;
+        else delete next.id;
+        return next;
+      },
+      replace,
+    });
+  }
 
   const openItem = useMemo(
     () => library.find((row) => row.id === openId) ?? null,
@@ -113,12 +138,16 @@ function Home() {
       setError(result.error);
       return false;
     }
-    upsertItem(articleToItem(result.article));
+    const item = articleToItem(result.article);
+    upsertItem(item);
     writeDraftUrl("");
     setUrl("");
     setError("");
-    if (!thenOpen) setOpenId(null);
-    else toast.success("Saved to your list");
+    if (!thenOpen) goOpen(null, true);
+    else {
+      goOpen(item.id);
+      toast.success("Saved to your list");
+    }
     return true;
   }
 
@@ -187,7 +216,9 @@ function Home() {
         toast.error(result.error);
         return;
       }
-      upsertItem(articleToItem(result.article));
+      const item = articleToItem(result.article);
+      upsertItem(item);
+      goOpen(item.id);
       setPasteOpen(false);
       setPasteTitle("");
       setPasteBody("");
@@ -201,23 +232,23 @@ function Home() {
   }
 
   async function openItemOrFetch(item: LibraryItem) {
-    if (item.contentHtml) {
-      setOpenId(item.id);
-      return;
-    }
-    setOpenId(item.id);
-    await save(item.url, true);
+    goOpen(item.id);
+    if (!item.contentHtml) await save(item.url, true);
   }
+
+  // Address bar is the source of truth for which article is open.
+  useEffect(() => {
+    const fromUrl = search.id ?? null;
+    if (fromUrl !== openId) setOpenId(fromUrl);
+  }, [search.id, openId, setOpenId]);
 
   useEffect(() => {
     if (booted.current) return;
     booted.current = true;
     setBookmarklet(buildBookmarklet(window.location.origin));
 
-    const params = new URLSearchParams(window.location.search);
-    const importRaw = params.get("import");
-    if (importRaw) {
-      const payload = decodeImportPayload(importRaw);
+    if (search.import) {
+      const payload = decodeImportPayload(search.import);
       if (payload) {
         setPasteOpen(true);
         setPasteTitle(payload.title);
@@ -225,12 +256,19 @@ function Home() {
         setPasteBody(payload.html);
         toast.message("Captured from bookmarklet — review and import.");
       }
-      window.history.replaceState({}, "", window.location.pathname);
+      void navigate({
+        search: (prev) => {
+          const next = { ...prev };
+          delete next.import;
+          return next;
+        },
+        replace: true,
+      });
       return;
     }
 
     const draft = readDraftUrl();
-    if (draft && !openId) {
+    if (draft && !search.id) {
       setUrl(draft);
       void save(draft, true);
     }
@@ -242,18 +280,16 @@ function Home() {
       <ReaderView
         item={openItem}
         article={article}
-        readerSize={readerSize}
-        onBack={() => setOpenId(null)}
+        onBack={() => goOpen(null)}
         onArchive={() => {
           archiveItem(openItem.id, !openItem.archived);
           if (!openItem.archived) {
-            setOpenId(null);
+            goOpen(null);
             toast.success("Archived");
           } else {
             toast.success("Moved to inbox");
           }
         }}
-        onToggleSize={() => setReaderSize(readerSize === "lg" ? "md" : "lg")}
       />
     );
   }
