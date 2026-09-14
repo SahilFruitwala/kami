@@ -24,7 +24,13 @@ import {
 } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { extractArticle, importArticle, saveLinkArticle } from "@/lib/article-fns.ts";
+import { RedirectToSignIn, UserButton } from "@/lib/auth/gates";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { buildBookmarklet, decodeImportPayload } from "@/lib/bookmarklet.ts";
+import {
+  bootstrapLibraryFromServer,
+  clearLibraryLocal,
+} from "@/lib/library-remote.ts";
 import {
   normalizeSourceUrl,
   readDraftUrl,
@@ -62,6 +68,8 @@ const SAMPLES = [
 ] as const;
 
 function Home() {
+  const { user, isPending: authPending } = useCurrentUserState();
+  const [libraryReady, setLibraryReady] = useState(false);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -78,6 +86,7 @@ function Home() {
   const [bookmarklet, setBookmarklet] = useState("");
   const booted = useRef(false);
   const inFlight = useRef<string | null>(null);
+  const libraryUserId = useRef<string | null>(null);
 
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
@@ -88,6 +97,34 @@ function Home() {
   const archiveItem = useLibraryStore((s) => s.archiveItem);
   const removeItem = useLibraryStore((s) => s.removeItem);
   const setOpenId = useLibraryStore((s) => s.setOpenId);
+
+  useEffect(() => {
+    if (authPending) return;
+    if (!user) {
+      clearLibraryLocal();
+      libraryUserId.current = null;
+      setLibraryReady(false);
+      return;
+    }
+    if (libraryUserId.current === user.id) return;
+    let cancelled = false;
+    setLibraryReady(false);
+    libraryUserId.current = user.id;
+    void bootstrapLibraryFromServer()
+      .then(() => {
+        if (!cancelled) setLibraryReady(true);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (!cancelled) {
+          toast.error("Could not load your library.");
+          setLibraryReady(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [authPending, user]);
 
   function goOpen(id: string | null, replace = false) {
     setOpenId(id);
@@ -243,6 +280,7 @@ function Home() {
   }, [search.id, openId, setOpenId]);
 
   useEffect(() => {
+    if (!user || !libraryReady) return;
     if (booted.current) return;
     booted.current = true;
     setBookmarklet(buildBookmarklet(window.location.origin));
@@ -273,7 +311,27 @@ function Home() {
       void save(draft, true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user, libraryReady]);
+
+  if (authPending) {
+    return (
+      <main className="grid min-h-dvh place-items-center bg-paper px-4 text-sm text-muted">
+        Checking your session…
+      </main>
+    );
+  }
+
+  if (!user) {
+    return <RedirectToSignIn />;
+  }
+
+  if (!libraryReady) {
+    return (
+      <main className="grid min-h-dvh place-items-center bg-paper px-4 text-sm text-muted">
+        Loading your library…
+      </main>
+    );
+  }
 
   if (article && openItem) {
     return (
@@ -310,10 +368,13 @@ function Home() {
             <p className="hidden text-xs text-muted sm:block">Save & read later</p>
           </div>
         </div>
-        <Button type="button" variant="ghost" className="h-11 gap-2" onClick={() => setToolsOpen(true)}>
-          <Sparkles className="size-4" />
-          <span className="hidden sm:inline">Capture tools</span>
-        </Button>
+        <div className="flex items-center gap-1 sm:gap-2">
+          <Button type="button" variant="ghost" className="h-11 gap-2" onClick={() => setToolsOpen(true)}>
+            <Sparkles className="size-4" />
+            <span className="hidden sm:inline">Capture tools</span>
+          </Button>
+          <UserButton />
+        </div>
       </header>
 
       <div className="relative mx-auto w-full max-w-3xl px-4 pb-20 sm:px-6">
