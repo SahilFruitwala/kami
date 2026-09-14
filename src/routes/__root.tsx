@@ -1,6 +1,5 @@
 import { createRootRoute, HeadContent, Navigate, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
-import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 
@@ -18,9 +17,16 @@ export const Route = createRootRoute({
         content: "Save blogs and X articles to read later — clean pages, tags, and highlights.",
       },
       { name: "theme-color", content: "#F3EEE4" },
+      { property: "og:title", content: APP_NAME },
+      {
+        property: "og:description",
+        content: "Quiet read-later for blogs and X articles.",
+      },
+      { property: "og:image", content: "/og.jpg" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+      { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       {
         rel: "preconnect",
@@ -32,8 +38,6 @@ export const Route = createRootRoute({
         href: "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Figtree:wght@400;500;600&family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap",
       },
       { rel: "stylesheet", href: appCss },
-      { rel: "manifest", href: "/__grok/manifest.webmanifest" },
-      { rel: "apple-touch-icon", href: "/__grok/icon-180.png" },
     ],
   }),
   component: () => (
@@ -42,7 +46,6 @@ export const Route = createRootRoute({
         <HeadContent />
       </head>
       <body className="min-h-dvh bg-paper text-ink">
-        <PreviewHostBridge />
         <AuthProvider>
           <Outlet />
         </AuthProvider>
