@@ -332,7 +332,7 @@ export const useLibraryStore = create<LibraryState>()(
       addTag: (itemId, tag) => {
         const next = normalizeTag(tag);
         if (!next) return;
-        let tags: string[] | null = null;
+        let tags: string[] | undefined;
         set((state) => ({
           library: mapItem(state.library, itemId, (row) => {
             if (row.tags.some((t) => t.toLowerCase() === next.toLowerCase())) {
@@ -346,7 +346,7 @@ export const useLibraryStore = create<LibraryState>()(
         if (tags) remoteSync((m) => m.syncPatchItem(itemId, { tags }));
       },
       removeTag: (itemId, tag) => {
-        let tags: string[] | null = null;
+        let tags: string[] | undefined;
         set((state) => ({
           library: mapItem(state.library, itemId, (row) => {
             tags = row.tags.filter((t) => t.toLowerCase() !== tag.toLowerCase());
@@ -366,7 +366,7 @@ export const useLibraryStore = create<LibraryState>()(
           createdAt: Date.now(),
           color: picked,
         };
-        let highlights: Highlight[] | null = null;
+        let highlights: Highlight[] | undefined;
         set((state) => ({
           library: mapItem(state.library, itemId, (row) => {
             if (row.highlights.some((h) => h.text === highlight.text)) {
@@ -382,7 +382,7 @@ export const useLibraryStore = create<LibraryState>()(
         return highlight;
       },
       removeHighlight: (itemId, highlightId) => {
-        let highlights: Highlight[] | null = null;
+        let highlights: Highlight[] | undefined;
         set((state) => ({
           library: mapItem(state.library, itemId, (row) => {
             highlights = row.highlights.filter((h) => h.id !== highlightId);
@@ -392,7 +392,7 @@ export const useLibraryStore = create<LibraryState>()(
         if (highlights) remoteSync((m) => m.syncPatchItem(itemId, { highlights }));
       },
       setHighlightNote: (itemId, highlightId, note) => {
-        let highlights: Highlight[] | null = null;
+        let highlights: Highlight[] | undefined;
         set((state) => ({
           library: mapItem(state.library, itemId, (row) => {
             highlights = row.highlights.map((h) =>
