@@ -80,16 +80,17 @@ test("the wrapped command runs with the app env applied", async () => {
     "-e",
     PRINT_FLAG,
   ]);
-  assert.equal(stdout, "false");
+  // This workspace ships with auth on (`.grok/app-env.json`).
+  assert.equal(stdout, "true");
 });
 
 test("the wrapped command sees an explicit override, not the file value", async () => {
   const { stdout } = await execFileAsync(
     process.execPath,
     [WRAPPER, process.execPath, "-e", PRINT_FLAG],
-    { env: { ...process.env, VITE_AUTH_ENABLED: "true" } },
+    { env: { ...process.env, VITE_AUTH_ENABLED: "false" } },
   );
-  assert.equal(stdout, "true");
+  assert.equal(stdout, "false");
 });
 
 test("the wrapper propagates the command's exit code", async () => {
@@ -124,5 +125,5 @@ test("the CLI still runs when invoked through a symlinked path", async () => {
     "-e",
     PRINT_FLAG,
   ]);
-  assert.equal(stdout, "false");
+  assert.equal(stdout, "true");
 });

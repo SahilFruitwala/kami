@@ -38,12 +38,13 @@ export const Route = createFileRoute("/")({
 
 function QuartoApp() {
   const { user, isPending } = useCurrentUserState();
+  const userId = user?.id;
   const [libraryReady, setLibraryReady] = useState(false);
   const [libraryError, setLibraryError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isPending) return;
-    if (!user) {
+    if (!userId) {
       clearLibraryLocal();
       setLibraryReady(false);
       setLibraryError(null);
@@ -68,7 +69,7 @@ function QuartoApp() {
     return () => {
       cancelled = true;
     };
-  }, [user, isPending]);
+  }, [userId, isPending]);
 
   if (isPending) {
     return <AuthLoadingScreen label="Checking your session…" />;

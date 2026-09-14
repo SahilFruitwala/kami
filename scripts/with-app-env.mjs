@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 /**
- * Run a command with `.grok/app-env.json` merged into its environment.
+ * Run a command with `.env` / `.env.local` and `.grok/app-env.json` merged
+ * into its environment.
  *
  * `dev`, `build` and `preview` all route through this wrapper, so the dev
  * server, the built bundle and the preview server can never disagree about
  * `VITE_AUTH_ENABLED` — a divergence that only shows up as a built-output
  * mismatch long after the fact. Anything that starts Vite directly bypasses it.
  *
- * Only `VITE_`-prefixed keys are honored: the file is a build flag carrier, not
- * a secret store, and only `VITE_` vars reach the browser anyway. A real
- * `process.env` entry always wins, so an explicit override still works.
+ * Precedence (lowest → highest): dotenv files, then `.grok/app-env.json`
+ * (`VITE_` keys only), then explicit shell `process.env`. Only `VITE_` keys
+ * from app-env are honored; dotenv may also set server secrets (`DATABASE_URL`,
+ * `BETTER_AUTH_*`). A real `process.env` entry always wins.
  *
  * That precedence also means the file governs this workspace only. A deployed
  * build runs with the provider's project env, where the deployer sets
@@ -24,6 +26,7 @@ import { readFileSync, realpathSync } from "node:fs";
 import { constants as osConstants } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { readDotenvFile } from "./load-dotenv.mjs";
 
 export const APP_ENV_REL_PATH = ".grok/app-env.json";
 
@@ -110,7 +113,15 @@ function main(argv) {
     console.error("usage: node scripts/with-app-env.mjs <command> [args…]");
     process.exit(2);
   }
-  const env = mergeAppEnv(readAppEnv(projectRoot()), process.env);
+  const root = projectRoot();
+  // Precedence (lowest → highest): `.env` / `.env.local`, then
+  // `.grok/app-env.json` (VITE_ flags), then explicit shell `process.env`.
+  // Do not mutate process.env here — that would let dotenv beat app-env.
+  const dotenv = {
+    ...readDotenvFile(join(root, ".env")),
+    ...readDotenvFile(join(root, ".env.local")),
+  };
+  const env = mergeAppEnv({ ...dotenv, ...readAppEnv(root) }, process.env);
   const child = spawn(command, args, { stdio: "inherit", env });
   // The dev server is long-running and is stopped by signalling this wrapper.
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
