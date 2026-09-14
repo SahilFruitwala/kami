@@ -1,6 +1,8 @@
 import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { Navigate } from "@tanstack/react-router";
+import { EmailPasswordForm } from "@/components/auth/email-password-form";
 import { GROK_PROVIDERS, authEnabled, signIn, signOut } from "./client";
+import { emailAndPasswordEnabled } from "./email-password";
 import { hasGateSessionMarker } from "./gate-session-marker";
 import { resolveSignInGateState } from "./sign-in-gate";
 import { useCurrentUser, useCurrentUserState } from "./use-current-user";
@@ -63,19 +65,29 @@ export function SignInGate({
   return <>{fallback ?? <SignInButtons />}</>;
 }
 
-export function SignInButtons() {
+export function SignInButtons({ callbackURL = "/" }: { callbackURL?: string } = {}) {
   return (
-    <div className="flex w-full max-w-sm flex-col gap-2">
-      {GROK_PROVIDERS.map((p) => (
-        <button
-          key={p.providerId}
-          type="button"
-          onClick={() => signIn(p.providerId, { callbackURL: "/" })}
-          className="w-full cursor-pointer rounded-md border border-neutral-300 px-4 py-2 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900"
-        >
-          Continue with {p.label}
-        </button>
-      ))}
+    <div className="flex w-full max-w-sm flex-col gap-4">
+      {emailAndPasswordEnabled ? <EmailPasswordForm callbackURL={callbackURL} /> : null}
+      {emailAndPasswordEnabled && GROK_PROVIDERS.length > 0 ? (
+        <div className="flex items-center gap-3 text-xs text-muted">
+          <span className="h-px flex-1 bg-line" />
+          <span>or continue with</span>
+          <span className="h-px flex-1 bg-line" />
+        </div>
+      ) : null}
+      <div className="flex flex-col gap-2">
+        {GROK_PROVIDERS.map((p) => (
+          <button
+            key={p.providerId}
+            type="button"
+            onClick={() => signIn(p.providerId, { callbackURL })}
+            className="w-full cursor-pointer rounded-md border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink shadow-border transition-colors hover:bg-paper-warm"
+          >
+            Continue with {p.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
