@@ -38,7 +38,13 @@ export function CaptureForm({
         bookmarklet.
       </p>
 
-      <div className="mt-8">
+      <form
+        className="mt-8"
+        onSubmit={(e) => {
+          e.preventDefault();
+          onSave();
+        }}
+      >
         <label htmlFor="source-url" className="sr-only">
           Article URL
         </label>
@@ -58,17 +64,12 @@ export function CaptureForm({
               onUrlChange(e.target.value);
               onClearError();
             }}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              e.preventDefault();
-              onSave();
-            }}
             className="sm:flex-1"
           />
-          <Button type="button" className="sm:w-32" disabled={busy} onClick={() => onSave()}>
+          <Button type="submit" className="sm:w-32" disabled={busy}>
             {busy ? (
               <>
-                <LoaderCircle className="size-4" aria-hidden="true" />
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
                 <span className="sr-only">Saving…</span>
                 <span aria-hidden="true">Saving…</span>
               </>
@@ -82,7 +83,7 @@ export function CaptureForm({
         </div>
         {error ? (
           <div className="mt-2 space-y-2" role="alert" aria-live="assertive">
-            <p className="text-sm text-danger">{error}</p>
+            <p className="text-sm font-medium text-danger">{error}</p>
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
@@ -101,9 +102,11 @@ export function CaptureForm({
             </div>
           </div>
         ) : (
-          <p className="mt-2 text-sm text-muted">Public pages only. Stays on this device.</p>
+          <p className="mt-2.5 text-xs font-medium text-ink-muted sm:text-sm">
+            Public pages only. Stays on this device.
+          </p>
         )}
-      </div>
+      </form>
     </section>
   );
 }

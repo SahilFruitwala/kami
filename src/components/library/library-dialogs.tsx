@@ -52,7 +52,7 @@ export function PasteDialog({
             onChange={(e) => onUrl(e.target.value)}
           />
           <textarea
-            className="min-h-48 w-full rounded-md border border-line bg-paper px-3 py-2 text-sm text-ink outline-none focus-visible:ring-2 focus-visible:ring-ink/20"
+            className="min-h-48 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/20"
             placeholder="Paste article text or HTML"
             value={body}
             onChange={(e) => onBody(e.target.value)}
@@ -99,7 +99,7 @@ export function ToolsDialog({ open, onOpenChange, bookmarklet }: ToolsDialogProp
           >
             Copy Quarto bookmarklet
           </Button>
-          <p className="text-xs text-muted">
+          <p className="text-xs text-ink-muted">
             Capture runs inside this app. There is no separate API or Worker to deploy.
           </p>
         </div>

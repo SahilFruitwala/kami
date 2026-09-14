@@ -135,7 +135,7 @@ function AuthLoadingScreen({
             <div className="h-16 animate-pulse rounded-xl bg-paper-warm" />
           </div>
         ) : null}
-        <p className="text-sm text-muted">{label}</p>
+        <p className="text-sm text-ink-muted">{label}</p>
         {actionLabel && onAction ? (
           <button
             type="button"

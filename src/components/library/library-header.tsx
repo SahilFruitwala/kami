@@ -14,8 +14,8 @@ export function LibraryHeader({ onOpenTools }: { onOpenTools: () => void }) {
           <BookMarked className="size-4" />
         </span>
         <div>
-          <p className="text-sm font-semibold tracking-tight">Quarto</p>
-          <p className="hidden text-xs text-muted sm:block">Save & read later</p>
+          <p className="text-sm font-semibold tracking-tight text-ink">Quarto</p>
+          <p className="hidden text-xs font-medium text-ink-muted sm:block">Save &amp; read later</p>
         </div>
       </div>
       <div className="flex items-center gap-1 sm:gap-2">

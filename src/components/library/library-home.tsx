@@ -121,7 +121,7 @@ export function LibraryHome({
         />
 
         {savingWithoutOpen ? (
-          <p className="mt-6 text-sm text-muted" role="status" aria-live="polite">
+          <p className="mt-6 text-sm text-ink-muted" role="status" aria-live="polite">
             Saving a clean copy…
           </p>
         ) : null}
