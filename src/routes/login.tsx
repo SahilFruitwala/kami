@@ -42,11 +42,12 @@ function LoginPage() {
             Your reading list stays with your account — save from any device, keep tags and
             highlights in sync.
           </p>
-          <div className="mt-8 [&_button]:rounded-md [&_button]:border [&_button]:border-line [&_button]:bg-surface [&_button]:px-4 [&_button]:py-2.5 [&_button]:text-sm [&_button]:font-medium [&_button]:text-ink [&_button]:shadow-[var(--shadow-border)] [&_button]:transition-colors hover:[&_button]:bg-paper-warm">
+          <div className="mt-8">
             <SignInButtons />
           </div>
           <p className="mt-6 text-xs text-muted">
-            Continue with Google or X. Signing in creates a private library for this app.
+            Use email and password, or continue with Google or X. Signing in creates a private
+            library for this app.
           </p>
         </SignedOut>
 
