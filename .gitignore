@@ -13,3 +13,7 @@ dist/
 /tmp/
 screenshots/
 .grok/og-pending
+
+# Local preview runtime
+.grok/preview.pid
+.grok/preview.log

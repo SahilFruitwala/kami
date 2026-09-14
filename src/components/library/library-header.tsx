@@ -1,5 +1,6 @@
 import { BookMarked, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
+import { UserButton } from "@/lib/auth/gates";
 
 export function LibraryHeader({ onOpenTools }: { onOpenTools: () => void }) {
   return (
@@ -16,10 +17,13 @@ export function LibraryHeader({ onOpenTools }: { onOpenTools: () => void }) {
           <p className="hidden text-xs text-muted sm:block">Save & read later</p>
         </div>
       </div>
-      <Button type="button" variant="ghost" className="h-11 gap-2" onClick={onOpenTools}>
-        <Sparkles className="size-4" />
-        <span className="hidden sm:inline">Capture tools</span>
-      </Button>
+      <div className="flex items-center gap-1 sm:gap-2">
+        <Button type="button" variant="ghost" className="h-11 gap-2" onClick={onOpenTools}>
+          <Sparkles className="size-4" />
+          <span className="hidden sm:inline">Capture tools</span>
+        </Button>
+        <UserButton />
+      </div>
     </header>
   );
 }
