@@ -163,9 +163,7 @@ export function ensureDbReady(): Promise<void> {
 }
 
 /**
- * Sync Drizzle DB for Better Auth module initialization.
- * Neon uses a Pool immediately; PGLite kicks migrations and returns a Drizzle
- * client bound to the shared embedded instance (queries await readiness).
+ * @deprecated Prefer `getDb()`. Kept briefly for any leftover callers.
  */
 export function getAuthDb(): AppDb {
   if (typeof window !== "undefined") {
@@ -196,8 +194,7 @@ export function getAuthDb(): AppDb {
   };
   globalRef.__authDrizzleDb__ = drizzlePglite({
     client: lazy as unknown as PGlite,
-    schema,
-  });
+    schema,  });
   return globalRef.__authDrizzleDb__;
 }
 
