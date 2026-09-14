@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-bg: #f3eee4;
   --color-paper: #f3eee4;
@@ -48,6 +50,49 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+
+    --color-bg: #161310;
+    --color-paper: #161310;
+    --color-paper-warm: #221d17;
+    --color-surface: #201b15;
+    --color-ink: #ece4d4;
+    --color-ink-soft: #c9bfad;
+    --color-muted: #9d937f;
+    --color-faint: #5f584c;
+    --color-line: #322b22;
+    --color-accent: #a9bfd1;
+    --color-danger: #e08d7f;
+    --color-ok: #82b894;
+
+    --shadow-border:
+      0px 0px 0px 1px rgba(236, 228, 212, 0.1),
+      0px 1px 2px -1px rgba(0, 0, 0, 0.5),
+      0px 2px 4px 0px rgba(0, 0, 0, 0.4);
+    --shadow-border-hover:
+      0px 0px 0px 1px rgba(236, 228, 212, 0.14),
+      0px 1px 2px -1px rgba(0, 0, 0, 0.55),
+      0px 2px 4px 0px rgba(0, 0, 0, 0.45);
+    --shadow-device:
+      0px 0px 0px 1px rgba(236, 228, 212, 0.16),
+      0px 18px 40px -18px rgba(0, 0, 0, 0.7);
+  }
+
+  .dark .article-body img,
+  .dark .reader-body img {
+    filter: brightness(0.92);
+    outline-color: rgba(236, 228, 212, 0.12);
+  }
+
+  .dark .reader-body mark {
+    color: #1c1916;
   }
 
   html,
@@ -333,6 +378,36 @@
 .reader-body ol {
   margin: 0 0 1em;
   padding-left: 1.2em;
+  list-style-position: outside;
+}
+
+.article-body ul,
+.reader-body ul {
+  list-style-type: disc;
+}
+
+.article-body ol,
+.reader-body ol {
+  list-style-type: decimal;
+}
+
+.article-body ul ul,
+.reader-body ul ul {
+  list-style-type: circle;
+}
+
+.article-body ul ul ul,
+.reader-body ul ul ul {
+  list-style-type: square;
+}
+
+.article-body ol ol,
+.article-body ul ol,
+.article-body ul ul,
+.reader-body ol ol,
+.reader-body ul ol,
+.reader-body ul ul {
+  margin-bottom: 0;
 }
 
 .reader-body ul,
@@ -353,6 +428,7 @@
 
 .article-body li,
 .reader-body li {
+  display: list-item;
   margin: 0.2em 0;
 }
 

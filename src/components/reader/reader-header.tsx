@@ -12,6 +12,7 @@ import type { TtsStatus } from "@/lib/tts.ts";
 import { voiceLabel } from "@/lib/tts.ts";
 import { RATES } from "@/hooks/use-reader-tts.ts";
 import { Button } from "@/components/ui/button.tsx";
+import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { cn } from "@/lib/utils.ts";
 
 type ReaderHeaderProps = {
@@ -98,6 +99,7 @@ export function ReaderHeader({
           >
             <Star className={cn("size-4", favorited && "fill-ink text-ink")} />
           </Button>
+          <ThemeToggle className="size-11" />
           <div className="relative" ref={prefsRef}>
             <Button
               variant="ghost"

@@ -1,5 +1,6 @@
 import { BookMarked, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
+import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { Show, SignInButton, SignUpButton, UserButton } from "@/lib/auth/gates";
 
 export function LibraryHeader({ onOpenTools }: { onOpenTools: () => void }) {
@@ -18,6 +19,7 @@ export function LibraryHeader({ onOpenTools }: { onOpenTools: () => void }) {
         </div>
       </div>
       <div className="flex items-center gap-1 sm:gap-2">
+        <ThemeToggle />
         <Button type="button" variant="ghost" className="h-11 gap-2" onClick={onOpenTools}>
           <Sparkles className="size-4" />
           <span className="hidden sm:inline">Capture tools</span>
