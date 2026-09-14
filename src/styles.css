@@ -415,11 +415,70 @@
 .article-body table,
 .reader-body table {
   display: block;
+  width: max-content;
   max-width: 100%;
   overflow-x: auto;
-  font-size: 0.82em;
-  line-height: 1.4;
-  margin: 0 0 1em;
+  margin: 0 0 1.2em;
+  border: 1px solid var(--color-line);
+  border-radius: 0.5rem;
+  border-spacing: 0;
+  border-collapse: collapse;
+  background: var(--color-surface);
+  font-family: var(--font-sans);
+  font-size: 0.85em;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.article-body th,
+.article-body td,
+.reader-body th,
+.reader-body td {
+  padding: 0.55em 0.8em;
+  border: 0;
+  border-bottom: 1px solid var(--color-line);
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: break-word;
+}
+
+.article-body thead th,
+.reader-body thead th {
+  font-weight: 600;
+  white-space: nowrap;
+  background: color-mix(in oklab, var(--color-ink) 5%, var(--color-paper-warm));
+  border-bottom: 1px solid var(--color-line);
+}
+
+.dark .article-body thead th,
+.dark .reader-body thead th {
+  background: color-mix(in oklab, var(--color-ink) 8%, #000 40%);
+}
+
+.article-body tbody tr:nth-child(even) td,
+.reader-body tbody tr:nth-child(even) td {
+  background: color-mix(in oklab, var(--color-ink) 2.5%, transparent);
+}
+
+.article-body tbody tr:last-child td,
+.article-body tbody tr:last-child th,
+.reader-body tbody tr:last-child td,
+.reader-body tbody tr:last-child th {
+  border-bottom: 0;
+}
+
+.article-body table p,
+.reader-body table p {
+  margin: 0;
+}
+
+.article-body caption,
+.reader-body caption {
+  padding: 0.55em 0.8em;
+  font-size: 0.9em;
+  color: var(--color-muted);
+  text-align: left;
+  caption-side: bottom;
 }
 
 .article-body li,
@@ -429,11 +488,51 @@
 }
 
 .article-body pre,
-.article-body code,
-.reader-body pre,
-.reader-body code {
+.reader-body pre {
+  margin: 0 0 1.1em;
+  padding: 0.9em 1em;
+  border: 1px solid var(--color-line);
+  border-radius: 0.5rem;
+  background: color-mix(in oklab, var(--color-ink) 5%, var(--color-paper-warm));
+  overflow-x: auto;
+  line-height: 1.55;
+  tab-size: 2;
+  white-space: pre;
+}
+
+.dark .article-body pre,
+.dark .reader-body pre {
+  background: color-mix(in oklab, var(--color-ink) 8%, #000 40%);
+}
+
+.article-body pre code,
+.reader-body pre code {
   font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   font-size: 0.85em;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+  white-space: inherit;
+}
+
+/* Inline code (not inside <pre>) — pill/chip so it's visibly distinct. */
+.article-body :not(pre) > code,
+.reader-body :not(pre) > code {
+  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  padding: 0.15em 0.35em;
+  border: 1px solid var(--color-line);
+  border-radius: 0.35rem;
+  background: color-mix(in oklab, var(--color-ink) 6%, var(--color-paper-warm));
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.dark .article-body :not(pre) > code,
+.dark .reader-body :not(pre) > code {
+  background: color-mix(in oklab, var(--color-ink) 10%, #000 45%);
 }
 
 .article-body hr,
@@ -549,35 +648,6 @@
   pointer-events: none;
   border-radius: 0.15rem;
   background: color-mix(in oklab, var(--color-ink) 16%, transparent);
-}
-
-.stagger-in > * {
-  opacity: 0;
-  transform: translateY(8px);
-  animation: rise-in var(--motion-slow) var(--ease-smooth-out) forwards;
-}
-
-.stagger-in > *:nth-child(1) {
-  animation-delay: 40ms;
-}
-.stagger-in > *:nth-child(2) {
-  animation-delay: 90ms;
-}
-.stagger-in > *:nth-child(3) {
-  animation-delay: 140ms;
-}
-.stagger-in > *:nth-child(4) {
-  animation-delay: 190ms;
-}
-.stagger-in > *:nth-child(5) {
-  animation-delay: 240ms;
-}
-
-@keyframes rise-in {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
 }
 
 .screen-scroll {

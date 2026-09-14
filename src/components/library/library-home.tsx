@@ -121,7 +121,9 @@ export function LibraryHome({
         />
 
         {savingWithoutOpen ? (
-          <p className="mt-6 text-sm text-muted">Saving a clean copy…</p>
+          <p className="mt-6 text-sm text-muted" role="status" aria-live="polite">
+            Saving a clean copy…
+          </p>
         ) : null}
 
         <ViewTransition key={filters.tab} enter="fade-in" exit="fade-out" default="none">

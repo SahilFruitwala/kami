@@ -1,5 +1,6 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { BookMarked } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { SignInButtons, SignedIn, SignedOut } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
@@ -29,12 +30,15 @@ function LoginPage() {
         className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(180deg,color-mix(in_oklab,var(--color-paper-warm)_75%,transparent),transparent)]"
       />
       <div className="relative mx-auto flex w-full max-w-md flex-col px-4 py-10 sm:px-6">
-        <Link to="/" className="mb-10 inline-flex items-center gap-2.5 self-start">
-          <span className="flex size-8 items-center justify-center rounded-md bg-ink text-paper">
-            <BookMarked className="size-4" />
-          </span>
-          <span className="text-sm font-semibold tracking-tight">Quarto</span>
-        </Link>
+        <div className="mb-10 flex items-center justify-between">
+          <Link to="/" className="inline-flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30">
+            <span className="flex size-8 items-center justify-center rounded-md bg-ink text-paper">
+              <BookMarked className="size-4" aria-hidden="true" />
+            </span>
+            <span className="text-sm font-semibold tracking-tight">Quarto</span>
+          </Link>
+          <ThemeToggle />
+        </div>
 
         <SignedOut>
           <h1 className="font-display text-3xl leading-tight tracking-tight">Sign in to Quarto</h1>

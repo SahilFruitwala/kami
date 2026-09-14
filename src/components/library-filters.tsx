@@ -41,7 +41,14 @@ export function LibraryFilters({
   return (
     <div className="mt-6 space-y-3">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+        <label htmlFor="library-search" className="sr-only">
+          Search your library
+        </label>
         <Input
+          id="library-search"
+          name="q"
+          type="search"
+          autoComplete="off"
           value={query}
           onChange={(e) => onQuery(e.target.value)}
           placeholder="Search title, tags, notes…"
@@ -51,9 +58,10 @@ export function LibraryFilters({
           type="button"
           variant={favoritesOnly ? "default" : "secondary"}
           className="h-11 gap-2"
+          aria-pressed={favoritesOnly}
           onClick={() => onFavoritesOnly(!favoritesOnly)}
         >
-          <Star className={cn("size-4", favoritesOnly && "fill-current")} />
+          <Star className={cn("size-4", favoritesOnly && "fill-current")} aria-hidden="true" />
           Favorites
         </Button>
       </div>
@@ -71,18 +79,23 @@ export function LibraryFilters({
             </FilterChip>
             <button
               type="button"
-              className="ml-0.5 size-8 text-muted hover:text-ink"
+              className="ml-0.5 size-8 rounded-full text-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30"
               aria-label={`Delete folder ${folder.name}`}
               onClick={() => {
                 if (folderFilter === folder.id) onFolder("all");
                 removeFolder(folder.id);
               }}
             >
-              <X className="mx-auto size-3.5" />
+              <X className="mx-auto size-3.5" aria-hidden="true" />
             </button>
           </span>
         ))}
+        <label htmlFor="new-folder" className="sr-only">
+          New folder name
+        </label>
         <Input
+          id="new-folder"
+          name="new-folder"
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => {
@@ -90,11 +103,12 @@ export function LibraryFilters({
             e.preventDefault();
             createFolder();
           }}
-          placeholder="New folder"
+          placeholder="New folder…"
+          autoComplete="off"
           className="h-11 w-36"
         />
         <Button variant="ghost" size="icon" aria-label="Create folder" onClick={createFolder}>
-          <FolderPlus className="size-4" />
+          <FolderPlus className="size-4" aria-hidden="true" />
         </Button>
       </div>
       {tags.length > 0 ? (
@@ -127,8 +141,9 @@ function FilterChip({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={cn(
-        "h-11 rounded-full px-3 text-sm transition-colors duration-150",
+        "h-11 rounded-full px-3 text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30",
         active ? "bg-ink text-paper" : "bg-paper-warm text-ink-soft hover:text-ink",
       )}
     >

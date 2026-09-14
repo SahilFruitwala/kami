@@ -22,7 +22,7 @@ export function ArticleList({
   if (items.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 py-16 text-center">
-        <BookOpen className="size-7 text-faint" />
+        <BookOpen className="size-7 text-faint" aria-hidden="true" />
         <p className="font-display text-2xl text-ink-soft italic">{emptyTitle}</p>
         <p className="max-w-sm text-sm leading-normal text-muted">{emptyCopy}</p>
       </div>
@@ -61,6 +61,10 @@ function ArticleRow({
             <img
               src={previewImageSrc(item.heroImage)}
               alt=""
+              width={80}
+              height={80}
+              loading="lazy"
+              decoding="async"
               className="mt-0.5 size-16 shrink-0 rounded-md object-cover shadow-border sm:size-20"
             />
           </ViewTransition>
@@ -79,7 +83,10 @@ function ArticleRow({
               </span>
             </ViewTransition>
             {item.favorited ? (
-              <Star className="mt-1 size-4 shrink-0 fill-ink text-ink" aria-label="Favorited" />
+              <span className="mt-1 inline-flex shrink-0 items-center">
+                <Star className="size-4 fill-ink text-ink" aria-hidden="true" />
+                <span className="sr-only">(favorited)</span>
+              </span>
             ) : null}
           </span>
           {item.excerpt ? (
@@ -109,11 +116,11 @@ function ArticleRow({
       <Button
         variant="ghost"
         size="icon"
-        className="size-11 shrink-0 self-start text-muted opacity-70 hover:text-ink sm:opacity-0 sm:group-hover:opacity-100"
+        className="size-11 shrink-0 self-start text-muted opacity-70 hover:text-ink focus-visible:opacity-100 group-focus-within:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
         aria-label={`Remove ${item.title}`}
         onClick={() => onRemove(item.id)}
       >
-        <Trash2 className="size-4" />
+        <Trash2 className="size-4" aria-hidden="true" />
       </Button>
     </li>
   );

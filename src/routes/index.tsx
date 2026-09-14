@@ -2,13 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { DirectionalTransition } from "@/components/directional-transition.tsx";
+import { LandingPage } from "@/components/landing-page.tsx";
 import { LibraryHome } from "@/components/library/library-home.tsx";
 import { ReaderView } from "@/components/reader-view.tsx";
 import { useLibraryFilters } from "@/hooks/use-library-filters.ts";
 import { useLibraryNav } from "@/hooks/use-library-nav.ts";
 import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
-import { RedirectToSignIn } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { buildBookmarklet, decodeImportPayload } from "@/lib/bookmarklet.ts";
 import {
@@ -76,7 +76,7 @@ function QuartoApp() {
   }
 
   if (!user) {
-    return <RedirectToSignIn />;
+    return <LandingPage />;
   }
 
   if (libraryError) {
@@ -117,22 +117,36 @@ function AuthLoadingScreen({
   actionLabel?: string;
   onAction?: () => void;
 }) {
+  const isError = Boolean(actionLabel && onAction);
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-paper px-6 text-ink">
-      <div className="flex max-w-sm flex-col items-center gap-4 text-center">
-        <p className="font-display text-2xl tracking-tight">Quarto</p>
+    <main className="flex min-h-dvh items-center justify-center bg-paper px-6 text-ink">
+      <div
+        className="flex w-full max-w-sm flex-col items-center gap-4 text-center"
+        role={isError ? "alert" : "status"}
+        aria-live="polite"
+      >
+        <p className="font-display text-2xl tracking-tight" translate="no">
+          Quarto
+        </p>
+        {!isError ? (
+          <div className="flex w-full flex-col gap-2.5" aria-hidden="true">
+            <div className="h-11 animate-pulse rounded-md bg-paper-warm" />
+            <div className="h-4 w-2/3 animate-pulse self-center rounded-full bg-paper-warm" />
+            <div className="h-16 animate-pulse rounded-xl bg-paper-warm" />
+          </div>
+        ) : null}
         <p className="text-sm text-muted">{label}</p>
         {actionLabel && onAction ? (
           <button
             type="button"
             onClick={onAction}
-            className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-paper transition hover:opacity-90"
+            className="h-11 rounded-full bg-ink px-5 text-sm font-medium text-paper transition hover:bg-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30"
           >
             {actionLabel}
           </button>
         ) : null}
       </div>
-    </div>
+    </main>
   );
 }
 

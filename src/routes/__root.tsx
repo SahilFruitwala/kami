@@ -14,19 +14,31 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: APP_NAME },
+      { title: "Quarto — Save Anything Worth Reading" },
       {
         name: "description",
-        content: "Save blogs and X articles to read later — clean pages, tags, and highlights.",
+        content:
+          "Quarto is a quiet read-later app for blogs and X articles — save a link, read a clean distraction-free page, highlight, tag, and find it in seconds.",
       },
       { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#F3EEE4" },
       { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#161310" },
-      { property: "og:title", content: APP_NAME },
+      { property: "og:type", content: "website" },
+      { property: "og:site_name", content: APP_NAME },
+      { property: "og:title", content: "Quarto — Save Anything Worth Reading" },
       {
         property: "og:description",
-        content: "Quiet read-later for blogs and X articles.",
+        content:
+          "Paste a link and get a clean, distraction-free page — then tag it, highlight it, and find it in seconds.",
       },
       { property: "og:image", content: "/og.jpg" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Quarto — Save Anything Worth Reading" },
+      {
+        name: "twitter:description",
+        content:
+          "A quiet read-later app for blogs and X articles. Save, read clean pages, highlight, and organize.",
+      },
+      { name: "twitter:image", content: "/og.jpg" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
