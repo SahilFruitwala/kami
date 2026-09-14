@@ -2,11 +2,22 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Article, ArticleSource } from "./article-types.ts";
 
+export const HIGHLIGHT_COLORS = [
+  { id: "amber", label: "Amber", swatch: "#e8c97a" },
+  { id: "lemon", label: "Lemon", swatch: "#f0e07a" },
+  { id: "mint", label: "Mint", swatch: "#a8d5b5" },
+  { id: "sky", label: "Sky", swatch: "#a8c8e8" },
+  { id: "rose", label: "Rose", swatch: "#e8b4c0" },
+] as const;
+
+export type HighlightColorId = (typeof HIGHLIGHT_COLORS)[number]["id"];
+
 export type Highlight = {
   id: string;
   text: string;
   note: string;
   createdAt: number;
+  color: HighlightColorId;
 };
 
 export type Folder = {
@@ -93,18 +104,37 @@ export function articleToItem(article: Article, extras: Partial<LibraryItem> = {
   };
 }
 
-type LibraryState = {
+export const READER_FONTS = [
+  { id: "newsreader", label: "Newsreader", family: '"Newsreader", "Iowan Old Style", Georgia, serif' },
+  { id: "literata", label: "Literata", family: '"Literata", Georgia, serif' },
+  { id: "source-serif", label: "Source Serif", family: '"Source Serif 4", Georgia, serif' },
+  { id: "atkinson", label: "Atkinson", family: '"Atkinson Hyperlegible", ui-sans-serif, sans-serif' },
+  { id: "figtree", label: "Figtree", family: '"Figtree", ui-sans-serif, system-ui, sans-serif' },
+] as const;
+
+export type ReaderFontId = (typeof READER_FONTS)[number]["id"];
+
+/** rem sizes from compact → large; default index 2 matches prior "md" */
+export const READER_FONT_SIZES = [0.95, 1.0625, 1.1875, 1.3125, 1.4375, 1.5625, 1.75] as const;
+export const DEFAULT_READER_FONT_SIZE = 2;
+
+export type LibraryState = {
   library: LibraryItem[];
   folders: Folder[];
   openId: string | null;
-  readerSize: "md" | "lg";
+  readerFontSize: number;
+  readerFont: ReaderFontId;
+  highlightColor: HighlightColorId;
   ttsRate: number;
   ttsVoiceURI: string;
   upsertItem: (item: LibraryItem) => void;
   archiveItem: (id: string, archived: boolean) => void;
   removeItem: (id: string) => void;
   setOpenId: (id: string | null) => void;
-  setReaderSize: (size: "md" | "lg") => void;
+  setReaderFontSize: (size: number) => void;
+  bumpReaderFontSize: (delta: number) => void;
+  setReaderFont: (font: ReaderFontId) => void;
+  setHighlightColor: (color: HighlightColorId) => void;
   setTtsRate: (rate: number) => void;
   setTtsVoiceURI: (uri: string) => void;
   addFolder: (name: string) => string;
@@ -113,7 +143,7 @@ type LibraryState = {
   setItemFolder: (itemId: string, folderId: string | null) => void;
   addTag: (itemId: string, tag: string) => void;
   removeTag: (itemId: string, tag: string) => void;
-  addHighlight: (itemId: string, text: string) => Highlight | null;
+  addHighlight: (itemId: string, text: string, color?: HighlightColorId) => Highlight | null;
   removeHighlight: (itemId: string, highlightId: string) => void;
   setHighlightNote: (itemId: string, highlightId: string, note: string) => void;
   setFavorited: (itemId: string, favorited: boolean) => void;
@@ -127,9 +157,30 @@ type Persisted = {
   folders?: Folder[];
   openId?: string | null;
   readerSize?: "md" | "lg";
+  readerFontSize?: number;
+  readerFont?: string;
+  highlightColor?: string;
   ttsRate?: number;
   ttsVoiceURI?: string;
 };
+
+function clampFontSize(value: number): number {
+  return Math.min(READER_FONT_SIZES.length - 1, Math.max(0, Math.round(value)));
+}
+
+function isReaderFont(value: unknown): value is ReaderFontId {
+  return READER_FONTS.some((font) => font.id === value);
+}
+
+function isHighlightColor(value: unknown): value is HighlightColorId {
+  return HIGHLIGHT_COLORS.some((color) => color.id === value);
+}
+
+function migrateFontSize(raw: Persisted): number {
+  if (typeof raw.readerFontSize === "number") return clampFontSize(raw.readerFontSize);
+  if (raw.readerSize === "lg") return 3;
+  return DEFAULT_READER_FONT_SIZE;
+}
 
 function migrateItem(row: Persisted["library"] extends (infer T)[] | undefined ? T : never): LibraryItem | null {
   if (!row?.url && !row?.id) return null;
@@ -139,7 +190,15 @@ function migrateItem(row: Persisted["library"] extends (infer T)[] | undefined ?
     ? row.tags.map((tag) => normalizeTag(String(tag))).filter(Boolean)
     : [];
   const highlights = Array.isArray(row.highlights)
-    ? row.highlights.filter((h) => h && typeof h.text === "string" && h.text.trim())
+    ? row.highlights
+        .filter((h) => h && typeof h.text === "string" && h.text.trim())
+        .map((h) => ({
+          id: typeof h.id === "string" ? h.id : uid(),
+          text: String(h.text).trim().slice(0, 800),
+          note: typeof h.note === "string" ? h.note.slice(0, 280) : "",
+          createdAt: typeof h.createdAt === "number" ? h.createdAt : Date.now(),
+          color: isHighlightColor(h.color) ? h.color : ("amber" as HighlightColorId),
+        }))
     : [];
   return {
     id: row.id || articleIdFromUrl(url),
@@ -192,7 +251,9 @@ export const useLibraryStore = create<LibraryState>()(
       library: [],
       folders: [],
       openId: null,
-      readerSize: "md",
+      readerFontSize: DEFAULT_READER_FONT_SIZE,
+      readerFont: "newsreader",
+      highlightColor: "amber",
       ttsRate: 1,
       ttsVoiceURI: "",
       upsertItem: (item) =>
@@ -208,7 +269,7 @@ export const useLibraryStore = create<LibraryState>()(
             note: existing?.note || item.note || "",
           };
           const rest = state.library.filter((row) => row.id !== merged.id && row.url !== merged.url);
-          return { library: trimLibrary([merged, ...rest]), openId: merged.id };
+          return { library: trimLibrary([merged, ...rest]) };
         }),
       archiveItem: (id, archived) =>
         set((state) => ({ library: mapItem(state.library, id, (row) => ({ ...row, archived })) })),
@@ -218,7 +279,12 @@ export const useLibraryStore = create<LibraryState>()(
           openId: state.openId === id ? null : state.openId,
         })),
       setOpenId: (id) => set({ openId: id }),
-      setReaderSize: (size) => set({ readerSize: size }),
+      setReaderFontSize: (size) => set({ readerFontSize: clampFontSize(size) }),
+      bumpReaderFontSize: (delta) =>
+        set((state) => ({ readerFontSize: clampFontSize(state.readerFontSize + delta) })),
+      setReaderFont: (font) => set({ readerFont: isReaderFont(font) ? font : "newsreader" }),
+      setHighlightColor: (color) =>
+        set({ highlightColor: isHighlightColor(color) ? color : "amber" }),
       setTtsRate: (rate) => set({ ttsRate: Math.min(1.75, Math.max(0.7, rate)) }),
       setTtsVoiceURI: (uri) => set({ ttsVoiceURI: uri }),
       addFolder: (name) => {
@@ -261,15 +327,23 @@ export const useLibraryStore = create<LibraryState>()(
             tags: row.tags.filter((t) => t.toLowerCase() !== tag.toLowerCase()),
           })),
         })),
-      addHighlight: (itemId, text) => {
+      addHighlight: (itemId, text, color) => {
         const cleaned = text.replace(/\s+/g, " ").trim();
         if (cleaned.length < 8) return null;
-        const highlight: Highlight = { id: uid(), text: cleaned.slice(0, 800), note: "", createdAt: Date.now() };
+        const picked = isHighlightColor(color) ? color : get().highlightColor;
+        const highlight: Highlight = {
+          id: uid(),
+          text: cleaned.slice(0, 800),
+          note: "",
+          createdAt: Date.now(),
+          color: picked,
+        };
         set((state) => ({
           library: mapItem(state.library, itemId, (row) => {
             if (row.highlights.some((h) => h.text === highlight.text)) return row;
             return { ...row, highlights: [highlight, ...row.highlights].slice(0, 80) };
           }),
+          highlightColor: picked,
         }));
         return highlight;
       },
@@ -299,7 +373,7 @@ export const useLibraryStore = create<LibraryState>()(
     }),
     {
       name: "quarto-library",
-      version: 6,
+      version: 8,
       migrate: (persisted) => {
         const raw = (persisted || {}) as Persisted;
         const library = (raw.library || []).map(migrateItem).filter((row): row is LibraryItem => Boolean(row));
@@ -307,7 +381,9 @@ export const useLibraryStore = create<LibraryState>()(
           library,
           folders: Array.isArray(raw.folders) ? raw.folders.filter((f) => f?.id && f?.name) : [],
           openId: raw.openId ?? null,
-          readerSize: raw.readerSize === "lg" ? "lg" : "md",
+          readerFontSize: migrateFontSize(raw),
+          readerFont: isReaderFont(raw.readerFont) ? raw.readerFont : "newsreader",
+          highlightColor: isHighlightColor(raw.highlightColor) ? raw.highlightColor : "amber",
           ttsRate: typeof raw.ttsRate === "number" ? raw.ttsRate : 1,
           ttsVoiceURI: raw.ttsVoiceURI || "",
         };

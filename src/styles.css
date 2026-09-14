@@ -100,13 +100,25 @@
 }
 
 .reader-body {
-  font-size: 1.1875rem;
+  font-family: var(--reader-font, var(--font-display));
+  font-size: var(--reader-font-size, 1.1875rem);
   line-height: 1.65;
 }
 
-.reader-body.is-large {
-  font-size: 1.3125rem;
-  line-height: 1.7;
+.reader-body[data-font="literata"] {
+  --reader-font: "Literata", Georgia, serif;
+}
+.reader-body[data-font="source-serif"] {
+  --reader-font: "Source Serif 4", Georgia, serif;
+}
+.reader-body[data-font="atkinson"] {
+  --reader-font: "Atkinson Hyperlegible", ui-sans-serif, system-ui, sans-serif;
+}
+.reader-body[data-font="figtree"] {
+  --reader-font: "Figtree", ui-sans-serif, system-ui, sans-serif;
+}
+.reader-body[data-font="newsreader"] {
+  --reader-font: "Newsreader", "Iowan Old Style", Georgia, serif;
 }
 
 .article-body p,
@@ -239,7 +251,7 @@
 }
 
 .reader-body mark {
-  background: color-mix(in oklab, var(--color-paper-warm) 45%, #cbb896);
+  background: color-mix(in oklab, #e8c97a 70%, transparent);
   color: inherit;
   padding: 0;
   margin: 0;
@@ -248,6 +260,22 @@
   box-decoration-break: clone;
   -webkit-box-decoration-break: clone;
   cursor: pointer;
+}
+
+.reader-body mark[data-color="amber"] {
+  background: color-mix(in oklab, #e8c97a 70%, transparent);
+}
+.reader-body mark[data-color="lemon"] {
+  background: color-mix(in oklab, #f0e07a 78%, transparent);
+}
+.reader-body mark[data-color="mint"] {
+  background: color-mix(in oklab, #a8d5b5 72%, transparent);
+}
+.reader-body mark[data-color="sky"] {
+  background: color-mix(in oklab, #a8c8e8 72%, transparent);
+}
+.reader-body mark[data-color="rose"] {
+  background: color-mix(in oklab, #e8b4c0 72%, transparent);
 }
 
 ::highlight(spoken) {

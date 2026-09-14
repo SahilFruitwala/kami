@@ -1,12 +1,14 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type RefObject } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type RefObject } from "react";
 import {
   Archive,
   ArrowLeft,
   ExternalLink,
   Highlighter,
   Inbox,
+  Minus,
   Pause,
   Play,
+  Plus,
   Square,
   Star,
   Type,
@@ -16,7 +18,13 @@ import { applyHighlights } from "@/lib/highlight-html.ts";
 import { rewriteHtmlImages, previewImageSrc } from "@/lib/image-url.ts";
 import { listVoices, speakArticle, ttsAvailable, voiceLabel, type TtsStatus, type TtsWord } from "@/lib/tts.ts";
 import { clearSpokenWord, collectSpokenText, paintSpokenWord } from "@/lib/spoken-range.ts";
-import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import {
+  HIGHLIGHT_COLORS,
+  READER_FONTS,
+  READER_FONT_SIZES,
+  useLibraryStore,
+  type LibraryItem,
+} from "@/lib/store.ts";
 import { OrganizeRow } from "@/components/organize-row.tsx";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button.tsx";
@@ -32,13 +40,15 @@ const RATES = [
 
 const ReaderBody = memo(function ReaderBody({
   html,
-  large,
+  fontSizeRem,
+  fontId,
   onSelectEnd,
   onClick,
   bodyRef,
 }: {
   html: string;
-  large: boolean;
+  fontSizeRem: number;
+  fontId: string;
   onSelectEnd: () => void;
   onClick: (event: MouseEvent<HTMLDivElement>) => void;
   bodyRef: RefObject<HTMLDivElement | null>;
@@ -46,7 +56,9 @@ const ReaderBody = memo(function ReaderBody({
   return (
     <div
       ref={bodyRef}
-      className={cn("reader-body mt-8", large && "is-large")}
+      className="reader-body mt-8"
+      data-font={fontId}
+      style={{ "--reader-font-size": `${fontSizeRem}rem` } as CSSProperties}
       onMouseUp={onSelectEnd}
       onTouchEnd={onSelectEnd}
       onClick={onClick}
@@ -79,7 +91,7 @@ function selectionMenu(): SelMenu | null {
   const y = above < 64 ? rect.bottom + 8 : above;
   return {
     text,
-    x: Math.min(window.innerWidth - 148, Math.max(12, rect.left + rect.width / 2 - 70)),
+    x: Math.min(window.innerWidth - 220, Math.max(12, rect.left + rect.width / 2 - 110)),
     y,
     rects,
   };
@@ -88,19 +100,16 @@ function selectionMenu(): SelMenu | null {
 export function ReaderView({
   item,
   article,
-  readerSize,
   onBack,
   onArchive,
-  onToggleSize,
 }: {
   item: LibraryItem;
   article: Article;
-  readerSize: "md" | "lg";
   onBack: () => void;
   onArchive: () => void;
-  onToggleSize: () => void;
 }) {
   const bodyRef = useRef<HTMLDivElement>(null);
+  const prefsRef = useRef<HTMLDivElement>(null);
   const ttsRef = useRef<{
     stop: () => void;
     pause: () => void;
@@ -113,6 +122,7 @@ export function ReaderView({
   const [menu, setMenu] = useState<SelMenu | null>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [listenOpen, setListenOpen] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
   const canSpeak = ttsAvailable();
   const hasLeadImage = /<img\b/i.test(article.contentHtml.slice(0, 1200));
 
@@ -120,11 +130,19 @@ export function ReaderView({
   const ttsVoiceURI = useLibraryStore((s) => s.ttsVoiceURI);
   const setTtsRate = useLibraryStore((s) => s.setTtsRate);
   const setTtsVoiceURI = useLibraryStore((s) => s.setTtsVoiceURI);
+  const readerFontSize = useLibraryStore((s) => s.readerFontSize);
+  const readerFont = useLibraryStore((s) => s.readerFont);
+  const highlightColor = useLibraryStore((s) => s.highlightColor);
+  const bumpReaderFontSize = useLibraryStore((s) => s.bumpReaderFontSize);
+  const setReaderFont = useLibraryStore((s) => s.setReaderFont);
+  const setHighlightColor = useLibraryStore((s) => s.setHighlightColor);
   const addHighlight = useLibraryStore((s) => s.addHighlight);
   const removeHighlight = useLibraryStore((s) => s.removeHighlight);
   const setHighlightNote = useLibraryStore((s) => s.setHighlightNote);
   const setFavorited = useLibraryStore((s) => s.setFavorited);
   const setItemNote = useLibraryStore((s) => s.setItemNote);
+
+  const fontSizeRem = READER_FONT_SIZES[readerFontSize] ?? READER_FONT_SIZES[2];
 
   const html = useMemo(
     () => applyHighlights(rewriteHtmlImages(article.contentHtml), item.highlights),
@@ -161,6 +179,24 @@ export function ReaderView({
       clearSpokenWord();
     };
   }, [article.canonicalUrl]);
+
+  useEffect(() => {
+    if (!prefsOpen) return;
+    function onPointer(event: PointerEvent) {
+      const target = event.target as Node;
+      if (prefsRef.current?.contains(target)) return;
+      setPrefsOpen(false);
+    }
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setPrefsOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [prefsOpen]);
 
   function stopTts() {
     ttsRef.current?.stop();
@@ -238,9 +274,9 @@ export function ReaderView({
     }
   }, [item.id, removeHighlight]);
 
-  function saveHighlight() {
+  function saveHighlight(color = highlightColor) {
     if (!menu) return;
-    addHighlight(item.id, menu.text);
+    addHighlight(item.id, menu.text, color);
     window.getSelection()?.removeAllRanges();
     setMenu(null);
   }
@@ -292,14 +328,97 @@ export function ReaderView({
             >
               <Star className={cn("size-4", item.favorited && "fill-ink text-ink")} />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={readerSize === "lg" ? "Smaller type" : "Larger type"}
-              onClick={onToggleSize}
-            >
-              <Type className="size-4" />
-            </Button>
+            <div className="relative" ref={prefsRef}>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Reading preferences"
+                aria-expanded={prefsOpen}
+                onClick={() => setPrefsOpen((open) => !open)}
+              >
+                <Type className="size-4" />
+              </Button>
+              {prefsOpen ? (
+                <div className="absolute right-0 top-full z-40 mt-2 w-64 rounded-lg bg-surface p-3 shadow-border">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted">Text size</p>
+                  <div className="mt-2 flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      aria-label="Decrease font size"
+                      disabled={readerFontSize <= 0}
+                      onClick={() => bumpReaderFontSize(-1)}
+                    >
+                      <Minus className="size-3.5" />
+                    </Button>
+                    <div className="flex flex-1 items-center justify-center gap-1">
+                      {READER_FONT_SIZES.map((_, i) => (
+                        <span
+                          key={i}
+                          className={cn(
+                            "h-1.5 w-1.5 rounded-full",
+                            i === readerFontSize ? "bg-ink" : "bg-line",
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      aria-label="Increase font size"
+                      disabled={readerFontSize >= READER_FONT_SIZES.length - 1}
+                      onClick={() => bumpReaderFontSize(1)}
+                    >
+                      <Plus className="size-3.5" />
+                    </Button>
+                  </div>
+
+                  <p className="mt-4 text-xs font-medium uppercase tracking-wide text-muted">Font</p>
+                  <div className="mt-2 grid gap-1">
+                    {READER_FONTS.map((font) => (
+                      <button
+                        key={font.id}
+                        type="button"
+                        className={cn(
+                          "rounded-md px-2.5 py-2 text-left text-sm transition-colors",
+                          readerFont === font.id
+                            ? "bg-paper-warm text-ink"
+                            : "text-ink-soft hover:bg-paper-warm/60 hover:text-ink",
+                        )}
+                        style={{ fontFamily: font.family }}
+                        onClick={() => setReaderFont(font.id)}
+                      >
+                        {font.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <p className="mt-4 text-xs font-medium uppercase tracking-wide text-muted">
+                    Default highlight
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {HIGHLIGHT_COLORS.map((color) => (
+                      <button
+                        key={color.id}
+                        type="button"
+                        aria-label={color.label}
+                        title={color.label}
+                        className={cn(
+                          "size-8 rounded-full border-2 transition-transform",
+                          highlightColor === color.id
+                            ? "scale-110 border-ink"
+                            : "border-transparent hover:scale-105",
+                        )}
+                        style={{ background: color.swatch }}
+                        onClick={() => setHighlightColor(color.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
             <Button variant="ghost" className="gap-2 px-3" onClick={onArchive}>
               {item.archived ? <Inbox className="size-4" /> : <Archive className="size-4" />}
               <span className="hidden sm:inline">{item.archived ? "Inbox" : "Archive"}</span>
@@ -354,14 +473,31 @@ export function ReaderView({
           ))}
           <div
             data-highlight-menu
-            className="fixed z-40"
+            className="fixed z-40 rounded-lg bg-surface p-2 shadow-border"
             style={{ left: menu.x, top: menu.y }}
           >
+            <div className="flex items-center gap-1.5">
+              {HIGHLIGHT_COLORS.map((color) => (
+                <button
+                  key={color.id}
+                  type="button"
+                  aria-label={`Highlight ${color.label}`}
+                  title={color.label}
+                  className={cn(
+                    "size-8 rounded-full border-2 transition-transform hover:scale-110",
+                    highlightColor === color.id ? "border-ink" : "border-transparent",
+                  )}
+                  style={{ background: color.swatch }}
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => saveHighlight(color.id)}
+                />
+              ))}
+            </div>
             <Button
               size="sm"
-              className="gap-2 shadow-border"
+              className="mt-2 w-full gap-2"
               onMouseDown={(e) => e.preventDefault()}
-              onClick={saveHighlight}
+              onClick={() => saveHighlight()}
             >
               <Highlighter className="size-3.5" />
               Highlight
@@ -377,7 +513,10 @@ export function ReaderView({
             .join(" · ")}
           {` · ${article.readingMinutes} min`}
         </p>
-        <h1 className="mt-3 font-display text-3xl leading-tight tracking-tight sm:text-4xl">
+        <h1
+          className="mt-3 text-3xl leading-tight tracking-tight sm:text-4xl"
+          style={{ fontFamily: READER_FONTS.find((f) => f.id === readerFont)?.family }}
+        >
           {article.title}
         </h1>
 
@@ -402,7 +541,8 @@ export function ReaderView({
 
         <ReaderBody
           html={html}
-          large={readerSize === "lg"}
+          fontSizeRem={fontSizeRem}
+          fontId={readerFont}
           onSelectEnd={onSelectEnd}
           onClick={onBodyClick}
           bodyRef={bodyRef}
@@ -412,9 +552,15 @@ export function ReaderView({
           <section className="mt-14 border-t border-line pt-8">
             <h2 className="font-display text-xl">Highlights</h2>
             <ul className="mt-4 space-y-4">
-              {item.highlights.map((highlight) => (
+              {item.highlights.map((highlight) => {
+                const swatch =
+                  HIGHLIGHT_COLORS.find((c) => c.id === highlight.color)?.swatch ?? "#e8c97a";
+                return (
                 <li key={highlight.id} className="rounded-md bg-surface p-3 shadow-border">
-                  <p className="font-display text-base leading-normal italic text-ink-soft">
+                  <p
+                    className="rounded-sm px-1.5 py-0.5 font-display text-base leading-normal italic text-ink-soft"
+                    style={{ background: `color-mix(in oklab, ${swatch} 55%, transparent)` }}
+                  >
                     {highlight.text}
                   </p>
                   <Input
@@ -431,7 +577,8 @@ export function ReaderView({
                     Remove
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           </section>
         ) : (
