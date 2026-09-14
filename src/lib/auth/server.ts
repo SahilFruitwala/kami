@@ -200,9 +200,13 @@ export const auth = betterAuth({
         ...GROK_PROVIDERS.map((p) => p.providerId),
         GATE_PROVIDER_ID,
       ],
-      // X's synthetic email is never "verified", so don't gate linking on the
-      // local user's email-verified state.
-      requireLocalEmailVerified: false,
+      // When local email/password is off, leave this false: X's synthetic email
+      // is never "verified", and trusted-provider linking must still work for
+      // broker identities. When email/password IS on, require a verified local
+      // email before linking — otherwise anyone can sign up with victim@… + a
+      // password and later inherit that victim's Google/X login (account
+      // takeover). Flip is driven by `./email-password` only.
+      requireLocalEmailVerified: emailAndPasswordEnabled,
     },
   },
 
