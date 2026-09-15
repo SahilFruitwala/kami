@@ -10,6 +10,7 @@ import { SiteHeader } from "@/components/site-header.tsx";
 import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
 import { useLibraryFilters } from "@/hooks/use-library-filters.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
+import { isLibrarySort } from "@/lib/filter-library.ts";
 import type { LibraryItem } from "@/lib/store.ts";
 
 type LibrarySearch = {
@@ -18,6 +19,7 @@ type LibrarySearch = {
   q?: string;
   tag?: string;
   fav?: string;
+  sort?: string;
 };
 
 export const Route = createFileRoute("/library")({
@@ -30,6 +32,7 @@ export const Route = createFileRoute("/library")({
     q: typeof search.q === "string" && search.q.length > 0 ? search.q : undefined,
     tag: typeof search.tag === "string" && search.tag.length > 0 ? search.tag : undefined,
     fav: search.fav === "1" ? "1" : undefined,
+    sort: typeof search.sort === "string" && search.sort.length > 0 ? search.sort : undefined,
   }),
   component: LibraryPage,
 });
@@ -63,6 +66,7 @@ function Library() {
     if (search.tag) filters.setTagFilter(search.tag);
     if (typeof search.q === "string") filters.setQuery(search.q);
     if (search.fav === "1") filters.setFavoritesOnly(true);
+    if (isLibrarySort(search.sort)) filters.setSort(search.sort);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -79,6 +83,7 @@ function Library() {
             q: filters.query ? filters.query : undefined,
             tag: filters.tagFilter ?? undefined,
             fav: filters.favoritesOnly ? "1" : undefined,
+            sort: filters.sort === "newest" ? undefined : filters.sort,
           },
           replace: true,
         });
@@ -88,7 +93,7 @@ function Library() {
       };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filters.tab, filters.folderFilter, filters.tagFilter, filters.query, filters.favoritesOnly],
+    [filters.tab, filters.folderFilter, filters.tagFilter, filters.query, filters.favoritesOnly, filters.sort],
   );
 
   async function openItemOrFetch(item: LibraryItem) {
@@ -111,11 +116,13 @@ function Library() {
           tagFilter: filters.tagFilter,
           query: filters.query,
           favoritesOnly: filters.favoritesOnly,
+          sort: filters.sort,
           onTab: filters.setTab,
           onFolder: filters.setFolderFilter,
           onTag: filters.setTagFilter,
           onQuery: filters.setQuery,
           onFavoritesOnly: filters.setFavoritesOnly,
+          onSort: filters.setSort,
         }}
         onOpenItem={(item) => void openItemOrFetch(item)}
       />

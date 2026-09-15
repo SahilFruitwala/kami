@@ -1,5 +1,6 @@
 import { useDeferredValue, useMemo, useState, ViewTransition } from "react";
-import { Search } from "lucide-react";
+import { CheckSquare, Search } from "lucide-react";
+import { toast } from "sonner";
 import { ArticleList } from "@/components/article-list.tsx";
 import { LibraryTabs } from "@/components/library/library-tabs.tsx";
 import { LibraryFilters } from "@/components/library-filters.tsx";
@@ -8,11 +9,22 @@ import { Input } from "@/components/ui/input.tsx";
 import {
   countByArchive,
   filterLibraryItems,
+  sortLibraryItems,
   type FolderFilter,
+  type LibrarySort,
   type LibraryTab,
 } from "@/lib/filter-library.ts";
 import type { LibraryItem } from "@/lib/store.ts";
 import { useLibraryStore } from "@/lib/store.ts";
+import { cn } from "@/lib/utils.ts";
+
+const SORT_LABELS: { id: LibrarySort; label: string }[] = [
+  { id: "newest", label: "Newest" },
+  { id: "oldest", label: "Oldest" },
+  { id: "longest", label: "Longest read" },
+  { id: "shortest", label: "Quick reads" },
+  { id: "title", label: "Title A–Z" },
+];
 
 type ShelfFilters = {
   tab: LibraryTab;
@@ -20,11 +32,13 @@ type ShelfFilters = {
   tagFilter: string | null;
   query: string;
   favoritesOnly: boolean;
+  sort: LibrarySort;
   onTab: (tab: LibraryTab) => void;
   onFolder: (value: FolderFilter) => void;
   onTag: (tag: string | null) => void;
   onQuery: (value: string) => void;
   onFavoritesOnly: (value: boolean) => void;
+  onSort: (sort: LibrarySort) => void;
 };
 
 /** Library shelf: ink search, inbox/archive tabs, filters, and the scroll grid. */
@@ -51,15 +65,65 @@ export function LibraryHome({
 
   const [shortOnly, setShortOnly] = useState(false);
   const [inProgressOnly, setInProgressOnly] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  const archiveItem = useLibraryStore((s) => s.archiveItem);
+  const setFavorited = useLibraryStore((s) => s.setFavorited);
+  const setItemFolder = useLibraryStore((s) => s.setItemFolder);
+  const upsertItem = useLibraryStore((s) => s.upsertItem);
+  const folders = useLibraryStore((s) => s.folders);
+
   const visible = useMemo(
     () =>
-      baseVisible.filter((row) => {
-        if (shortOnly && row.readingMinutes >= 10) return false;
-        if (inProgressOnly && !(row.highlights?.length > 0)) return false;
-        return true;
-      }),
-    [baseVisible, shortOnly, inProgressOnly],
+      sortLibraryItems(
+        baseVisible.filter((row) => {
+          if (shortOnly && row.readingMinutes >= 10) return false;
+          if (inProgressOnly && !(row.highlights?.length > 0)) return false;
+          return true;
+        }),
+        filters.sort,
+      ),
+    [baseVisible, shortOnly, inProgressOnly, filters.sort],
   );
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  function exitSelect() {
+    setSelectMode(false);
+    setSelectedIds([]);
+  }
+
+  function bulkArchive(archived: boolean) {
+    for (const id of selectedIds) archiveItem(id, archived);
+    toast.success(archived ? `Archived ${selectedIds.length} works` : `Moved ${selectedIds.length} works to inbox`);
+    exitSelect();
+  }
+
+  function bulkFavorite() {
+    for (const id of selectedIds) setFavorited(id, true);
+    toast.success(`Favorited ${selectedIds.length} works`);
+    exitSelect();
+  }
+
+  function bulkDelete() {
+    const snapshots = visible.filter((row) => selectedSet.has(row.id));
+    for (const row of snapshots) removeItem(row.id);
+    const n = snapshots.length;
+    exitSelect();
+    toast.success(`Removed ${n} works`, {
+      action: { label: "Undo", onClick: () => snapshots.forEach(upsertItem) },
+    });
+  }
+
+  function bulkFolder(folderId: string | null) {
+    for (const id of selectedIds) setItemFolder(id, folderId);
+    toast.success(`Filed ${selectedIds.length} works`);
+    exitSelect();
+  }
 
   return (
     <>
@@ -123,6 +187,35 @@ export function LibraryHome({
               >
                 In Progress
               </StatusChip>
+              <label className="sr-only" htmlFor="library-sort">
+                Sort works
+              </label>
+              <select
+                id="library-sort"
+                value={filters.sort}
+                onChange={(e) => filters.onSort(e.target.value as LibrarySort)}
+                className="h-8 shrink-0 rounded-[0.25rem] bg-surface px-2 font-sans text-xs font-medium text-ink-soft shadow-[var(--shadow-border)] outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+              >
+                {SORT_LABELS.map((o) => (
+                  <option key={o.id} value={o.id}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}
+                aria-pressed={selectMode}
+                className={cn(
+                  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 font-sans text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                  selectMode
+                    ? "bg-hanko font-semibold text-white shadow-sm"
+                    : "bg-surface text-ink-soft shadow-[var(--shadow-border)] hover:text-ink",
+                )}
+              >
+                <CheckSquare className="size-3.5" aria-hidden="true" />
+                {selectMode ? "Done" : "Select"}
+              </button>
             </div>
           </div>
 
@@ -149,6 +242,72 @@ export function LibraryHome({
           </p>
         </div>
 
+        {selectMode ? (
+          <div
+            className="kami-sheet sticky top-32 z-30 mt-4 flex flex-wrap items-center gap-2 p-3 lg:top-20"
+            role="toolbar"
+            aria-label="Bulk actions"
+          >
+            <span className="px-1 font-sans text-xs font-semibold text-ink" role="status">
+              {selectedIds.length} selected
+            </span>
+            <button
+              type="button"
+              disabled={selectedIds.length === 0}
+              onClick={() => bulkArchive(filters.tab !== "archive")}
+              className="rounded-[0.25rem] bg-paper-warm px-3 py-1.5 font-sans text-xs font-medium text-ink disabled:opacity-40 hover:bg-line"
+            >
+              {filters.tab === "archive" ? "Move to inbox" : "Archive"}
+            </button>
+            <button
+              type="button"
+              disabled={selectedIds.length === 0}
+              onClick={bulkFavorite}
+              className="rounded-[0.25rem] bg-paper-warm px-3 py-1.5 font-sans text-xs font-medium text-ink disabled:opacity-40 hover:bg-line"
+            >
+              Favorite
+            </button>
+            <label className="sr-only" htmlFor="bulk-folder">
+              File selected into folder
+            </label>
+            <select
+              id="bulk-folder"
+              disabled={selectedIds.length === 0}
+              defaultValue=""
+              onChange={(e) => {
+                if (e.target.value !== "") bulkFolder(e.target.value === "none" ? null : e.target.value);
+                e.target.value = "";
+              }}
+              className="h-8 rounded-[0.25rem] bg-paper-warm px-2 font-sans text-xs font-medium text-ink disabled:opacity-40"
+            >
+              <option value="" disabled>
+                File into…
+              </option>
+              <option value="none">Unfiled</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={selectedIds.length === 0}
+              onClick={bulkDelete}
+              className="rounded-[0.25rem] bg-danger/10 px-3 py-1.5 font-sans text-xs font-medium text-danger disabled:opacity-40 hover:bg-danger/20"
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              onClick={exitSelect}
+              className="ml-auto rounded-[0.25rem] px-3 py-1.5 font-sans text-xs text-ink-muted underline underline-offset-2 hover:text-ink"
+            >
+              Clear
+            </button>
+          </div>
+        ) : null}
+
         <ViewTransition key={filters.tab} enter="fade-in" exit="fade-out" default="none">
           <div className="mt-6">
             <ArticleList
@@ -161,6 +320,9 @@ export function LibraryHome({
               }
               onOpen={onOpenItem}
               onRemove={removeItem}
+              selectMode={selectMode}
+              selectedIds={selectedSet}
+              onToggleSelect={toggleSelect}
             />
           </div>
         </ViewTransition>

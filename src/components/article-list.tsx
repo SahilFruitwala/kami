@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { ViewTransition } from "react";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { BookOpen, Clock3, Highlighter, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button.tsx";
@@ -9,19 +11,48 @@ import { relativeTime } from "@/lib/time.ts";
 import type { LibraryItem } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
 
+const VIRTUALIZE_AFTER = 50;
+
+function useLaneCount(): number {
+  const [lanes, setLanes] = useState(() =>
+    typeof window === "undefined" ? 3 : window.innerWidth >= 1280 ? 3 : window.innerWidth >= 768 ? 2 : 1,
+  );
+  useEffect(() => {
+    const xl = window.matchMedia("(min-width: 1280px)");
+    const md = window.matchMedia("(min-width: 768px)");
+    const update = () => setLanes(xl.matches ? 3 : md.matches ? 2 : 1);
+    update();
+    xl.addEventListener("change", update);
+    md.addEventListener("change", update);
+    return () => {
+      xl.removeEventListener("change", update);
+      md.removeEventListener("change", update);
+    };
+  }, []);
+  return lanes;
+}
+
 export function ArticleList({
   items,
   emptyTitle,
   emptyCopy,
   onOpen,
   onRemove,
+  selectMode,
+  selectedIds,
+  onToggleSelect,
 }: {
   items: LibraryItem[];
   emptyTitle: string;
   emptyCopy: string;
   onOpen: (item: LibraryItem) => void;
   onRemove: (id: string) => void;
+  selectMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }) {
+  const lanes = useLaneCount();
+
   if (items.length === 0) {
     return (
       <div className="kami-sheet flex flex-col items-center gap-3 px-6 py-16 text-center">
@@ -34,6 +65,20 @@ export function ArticleList({
     );
   }
 
+  if (items.length > VIRTUALIZE_AFTER) {
+    return (
+      <VirtualGrid
+        items={items}
+        lanes={lanes}
+        onOpen={onOpen}
+        onRemove={onRemove}
+        selectMode={selectMode}
+        selectedIds={selectedIds}
+        onToggleSelect={onToggleSelect}
+      />
+    );
+  }
+
   return (
     <ul
       id="library-article-list"
@@ -41,10 +86,89 @@ export function ArticleList({
     >
       {items.map((item) => (
         <ViewTransition key={item.id} default="none">
-          <ArticleCard item={item} onOpen={onOpen} onRemove={onRemove} />
+          <ArticleCard
+            item={item}
+            onOpen={onOpen}
+            onRemove={onRemove}
+            selectMode={selectMode}
+            selected={selectedIds?.has(item.id) ?? false}
+            onToggleSelect={onToggleSelect}
+          />
         </ViewTransition>
       ))}
     </ul>
+  );
+}
+
+/** Window-scrolled, row-chunked grid for large libraries. Rows are measured
+ *  live so uneven card heights stay aligned per row. */
+function VirtualGrid({
+  items,
+  lanes,
+  onOpen,
+  onRemove,
+  selectMode,
+  selectedIds,
+  onToggleSelect,
+}: {
+  items: LibraryItem[];
+  lanes: number;
+  onOpen: (item: LibraryItem) => void;
+  onRemove: (id: string) => void;
+  selectMode?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (id: string) => void;
+}) {
+  const rows: LibraryItem[][] = [];
+  for (let i = 0; i < items.length; i += lanes) rows.push(items.slice(i, i + lanes));
+
+  const virtualizer = useWindowVirtualizer({
+    count: rows.length,
+    estimateSize: () => 420,
+    overscan: 2,
+    getItemKey: (index) => rows[index]![0]!.id,
+  });
+
+  return (
+    <div
+      id="library-article-list"
+      style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative" }}
+    >
+      {virtualizer.getVirtualItems().map((vi) => {
+        const row = rows[vi.index]!;
+        return (
+          <div
+            key={vi.key}
+            data-index={vi.index}
+            ref={virtualizer.measureElement}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              transform: `translateY(${vi.start}px)`,
+            }}
+          >
+            <ul
+              className="grid grid-cols-1 gap-6 pb-6 md:grid-cols-2 xl:grid-cols-3"
+              style={{ gridTemplateColumns: `repeat(${lanes}, minmax(0, 1fr))` }}
+            >
+              {row.map((item) => (
+                <ArticleCard
+                  key={item.id}
+                  item={item}
+                  onOpen={onOpen}
+                  onRemove={onRemove}
+                  selectMode={selectMode}
+                  selected={selectedIds?.has(item.id) ?? false}
+                  onToggleSelect={onToggleSelect}
+                />
+              ))}
+            </ul>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -52,10 +176,16 @@ function ArticleCard({
   item,
   onOpen,
   onRemove,
+  selectMode,
+  selected,
+  onToggleSelect,
 }: {
   item: LibraryItem;
   onOpen: (item: LibraryItem) => void;
   onRemove: (id: string) => void;
+  selectMode?: boolean;
+  selected?: boolean;
+  onToggleSelect?: (id: string) => void;
 }) {
   const upsertItem = useLibraryStore((s) => s.upsertItem);
   const glyph = (item.siteName || item.title || "K").trim().charAt(0) || "K";
@@ -68,7 +198,12 @@ function ArticleCard({
     });
   }
   return (
-    <li className="group kami-sheet relative flex min-h-full flex-col justify-between overflow-hidden p-6 transition-shadow duration-300 hover:shadow-[var(--shadow-border-hover)]">
+    <li
+      className={cn(
+        "group kami-sheet relative flex min-h-full flex-col justify-between overflow-hidden p-6 transition-shadow duration-300 hover:shadow-[var(--shadow-border-hover)]",
+        selected && "ring-2 ring-hanko/50",
+      )}
+    >
       {item.favorited ? (
         <span
           className="absolute top-0 right-6 h-8 w-3.5 rounded-b-[0.25rem] bg-hanko shadow-sm"
@@ -76,9 +211,28 @@ function ArticleCard({
         />
       ) : null}
       <div className="mb-4 flex items-center justify-between gap-2">
-        <WashiTag tone="paper">
-          {item.source === "x" ? "X" : item.siteName || "Article"}
-        </WashiTag>
+        <span className="flex min-w-0 items-center gap-2">
+          {selectMode ? (
+            <button
+              type="button"
+              role="checkbox"
+              aria-checked={selected}
+              aria-label={`Select ${item.title}`}
+              onClick={() => onToggleSelect?.(item.id)}
+              className={cn(
+                "flex size-5 shrink-0 items-center justify-center rounded-[0.25rem] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                selected ? "border-hanko bg-hanko text-white" : "border-faint bg-surface text-transparent",
+              )}
+            >
+              <svg viewBox="0 0 12 12" className="size-3" fill="none" aria-hidden="true">
+                <path d="M2 6.5 4.8 9 10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
+          ) : null}
+          <WashiTag tone="paper">
+            {item.source === "x" ? "X" : item.siteName || "Article"}
+          </WashiTag>
+        </span>
         {item.highlights?.length ? (
           <span className="flex items-center gap-1 text-[11px] font-semibold text-hanko">
             <Highlighter className="size-3.5" aria-hidden="true" />
@@ -93,7 +247,7 @@ function ArticleCard({
 
       <button
         type="button"
-        onClick={() => onOpen(item)}
+        onClick={() => (selectMode ? onToggleSelect?.(item.id) : onOpen(item))}
         className="mb-4 flex flex-1 flex-col rounded-[0.25rem] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
       >
         <ViewTransition name={`article-title-${item.id}`} share="text-morph" default="none">
@@ -141,18 +295,20 @@ function ArticleCard({
         </p>
       </div>
 
-      <Button
-        variant="ghost"
-        size="icon"
-        className={cn(
-          "absolute right-2 bottom-14 size-8 text-ink-muted hover:text-hanko",
-          "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100",
-        )}
-        aria-label={`Remove ${item.title}`}
-        onClick={removeWithUndo}
-      >
-        <Trash2 className="size-4" aria-hidden="true" />
-      </Button>
+      {!selectMode ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "absolute right-2 bottom-14 size-8 text-ink-muted hover:text-hanko",
+            "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100",
+          )}
+          aria-label={`Remove ${item.title}`}
+          onClick={removeWithUndo}
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
+        </Button>
+      ) : null}
     </li>
   );
 }

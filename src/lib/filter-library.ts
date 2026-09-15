@@ -2,6 +2,7 @@ import type { LibraryItem } from "@/lib/store.ts";
 
 export type LibraryTab = "inbox" | "archive";
 export type FolderFilter = "all" | "none" | string;
+export type LibrarySort = "newest" | "oldest" | "longest" | "shortest" | "title";
 
 export type LibraryFilterState = {
   tab: LibraryTab;
@@ -71,4 +72,26 @@ export function collectLibraryTags(library: LibraryItem[]): string[] {
     }
   }
   return tags.sort((a, b) => a.localeCompare(b));
+}
+
+const SORT_FNS: Record<LibrarySort, (a: LibraryItem, b: LibraryItem) => number> = {
+  newest: (a, b) => b.savedAt - a.savedAt,
+  oldest: (a, b) => a.savedAt - b.savedAt,
+  longest: (a, b) => b.readingMinutes - a.readingMinutes,
+  shortest: (a, b) => a.readingMinutes - b.readingMinutes,
+  title: (a, b) => a.title.localeCompare(b.title),
+};
+
+export function sortLibraryItems(items: LibraryItem[], sort: LibrarySort): LibraryItem[] {
+  return [...items].sort(SORT_FNS[sort] ?? SORT_FNS.newest);
+}
+
+export function isLibrarySort(value: unknown): value is LibrarySort {
+  return (
+    value === "newest" ||
+    value === "oldest" ||
+    value === "longest" ||
+    value === "shortest" ||
+    value === "title"
+  );
 }
