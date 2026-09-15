@@ -1,5 +1,4 @@
-import React, { startTransition, type ReactNode } from "react";
-import { Archive, Inbox } from "lucide-react";
+import { startTransition } from "react";
 import type { LibraryTab } from "@/lib/filter-library.ts";
 import { cn } from "@/lib/utils.ts";
 
@@ -7,11 +6,13 @@ export function LibraryTabs({
   tab,
   inboxCount,
   archiveCount,
+  vaultCount,
   onTab,
 }: {
   tab: LibraryTab;
   inboxCount: number;
   archiveCount: number;
+  vaultCount: number;
   onTab: (tab: LibraryTab) => void;
 }) {
   function select(next: LibraryTab) {
@@ -23,43 +24,16 @@ export function LibraryTabs({
     <nav
       aria-label="Library views"
       role="tablist"
-      className="mt-10 flex items-center gap-2 border-b border-line"
+      className="flex items-center gap-1.5 overflow-x-auto pb-1"
     >
-      <TabButton
-        active={tab === "inbox"}
-        onClick={() => select("inbox")}
-        aria-controls="library-article-list"
-      >
-        <Inbox className="size-4" aria-hidden="true" />
-        <span>Inbox</span>
-        <span
-          className={cn(
-            "rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums transition-colors",
-            tab === "inbox"
-              ? "bg-ink text-paper"
-              : "bg-paper-warm text-ink-soft",
-          )}
-        >
-          {inboxCount}
-        </span>
+      <TabButton active={tab === "inbox"} onClick={() => select("inbox")}>
+        All Inflow ({inboxCount})
       </TabButton>
-      <TabButton
-        active={tab === "archive"}
-        onClick={() => select("archive")}
-        aria-controls="library-article-list"
-      >
-        <Archive className="size-4" aria-hidden="true" />
-        <span>Archive</span>
-        <span
-          className={cn(
-            "rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums transition-colors",
-            tab === "archive"
-              ? "bg-ink text-paper"
-              : "bg-paper-warm text-ink-soft",
-          )}
-        >
-          {archiveCount}
-        </span>
+      <TabButton active={tab === "archive"} onClick={() => select("archive")}>
+        Archived Inks ({archiveCount})
+      </TabButton>
+      <TabButton active={tab === "vault"} onClick={() => select("vault")}>
+        Highlight Vault ({vaultCount})
       </TabButton>
     </nav>
   );
@@ -69,25 +43,23 @@ function TabButton({
   active,
   onClick,
   children,
-  ...props
 }: {
   active: boolean;
   onClick: () => void;
-  children: ReactNode;
-} & React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  children: React.ReactNode;
+}) {
   return (
     <button
       type="button"
       role="tab"
       aria-selected={active}
-      className={cn(
-        "flex h-11 items-center gap-2 border-b-2 px-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30",
-        active
-          ? "border-ink text-ink font-semibold"
-          : "border-transparent text-ink-muted hover:text-ink",
-      )}
       onClick={onClick}
-      {...props}
+      className={cn(
+        "rounded-[0.25rem] px-4 py-2 font-sans text-xs font-medium whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+        active
+          ? "bg-hanko font-semibold text-white shadow-sm"
+          : "text-ink-soft hover:bg-paper-warm hover:text-ink",
+      )}
     >
       {children}
     </button>

@@ -1,9 +1,11 @@
 import { ViewTransition } from "react";
-import { BookOpen, Star, Trash2 } from "lucide-react";
+import { BookOpen, Clock3, Highlighter, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
+import { Hanko, WashiTag } from "@/components/kami.tsx";
 import { previewImageSrc } from "@/lib/image-url.ts";
 import { relativeTime } from "@/lib/time.ts";
 import type { LibraryItem } from "@/lib/store.ts";
+import { cn } from "@/lib/utils.ts";
 
 export function ArticleList({
   items,
@@ -20,26 +22,31 @@ export function ArticleList({
 }) {
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 py-16 text-center">
-        <BookOpen className="size-7 text-faint" aria-hidden="true" />
+      <div className="kami-sheet flex flex-col items-center gap-3 px-6 py-16 text-center">
+        <BookOpen className="size-6 text-ink-muted" aria-hidden="true" />
         <p className="font-display text-2xl text-ink-soft italic">{emptyTitle}</p>
-        <p className="max-w-sm text-sm leading-normal text-ink-muted">{emptyCopy}</p>
+        <p className="max-w-sm font-body text-sm leading-relaxed text-ink-muted">
+          {emptyCopy}
+        </p>
       </div>
     );
   }
 
   return (
-    <ul id="library-article-list" className="divide-y divide-line">
+    <ul
+      id="library-article-list"
+      className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
+    >
       {items.map((item) => (
         <ViewTransition key={item.id} default="none">
-          <ArticleRow item={item} onOpen={onOpen} onRemove={onRemove} />
+          <ArticleCard item={item} onOpen={onOpen} onRemove={onRemove} />
         </ViewTransition>
       ))}
     </ul>
   );
 }
 
-function ArticleRow({
+function ArticleCard({
   item,
   onOpen,
   onRemove,
@@ -48,83 +55,91 @@ function ArticleRow({
   onOpen: (item: LibraryItem) => void;
   onRemove: (id: string) => void;
 }) {
+  const glyph = (item.siteName || item.title || "K").trim().charAt(0) || "K";
   return (
-    <li className="group py-4">
-      <article className="flex items-stretch gap-3 sm:gap-4">
-        <button
-          type="button"
-          className="flex min-w-0 flex-1 items-start gap-3 text-left sm:gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 rounded-lg"
-          onClick={() => onOpen(item)}
-        >
-          {item.heroImage ? (
+    <li className="group kami-sheet relative flex min-h-full flex-col justify-between overflow-hidden p-6 transition-shadow duration-300 hover:shadow-[var(--shadow-border-hover)]">
+      {item.favorited ? (
+        <span
+          className="absolute top-0 right-6 h-8 w-3.5 rounded-b-[0.25rem] bg-hanko shadow-sm"
+          aria-hidden="true"
+        />
+      ) : null}
+      <div className="mb-4 flex items-center justify-between gap-2">
+        <WashiTag tone="paper">
+          {item.source === "x" ? "X" : item.siteName || "Article"}
+        </WashiTag>
+        {item.highlights?.length ? (
+          <span className="flex items-center gap-1 text-[11px] font-semibold text-hanko">
+            <Highlighter className="size-3.5" aria-hidden="true" />
+            {item.highlights.length} saved
+          </span>
+        ) : item.archived ? (
+          <span className="text-[11px] font-medium text-ink-muted">Archived</span>
+        ) : (
+          <span className="text-[11px] font-medium text-ink-muted">Unread</span>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => onOpen(item)}
+        className="mb-4 flex flex-1 flex-col rounded-[0.25rem] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+      >
+        <ViewTransition name={`article-title-${item.id}`} share="text-morph" default="none">
+          <span className="font-display text-xl leading-snug font-medium text-ink transition-colors group-hover:text-hanko">
+            {item.title}
+          </span>
+        </ViewTransition>
+        {item.excerpt ? (
+          <span className="mt-2 line-clamp-3 font-body text-sm leading-relaxed text-ink-soft">
+            {item.excerpt}
+          </span>
+        ) : null}
+        {item.heroImage ? (
+          <span className="mt-4 block h-32 w-full overflow-hidden rounded-[0.25rem]">
             <ViewTransition name={`article-image-${item.id}`} share="morph" default="none">
               <img
                 src={previewImageSrc(item.heroImage)}
                 alt=""
-                width={80}
-                height={80}
                 loading="lazy"
                 decoding="async"
-                className="mt-0.5 size-16 shrink-0 rounded-md object-cover shadow-border sm:size-20"
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
             </ViewTransition>
-          ) : null}
-          <span className="min-w-0 flex-1">
-            <span className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center rounded-md bg-paper-warm px-2 py-0.5 text-xs font-semibold text-ink shadow-xs">
-                {item.source === "x" ? "X" : item.siteName || "Article"}
-              </span>
-              <span className="text-xs font-medium text-ink-muted tabular-nums">
-                {item.readingMinutes} min · {relativeTime(item.savedAt)}
-              </span>
-            </span>
-            <span className="mt-1.5 flex items-start gap-2">
-              <ViewTransition name={`article-title-${item.id}`} share="text-morph" default="none">
-                <h2 className="min-w-0 flex-1 font-display text-xl font-medium leading-snug tracking-tight text-ink">
-                  {item.title}
-                </h2>
-              </ViewTransition>
-              {item.favorited ? (
-                <span className="mt-1 inline-flex shrink-0 items-center">
-                  <Star className="size-4 fill-ink text-ink" aria-hidden="true" />
-                  <span className="sr-only">(favorited)</span>
-                </span>
-              ) : null}
-            </span>
-            {item.excerpt ? (
-              <span className="mt-1 line-clamp-2 block text-sm leading-normal text-ink-soft">
-                {item.excerpt}
-              </span>
-            ) : null}
-            {item.tags?.length || item.highlights?.length ? (
-              <span className="mt-2 flex flex-wrap items-center gap-1.5">
-                {(item.tags ?? []).map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full bg-paper-warm px-2.5 py-0.5 text-xs font-medium text-ink shadow-xs"
-                  >
-                    #{tag}
-                  </span>
-                ))}
-                {item.highlights?.length ? (
-                  <span className="text-xs font-medium text-ink-muted">
-                    {item.highlights.length} highlight{item.highlights.length === 1 ? "" : "s"}
-                  </span>
-                ) : null}
-              </span>
-            ) : null}
           </span>
-        </button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-11 shrink-0 self-start text-ink-muted hover:text-ink focus-visible:opacity-100 group-focus-within:opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
-          aria-label={`Remove ${item.title}`}
-          onClick={() => onRemove(item.id)}
-        >
-          <Trash2 className="size-4" aria-hidden="true" />
-        </Button>
-      </article>
+        ) : null}
+      </button>
+
+      <div className="-mx-6 -mb-6 flex items-center justify-between gap-2 bg-bg/60 px-6 py-3">
+        <p className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-ink-muted">
+          <Hanko glyph={glyph} square className="size-5 text-[10px]" />
+          <span className="truncate">{item.author || item.siteName || "Unknown hand"}</span>
+        </p>
+        <p className="flex shrink-0 items-center gap-2 text-[11px] font-medium text-ink-muted">
+          <span className="flex items-center gap-1">
+            <Clock3 className="size-3.5" aria-hidden="true" />
+            {item.readingMinutes} min
+          </span>
+          <span aria-hidden="true">·</span>
+          <span>{relativeTime(item.savedAt)}</span>
+          {item.favorited ? (
+            <Star className="size-3.5 fill-hanko text-hanko" aria-label="Favorited" />
+          ) : null}
+        </p>
+      </div>
+
+      <Button
+        variant="ghost"
+        size="icon"
+        className={cn(
+          "absolute right-2 bottom-14 size-8 text-ink-muted hover:text-hanko",
+          "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100",
+        )}
+        aria-label={`Remove ${item.title}`}
+        onClick={() => onRemove(item.id)}
+      >
+        <Trash2 className="size-4" aria-hidden="true" />
+      </Button>
     </li>
   );
 }

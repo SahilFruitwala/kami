@@ -6,21 +6,32 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --color-bg: #f3eee4;
-  --color-paper: #f3eee4;
-  --color-paper-warm: #e8e0d2;
-  --color-surface: #fffaf3;
-  --color-ink: #1c1916;
-  --color-ink-soft: #3f3a34;
-  --color-ink-muted: #6f675d;
-  --color-faint: #b4ada3;
-  --color-line: #ddd4c6;
-  --color-ink-accent: #3d4a55;
-  --color-danger: #8f3d32;
-  --color-ok: #3d6b4f;
+  /* Kami (light) — washi paper, sumi ink, vermilion hanko */
+  --color-bg: #f9f2ed;
+  --color-paper: #fff8f3;
+  --color-paper-warm: #f3ede7;
+  --color-surface: #fffdf9;
+  --color-ink: #1d1b18;
+  --color-ink-soft: #58413c;
+  --color-ink-muted: #8c716b;
+  --color-faint: #c9b8b0;
+  --color-line: #e7e0d5;
+  --color-ink-accent: #2d3b48;
+  --color-danger: #a6331b;
+  --color-ok: #546250;
 
-  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Newsreader", "Iowan Old Style", Georgia, "Times New Roman", serif;
+  /* Kami signature pigments */
+  --color-hanko: #a6331b;
+  --color-shu: #c84b31;
+  --color-shu-tint: #fbeFEB;
+  --color-bamboo: #546250;
+  --color-bamboo-wash: #eef2ec;
+  --color-aizome: #2d3b48;
+  --color-sumi: #1c1a17;
+
+  --font-sans: "Plus Jakarta Sans", "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Noto Serif", "Iowan Old Style", Georgia, serif;
+  --font-body: "Literata", Georgia, serif;
 
   --radius-xs: 0.25rem;
   --radius-sm: 0.5rem;
@@ -30,13 +41,14 @@
   --radius-2xl: 2rem;
 
   --shadow-border:
-    0px 0px 0px 1px rgba(28, 25, 22, 0.06),
-    0px 1px 2px -1px rgba(28, 25, 22, 0.06),
-    0px 2px 4px 0px rgba(28, 25, 22, 0.04);
+    0 2px 8px -2px rgba(45, 37, 28, 0.05),
+    0 1px 3px 0 rgba(45, 37, 28, 0.04);
   --shadow-border-hover:
-    0px 0px 0px 1px rgba(28, 25, 22, 0.08),
-    0px 1px 2px -1px rgba(28, 25, 22, 0.08),
-    0px 2px 4px 0px rgba(28, 25, 22, 0.06);
+    0 12px 24px -6px rgba(45, 37, 28, 0.09),
+    0 4px 12px -2px rgba(45, 37, 28, 0.04);
+  --shadow-raised:
+    0 12px 32px -8px rgba(45, 37, 28, 0.08),
+    0 4px 12px -2px rgba(45, 37, 28, 0.04);
   --shadow-device:
     0px 0px 0px 1px rgba(28, 25, 22, 0.2),
     0px 18px 40px -18px rgba(28, 25, 22, 0.45);
@@ -62,27 +74,37 @@
   .dark {
     color-scheme: dark;
 
-    --color-bg: #161310;
-    --color-paper: #161310;
-    --color-paper-warm: #26201a;
-    --color-surface: #221c16;
-    --color-ink: #f2ece0;
-    --color-ink-soft: #d8cebe;
-    --color-ink-muted: #b8af9e;
-    --color-faint: #7a7264;
-    --color-line: #3a3228;
-    --color-ink-accent: #a9bfd1;
-    --color-danger: #e08d7f;
-    --color-ok: #82b894;
+    /* Sumi & Washi Dark — charcoal pulp, parchment wash, cinnabar glow */
+    --color-bg: #161514;
+    --color-paper: #1c1b1a;
+    --color-paper-warm: #211f1e;
+    --color-surface: #252320;
+    --color-ink: #eae4dc;
+    --color-ink-soft: #c8c2b8;
+    --color-ink-muted: #8a847c;
+    --color-faint: #5c564f;
+    --color-line: #3a3631;
+    --color-ink-accent: #d4a373;
+    --color-danger: #e05a3e;
+    --color-ok: #768a72;
+
+    --color-hanko: #e05a3e;
+    --color-shu: #e05a3e;
+    --color-shu-tint: rgba(224, 90, 62, 0.12);
+    --color-bamboo: #768a72;
+    --color-bamboo-wash: rgba(212, 163, 115, 0.12);
+    --color-aizome: #d4a373;
+    --color-sumi: #eae4dc;
 
     --shadow-border:
-      0px 0px 0px 1px rgba(236, 228, 212, 0.14),
-      0px 1px 2px -1px rgba(0, 0, 0, 0.5),
-      0px 2px 4px 0px rgba(0, 0, 0, 0.4);
+      0 2px 10px -2px rgba(10, 9, 8, 0.5),
+      0 1px 4px 0 rgba(10, 9, 8, 0.35);
     --shadow-border-hover:
-      0px 0px 0px 1px rgba(236, 228, 212, 0.2),
-      0px 1px 2px -1px rgba(0, 0, 0, 0.55),
-      0px 2px 4px 0px rgba(0, 0, 0, 0.45);
+      0 16px 36px -8px rgba(10, 9, 8, 0.7),
+      0 4px 14px -2px rgba(10, 9, 8, 0.4);
+    --shadow-raised:
+      0 16px 36px -8px rgba(10, 9, 8, 0.7),
+      0 4px 14px -2px rgba(10, 9, 8, 0.4);
     --shadow-device:
       0px 0px 0px 1px rgba(236, 228, 212, 0.18),
       0px 18px 40px -18px rgba(0, 0, 0, 0.7);
@@ -305,9 +327,20 @@
 }
 
 .reader-body {
-  font-family: var(--reader-font, var(--font-display));
+  font-family: var(--reader-font, var(--font-body));
   font-size: var(--reader-font-size, 1.1875rem);
-  line-height: 1.65;
+  line-height: 1.8;
+}
+
+/* Dokusho editorial drop cap on the opening paragraph */
+.reader-body > p:first-of-type::first-letter {
+  float: left;
+  font-family: var(--font-display);
+  font-size: 3.2em;
+  line-height: 0.9;
+  padding-right: 0.12em;
+  padding-top: 0.05em;
+  color: var(--color-hanko);
 }
 
 .reader-body[data-font="literata"] {
@@ -694,9 +727,71 @@
   scrollbar-color: var(--color-faint) transparent;
 }
 
+/* ——— Kami washi material language ——— */
+.kami-sheet {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 0.25rem;
+  box-shadow: var(--shadow-border);
+}
+.kami-sheet-raised {
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 0.25rem;
+  box-shadow: var(--shadow-raised);
+}
+.kami-desk {
+  background:
+    radial-gradient(1200px 320px at 50% -80px, color-mix(in oklab, var(--color-shu) 6%, transparent), transparent),
+    var(--color-bg);
+}
+.kami-grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  opacity: 0.5;
+  background-image: radial-gradient(color-mix(in oklab, var(--color-ink) 5%, transparent) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: linear-gradient(180deg, black, transparent 70%);
+}
+.dark .kami-grain::before {
+  background-image: radial-gradient(rgba(234, 228, 220, 0.05) 1px, transparent 1px);
+}
+.kami-hanko {
+  background: var(--color-hanko);
+  color: #fffdf9;
+  box-shadow: 0 0 16px -4px rgba(224, 90, 62, 0.25);
+}
+.dark .kami-hanko {
+  color: #eae4dc;
+}
+.kami-washi-tag {
+  border: 1px dashed color-mix(in oklab, var(--color-hanko) 30%, transparent);
+  background: var(--color-shu-tint);
+}
+.kami-label {
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.kami-body {
+  font-family: var(--font-body);
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: 'Geist Variable', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Geist Variable', sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
