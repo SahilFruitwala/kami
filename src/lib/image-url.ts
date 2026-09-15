@@ -89,7 +89,12 @@ export function rewriteHtmlImages(html: string): string {
     const srcMatch = /\ssrc\s*=\s*(["'])(.*?)\1/i.exec(` ${attrs}`);
     if (!srcMatch) return `<img${attrs}>`;
     const next = previewImageSrc(srcMatch[2]);
-    const withoutSrc = attrs.replace(/\ssrc\s*=\s*(["']).*?\1/i, "");
+    // Defense-in-depth: sanitized HTML should already carry only src/alt, but
+    // strip any event-handler / JS-URL attributes if a caller passes raw HTML.
+    const withoutSrc = attrs
+      .replace(/\ssrc\s*=\s*(["']).*?\1/i, "")
+      .replace(/\son[a-z]+\s*=\s*(["']).*?\1/gi, "")
+      .replace(/\ssrcset\s*=\s*(["']).*?\1/gi, "");
     return `<img src="${next}" referrerpolicy="no-referrer" decoding="async"${withoutSrc}>`;
   });
 }

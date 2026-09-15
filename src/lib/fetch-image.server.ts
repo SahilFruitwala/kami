@@ -47,7 +47,7 @@ export async function fetchImageBytes(rawUrl: string): Promise<FetchedImage> {
   return last;
 }
 
-async function getImage(href: string): Promise<FetchedImage> {
+async function getImage(href: string, maxRedirects = 5): Promise<FetchedImage> {
   let parsed: URL;
   try {
     parsed = assertPublicHttpUrl(href);
@@ -56,16 +56,49 @@ async function getImage(href: string): Promise<FetchedImage> {
   }
 
   try {
-    const res = await fetch(parsed.href, {
-      method: "GET",
-      redirect: "follow",
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      headers: {
-        "user-agent": USER_AGENT,
-        accept: "image/jpeg,image/png,image/gif,image/svg+xml,image/*;q=0.4,*/*;q=0.1",
-        referer: refererFor(parsed),
-      },
-    });
+    let current = parsed.href;
+    let res: Response | null = null;
+    for (let hop = 0; hop <= maxRedirects; hop += 1) {
+      const attempt = await fetch(current, {
+        method: "GET",
+        redirect: "manual",
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        headers: {
+          "user-agent": USER_AGENT,
+          accept: "image/jpeg,image/png,image/gif,image/svg+xml,image/*;q=0.4,*/*;q=0.1",
+          referer: refererFor(new URL(current)),
+        },
+      });
+      if (attempt.status >= 300 && attempt.status < 400) {
+        const location = attempt.headers.get("location");
+        await attempt.arrayBuffer().catch(() => undefined);
+        if (!location) return { ok: false, error: "invalid image redirect", status: 502 };
+        let next: string;
+        try {
+          next = new URL(location, current).href;
+        } catch {
+          return { ok: false, error: "invalid image redirect", status: 502 };
+        }
+        try {
+          current = assertPublicHttpUrl(next).href;
+        } catch {
+          return { ok: false, error: "invalid image url", status: 400 };
+        }
+        if (hop === maxRedirects) {
+          return { ok: false, error: "too many redirects", status: 502 };
+        }
+        continue;
+      }
+      res = attempt;
+      try {
+        current = assertPublicHttpUrl(res.url || current).href;
+      } catch {
+        await res.arrayBuffer().catch(() => undefined);
+        return { ok: false, error: "invalid image url", status: 400 };
+      }
+      break;
+    }
+    if (!res) return { ok: false, error: "could not fetch image", status: 502 };
     if (!res.ok) {
       return { ok: false, error: `upstream ${res.status}`, status: res.status === 404 ? 404 : 502 };
     }
