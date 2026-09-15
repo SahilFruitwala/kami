@@ -28,19 +28,17 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command.tsx";
+import {
+  useAddShelfItem,
+  useBookSearch,
+  useLinkPreview,
+  useTmdbSearch,
+} from "@/hooks/use-shelf-queries.ts";
 import { articleToItem, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
 import { extractArticle, saveLinkArticle } from "@/lib/article-fns.ts";
 import { persistArticleItem } from "@/lib/library-remote.ts";
-import {
-  addShelfItem,
-  type ShelfTab,
-} from "@/lib/shelves-fns.ts";
-import {
-  fetchLinkPreview,
-  searchBooks,
-  searchTmdb,
-  type LookupResult,
-} from "@/lib/shelves-lookup.ts";
+import type { ShelfTab } from "@/lib/shelves-fns.ts";
+import type { LookupResult } from "@/lib/shelves-lookup.ts";
 
 type AddPage = "home" | ShelfTab;
 
@@ -87,14 +85,8 @@ export function CommandPalette({
 
   const [savingUrl, setSavingUrl] = useState(false);
   const [addingKey, setAddingKey] = useState<string | null>(null);
-
-  // Shelf search state (only live while a shelf page is active).
-  const [results, setResults] = useState<LookupResult[] | null>(null);
-  const [searching, setSearching] = useState(false);
-  const [linkPreview, setLinkPreview] = useState<LookupResult | null>(null);
-  const [fetchingLink, setFetchingLink] = useState(false);
   const deferredQuery = useDeferredValue(query);
-  const requestId = useRef(0);
+  const addItem = useAddShelfItem();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -113,8 +105,6 @@ export function CommandPalette({
   useEffect(() => {
     if (open && !wasOpen.current) {
       setPage("home");
-      setResults(null);
-      setLinkPreview(null);
     }
     if (!open && wasOpen.current && !savingUrl && !addingKey) {
       setQuery("");
@@ -126,59 +116,25 @@ export function CommandPalette({
   const trimmedQuery = query.trim();
   const activeAddMeta = ADD_PAGES.find((p) => p.id === page);
 
-  // Live lookup for movie / tv / book pages.
-  useEffect(() => {
-    if (!open || page === "home" || page === "wishlist") return;
-    const q = deferredQuery.trim();
-    if (q.length < 2) {
-      setResults(null);
-      setSearching(false);
-      return;
-    }
-    const id = ++requestId.current;
-    setSearching(true);
-    const run =
-      page === "book"
-        ? searchBooks({ data: q })
-        : searchTmdb({ data: { query: q, kind: page === "tv" ? "tv" : "movie" } });
-    run
-      .then((rows) => {
-        if (requestId.current === id) {
-          setResults(rows);
-          setSearching(false);
-        }
-      })
-      .catch(() => {
-        if (requestId.current === id) {
-          setResults([]);
-          setSearching(false);
-        }
-      });
-  }, [open, page, deferredQuery]);
+  const shelfSearchOpen = open && page !== "home" && page !== "wishlist";
+  const tmdbKind = page === "tv" ? "tv" : "movie";
+  const tmdbQuery = useTmdbSearch(
+    tmdbKind,
+    deferredQuery,
+    shelfSearchOpen && page !== "book",
+  );
+  const booksQuery = useBookSearch(deferredQuery, shelfSearchOpen && page === "book");
+  const lookupQuery = page === "book" ? booksQuery : tmdbQuery;
+  const results = shelfSearchOpen ? (lookupQuery.data ?? null) : null;
+  const searching = shelfSearchOpen && deferredQuery.trim().length >= 2 && lookupQuery.isFetching;
 
-  // Wishlist page: auto-fetch a link preview when the query is a URL.
-  useEffect(() => {
-    if (!open || page !== "wishlist") return;
-    const q = deferredQuery.trim();
-    if (!looksLikeUrl(q)) {
-      setLinkPreview(null);
-      setFetchingLink(false);
-      return;
-    }
-    const id = ++requestId.current;
-    setFetchingLink(true);
-    setLinkPreview(null);
-    void fetchLinkPreview({ data: normalizeUrl(q) })
-      .then((r) => {
-        if (requestId.current === id) {
-          setLinkPreview(r);
-          setFetchingLink(false);
-        }
-      })
-      .catch(() => {
-        if (requestId.current === id) setFetchingLink(false);
-      });
-  }, [open, page, deferredQuery]);
+  const wishlistUrl =
+    open && page === "wishlist" && looksLikeUrl(deferredQuery)
+      ? normalizeUrl(deferredQuery.trim())
+      : "";
+  const linkPreviewQuery = useLinkPreview(wishlistUrl, Boolean(wishlistUrl));
+  const linkPreview = linkPreviewQuery.data ?? null;
+  const fetchingLink = Boolean(wishlistUrl) && linkPreviewQuery.isFetching;
 
   function close() {
     setOpen(false);
@@ -199,8 +155,6 @@ export function CommandPalette({
     // must not dismiss the dialog mid-flow (that flash looked like a stray popup).
     setOpen(true);
     setPage(next);
-    setResults(null);
-    setLinkPreview(null);
     if (seedQuery != null) setQuery(seedQuery);
   }
 
@@ -261,7 +215,7 @@ export function CommandPalette({
 
   async function addShelfResult(r: LookupResult, type: ShelfTab) {
     const key = `${type}:${r.title}:${r.link ?? ""}`;
-    if (addingKey) return;
+    if (addingKey || addItem.isPending) return;
     setAddingKey(key);
     try {
       const cleaned = Object.fromEntries(
@@ -270,16 +224,13 @@ export function CommandPalette({
       // Drop oversize image URLs before the server Zod max(2000) — common on
       // product/CDN og:image links and was failing the whole wishlist save.
       const imageUrl = r.imageUrl?.trim();
-      await addShelfItem({
-        data: {
-          type,
-          title: r.title.trim().slice(0, 300),
-          link: r.link?.trim() || (page === "wishlist" && urlLike ? normalizeUrl(trimmedQuery) : undefined),
-          imageUrl:
-            imageUrl && imageUrl.length <= 2000 ? imageUrl : undefined,
-          metadata: Object.keys(cleaned).length ? cleaned : undefined,
-          status: "to_try",
-        },
+      await addItem.mutateAsync({
+        type,
+        title: r.title.trim().slice(0, 300),
+        link: r.link?.trim() || (page === "wishlist" && urlLike ? normalizeUrl(trimmedQuery) : undefined),
+        imageUrl: imageUrl && imageUrl.length <= 2000 ? imageUrl : undefined,
+        metadata: Object.keys(cleaned).length ? cleaned : undefined,
+        status: "to_try",
       });
       toast.success(`Added “${r.title}”`, {
         action: {
@@ -287,11 +238,6 @@ export function CommandPalette({
           onClick: () => void navigate({ to: "/shelves", search: { tab: type } }),
         },
       });
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("quarto:shelf-changed", { detail: { type } }),
-        );
-      }
       close();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't save that item.");
