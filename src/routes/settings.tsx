@@ -1,12 +1,8 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AppGate } from "@/components/app-gate.tsx";
-import { DirectionalTransition } from "@/components/directional-transition.tsx";
+import { AppShell } from "@/components/app-shell.tsx";
 import { ToolsDialog } from "@/components/library/library-dialogs.tsx";
-import { CommandPalette } from "@/components/library/command-palette.tsx";
-import { SiteFooter } from "@/components/library/widgets.tsx";
-import { SiteHeader } from "@/components/site-header.tsx";
 import { KamiEyebrow } from "@/components/kami.tsx";
 import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
 import { useLibraryStore, HIGHLIGHT_COLORS, READER_FONTS, READER_FONT_SIZES } from "@/lib/store.ts";
@@ -24,6 +20,7 @@ import {
   toOPML,
   toVaultCsv,
 } from "@/lib/export.ts";
+import { wipeLibraryAccount } from "@/lib/library-remote.ts";
 import { cn } from "@/lib/utils.ts";
 import type { LibraryItem } from "@/lib/store.ts";
 
@@ -32,18 +29,11 @@ export const Route = createFileRoute("/settings")({
 });
 
 function SettingsPage() {
-  return (
-    <AppGate>
-      <DirectionalTransition>
-        <Settings />
-      </DirectionalTransition>
-    </AppGate>
-  );
+  return <Settings />;
 }
 
 function Settings() {
   const navigate = useNavigate();
-  const tools = useCaptureTools();
 
   function openItem(item: LibraryItem) {
     startTransition(() => {
@@ -53,10 +43,7 @@ function Settings() {
   }
 
   return (
-    <main id="main" className="kami-desk relative flex min-h-dvh flex-col overflow-x-hidden [touch-action:manipulation]">
-      <a href="#main" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-ink focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper">Skip to content</a>
-      <SiteHeader active="settings" onOpenTools={() => tools.setToolsOpen(true)} />
-      <div className="flex-1">
+    <AppShell active="settings" onOpenItem={openItem}>
         <section className="w-full bg-paper/60 backdrop-blur-sm">
           <div className="mx-auto w-full max-w-7xl px-4 pt-8 pb-6 sm:px-6 lg:px-12">
             <KamiEyebrow>
@@ -89,16 +76,12 @@ function Settings() {
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-10 sm:px-6 lg:px-12">
           <AppearanceCard />
           <ReadingCard />
-          <CaptureCard onOpenTools={() => tools.setToolsOpen(true)} />
+          <CaptureCard />
           <OrganizeCard />
           <DataCard />
           <HelpCard />
         </div>
-      </div>
-      <SiteFooter />
-      <ToolsDialog open={tools.toolsOpen} onOpenChange={tools.setToolsOpen} bookmarklet={tools.bookmarklet} />
-      <CommandPalette onOpenItem={openItem} />
-    </main>
+    </AppShell>
   );
 }
 
@@ -272,17 +255,19 @@ function ReadingCard() {
   );
 }
 
-function CaptureCard({ onOpenTools }: { onOpenTools: () => void }) {
+function CaptureCard() {
+  const tools = useCaptureTools();
   return (
     <Card id="capture" title="Capture" copy="Blocked pages? Capture in your browser, then import. Bookmarklets need a desktop bookmark bar — on mobile use Paste article.">
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={onOpenTools} className="rounded-[0.25rem] bg-hanko px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-sm hover:bg-shu">
+        <button type="button" onClick={() => tools.setToolsOpen(true)} className="rounded-[0.25rem] bg-hanko px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-sm hover:bg-shu">
           Open capture tools
         </button>
         <a href="#help" className="rounded-[0.25rem] bg-paper-warm px-5 py-2.5 font-sans text-sm font-medium text-ink hover:bg-line">
           How capturing works →
         </a>
       </div>
+      <ToolsDialog open={tools.toolsOpen} onOpenChange={tools.setToolsOpen} bookmarklet={tools.bookmarklet} />
     </Card>
   );
 }
@@ -651,15 +636,23 @@ function DataCard() {
       <div className="rounded-[0.25rem] border border-danger/30 bg-danger/5 p-4">
         <p className="font-sans text-sm font-semibold text-danger">Danger zone</p>
         <p className="mt-1 font-body text-sm text-ink-muted">
-          Export first — this clears every work, folder, and highlight on this device and account.
+          Export first — this deletes every work, folder, and highlight from
+          this device <em>and</em> your account on the server.
         </p>
         <button
           type="button"
           onClick={() => {
             if (!window.confirm("Delete your entire library? This cannot be undone. Export first.")) return;
-            if (!window.confirm("Really delete everything? Last chance.")) return;
-            clearLibrary();
-            toast.success("Library cleared");
+            if (!window.confirm("Really delete everything, including the server copy? Last chance.")) return;
+            void (async () => {
+              try {
+                await wipeLibraryAccount();
+                toast.success("Library deleted everywhere");
+              } catch {
+                clearLibrary();
+                toast.error("Server unreachable — cleared this device only. Try again online to finish.");
+              }
+            })();
           }}
           className="mt-3 rounded-[0.25rem] bg-danger px-4 py-2 font-sans text-xs font-semibold text-white hover:brightness-110"
         >

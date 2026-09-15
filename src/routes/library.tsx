@@ -1,13 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useEffect, useRef } from "react";
-import { AppGate } from "@/components/app-gate.tsx";
-import { DirectionalTransition } from "@/components/directional-transition.tsx";
-import { ToolsDialog } from "@/components/library/library-dialogs.tsx";
-import { CommandPalette } from "@/components/library/command-palette.tsx";
+import { AppShell } from "@/components/app-shell.tsx";
 import { LibraryHome } from "@/components/library/library-home.tsx";
-import { SiteFooter } from "@/components/library/widgets.tsx";
-import { SiteHeader } from "@/components/site-header.tsx";
-import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
 import { useLibraryFilters } from "@/hooks/use-library-filters.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
 import { isLibrarySort } from "@/lib/filter-library.ts";
@@ -38,19 +32,12 @@ export const Route = createFileRoute("/library")({
 });
 
 function LibraryPage() {
-  return (
-    <AppGate>
-      <DirectionalTransition>
-        <Library />
-      </DirectionalTransition>
-    </AppGate>
-  );
+  return <Library />;
 }
 
 function Library() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
-  const tools = useCaptureTools();
   const filters = useLibraryFilters();
   // Fetch-on-open for works saved as link-only (no clean copy yet).
   const fetchSave = useSaveArticle(() => {});
@@ -105,10 +92,7 @@ function Library() {
   }
 
   return (
-    <main id="main" className="kami-desk relative flex min-h-dvh flex-col overflow-x-hidden [touch-action:manipulation]">
-      <a href="#main" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-ink focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper">Skip to content</a>
-      <SiteHeader active="library" onOpenTools={() => tools.setToolsOpen(true)} />
-      <div className="flex-1">
+    <AppShell active="library" onOpenItem={(item) => void openItemOrFetch(item)}>
       <LibraryHome
         filters={{
           tab: filters.tab,
@@ -126,14 +110,6 @@ function Library() {
         }}
         onOpenItem={(item) => void openItemOrFetch(item)}
       />
-      </div>
-      <SiteFooter />
-      <ToolsDialog
-        open={tools.toolsOpen}
-        onOpenChange={tools.setToolsOpen}
-        bookmarklet={tools.bookmarklet}
-      />
-      <CommandPalette onOpenItem={(item) => void openItemOrFetch(item)} />
-    </main>
+    </AppShell>
   );
 }

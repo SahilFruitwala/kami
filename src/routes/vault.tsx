@@ -1,14 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useState } from "react";
-import { AppGate } from "@/components/app-gate.tsx";
-import { DirectionalTransition } from "@/components/directional-transition.tsx";
-import { ToolsDialog, TranscribeDialog } from "@/components/library/library-dialogs.tsx";
-import { CommandPalette } from "@/components/library/command-palette.tsx";
+import { AppShell } from "@/components/app-shell.tsx";
+import { TranscribeDialog } from "@/components/library/library-dialogs.tsx";
 import { VaultView } from "@/components/library/vault-view.tsx";
-import { SiteFooter } from "@/components/library/widgets.tsx";
-import { SiteHeader } from "@/components/site-header.tsx";
 import { KamiEyebrow } from "@/components/kami.tsx";
-import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
 import { useDeskStats } from "@/components/library/widgets.tsx";
 import type { LibraryItem } from "@/lib/store.ts";
 
@@ -32,19 +27,12 @@ export const Route = createFileRoute("/vault")({
 });
 
 function VaultPage() {
-  return (
-    <AppGate>
-      <DirectionalTransition>
-        <Vault />
-      </DirectionalTransition>
-    </AppGate>
-  );
+  return <Vault />;
 }
 
 function Vault() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
-  const tools = useCaptureTools();
   const stats = useDeskStats();
   const [transcribeOpen, setTranscribeOpen] = useState(false);
 
@@ -56,11 +44,7 @@ function Vault() {
   }
 
   return (
-    <main id="main" className="kami-desk relative flex min-h-dvh flex-col overflow-x-hidden [touch-action:manipulation]">
-      <a href="#main" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-ink focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper">Skip to content</a>
-      <SiteHeader active="vault" onOpenTools={() => tools.setToolsOpen(true)} />
-
-      <div className="flex-1">
+    <AppShell active="vault" onOpenItem={openItem}>
       <section className="w-full bg-paper/60 backdrop-blur-sm">
         <div className="mx-auto w-full max-w-7xl px-4 pt-8 pb-6 sm:px-6 lg:px-12">
           <KamiEyebrow>
@@ -103,19 +87,11 @@ function Vault() {
           onTranscribe={() => setTranscribeOpen(true)}
         />
       </div>
-      </div>
 
-      <SiteFooter />
       <TranscribeDialog
         open={transcribeOpen}
         onOpenChange={setTranscribeOpen}
       />
-      <ToolsDialog
-        open={tools.toolsOpen}
-        onOpenChange={tools.setToolsOpen}
-        bookmarklet={tools.bookmarklet}
-      />
-      <CommandPalette onOpenItem={openItem} />
-    </main>
+    </AppShell>
   );
 }

@@ -1,26 +1,22 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
-import { AppGate } from "@/components/app-gate.tsx";
+import { AppShell } from "@/components/app-shell.tsx";
 import { ArticleList } from "@/components/article-list.tsx";
-import { DirectionalTransition } from "@/components/directional-transition.tsx";
 import { CaptureForm } from "@/components/library/capture-form.tsx";
-import { CommandPalette } from "@/components/library/command-palette.tsx";
-import { PasteDialog, ToolsDialog } from "@/components/library/library-dialogs.tsx";
+import { PasteDialog } from "@/components/library/library-dialogs.tsx";
 import {
   DeskHero,
+  EmptyDeskGuide,
   FoldersCard,
   ReadingRhythmCard,
   RecentPassagesCard,
-  SiteFooter,
   useDeskHeroItem,
 } from "@/components/library/widgets.tsx";
-import { SiteHeader } from "@/components/site-header.tsx";
 import { KamiEyebrow } from "@/components/kami.tsx";
-import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
 import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
-import { buildBookmarklet, decodeImportPayload } from "@/lib/bookmarklet.ts";
+import { decodeImportPayload } from "@/lib/bookmarklet.ts";
 import {
   readDraftUrl,
   stashImportPayload,
@@ -71,19 +67,12 @@ function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return (
-    <AppGate>
-      <DirectionalTransition>
-        <Home />
-      </DirectionalTransition>
-    </AppGate>
-  );
+  return <Home />;
 }
 
 function Home() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
-  const tools = useCaptureTools();
   const booted = useRef(false);
 
   const openOnSave = (id: string | null) => {
@@ -157,11 +146,7 @@ function Home() {
   }, []);
 
   return (
-    <main id="main" className="kami-desk relative flex min-h-dvh flex-col overflow-x-hidden [touch-action:manipulation]">
-      <a href="#main" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-ink focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper">Skip to content</a>
-      <SiteHeader active="home" onOpenTools={() => tools.setToolsOpen(true)} />
-
-      <div className="flex-1">
+    <AppShell active="home" onOpenItem={(item) => void openItemOrFetch(item)}>
       <section className="w-full bg-paper/60 backdrop-blur-sm">
         <div className="mx-auto w-full max-w-7xl px-4 pt-10 pb-8 sm:px-6 lg:px-12">
           <KamiEyebrow>
@@ -195,7 +180,9 @@ function Home() {
       </section>
 
       <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-12">
-        {hero ? (
+        {library.length === 0 ? (
+          <EmptyDeskGuide />
+        ) : hero ? (
           <DeskHero item={hero} onOpen={(item) => void openItemOrFetch(item)} />
         ) : null}
 
@@ -230,9 +217,6 @@ function Home() {
           </aside>
         </div>
       </div>
-      </div>
-
-      <SiteFooter />
 
       <PasteDialog
         open={paste.pasteOpen}
@@ -246,14 +230,6 @@ function Home() {
         onUrl={paste.setPasteUrl}
         onImport={() => void paste.importPasted()}
       />
-
-      <ToolsDialog
-        open={tools.toolsOpen}
-        onOpenChange={tools.setToolsOpen}
-        bookmarklet={tools.bookmarklet || buildBookmarklet(window.location.origin)}
-      />
-
-      <CommandPalette onOpenItem={(item) => void openItemOrFetch(item)} />
-    </main>
+    </AppShell>
   );
 }
