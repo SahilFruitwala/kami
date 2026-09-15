@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { FolderFilter, LibraryTab } from "@/lib/filter-library.ts";
+import type { FolderFilter, LibrarySort, LibraryTab } from "@/lib/filter-library.ts";
 
 export function useLibraryFilters() {
   const [tab, setTab] = useState<LibraryTab>("inbox");
@@ -7,6 +7,7 @@ export function useLibraryFilters() {
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [sort, setSort] = useState<LibrarySort>("newest");
 
   return {
     tab,
@@ -19,5 +20,7 @@ export function useLibraryFilters() {
     setQuery,
     favoritesOnly,
     setFavoritesOnly,
+    sort,
+    setSort,
   };
 }

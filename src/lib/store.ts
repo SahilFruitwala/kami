@@ -161,6 +161,9 @@ export type LibraryState = {
   setItemFolder: (itemId: string, folderId: string | null) => void;
   addTag: (itemId: string, tag: string) => void;
   removeTag: (itemId: string, tag: string) => void;
+  renameTagEverywhere: (oldTag: string, newTag: string) => number;
+  removeTagEverywhere: (tag: string) => number;
+  mergeItems: (keepId: string, dropId: string) => void;
   addHighlight: (itemId: string, text: string, color?: HighlightColorId) => Highlight | null;
   removeHighlight: (itemId: string, highlightId: string) => void;
   setHighlightNote: (itemId: string, highlightId: string, note: string) => void;
@@ -386,6 +389,81 @@ export const useLibraryStore = create<LibraryState>()(
           }),
         }));
         if (tags) remoteSync((m) => m.syncPatchItem(itemId, { tags }));
+      },
+      renameTagEverywhere: (oldTag, newTag) => {
+        const next = normalizeTag(newTag);
+        if (!next) return 0;
+        const old = oldTag.toLowerCase();
+        let affected = 0;
+        const touched: Array<{ id: string; tags: string[] }> = [];
+        set((state) => ({
+          library: state.library.map((row) => {
+            if (!row.tags.some((t) => t.toLowerCase() === old)) return row;
+            affected += 1;
+            const tags = row.tags
+              .map((t) => (t.toLowerCase() === old ? next : t))
+              .filter((t, i, arr) => arr.findIndex((x) => x.toLowerCase() === t.toLowerCase()) === i)
+              .slice(0, 12);
+            touched.push({ id: row.id, tags });
+            return { ...row, tags };
+          }),
+        }));
+        for (const t of touched) remoteSync((m) => m.syncPatchItem(t.id, { tags: t.tags }));
+        return affected;
+      },
+      removeTagEverywhere: (tag) => {
+        const old = tag.toLowerCase();
+        let affected = 0;
+        const touched: Array<{ id: string; tags: string[] }> = [];
+        set((state) => ({
+          library: state.library.map((row) => {
+            if (!row.tags.some((t) => t.toLowerCase() === old)) return row;
+            affected += 1;
+            const tags = row.tags.filter((t) => t.toLowerCase() !== old);
+            touched.push({ id: row.id, tags });
+            return { ...row, tags };
+          }),
+        }));
+        for (const t of touched) remoteSync((m) => m.syncPatchItem(t.id, { tags: t.tags }));
+        return affected;
+      },
+      mergeItems: (keepId, dropId) => {
+        const state = get();
+        const keep = state.library.find((row) => row.id === keepId);
+        const drop = state.library.find((row) => row.id === dropId);
+        if (!keep || !drop || keepId === dropId) return;
+        // Union inline (avoids a store→export import cycle).
+        const tags = [...keep.tags];
+        for (const t of drop.tags) {
+          const clean = normalizeTag(t);
+          if (clean && !tags.some((x) => x.toLowerCase() === clean.toLowerCase())) tags.push(clean);
+        }
+        const seen = new Set(keep.highlights.map((h) => h.text));
+        const highlights = [...keep.highlights];
+        for (const h of drop.highlights) {
+          if (!seen.has(h.text)) {
+            seen.add(h.text);
+            highlights.push(h);
+          }
+        }
+        highlights.sort((a, b) => b.createdAt - a.createdAt);
+        const merged: LibraryItem = {
+          ...keep,
+          tags: tags.slice(0, 12),
+          highlights: highlights.slice(0, 80),
+          savedAt: Math.min(keep.savedAt, drop.savedAt),
+          contentHtml: keep.contentHtml || drop.contentHtml,
+          excerpt: keep.excerpt || drop.excerpt,
+          heroImage: keep.heroImage ?? drop.heroImage,
+          favorited: keep.favorited || drop.favorited,
+          note: keep.note || drop.note,
+          folderId: keep.folderId ?? drop.folderId,
+        };
+        set((s) => ({
+          library: [merged, ...s.library.filter((row) => row.id !== keepId && row.id !== dropId)],
+        }));
+        remoteSync((m) => m.syncUpsertItem(merged));
+        remoteSync((m) => m.syncRemoveItem(dropId));
       },
       addHighlight: (itemId, text, color) => {
         const cleaned = text.replace(/\s+/g, " ").trim();
