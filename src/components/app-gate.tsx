@@ -15,32 +15,39 @@ import {
 export function AppGate({ children }: { children: React.ReactNode }) {
   const { user, isPending } = useCurrentUserState();
   const userId = user?.id;
-  const [libraryReady, setLibraryReady] = useState(false);
+  // Track which userId a successful bootstrap completed for. Every pane
+  // remounts AppGate; defaulting ready to false flashed the full-screen
+  // "Loading your library…" shell after ⌘K save → /read even when the
+  // library was already in memory for this user.
+  const [readyForUser, setReadyForUser] = useState<string | null>(null);
   const [libraryError, setLibraryError] = useState<string | null>(null);
+
+  const libraryReady =
+    Boolean(userId && isLibraryBootstrapped(userId)) ||
+    Boolean(userId && readyForUser === userId);
 
   useEffect(() => {
     if (isPending) return;
     if (!userId) {
       clearLibraryLocal();
-      setLibraryReady(false);
+      setReadyForUser(null);
       setLibraryError(null);
       return;
     }
 
     let cancelled = false;
     // Already synced for this user (e.g. navigating between panes remounts
-    // the gate) — render immediately instead of flashing the loader.
+    // the gate) — skip the network round-trip; render uses isLibraryBootstrapped.
     if (isLibraryBootstrapped(userId)) {
-      setLibraryReady(true);
+      setReadyForUser(userId);
       setLibraryError(null);
       return;
     }
-    setLibraryReady(false);
     setLibraryError(null);
 
     void bootstrapLibraryFromServer(userId)
       .then(() => {
-        if (!cancelled) setLibraryReady(true);
+        if (!cancelled) setReadyForUser(userId);
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -69,10 +76,10 @@ export function AppGate({ children }: { children: React.ReactNode }) {
         actionLabel="Try again"
         onAction={() => {
           setLibraryError(null);
-          setLibraryReady(false);
+          setReadyForUser(null);
           if (!userId) return;
           void bootstrapLibraryFromServer(userId)
-            .then(() => setLibraryReady(true))
+            .then(() => setReadyForUser(userId))
             .catch((error: unknown) => {
               const message =
                 error instanceof Error

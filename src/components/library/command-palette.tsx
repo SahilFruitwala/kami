@@ -107,18 +107,20 @@ export function CommandPalette({
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  // Reset to home every time the palette opens; clear the query on close.
+  // Reset to home when the palette opens; clear the query when it closes
+  // (but not while a save/add is still in flight).
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (open) {
+    if (open && !wasOpen.current) {
       setPage("home");
       setResults(null);
       setLinkPreview(null);
-    } else {
-      setQuery("");
-      setSavingUrl(false);
-      setAddingKey(null);
     }
-  }, [open ]);
+    if (!open && wasOpen.current && !savingUrl && !addingKey) {
+      setQuery("");
+    }
+    wasOpen.current = open;
+  }, [open, savingUrl, addingKey]);
 
   const urlLike = useMemo(() => looksLikeUrl(query), [query]);
   const trimmedQuery = query.trim();
@@ -193,6 +195,9 @@ export function CommandPalette({
   }
 
   function enterAdd(next: ShelfTab, seedQuery?: string) {
+    // Keep the palette open when drilling into a shelf page — cmdk select
+    // must not dismiss the dialog mid-flow (that flash looked like a stray popup).
+    setOpen(true);
     setPage(next);
     setResults(null);
     setLinkPreview(null);
@@ -262,12 +267,16 @@ export function CommandPalette({
       const cleaned = Object.fromEntries(
         Object.entries(r.metadata ?? {}).filter(([, v]) => v.trim() !== ""),
       );
+      // Drop oversize image URLs before the server Zod max(2000) — common on
+      // product/CDN og:image links and was failing the whole wishlist save.
+      const imageUrl = r.imageUrl?.trim();
       await addShelfItem({
         data: {
           type,
-          title: r.title.trim(),
+          title: r.title.trim().slice(0, 300),
           link: r.link?.trim() || (page === "wishlist" && urlLike ? normalizeUrl(trimmedQuery) : undefined),
-          imageUrl: r.imageUrl?.trim() || undefined,
+          imageUrl:
+            imageUrl && imageUrl.length <= 2000 ? imageUrl : undefined,
           metadata: Object.keys(cleaned).length ? cleaned : undefined,
           status: "to_try",
         },
@@ -278,6 +287,12 @@ export function CommandPalette({
           onClick: () => void navigate({ to: "/shelves", search: { tab: type } }),
         },
       });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("quarto:shelf-changed", { detail: { type } }),
+        );
+      }
+      close();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Couldn't save that item.");
     } finally {

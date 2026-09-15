@@ -195,20 +195,36 @@ export function syncUpsertItem(item: LibraryItem) {
  * surface it instead of toasting a success the next refresh can't see.
  */
 export async function persistArticleItem(item: LibraryItem): Promise<LibraryItem> {
+  // Mirror server clamp so local optimistic rows match what the DB will keep,
+  // and so a long og:image never trips the Zod max before the upsert handler.
+  const prepared: LibraryItem = {
+    ...item,
+    title: item.title.trim().slice(0, 500) || "Untitled",
+    author: item.author.slice(0, 300),
+    siteName: item.siteName.slice(0, 200),
+    excerpt: item.excerpt.slice(0, 4000),
+    contentHtml: item.contentHtml.slice(0, 1_500_000),
+    heroImage:
+      item.heroImage && item.heroImage.length <= 2000 ? item.heroImage : null,
+    published: item.published ? item.published.slice(0, 100) : null,
+    note: item.note.slice(0, 2000),
+    tags: item.tags.slice(0, 12),
+    highlights: item.highlights.slice(0, 80),
+  };
   const store = useLibraryStore.getState();
-  store.upsertItem(item, { sync: false });
+  store.upsertItem(prepared, { sync: false });
   let saved: LibraryItem;
   try {
-    saved = await upsertLibraryItem({ data: item });
+    saved = await upsertLibraryItem({ data: prepared });
   } catch (err) {
-    syncUpsertItem(item);
+    syncUpsertItem(prepared);
     throw err;
   }
   const live = useLibraryStore.getState();
   live.upsertItem(saved, { sync: false });
-  if (saved.id !== item.id) {
+  if (saved.id !== prepared.id) {
     useLibraryStore.setState((s) => ({
-      library: s.library.filter((row) => row.id !== item.id),
+      library: s.library.filter((row) => row.id !== prepared.id),
     }));
   }
   return saved;
