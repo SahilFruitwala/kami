@@ -18,4 +18,9 @@ screenshots/
 /.clerk/
 opencode.json
 
+# local shelf import (personal data, large binary)
+shelf.db
+shelf.db-shm
+shelf.db-wal
+
 washi-screens/

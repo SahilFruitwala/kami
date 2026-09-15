@@ -17,7 +17,7 @@ const highlightSchema = z.object({
   text: z.string().min(1).max(800),
   note: z.string().max(280).default(""),
   createdAt: z.number(),
-  color: z.enum(highlightColorIds).default("amber"),
+  color: z.enum(highlightColorIds).default("vermilion"),
 });
 
 const libraryItemSchema = z.object({

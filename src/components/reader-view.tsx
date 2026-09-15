@@ -17,6 +17,7 @@ import { ReaderBody } from "@/components/reader/reader-body.tsx";
 import { ReaderHeader } from "@/components/reader/reader-header.tsx";
 import { ReaderPrefsPanel } from "@/components/reader/reader-prefs.tsx";
 import { WashiTag } from "@/components/kami.tsx";
+import { highlightMenu, type EditMenu } from "@/lib/selection-menu.ts";
 import { useReaderProgress, useSelectionMenu } from "@/hooks/use-reader-selection.ts";
 import { useReaderTts } from "@/hooks/use-reader-tts.ts";
 import { TONES } from "@/lib/paper-tones.ts";
@@ -56,9 +57,12 @@ export function ReaderView({
   const setHighlightColor = useLibraryStore((s) => s.setHighlightColor);
   const addHighlight = useLibraryStore((s) => s.addHighlight);
   const removeHighlight = useLibraryStore((s) => s.removeHighlight);
+  const setHighlightColorById = useLibraryStore((s) => s.setHighlightColorById);
   const setHighlightNote = useLibraryStore((s) => s.setHighlightNote);
   const setFavorited = useLibraryStore((s) => s.setFavorited);
   const setItemNote = useLibraryStore((s) => s.setItemNote);
+  /** Anchored to a tapped highlight — recolor or remove inline. */
+  const [editMenu, setEditMenu] = useState<EditMenu | null>(null);
 
   const fontSizeRem = READER_FONT_SIZES[readerFontSize] ?? READER_FONT_SIZES[2];
   const fontFamily = READER_FONTS.find((f) => f.id === readerFont)?.family;
@@ -69,8 +73,66 @@ export function ReaderView({
   );
 
   const progress = useReaderProgress(article.canonicalUrl, item.id);
-  const { menu, onSelectEnd, clearMenu } = useSelectionMenu(article.canonicalUrl, bodyRef);
+  const { menu, onSelectEnd: onSelectEndRaw, clearMenu } = useSelectionMenu(article.canonicalUrl, bodyRef);
   const tts = useReaderTts(article.canonicalUrl, bodyRef);
+
+  /** New text selection wins — dismiss the tap-to-edit menu. */
+  function handleSelectEnd() {
+    setEditMenu(null);
+    onSelectEndRaw();
+  }
+
+  // Keep the edit menu glued to its highlight while scrolling; drop it if gone.
+  useEffect(() => {
+    if (!editMenu) return;
+    const highlightId = editMenu.highlightId;
+    function onScroll() {
+      const mark = bodyRef.current?.querySelector(`mark[data-hid="${highlightId}"]`);
+      if (!mark) {
+        setEditMenu(null);
+        return;
+      }
+      const next = highlightMenu(highlightId, mark);
+      if (next) setEditMenu(next);
+    }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [editMenu]);
+
+  // Make highlights keyboard-activatable so Enter/Space reopens their options.
+  useEffect(() => {
+    const root = bodyRef.current;
+    if (!root) return;
+    root.querySelectorAll("mark[data-hid]").forEach((el) => {
+      const mark = el as HTMLElement;
+      mark.tabIndex = 0;
+      mark.setAttribute("role", "button");
+      mark.setAttribute("aria-label", "Edit highlight");
+    });
+  }, [html]);
+
+  // Escape dismisses either floating menu.
+  useEffect(() => {
+    if (!editMenu && !menu) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setEditMenu(null);
+        window.getSelection()?.removeAllRanges();
+        clearMenu();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [editMenu, menu, clearMenu]);
+
+  const editingHighlight = editMenu
+    ? (item.highlights.find((h) => h.id === editMenu.highlightId) ?? null)
+    : null;
+
+  // The highlight was removed elsewhere (vault, marginalia) — drop the menu.
+  useEffect(() => {
+    if (editMenu && !editingHighlight) setEditMenu(null);
+  }, [editMenu, editingHighlight]);
 
   const percent = Math.round(progress * 100);
   const showResume =
@@ -139,6 +201,8 @@ export function ReaderView({
   }, [prefsOpen]);
 
   function onBodyClick(event: MouseEvent<HTMLDivElement>) {
+    // Clicks on the floating toolbar itself belong to its buttons.
+    if ((event.target as HTMLElement).closest("[data-highlight-menu]")) return;
     const selected = window.getSelection()?.toString().trim() || "";
     if (selected.length >= 8) return;
     activateBodyTarget(event.target as HTMLElement, event);
@@ -152,14 +216,20 @@ export function ReaderView({
     activateBodyTarget(target, event);
   }
 
+  /** Tap a highlight to reopen its ink options; tap a link to open it. */
   function activateBodyTarget(target: HTMLElement, event: { preventDefault: () => void }) {
     const mark = target.closest("mark");
-    if (mark?.getAttribute("data-hid")) {
-      document
-        .getElementById("inked-passages")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const hid = mark?.getAttribute("data-hid");
+    if (mark && hid) {
+      event.preventDefault();
+      clearMenu();
+      window.getSelection()?.removeAllRanges();
+      const next = highlightMenu(hid, mark);
+      setEditMenu(next);
       return;
     }
+    // Tapped plain text — dismiss the edit menu, then handle links.
+    setEditMenu(null);
     const link = target.closest("a");
     if (!link) return;
     event.preventDefault();
@@ -169,12 +239,27 @@ export function ReaderView({
     }
   }
 
+  /** Ink the selection in the picked color. */
   function saveHighlight(color?: HighlightColorId) {
     if (!menu) return;
     addHighlight(item.id, menu.text, color ?? highlightColor);
     window.getSelection()?.removeAllRanges();
     clearMenu();
-    toast.success("Passage inked onto washi");
+    setEditMenu(null);
+  }
+
+  /** Recolor the tapped highlight inline — no trip to the bottom needed. */
+  function recolorEditingHighlight(color: HighlightColorId) {
+    if (!editMenu) return;
+    setHighlightColorById(item.id, editMenu.highlightId, color);
+    setEditMenu(null);
+  }
+
+  /** Remove the tapped highlight inline. */
+  function removeEditingHighlight() {
+    if (!editMenu) return;
+    removeHighlight(item.id, editMenu.highlightId);
+    setEditMenu(null);
   }
 
   async function exportToJournal() {
@@ -291,7 +376,18 @@ export function ReaderView({
       )}
 
       {menu ? (
-        <HighlightMenu menu={menu} activeColor={highlightColor} onSave={saveHighlight} />
+        <HighlightMenu
+          menu={menu}
+          activeColor={highlightColor}
+          onInk={saveHighlight}
+        />
+      ) : editMenu && editingHighlight ? (
+        <HighlightMenu
+          menu={editMenu}
+          activeColor={editingHighlight.color}
+          onInk={recolorEditingHighlight}
+          onRemove={removeEditingHighlight}
+        />
       ) : null}
 
       <div className={cn("mx-auto w-full px-4 pb-32 sm:px-6", zen ? "max-w-3xl pt-14 sm:pt-20" : "max-w-6xl pt-6")}>
@@ -338,6 +434,17 @@ export function ReaderView({
                       {[article.author, article.siteName].filter(Boolean).join(" · ")}
                     </span>
                   ) : null}
+                  {article.canonicalUrl || article.url ? (
+                    <a
+                      href={article.canonicalUrl || article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 underline underline-offset-2 transition-colors hover:text-hanko"
+                    >
+                      <ExternalLink className="size-3 shrink-0" aria-hidden="true" />
+                      View original
+                    </a>
+                  ) : null}
                   {!zen ? (
                     <span className="inline-flex items-center gap-1.5 text-hanko">
                       <span className="inline-block size-2 rounded-full bg-hanko" aria-hidden="true" />
@@ -369,7 +476,7 @@ export function ReaderView({
                 html={html}
                 fontSizeRem={fontSizeRem}
                 fontId={readerFont}
-                onSelectEnd={onSelectEnd}
+                onSelectEnd={handleSelectEnd}
                 onClick={onBodyClick}
                 onKeyDown={onBodyKeyDown}
                 bodyRef={bodyRef}
@@ -381,36 +488,13 @@ export function ReaderView({
                     item={item}
                     onNote={(highlightId, note) => setHighlightNote(item.id, highlightId, note)}
                     onRemove={(highlightId) => {
-                      const snapshot = item.highlights.find((h) => h.id === highlightId);
                       removeHighlight(item.id, highlightId);
-                      if (snapshot) {
-                        toast.success("Highlight removed", {
-                          action: {
-                            label: "Undo",
-                            onClick: () => {
-                              const restored = addHighlight(item.id, snapshot.text, snapshot.color);
-                              if (restored && snapshot.note) setHighlightNote(item.id, restored.id, snapshot.note);
-                            },
-                          },
-                        });
-                      }
                     }}
                     onExport={() => void exportToJournal()}
                   />
 
                   <footer className="mt-10">
                     <p className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium opacity-60">
-                      <span className="flex items-center gap-2">
-                        <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
-                        <a
-                          href={article.canonicalUrl || article.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline underline-offset-2 transition-colors hover:text-hanko"
-                        >
-                          View Original Article
-                        </a>
-                      </span>
                       <button
                         type="button"
                         onClick={() => void shareArticle()}

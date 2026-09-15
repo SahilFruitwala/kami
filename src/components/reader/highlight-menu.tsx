@@ -1,18 +1,26 @@
-import { Highlighter } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { HIGHLIGHT_COLORS, type HighlightColorId } from "@/lib/store.ts";
-import type { SelMenu } from "@/lib/selection-menu.ts";
-import { Button } from "@/components/ui/button.tsx";
+import type { EditMenu, SelMenu } from "@/lib/selection-menu.ts";
 import { cn } from "@/lib/utils.ts";
 
+/**
+ * Dokusho ink toolbar — floating pill over a text selection or an
+ * existing highlight. Theme-aware (follows app + reader paper via
+ * design tokens) and highlight-only: pick an ink to save, or — when
+ * opened from an existing highlight — recolor it or remove it inline.
+ */
 export function HighlightMenu({
   menu,
   activeColor,
-  onSave,
+  onInk,
+  onRemove,
 }: {
-  menu: SelMenu;
+  menu: SelMenu | EditMenu;
   activeColor: HighlightColorId;
-  onSave: (color?: HighlightColorId) => void;
+  onInk: (color: HighlightColorId) => void;
+  onRemove?: () => void;
 }) {
+  const isEdit = onRemove != null;
   return (
     <>
       {menu.rects.map((rect, i) => (
@@ -25,35 +33,54 @@ export function HighlightMenu({
       ))}
       <div
         data-highlight-menu
-        className="fixed z-40 rounded-lg bg-surface p-2 shadow-border"
+        role="toolbar"
+        aria-label={isEdit ? "Edit highlight" : "Highlight this passage"}
+        className="fixed z-40 flex items-center gap-1 rounded-full border border-line bg-surface/95 px-2 py-1.5 text-ink shadow-[var(--shadow-raised)] backdrop-blur-xl"
         style={{ left: menu.x, top: menu.y }}
       >
-        <div className="flex items-center gap-1.5">
-          {HIGHLIGHT_COLORS.map((color) => (
-            <button
-              key={color.id}
-              type="button"
-              aria-label={`Highlight ${color.label}`}
-              title={color.label}
+        {HIGHLIGHT_COLORS.map((color) => (
+          <button
+            key={color.id}
+            type="button"
+            aria-label={isEdit ? `Change highlight to ${color.label}` : `Highlight in ${color.label}`}
+            title={color.label}
+            aria-pressed={activeColor === color.id}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onInk(color.id)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-full px-2.5 py-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+              activeColor === color.id ? "bg-ink/10" : "hover:bg-ink/5",
+            )}
+          >
+            <span
+              aria-hidden="true"
               className={cn(
-                "size-8 rounded-full border-2 transition-transform hover:scale-110",
-                activeColor === color.id ? "border-ink" : "border-transparent",
+                "size-3.5 shrink-0 rounded-full",
+                activeColor === color.id && "ring-2 ring-hanko ring-offset-1 ring-offset-surface",
               )}
               style={{ background: color.swatch }}
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => onSave(color.id)}
             />
-          ))}
-        </div>
-        <Button
-          size="sm"
-          className="mt-2 w-full gap-2"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => onSave()}
-        >
-          <Highlighter className="size-3.5" aria-hidden="true" />
-          Highlight
-        </Button>
+            <span className="hidden font-sans text-xs font-medium min-[430px]:inline">
+              {color.label}
+            </span>
+          </button>
+        ))}
+        {onRemove ? (
+          <>
+            <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-ink/10" />
+            <button
+              type="button"
+              aria-label="Remove highlight"
+              title="Remove highlight"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={onRemove}
+              className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-sans text-xs font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            >
+              <Trash2 className="size-3.5" aria-hidden="true" />
+              <span className="hidden min-[430px]:inline">Remove</span>
+            </button>
+          </>
+        ) : null}
       </div>
     </>
   );
