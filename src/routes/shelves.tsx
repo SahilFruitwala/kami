@@ -1,12 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useDeferredValue, useEffect, useRef, useState } from "react";
-import { Clapperboard, Search, Tv, BookOpen, Gift } from "lucide-react";
+import { ArrowLeft, Clapperboard, Link2, LoaderCircle, PenLine, Plus, Search, Tv, BookOpen, Gift } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { Hanko, KamiEyebrow, WashiTag } from "@/components/kami.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
+import { Textarea } from "@/components/ui/textarea.tsx";
 import {
+  addShelfItem,
+  findShelfDuplicates,
   getShelfCounts,
   getShelfItem,
   listShelfItems,
@@ -15,6 +19,12 @@ import {
   type ShelfDetail,
   type ShelfTab,
 } from "@/lib/shelves-fns.ts";
+import {
+  fetchLinkPreview,
+  searchBooks,
+  searchTmdb,
+  type LookupResult,
+} from "@/lib/shelves-lookup.ts";
 import { cn } from "@/lib/utils.ts";
 
 type ShelvesSearch = {
@@ -71,6 +81,8 @@ function Shelves() {
   const [items, setItems] = useState<ShelfCard[] | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [detail, setDetail] = useState<ShelfDetail | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const syncedFromUrl = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -82,7 +94,7 @@ function Shelves() {
     return () => {
       live = false;
     };
-  }, []);
+  }, [refreshKey]);
 
   // One-way: URL → local state on first paint (deep links).
   useEffect(() => {
@@ -126,7 +138,7 @@ function Shelves() {
     return () => {
       live = false;
     };
-  }, [tab, status, deferredQuery]);
+  }, [tab, status, deferredQuery, refreshKey]);
 
   useEffect(() => {
     if (!detailId) {
@@ -181,6 +193,14 @@ function Shelves() {
                 />
               </div>
             </div>
+            <Button
+              type="button"
+              onClick={() => setAddOpen(true)}
+              className="shrink-0 bg-hanko text-white hover:bg-shu"
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              Add to shelf
+            </Button>
           </div>
 
           <div className="mt-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -262,8 +282,16 @@ function Shelves() {
           <div className="kami-sheet mx-auto max-w-md p-10 text-center">
             <p className="font-display text-xl text-ink">This shelf is empty</p>
             <p className="mt-2 font-sans text-sm text-ink-muted">
-              Nothing here matches. Import your shelf data or try another search.
+              Search TMDB, Open Library, or paste a link to add something here.
             </p>
+            <Button
+              type="button"
+              onClick={() => setAddOpen(true)}
+              className="mt-4 bg-hanko text-white hover:bg-shu"
+            >
+              <Plus className="size-4" aria-hidden="true" />
+              Add your first item
+            </Button>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
@@ -330,7 +358,469 @@ function Shelves() {
           )}
         </DialogContent>
       </Dialog>
+
+      <AddShelfDialog
+        open={addOpen}
+        initialTab={tab}
+        onClose={() => setAddOpen(false)}
+        onAdded={() => {
+          setAddOpen(false);
+          setRefreshKey((k) => k + 1);
+        }}
+      />
     </AppShell>
+  );
+}
+
+const ADD_TYPE_META: { id: ShelfTab; label: string; hint: string }[] = [
+  { id: "movie", label: "Movie", hint: "Search TMDB by title" },
+  { id: "tv", label: "TV series", hint: "Search TMDB by title" },
+  { id: "book", label: "Book", hint: "Search Open Library by title or author" },
+  { id: "wishlist", label: "Wishlist", hint: "Paste a product link to auto-fill" },
+];
+
+/**
+ * Add-to-shelf flow, ported from shelf's `AddItemDialog`:
+ * pick a type → find it (TMDB / Open Library / link preview) → confirm details.
+ * Lookup metadata (year, genre, author, overview, tmdbId, …) is stored alongside
+ * the item by `addShelfItem`, which fans it out into the typed shelf tables.
+ */
+function AddShelfDialog({
+  open,
+  initialTab,
+  onClose,
+  onAdded,
+}: {
+  open: boolean;
+  initialTab: ShelfTab;
+  onClose: () => void;
+  onAdded: () => void;
+}) {
+  const [type, setType] = useState<ShelfTab>(initialTab);
+  const [query, setQuery] = useState("");
+  const [debounced, setDebounced] = useState("");
+  const [results, setResults] = useState<LookupResult[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [manual, setManual] = useState(false);
+  const [fetchingLink, setFetchingLink] = useState(false);
+  const [title, setTitle] = useState("");
+  const [notes, setNotes] = useState("");
+  const [link, setLink] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [metadata, setMetadata] = useState<Record<string, string>>({});
+  const [duplicates, setDuplicates] = useState<{ id: string; title: string; status: string }[]>([]);
+  const [checkingDuplicates, setCheckingDuplicates] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (open) {
+      setType(initialTab);
+      reset();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  function reset() {
+    setQuery("");
+    setDebounced("");
+    setResults(null);
+    setSearching(false);
+    setSearchError(null);
+    setManual(false);
+    setFetchingLink(false);
+    setTitle("");
+    setNotes("");
+    setLink("");
+    setImageUrl("");
+    setMetadata({});
+    setDuplicates([]);
+    setSaving(false);
+    setSaveError(null);
+  }
+
+  // Debounce the lookup query like shelf's SearchPicker (350ms).
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(query.trim()), 350);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  useEffect(() => {
+    if (!open || type === "wishlist" || manual || debounced.length < 2) return;
+    let live = true;
+    setSearching(true);
+    setSearchError(null);
+    const run =
+      type === "book"
+        ? searchBooks({ data: debounced })
+        : searchTmdb({ data: { query: debounced, kind: type === "tv" ? "tv" : "movie" } });
+    run
+      .then((rows) => {
+        if (live) {
+          setResults(rows);
+          setSearching(false);
+        }
+      })
+      .catch(() => {
+        if (live) {
+          setSearchError("Lookup failed — try again, or add it manually below.");
+          setSearching(false);
+        }
+      });
+    return () => {
+      live = false;
+    };
+  }, [open, type, manual, debounced]);
+
+  function pick(r: LookupResult) {
+    setTitle(r.title);
+    setLink(r.link ?? "");
+    setImageUrl(r.imageUrl ?? "");
+    setMetadata(r.metadata);
+    setDuplicates([]);
+  }
+
+  function switchType(t: ShelfTab) {
+    setType(t);
+    setQuery("");
+    setDebounced("");
+    setResults(null);
+    setManual(false);
+    setTitle("");
+    setLink("");
+    setImageUrl("");
+    setMetadata({});
+    setDuplicates([]);
+    setSaveError(null);
+  }
+
+  async function fetchByUrl() {
+    if (!query.trim() || fetchingLink) return;
+    setFetchingLink(true);
+    setSearchError(null);
+    try {
+      const r = await fetchLinkPreview({ data: query.trim() });
+      if (r) pick(r);
+      else setSearchError("Couldn't read that page — fill in the details below instead.");
+    } catch {
+      setSearchError("Couldn't read that page — fill in the details below instead.");
+    } finally {
+      setFetchingLink(false);
+    }
+  }
+
+  async function save(status: "to_try" | "done") {
+    if (!title.trim() || saving || checkingDuplicates) return;
+    setSaveError(null);
+    if (duplicates.length === 0) {
+      setCheckingDuplicates(true);
+      try {
+        const matches = await findShelfDuplicates({ data: { type, title } });
+        if (matches.length > 0) {
+          setDuplicates(matches.map((m) => ({ ...m, status: String(m.status) })));
+          return;
+        }
+      } catch (e) {
+        setSaveError(e instanceof Error ? e.message : "Duplicate check failed.");
+        return;
+      } finally {
+        setCheckingDuplicates(false);
+      }
+    }
+    setSaving(true);
+    try {
+      const cleaned = Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ""));
+      await addShelfItem({
+        data: {
+          type,
+          title: title.trim(),
+          notes: notes.trim() || undefined,
+          link: link.trim() || undefined,
+          imageUrl: imageUrl.trim() || undefined,
+          metadata: Object.keys(cleaned).length ? cleaned : undefined,
+          status,
+        },
+      });
+      onAdded();
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Couldn't save that item.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const showForm = manual || title !== "";
+  const meta = ADD_TYPE_META.find((m) => m.id === type)!;
+  const doneLabel = type === "book" ? "Read" : type === "wishlist" ? "Got it" : "Watched";
+  const toTryLabel = type === "book" ? "To read" : type === "wishlist" ? "Wanted" : "To watch";
+
+  return (
+    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
+      <DialogContent className="max-h-[85dvh] overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="font-display">
+            {!showForm ? `Add a ${meta.label.toLowerCase()}` : "Check the details"}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex items-center gap-1 overflow-x-auto" role="tablist" aria-label="Item type">
+          {ADD_TYPE_META.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              role="tab"
+              aria-selected={type === t.id}
+              onClick={() => switchType(t.id)}
+              className={cn(
+                "shrink-0 rounded-[0.25rem] px-3 py-1.5 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                type === t.id ? "bg-paper-warm font-semibold text-ink" : "font-medium text-ink-muted hover:text-ink",
+              )}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {!showForm ? (
+          <div className="space-y-4">
+            {type === "wishlist" ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void fetchByUrl();
+                }}
+              >
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Link2 className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-muted" />
+                    <Input
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      placeholder="https://…"
+                      type="url"
+                      autoFocus
+                      className="pl-9"
+                    />
+                  </div>
+                  <Button type="submit" disabled={!query.trim() || fetchingLink}>
+                    {fetchingLink ? <LoaderCircle className="size-4 animate-spin" /> : "Fetch"}
+                  </Button>
+                </div>
+                <p className="mt-2 font-sans text-xs text-ink-muted">{meta.hint}</p>
+              </form>
+            ) : (
+              <div>
+                <div className="relative">
+                  <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-muted" />
+                  <Input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder={meta.hint}
+                    autoFocus
+                    className="pl-9"
+                  />
+                </div>
+                {searching ? (
+                  <div className="mt-3 space-y-2">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <Skeleton key={i} className="h-16 w-full" />
+                    ))}
+                  </div>
+                ) : null}
+                {results && results.length > 0 ? (
+                  <ul className="mt-3 max-h-72 space-y-1 overflow-y-auto">
+                    {results.map((r, i) => (
+                      <li key={`${r.title}-${i}`}>
+                        <button
+                          type="button"
+                          onClick={() => pick(r)}
+                          className="flex w-full items-center gap-3 rounded-[0.25rem] p-2 text-left hover:bg-paper-warm"
+                        >
+                          {r.imageUrl ? (
+                            <img
+                              src={r.imageUrl}
+                              alt=""
+                              className="h-14 w-10 shrink-0 rounded-md border border-line object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-14 w-10 shrink-0 items-center justify-center rounded-md border border-line bg-paper-warm font-display text-lg text-ink-faint">
+                              {r.title.charAt(0)}
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="truncate text-[15px] font-medium">{r.title}</p>
+                            <p className="truncate text-[13px] text-ink-muted">
+                              {[r.metadata.year, r.metadata.genre, r.metadata.author]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          </div>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {results?.length === 0 && !searching ? (
+                  <p className="py-6 text-center font-sans text-sm text-ink-muted">
+                    Nothing found — add it manually below.
+                  </p>
+                ) : null}
+                {(type === "movie" || type === "tv") && (
+                  <p className="mt-3 text-center font-sans text-[11px] text-ink-muted">
+                    This product uses the TMDB API but is not endorsed or certified by TMDB.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {searchError ? <p className="font-sans text-sm font-medium text-hanko">{searchError}</p> : null}
+
+            <div className="flex items-center justify-end pt-1">
+              <Button type="button" variant="ghost" onClick={() => setManual(true)}>
+                <PenLine className="size-4" aria-hidden="true" />
+                Add manually
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {(imageUrl || metadata.author || metadata.year || metadata.genre || metadata.overview || metadata.description) && (
+              <div className="flex gap-3">
+                {imageUrl ? (
+                  <img src={imageUrl} alt="" className="h-28 w-20 shrink-0 rounded-lg border border-line object-cover" />
+                ) : null}
+                <div className="min-w-0 space-y-1">
+                  {(metadata.year || metadata.genre || metadata.author) && (
+                    <p className="font-sans text-[13px] text-ink-muted">
+                      {[metadata.year, metadata.genre, metadata.author].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                  {(metadata.overview || metadata.description) && (
+                    <p className="line-clamp-4 font-serif text-[14px] leading-relaxed text-ink-soft">
+                      {metadata.overview || metadata.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <label htmlFor="shelf-add-title" className="font-sans text-xs font-semibold text-ink">
+                Title
+              </label>
+              <Input
+                id="shelf-add-title"
+                value={title}
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  setDuplicates([]);
+                }}
+                required
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="shelf-add-notes" className="font-sans text-xs font-semibold text-ink">
+                Notes
+              </label>
+              <Textarea
+                id="shelf-add-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                placeholder="Who recommended it, why it's on the list…"
+              />
+            </div>
+            {manual ? (
+              <>
+                <div className="space-y-1.5">
+                  <label htmlFor="shelf-add-link" className="font-sans text-xs font-semibold text-ink">
+                    Link (optional)
+                  </label>
+                  <Input
+                    id="shelf-add-link"
+                    value={link}
+                    onChange={(e) => setLink(e.target.value)}
+                    type="url"
+                    placeholder="https://…"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="shelf-add-image" className="font-sans text-xs font-semibold text-ink">
+                    Image URL (optional)
+                  </label>
+                  <Input
+                    id="shelf-add-image"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    type="url"
+                    placeholder="https://…"
+                  />
+                </div>
+              </>
+            ) : null}
+
+            {duplicates.length > 0 ? (
+              <div className="rounded-[0.25rem] border border-amber-500/40 bg-amber-500/10 px-4 py-3 font-sans text-[14px]">
+                <p className="font-medium text-ink">Looks like this is already on the shelf</p>
+                <ul className="mt-1.5 space-y-0.5 text-ink-soft">
+                  {duplicates.map((m) => (
+                    <li key={m.id}>
+                      “{m.title}” · {m.status === "done" ? doneLabel : toTryLabel}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            {saveError ? <p className="font-sans text-sm font-medium text-hanko">{saveError}</p> : null}
+
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setTitle("");
+                  setImageUrl("");
+                  setLink("");
+                  setMetadata({});
+                  setManual(false);
+                  setDuplicates([]);
+                }}
+              >
+                <ArrowLeft className="size-4" aria-hidden="true" />
+                Back
+              </Button>
+              {duplicates.length > 0 ? (
+                <Button type="button" disabled={saving || checkingDuplicates} onClick={() => void save("to_try")}>
+                  Add anyway
+                </Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={saving || checkingDuplicates || !title.trim()}
+                    onClick={() => void save("to_try")}
+                  >
+                    {checkingDuplicates || saving ? (
+                      <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                    ) : null}
+                    {toTryLabel}
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={saving || checkingDuplicates || !title.trim()}
+                    onClick={() => void save("done")}
+                    className="bg-hanko text-white hover:bg-shu"
+                  >
+                    {doneLabel}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
