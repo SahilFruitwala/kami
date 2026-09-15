@@ -133,6 +133,12 @@ export type LibraryState = {
   readerFont: ReaderFontId;
   highlightColor: HighlightColorId;
   paperTone: PaperTone;
+  /**
+   * Last explicitly chosen light paper (pale/aged). The global theme toggle
+   * restores this when switching back to light mode so a user's "aged"
+   * preference survives a dark-mode detour.
+   */
+  preferredLightTone: PaperTone;
   ttsRate: number;
   ttsVoiceURI: string;
   upsertItem: (item: LibraryItem) => void;
@@ -170,6 +176,7 @@ type Persisted = {
   readerFont?: string;
   highlightColor?: string;
   paperTone?: string;
+  preferredLightTone?: string;
   ttsRate?: number;
   ttsVoiceURI?: string;
 };
@@ -265,6 +272,7 @@ export const useLibraryStore = create<LibraryState>()(
       readerFont: "literata",
       highlightColor: "amber",
       paperTone: "pale",
+      preferredLightTone: "pale",
       ttsRate: 1,
       ttsVoiceURI: "",
       upsertItem: (item) => {
@@ -303,7 +311,11 @@ export const useLibraryStore = create<LibraryState>()(
       setReaderFont: (font) => set({ readerFont: isReaderFont(font) ? font : "newsreader" }),
       setHighlightColor: (color) =>
         set({ highlightColor: isHighlightColor(color) ? color : "amber" }),
-      setPaperTone: (tone) => set({ paperTone: isPaperTone(tone) ? tone : "pale" }),
+      setPaperTone: (tone) => {
+        const next = isPaperTone(tone) ? tone : "pale";
+        if (next === "sumi") set({ paperTone: next });
+        else set({ paperTone: next, preferredLightTone: next });
+      },
       setTtsRate: (rate) => set({ ttsRate: Math.min(1.75, Math.max(0.7, rate)) }),
       setTtsVoiceURI: (uri) => set({ ttsVoiceURI: uri }),
       addFolder: (name) => {
@@ -432,6 +444,7 @@ export const useLibraryStore = create<LibraryState>()(
         readerFont: state.readerFont,
         highlightColor: state.highlightColor,
         paperTone: state.paperTone,
+        preferredLightTone: state.preferredLightTone,
         ttsRate: state.ttsRate,
         ttsVoiceURI: state.ttsVoiceURI,
       }),
@@ -445,6 +458,10 @@ export const useLibraryStore = create<LibraryState>()(
           readerFont: isReaderFont(raw.readerFont) ? raw.readerFont : "newsreader",
           highlightColor: isHighlightColor(raw.highlightColor) ? raw.highlightColor : "amber",
           paperTone: isPaperTone(raw.paperTone) ? raw.paperTone : "pale",
+          preferredLightTone:
+            raw.preferredLightTone === "aged" || raw.preferredLightTone === "pale"
+              ? (raw.preferredLightTone as PaperTone)
+              : "pale",
           ttsRate: typeof raw.ttsRate === "number" ? raw.ttsRate : 1,
           ttsVoiceURI: raw.ttsVoiceURI || "",
         };
