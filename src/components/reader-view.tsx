@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, ViewTransition } from "react";
-import { ArrowLeft, ArrowRight, BookmarkPlus, ExternalLink, Eye, PenLine, Printer, Share2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookmarkPlus, ExternalLink, Eye, EyeOff, PenLine, Printer, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Article } from "@/lib/article-types.ts";
 import { applyHighlights } from "@/lib/highlight-html.ts";
@@ -111,6 +111,17 @@ export function ReaderView({
   }, [library, item.id]);
 
   useEffect(() => {
+    if (!zen) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") setZen(false);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [zen]);
+
+  useEffect(() => {
     if (!prefsOpen) return;
     function onPointer(event: PointerEvent) {
       if (prefsRef.current?.contains(event.target as Node)) return;
@@ -195,23 +206,25 @@ export function ReaderView({
 
   return (
     <div className="kami-desk relative min-h-dvh [touch-action:manipulation]">
-      {/* Reading progress — vermilion ink */}
-      <div
-        role="progressbar"
-        aria-label="Reading progress"
-        aria-valuenow={percent}
-        aria-valuemin={0}
-        aria-valuemax={100}
-        title={`${percent}% read`}
-        className="fixed inset-x-0 top-0 z-50 h-0.5 bg-line"
-      >
+      {/* Reading progress — hidden in zen so only text remains */}
+      {!zen ? (
         <div
-          className="h-full bg-hanko transition-[width] duration-150"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
+          role="progressbar"
+          aria-label="Reading progress"
+          aria-valuenow={percent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+          title={`${percent}% read`}
+          className="fixed inset-x-0 top-0 z-50 h-0.5 bg-line"
+        >
+          <div
+            className="h-full bg-hanko transition-[width] duration-150"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+      ) : null}
 
-      {showResume ? (
+      {showResume && !zen ? (
         <div className="fixed top-3 left-1/2 z-50 flex w-[92%] max-w-md -translate-x-1/2 items-center justify-between gap-3 rounded-full bg-ink px-4 py-2 text-paper shadow-[var(--shadow-raised)]" role="status">
           <p className="truncate font-sans text-xs">
             Resume at {Math.round(savedProgress * 100)}%?
@@ -235,73 +248,82 @@ export function ReaderView({
         </div>
       ) : null}
 
-      <ReaderHeader
-        favorited={item.favorited}
-        archived={item.archived}
-        canSpeak={tts.canSpeak}
-        tts={tts.tts}
-        listenOpen={tts.listenOpen}
-        word={tts.word}
-        voices={tts.voices}
-        ttsRate={tts.ttsRate}
-        ttsVoiceURI={tts.ttsVoiceURI}
-        prefsOpen={prefsOpen}
-        prefsRef={prefsRef}
-        onBack={() => {
-          tts.stopTts();
-          onBack();
-        }}
-        onToggleListen={tts.toggleListen}
-        onStopTts={tts.stopTts}
-        onToggleFavorite={() => {
-          setFavorited(item.id, !item.favorited);
-          toast.success(item.favorited ? "Removed from favorites" : "Favorited");
-        }}
-        onTogglePrefs={() => setPrefsOpen((open) => !open)}
-        onArchive={onArchive}
-        onTtsRate={tts.setTtsRate}
-        onTtsVoice={tts.setTtsVoiceURI}
-        prefsPanel={
-          <ReaderPrefsPanel
-            readerFontSize={readerFontSize}
-            readerFont={readerFont}
-            highlightColor={highlightColor}
-            paperTone={paperTone}
-            onBumpSize={bumpReaderFontSize}
-            onFont={setReaderFont}
-            onHighlightColor={setHighlightColor}
-            onPaperTone={setPaperTone}
-          />
-        }
-      />
+      {zen ? null : (
+        <ReaderHeader
+          favorited={item.favorited}
+          archived={item.archived}
+          canSpeak={tts.canSpeak}
+          tts={tts.tts}
+          listenOpen={tts.listenOpen}
+          word={tts.word}
+          voices={tts.voices}
+          ttsRate={tts.ttsRate}
+          ttsVoiceURI={tts.ttsVoiceURI}
+          prefsOpen={prefsOpen}
+          prefsRef={prefsRef}
+          onBack={() => {
+            tts.stopTts();
+            onBack();
+          }}
+          onToggleListen={tts.toggleListen}
+          onStopTts={tts.stopTts}
+          onToggleFavorite={() => {
+            setFavorited(item.id, !item.favorited);
+            toast.success(item.favorited ? "Removed from favorites" : "Favorited");
+          }}
+          onTogglePrefs={() => setPrefsOpen((open) => !open)}
+          onArchive={onArchive}
+          onTtsRate={tts.setTtsRate}
+          onTtsVoice={tts.setTtsVoiceURI}
+          prefsPanel={
+            <ReaderPrefsPanel
+              readerFontSize={readerFontSize}
+              readerFont={readerFont}
+              highlightColor={highlightColor}
+              paperTone={paperTone}
+              onBumpSize={bumpReaderFontSize}
+              onFont={setReaderFont}
+              onHighlightColor={setHighlightColor}
+              onPaperTone={setPaperTone}
+            />
+          }
+        />
+      )}
 
       {menu ? (
         <HighlightMenu menu={menu} activeColor={highlightColor} onSave={saveHighlight} />
       ) : null}
 
-      <div className="mx-auto w-full max-w-6xl px-4 pt-6 pb-32 sm:px-6">
-        {/* Reading sheet */}
+      <div className={cn("mx-auto w-full px-4 pb-32 sm:px-6", zen ? "max-w-3xl pt-14 sm:pt-20" : "max-w-6xl pt-6")}>
+        {/* Reading sheet — in zen the card chrome falls away, leaving just text */}
         <div
-          className="relative rounded-xl p-6 shadow-[var(--shadow-raised)] transition-colors duration-300 sm:p-8 lg:p-12"
-          style={sheetStyle}
+          className={cn(
+            "relative rounded-xl p-6 transition-colors duration-300 sm:p-8 lg:p-12",
+            zen ? "shadow-none" : "shadow-[var(--shadow-raised)]",
+          )}
+          style={zen ? { ...sheetStyle, border: "none" } : sheetStyle}
         >
-          <div className="absolute top-0 right-12 flex flex-col items-center" aria-hidden="true">
-            <div className="flex h-12 w-6 items-center justify-center bg-hanko shadow-sm">
-              <BookmarkPlus className="size-[14px] text-white" />
+          {!zen ? (
+            <div className="absolute top-0 right-12 flex flex-col items-center" aria-hidden="true">
+              <div className="flex h-12 w-6 items-center justify-center bg-hanko shadow-sm">
+                <BookmarkPlus className="size-[14px] text-white" />
+              </div>
+              <div className="size-0 border-x-[12px] border-t-[8px] border-x-transparent border-t-hanko" />
             </div>
-            <div className="size-0 border-x-[12px] border-t-[8px] border-x-transparent border-t-hanko" />
-          </div>
+          ) : null}
 
-          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-10">
-            <article className="min-w-0 max-w-[680px] lg:col-span-8">
+          <div className={cn("grid grid-cols-1 items-start gap-8", !zen && "lg:grid-cols-12 lg:gap-10")}>
+            <article className={cn("min-w-0 max-w-[680px]", zen ? "mx-auto w-full" : "lg:col-span-8")}>
               <header className="space-y-4 pb-6">
-                <div className="flex flex-wrap items-center gap-2">
-                  <WashiTag tone="paper">{article.source === "x" ? "X" : article.siteName || "Article"}</WashiTag>
-                  <span className="text-xs text-current opacity-50" aria-hidden="true">·</span>
-                  <span className="font-sans text-[11px] text-current opacity-60">
-                    {article.readingMinutes} min read
-                  </span>
-                </div>
+                {!zen ? (
+                  <div className="flex flex-wrap items-center gap-2">
+                    <WashiTag tone="paper">{article.source === "x" ? "X" : article.siteName || "Article"}</WashiTag>
+                    <span className="text-xs text-current opacity-50" aria-hidden="true">·</span>
+                    <span className="font-sans text-[11px] text-current opacity-60">
+                      {article.readingMinutes} min read
+                    </span>
+                  </div>
+                ) : null}
                 <ViewTransition name={`article-title-${item.id}`} share="text-morph">
                   <h1
                     className="font-display text-3xl leading-tight tracking-tight sm:text-4xl"
@@ -316,14 +338,16 @@ export function ReaderView({
                       {[article.author, article.siteName].filter(Boolean).join(" · ")}
                     </span>
                   ) : null}
-                  <span className="inline-flex items-center gap-1.5 text-hanko">
-                    <span className="inline-block size-2 rounded-full bg-hanko" aria-hidden="true" />
-                    {item.highlights.length} Inked Passage{item.highlights.length === 1 ? "" : "s"}
-                  </span>
+                  {!zen ? (
+                    <span className="inline-flex items-center gap-1.5 text-hanko">
+                      <span className="inline-block size-2 rounded-full bg-hanko" aria-hidden="true" />
+                      {item.highlights.length} Inked Passage{item.highlights.length === 1 ? "" : "s"}
+                    </span>
+                  ) : null}
                 </div>
               </header>
 
-              <OrganizeRow item={item} />
+              {!zen ? <OrganizeRow item={item} /> : null}
 
               {article.heroImage && !hasLeadImage ? (
                 <ViewTransition name={`article-image-${item.id}`} share="morph">
@@ -351,66 +375,70 @@ export function ReaderView({
                 bodyRef={bodyRef}
               />
 
-              <MarginaliaHighlights
-                item={item}
-                onNote={(highlightId, note) => setHighlightNote(item.id, highlightId, note)}
-                onRemove={(highlightId) => {
-                  const snapshot = item.highlights.find((h) => h.id === highlightId);
-                  removeHighlight(item.id, highlightId);
-                  if (snapshot) {
-                    toast.success("Highlight removed", {
-                      action: {
-                        label: "Undo",
-                        onClick: () => {
-                          const restored = addHighlight(item.id, snapshot.text, snapshot.color);
-                          if (restored && snapshot.note) setHighlightNote(item.id, restored.id, snapshot.note);
-                        },
-                      },
-                    });
-                  }
-                }}
-                onExport={() => void exportToJournal()}
-              />
+              {!zen ? (
+                <>
+                  <MarginaliaHighlights
+                    item={item}
+                    onNote={(highlightId, note) => setHighlightNote(item.id, highlightId, note)}
+                    onRemove={(highlightId) => {
+                      const snapshot = item.highlights.find((h) => h.id === highlightId);
+                      removeHighlight(item.id, highlightId);
+                      if (snapshot) {
+                        toast.success("Highlight removed", {
+                          action: {
+                            label: "Undo",
+                            onClick: () => {
+                              const restored = addHighlight(item.id, snapshot.text, snapshot.color);
+                              if (restored && snapshot.note) setHighlightNote(item.id, restored.id, snapshot.note);
+                            },
+                          },
+                        });
+                      }
+                    }}
+                    onExport={() => void exportToJournal()}
+                  />
 
-              <footer className="mt-10">
-                <p className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium opacity-60">
-                  <span className="flex items-center gap-2">
-                    <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
-                    <a
-                      href={article.canonicalUrl || article.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline underline-offset-2 transition-colors hover:text-hanko"
-                    >
-                      View Original Article
-                    </a>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void shareArticle()}
-                    className="flex items-center gap-1.5 underline underline-offset-2 transition-colors hover:text-hanko"
-                  >
-                    <Share2 className="size-3.5 shrink-0" aria-hidden="true" />
-                    Share
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => window.print()}
-                    className="flex items-center gap-1.5 underline underline-offset-2 transition-colors hover:text-hanko"
-                  >
-                    <Printer className="size-3.5 shrink-0" aria-hidden="true" />
-                    Print
-                  </button>
-                </p>
-              </footer>
+                  <footer className="mt-10">
+                    <p className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium opacity-60">
+                      <span className="flex items-center gap-2">
+                        <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
+                        <a
+                          href={article.canonicalUrl || article.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline underline-offset-2 transition-colors hover:text-hanko"
+                        >
+                          View Original Article
+                        </a>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => void shareArticle()}
+                        className="flex items-center gap-1.5 underline underline-offset-2 transition-colors hover:text-hanko"
+                      >
+                        <Share2 className="size-3.5 shrink-0" aria-hidden="true" />
+                        Share
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => window.print()}
+                        className="flex items-center gap-1.5 underline underline-offset-2 transition-colors hover:text-hanko"
+                      >
+                        <Printer className="size-3.5 shrink-0" aria-hidden="true" />
+                        Print
+                      </button>
+                    </p>
+                  </footer>
+                </>
+              ) : null}
             </article>
 
-            {/* Marginalia gutter */}
-            <aside
-              className="flex min-w-0 flex-col gap-6 transition-opacity duration-300 lg:col-span-4 lg:sticky lg:top-24"
-              style={{ opacity: zen ? 0.1 : 1 }}
-              aria-label="Marginalia and reflection notes"
-            >
+            {/* Marginalia gutter — fully removed in zen so only text remains */}
+            {!zen ? (
+              <aside
+                className="flex min-w-0 flex-col gap-6 lg:col-span-4 lg:sticky lg:top-24"
+                aria-label="Marginalia and reflection notes"
+              >
               <div className="flex items-center justify-between gap-2">
                 <p className="flex items-center gap-2 font-sans text-[11px] font-semibold tracking-wider uppercase opacity-60">
                   <PenLine className="size-[18px] shrink-0" aria-hidden="true" />
@@ -495,12 +523,45 @@ export function ReaderView({
                 </p>
               </div>
             </aside>
+            ) : null}
           </div>
         </div>
       </div>
 
-      {/* Floating zen dock */}
-      <div className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex w-[90%] max-w-2xl -translate-x-1/2 items-center justify-between gap-6 rounded-full bg-surface/95 px-6 py-3 shadow-[var(--shadow-raised)] backdrop-blur-xl">
+      {zen ? (
+        /* Zen: only text + a whisper-quiet exit pill that fades in on hover/focus */
+        <div className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2 opacity-25 transition-opacity duration-300 hover:opacity-100 focus-within:opacity-100">
+          <div className="flex items-center gap-2 rounded-full bg-surface/95 py-1.5 pr-2 pl-1.5 shadow-[var(--shadow-raised)] backdrop-blur-xl">
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Back to library"
+              title="Back to library"
+              className="flex size-8 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-paper-warm hover:text-ink"
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+            </button>
+            <span className="font-sans text-[11px] text-ink-muted tabular-nums" aria-label={`${percent}% read`}>
+              {percent}%
+            </span>
+            <button
+              type="button"
+              onClick={() => setZen(false)}
+              aria-label="Exit zen focus (Esc)"
+              title="Exit zen (Esc)"
+              className="flex items-center gap-1.5 rounded-full bg-hanko px-3 py-1.5 font-sans text-xs font-medium text-white transition-colors hover:bg-shu"
+            >
+              <EyeOff className="size-4" aria-hidden="true" />
+              <span>Exit Zen</span>
+            </button>
+          </div>
+          <p className="mt-1.5 text-center font-sans text-[10px] text-ink-muted opacity-0 transition-opacity duration-300 hover:opacity-100">
+            Esc to exit
+          </p>
+        </div>
+      ) : (
+        /* Standard floating dock */
+        <div className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex w-[90%] max-w-2xl -translate-x-1/2 items-center justify-between gap-6 rounded-full bg-surface/95 px-6 py-3 shadow-[var(--shadow-raised)] backdrop-blur-xl">
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
@@ -550,7 +611,8 @@ export function ReaderView({
             <span className="hidden sm:inline">Place Ribbon</span>
           </button>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
