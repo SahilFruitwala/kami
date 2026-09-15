@@ -85,7 +85,7 @@ export function applyHighlights(html: string, highlights: Highlight[]): string {
   for (const highlight of sorted) {
     const quote = highlight.text.trim();
     if (quote.length < 8) continue;
-    wrapQuote(root, quote, highlight.id, highlight.color || "amber");
+    wrapQuote(root, quote, highlight.id, highlight.color || "vermilion");
   }
   return root.innerHTML;
 }

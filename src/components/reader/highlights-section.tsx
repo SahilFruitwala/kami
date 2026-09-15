@@ -1,4 +1,4 @@
-import { HIGHLIGHT_COLORS, type Highlight } from "@/lib/store.ts";
+import { HIGHLIGHT_COLORS, resolveInkColor, type Highlight } from "@/lib/store.ts";
 import { Input } from "@/components/ui/input.tsx";
 
 export function HighlightsSection({
@@ -15,13 +15,13 @@ export function HighlightsSection({
   }
 
   return (
-    <section className="mt-14 border-t border-line pt-8">
+    <section id="inked-passages" className="mt-14 scroll-mt-24 border-t border-line pt-8">
       <h2 className="font-display text-xl">Highlights</h2>
       <ul className="mt-4 space-y-4">
         {highlights.map((highlight) => {
           const color = HIGHLIGHT_COLORS.some((c) => c.id === highlight.color)
             ? highlight.color
-            : "amber";
+            : resolveInkColor(highlight.color);
           return (
             <li key={highlight.id} className="rounded-md bg-surface p-3 shadow-border">
               <p
@@ -32,6 +32,7 @@ export function HighlightsSection({
               </p>
               <Input
                 value={highlight.note}
+                data-note-for={highlight.id}
                 onChange={(e) => onNote(highlight.id, e.target.value)}
                 placeholder="Add a note…"
                 aria-label="Note for highlight"

@@ -23,6 +23,8 @@ export const user = pgTable("user", {
   image: text("image"),
   createdAt: timestamp("createdAt", { withTimezone: true }).notNull(),
   updatedAt: timestamp("updatedAt", { withTimezone: true }).notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  purgeAfter: timestamp("purge_after", { withTimezone: true }),
 });
 
 /** App tables — snake_case columns match `migrations/0002_library.sql`. */
@@ -73,12 +75,287 @@ export const articles = pgTable(
   ],
 );
 
+export type User = typeof user.$inferSelect;
+export type FolderRow = typeof folders.$inferSelect;
+export type ArticleRow = typeof articles.$inferSelect;
+
+// ---------- Shelves (TV / Movies / Books / Places / Restaurants / Wishlist) ----------
+// Postgres port of the SQLite shelf app. Snake_case columns keep the import 1:1.
+
+export const ITEM_TYPES = [
+  "restaurant",
+  "movie",
+  "tv",
+  "book",
+  "place",
+  "wishlist",
+] as const;
+export type ItemType = (typeof ITEM_TYPES)[number];
+
+export const LIST_TYPES = [...ITEM_TYPES, "mixed", "trip"] as const;
+export type ListType = (typeof LIST_TYPES)[number];
+
+export const ITEM_STATUSES = ["to_try", "done", "abandoned"] as const;
+export type ItemStatus = (typeof ITEM_STATUSES)[number];
+
+export type ItemMetadata = Record<string, string | undefined>;
+
+export const userFeatureFlags = pgTable("user_feature_flags", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  sharing: boolean("sharing").notNull().default(false),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull().default(0),
+  windowStart: integer("window_start").notNull(),
+});
+
+export const lists = pgTable(
+  "lists",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    type: text("type").notNull().$type<ListType>(),
+    ownerId: text("owner_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    joinCode: text("join_code").unique(),
+    viewCode: text("view_code").unique(),
+    isDefault: boolean("is_default").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("lists_owner_idx").on(t.ownerId)],
+);
+
+export const listMembers = pgTable(
+  "list_members",
+  {
+    id: text("id").primaryKey(),
+    listId: text("list_id")
+      .notNull()
+      .references(() => lists.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    role: text("role").notNull().default("editor").$type<"owner" | "editor">(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("list_members_list_idx").on(t.listId),
+    index("list_members_user_idx").on(t.userId),
+  ],
+);
+
+function shelfBase() {
+  return {
+    id: text("id").primaryKey(),
+    listId: text("list_id")
+      .notNull()
+      .references(() => lists.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    normalizedTitle: text("normalized_title"),
+    notes: text("notes"),
+    link: text("link"),
+    imageUrl: text("image_url"),
+    status: text("status").notNull().default("to_try").$type<ItemStatus>(),
+    groupName: text("group_name"),
+    extraMetadata: jsonb("extra_metadata").$type<ItemMetadata>().notNull().default({}),
+    addedBy: text("added_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+  };
+}
+
+export const restaurants = pgTable("restaurants", {
+  ...shelfBase(),
+  cuisine: text("cuisine"),
+  address: text("address"),
+  price: text("price"),
+  rating: text("rating"),
+  kind: text("kind"),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
+});
+
+export const movies = pgTable("movies", {
+  ...shelfBase(),
+  releaseYear: integer("release_year"),
+  overview: text("overview"),
+  tmdbId: integer("tmdb_id"),
+});
+
+export const tvShows = pgTable("tv_shows", {
+  ...shelfBase(),
+  releaseYear: integer("release_year"),
+  overview: text("overview"),
+  tmdbId: integer("tmdb_id"),
+  episodesWatched: integer("episodes_watched").notNull().default(0),
+  lastEpisode: text("last_episode"),
+  totalEpisodes: integer("total_episodes"),
+});
+
+export const books = pgTable("books", {
+  ...shelfBase(),
+  author: text("author"),
+  publishYear: integer("publish_year"),
+  overview: text("overview"),
+});
+
+export const places = pgTable("places", {
+  ...shelfBase(),
+  address: text("address"),
+  rating: text("rating"),
+  price: text("price"),
+  kind: text("kind"),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
+});
+
+export const wishlistItems = pgTable("wishlist_items", {
+  ...shelfBase(),
+  price: text("price"),
+  description: text("description"),
+  source: text("source"),
+});
+
+export const genres = pgTable("genres", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  normalizedName: text("normalized_name").notNull().unique(),
+});
+
+export const movieGenres = pgTable(
+  "movie_genres",
+  {
+    movieId: text("movie_id")
+      .notNull()
+      .references(() => movies.id, { onDelete: "cascade" }),
+    genreId: text("genre_id")
+      .notNull()
+      .references(() => genres.id, { onDelete: "cascade" }),
+  },
+  (t) => [uniqueIndex("movie_genres_movie_genre_uidx").on(t.movieId, t.genreId)],
+);
+
+export const tvShowGenres = pgTable(
+  "tv_show_genres",
+  {
+    tvShowId: text("tv_show_id")
+      .notNull()
+      .references(() => tvShows.id, { onDelete: "cascade" }),
+    genreId: text("genre_id")
+      .notNull()
+      .references(() => genres.id, { onDelete: "cascade" }),
+  },
+  (t) => [uniqueIndex("tv_show_genres_show_genre_uidx").on(t.tvShowId, t.genreId)],
+);
+
+export const bookGenres = pgTable(
+  "book_genres",
+  {
+    bookId: text("book_id")
+      .notNull()
+      .references(() => books.id, { onDelete: "cascade" }),
+    genreId: text("genre_id")
+      .notNull()
+      .references(() => genres.id, { onDelete: "cascade" }),
+  },
+  (t) => [uniqueIndex("book_genres_book_genre_uidx").on(t.bookId, t.genreId)],
+);
+
+export const ACTIVITY_ACTIONS = [
+  "added",
+  "completed",
+  "abandoned",
+  "reverted",
+  "removed",
+  "joined",
+] as const;
+export type ActivityAction = (typeof ACTIVITY_ACTIONS)[number];
+
+export const activity = pgTable(
+  "activity",
+  {
+    id: text("id").primaryKey(),
+    listId: text("list_id")
+      .notNull()
+      .references(() => lists.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    action: text("action").notNull().$type<ActivityAction>(),
+    itemTitle: text("item_title"),
+    itemType: text("item_type").$type<ItemType>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("activity_list_idx").on(t.listId)],
+);
+
+export const itemReactions = pgTable(
+  "item_reactions",
+  {
+    id: text("id").primaryKey(),
+    itemId: text("item_id").notNull(),
+    itemType: text("item_type").notNull().$type<ItemType>(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("item_reactions_item_idx").on(t.itemType, t.itemId),
+    uniqueIndex("item_reactions_item_user_uidx").on(t.itemId, t.userId),
+  ],
+);
+
+export const watchedEpisodes = pgTable(
+  "watched_episodes",
+  {
+    id: text("id").primaryKey(),
+    itemId: text("item_id")
+      .notNull()
+      .references(() => tvShows.id, { onDelete: "cascade" }),
+    season: integer("season").notNull(),
+    number: integer("number").notNull(),
+    watchedAt: timestamp("watched_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("watched_episodes_item_idx").on(t.itemId),
+    uniqueIndex("watched_episodes_item_ep_uidx").on(t.itemId, t.season, t.number),
+  ],
+);
+
+export type ShelfList = typeof lists.$inferSelect;
+export type ShelfMovie = typeof movies.$inferSelect;
+export type ShelfTvShow = typeof tvShows.$inferSelect;
+export type ShelfBook = typeof books.$inferSelect;
+export type ShelfWishlistItem = typeof wishlistItems.$inferSelect;
+
 export const schema = {
   user,
   folders,
   articles,
+  userFeatureFlags,
+  rateLimits,
+  lists,
+  listMembers,
+  restaurants,
+  movies,
+  tvShows,
+  books,
+  places,
+  wishlistItems,
+  genres,
+  movieGenres,
+  tvShowGenres,
+  bookGenres,
+  activity,
+  itemReactions,
+  watchedEpisodes,
 };
-
-export type User = typeof user.$inferSelect;
-export type FolderRow = typeof folders.$inferSelect;
-export type ArticleRow = typeof articles.$inferSelect;

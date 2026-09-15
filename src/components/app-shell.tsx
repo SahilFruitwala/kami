@@ -15,9 +15,11 @@ import {
 import type { LibraryItem } from "@/lib/store.ts";
 
 /**
- * Shared sanctuary shell: skip link, header, footer, capture-tools dialog,
- * command palette, and the offline/sync banner. Used by Home, Library,
- * Vault, and Settings so chrome stays identical everywhere.
+ * Shared sanctuary shell: skip link, Sanctuary sidebar + utility bar,
+ * footer, capture-tools dialog, command palette, and the offline/sync
+ * banner. Used by Home, Library, Shelves, Journal, Vault, and Settings so
+ * chrome stays identical everywhere. Layout mirrors the Stitch Sanctuary
+ * design: fixed left sidebar on desktop, bottom tab bar on mobile.
  */
 export function AppShell({
   active,
@@ -36,8 +38,10 @@ export function AppShell({
         <main id="main" className="kami-desk relative flex min-h-dvh flex-col overflow-x-hidden [touch-action:manipulation]">
           <a href="#main" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-ink focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper">Skip to content</a>
           <SiteHeader active={active} onOpenTools={() => tools.setToolsOpen(true)} />
-          <div className="flex-1">{children}</div>
-          <SiteFooter />
+          <div className="flex-1 pb-16 lg:pl-60 lg:pb-0">{children}</div>
+          <div className="pb-16 lg:pl-60 lg:pb-0">
+            <SiteFooter />
+          </div>
           <ToolsDialog
             open={tools.toolsOpen}
             onOpenChange={tools.setToolsOpen}

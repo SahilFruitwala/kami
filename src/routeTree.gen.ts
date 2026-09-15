@@ -10,16 +10,23 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as JournalRouteImport } from './routes/journal'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ReadRouteImport } from './routes/read'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ShelvesRouteImport } from './routes/shelves'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as ApiImgRouteImport } from './routes/api/img'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const JournalRoute = JournalRouteImport.update({
+  id: '/journal',
+  path: '/journal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LibraryRoute = LibraryRouteImport.update({
@@ -42,6 +49,11 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShelvesRoute = ShelvesRouteImport.update({
+  id: '/shelves',
+  path: '/shelves',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VaultRoute = VaultRouteImport.update({
   id: '/vault',
   path: '/vault',
@@ -55,56 +67,82 @@ const ApiImgRoute = ApiImgRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
+  '/shelves': typeof ShelvesRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
+  '/shelves': typeof ShelvesRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
+  '/shelves': typeof ShelvesRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/library' | '/login' | '/read' | '/settings' | '/vault' | '/api/img'
-  fileRoutesByTo: FileRoutesByTo
-  to:
-    '/' | '/library' | '/login' | '/read' | '/settings' | '/vault' | '/api/img'
-  id:
-    | '__root__'
     | '/'
+    | '/journal'
     | '/library'
     | '/login'
     | '/read'
     | '/settings'
+    | '/shelves'
+    | '/vault'
+    | '/api/img'
+  fileRoutesByTo: FileRoutesByTo
+  to:
+    | '/'
+    | '/journal'
+    | '/library'
+    | '/login'
+    | '/read'
+    | '/settings'
+    | '/shelves'
+    | '/vault'
+    | '/api/img'
+  id:
+    | '__root__'
+    | '/'
+    | '/journal'
+    | '/library'
+    | '/login'
+    | '/read'
+    | '/settings'
+    | '/shelves'
     | '/vault'
     | '/api/img'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  JournalRoute: typeof JournalRoute
   LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
   ReadRoute: typeof ReadRoute
   SettingsRoute: typeof SettingsRoute
+  ShelvesRoute: typeof ShelvesRoute
   VaultRoute: typeof VaultRoute
   ApiImgRoute: typeof ApiImgRoute
 }
@@ -116,6 +154,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/journal': {
+      id: '/journal'
+      path: '/journal'
+      fullPath: '/journal'
+      preLoaderRoute: typeof JournalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library': {
@@ -146,6 +191,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/shelves': {
+      id: '/shelves'
+      path: '/shelves'
+      fullPath: '/shelves'
+      preLoaderRoute: typeof ShelvesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/vault': {
       id: '/vault'
       path: '/vault'
@@ -165,10 +217,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  JournalRoute: JournalRoute,
   LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
   ReadRoute: ReadRoute,
   SettingsRoute: SettingsRoute,
+  ShelvesRoute: ShelvesRoute,
   VaultRoute: VaultRoute,
   ApiImgRoute: ApiImgRoute,
 }

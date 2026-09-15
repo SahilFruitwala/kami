@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { BookOpen, House, LibraryBig, Settings, Vault } from "lucide-react";
+import { BookOpen, Clapperboard, House, LibraryBig, NotebookPen, Settings, Vault } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -34,7 +34,7 @@ export function CommandPalette({
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  function go(to: "/" | "/library" | "/vault" | "/settings") {
+  function go(to: "/" | "/library" | "/journal" | "/shelves" | "/vault" | "/settings") {
     setOpen(false);
     void navigate({ to });
   }
@@ -63,6 +63,16 @@ export function CommandPalette({
             <LibraryBig aria-hidden="true" />
             Library
             <CommandShortcut>G L</CommandShortcut>
+          </CommandItem>
+          <CommandItem value="go journal" onSelect={() => go("/journal")}>
+            <NotebookPen aria-hidden="true" />
+            Journal
+            <CommandShortcut>G J</CommandShortcut>
+          </CommandItem>
+          <CommandItem value="go shelves movies tv books wishlist" onSelect={() => go("/shelves")}>
+            <Clapperboard aria-hidden="true" />
+            Shelves
+            <CommandShortcut>G M</CommandShortcut>
           </CommandItem>
           <CommandItem value="go vault highlights" onSelect={() => go("/vault")}>
             <Vault aria-hidden="true" />

@@ -9,15 +9,32 @@ function remoteSync(run: (m: typeof import("./library-remote.ts")) => void) {
     .catch((err) => console.error("[library]", err));
 }
 
+/** Ink colors for highlights — Dokusho toolbar (Vermilion / Bamboo / Sumi). */
 export const HIGHLIGHT_COLORS = [
-  { id: "amber", label: "Amber", swatch: "#e8c97a" },
-  { id: "lemon", label: "Lemon", swatch: "#f0e07a" },
-  { id: "mint", label: "Mint", swatch: "#a8d5b5" },
-  { id: "sky", label: "Sky", swatch: "#a8c8e8" },
-  { id: "rose", label: "Rose", swatch: "#e8b4c0" },
+  { id: "vermilion", label: "Vermilion", swatch: "#c84b31" },
+  { id: "bamboo", label: "Bamboo", swatch: "#6e7d6a" },
+  { id: "sumi", label: "Sumi", swatch: "#43403a" },
 ] as const;
 
 export type HighlightColorId = (typeof HIGHLIGHT_COLORS)[number]["id"];
+
+/** Pastel ids from the old highlighter — remapped so saved highlights keep an ink. */
+const LEGACY_INK_MAP: Record<string, HighlightColorId> = {
+  amber: "vermilion",
+  lemon: "vermilion",
+  mint: "bamboo",
+  sky: "bamboo",
+  rose: "vermilion",
+};
+
+export function resolveInkColor(value: unknown): HighlightColorId {
+  if (typeof value === "string") {
+    if (HIGHLIGHT_COLORS.some((c) => c.id === value)) return value as HighlightColorId;
+    const legacy = LEGACY_INK_MAP[value];
+    if (legacy) return legacy;
+  }
+  return "vermilion";
+}
 
 export type Highlight = {
   id: string;
@@ -166,6 +183,7 @@ export type LibraryState = {
   mergeItems: (keepId: string, dropId: string) => void;
   addHighlight: (itemId: string, text: string, color?: HighlightColorId) => Highlight | null;
   removeHighlight: (itemId: string, highlightId: string) => void;
+  setHighlightColorById: (itemId: string, highlightId: string, color: HighlightColorId) => void;
   setHighlightNote: (itemId: string, highlightId: string, note: string) => void;
   setFavorited: (itemId: string, favorited: boolean) => void;
   setItemNote: (itemId: string, note: string) => void;
@@ -223,7 +241,7 @@ function migrateItem(row: Persisted["library"] extends (infer T)[] | undefined ?
           text: String(h.text).trim().slice(0, 800),
           note: typeof h.note === "string" ? h.note.slice(0, 280) : "",
           createdAt: typeof h.createdAt === "number" ? h.createdAt : Date.now(),
-          color: isHighlightColor(h.color) ? h.color : ("amber" as HighlightColorId),
+          color: resolveInkColor(h.color),
         }))
     : [];
   return {
@@ -279,7 +297,7 @@ export const useLibraryStore = create<LibraryState>()(
       openId: null,
       readerFontSize: DEFAULT_READER_FONT_SIZE,
       readerFont: "literata",
-      highlightColor: "amber",
+      highlightColor: "vermilion",
       paperTone: "pale",
       preferredLightTone: "pale",
       ttsRate: 1,
@@ -327,7 +345,7 @@ export const useLibraryStore = create<LibraryState>()(
         set((state) => ({ readerFontSize: clampFontSize(state.readerFontSize + delta) })),
       setReaderFont: (font) => set({ readerFont: isReaderFont(font) ? font : "newsreader" }),
       setHighlightColor: (color) =>
-        set({ highlightColor: isHighlightColor(color) ? color : "amber" }),
+        set({ highlightColor: isHighlightColor(color) ? color : "vermilion" }),
       setPaperTone: (tone) => {
         const next = isPaperTone(tone) ? tone : "pale";
         if (next === "sumi") set({ paperTone: next });
@@ -501,6 +519,20 @@ export const useLibraryStore = create<LibraryState>()(
         }));
         if (highlights) remoteSync((m) => m.syncPatchItem(itemId, { highlights }));
       },
+      setHighlightColorById: (itemId, highlightId, color) => {
+        if (!isHighlightColor(color)) return;
+        let highlights: Highlight[] | undefined;
+        set((state) => ({
+          library: mapItem(state.library, itemId, (row) => {
+            highlights = row.highlights.map((h) =>
+              h.id === highlightId ? { ...h, color } : h,
+            );
+            return { ...row, highlights };
+          }),
+          highlightColor: color,
+        }));
+        if (highlights) remoteSync((m) => m.syncPatchItem(itemId, { highlights }));
+      },
       setHighlightNote: (itemId, highlightId, note) => {
         let highlights: Highlight[] | undefined;
         set((state) => ({
@@ -551,7 +583,7 @@ export const useLibraryStore = create<LibraryState>()(
           openId: raw.openId ?? null,
           readerFontSize: migrateFontSize(raw),
           readerFont: isReaderFont(raw.readerFont) ? raw.readerFont : "newsreader",
-          highlightColor: isHighlightColor(raw.highlightColor) ? raw.highlightColor : "amber",
+          highlightColor: isHighlightColor(raw.highlightColor) ? raw.highlightColor : "vermilion",
           paperTone: isPaperTone(raw.paperTone) ? raw.paperTone : "pale",
           preferredLightTone:
             raw.preferredLightTone === "aged" || raw.preferredLightTone === "pale"

@@ -82,12 +82,17 @@ function Read() {
   }
 
   if (!search.id || !openItem) {
+    const noScroll = !search.id;
     return (
       <main className="kami-desk flex min-h-dvh items-center justify-center px-6">
         <div className="kami-sheet flex max-w-sm flex-col items-center gap-3 p-8 text-center">
-          <h1 className="font-display text-2xl text-ink text-balance">Scroll Not Found</h1>
+          <h1 className="font-display text-2xl text-ink text-balance">
+            {noScroll ? "No Scroll Open" : "Scroll Not Found"}
+          </h1>
           <p className="font-body text-sm text-ink-muted">
-            This work may have been removed. Return to the library to keep reading.
+            {noScroll
+              ? "Choose a work from the Library and it will open here for quiet reading."
+              : "This work may have been removed. Return to the library to keep reading."}
           </p>
           <button
             type="button"
