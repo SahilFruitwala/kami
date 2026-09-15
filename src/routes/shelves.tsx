@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Clapperboard, Link2, LoaderCircle, PenLine, Plus, Search, Tv, BookOpen, Gift } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { Hanko, KamiEyebrow, WashiTag } from "@/components/kami.tsx";
@@ -9,22 +10,21 @@ import { Input } from "@/components/ui/input.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import {
-  addShelfItem,
-  findShelfDuplicates,
-  getShelfCounts,
-  getShelfItem,
-  listShelfItems,
+  useAddShelfItem,
+  useBookSearch,
+  useFindShelfDuplicates,
+  useShelfCounts,
+  useShelfDetail,
+  useShelfItems,
+  useTmdbSearch,
+} from "@/hooks/use-shelf-queries.ts";
+import { queryKeys } from "@/lib/query-client.ts";
+import {
   SHELF_TABS,
-  type ShelfCard,
   type ShelfDetail,
   type ShelfTab,
 } from "@/lib/shelves-fns.ts";
-import {
-  fetchLinkPreview,
-  searchBooks,
-  searchTmdb,
-  type LookupResult,
-} from "@/lib/shelves-lookup.ts";
+import { fetchLinkPreview, type LookupResult } from "@/lib/shelves-lookup.ts";
 import { cn } from "@/lib/utils.ts";
 
 type ShelvesSearch = {
@@ -77,34 +77,22 @@ function Shelves() {
     isShelfStatus(search.status) ? search.status : undefined,
   );
   const deferredQuery = useDeferredValue(query);
-  const [counts, setCounts] = useState<Record<ShelfTab, number> | null>(null);
-  const [items, setItems] = useState<ShelfCard[] | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
-  const [detail, setDetail] = useState<ShelfDetail | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const syncedFromUrl = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    let live = true;
-    void getShelfCounts().then((c) => {
-      if (live) setCounts(c);
-    }).catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, [refreshKey]);
+  const countsQuery = useShelfCounts();
+  const itemsQuery = useShelfItems({
+    type: tab,
+    status,
+    query: deferredQuery,
+  });
+  const detailQuery = useShelfDetail(tab, detailId);
 
-  // ⌘K palette adds items without going through AddShelfDialog — listen so
-  // the grid refreshes when a save lands from the command palette.
-  useEffect(() => {
-    function onShelfChanged() {
-      setRefreshKey((k) => k + 1);
-    }
-    window.addEventListener("quarto:shelf-changed", onShelfChanged);
-    return () => window.removeEventListener("quarto:shelf-changed", onShelfChanged);
-  }, []);
+  const counts = countsQuery.data ?? null;
+  const items = itemsQuery.isPending && !itemsQuery.data ? null : (itemsQuery.data ?? []);
+  const detail = detailId ? (detailQuery.data ?? null) : null;
 
   // One-way: URL → local state on first paint (deep links).
   useEffect(() => {
@@ -134,38 +122,6 @@ function Shelves() {
       if (pushTimer.current) clearTimeout(pushTimer.current);
     };
   }, [tab, query, status, navigate]);
-
-  useEffect(() => {
-    let live = true;
-    setItems(null);
-    void listShelfItems({ data: { type: tab, status, query: deferredQuery, limit: 120, offset: 0 } })
-      .then((rows) => {
-        if (live) setItems(rows);
-      })
-      .catch(() => {
-        if (live) setItems([]);
-      });
-    return () => {
-      live = false;
-    };
-  }, [tab, status, deferredQuery, refreshKey]);
-
-  useEffect(() => {
-    if (!detailId) {
-      setDetail(null);
-      return;
-    }
-    let live = true;
-    setDetail(null);
-    void getShelfItem({ data: { type: tab, id: detailId } })
-      .then((d) => {
-        if (live) setDetail(d);
-      })
-      .catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, [detailId, tab]);
 
   const total = counts ? counts.movie + counts.tv + counts.book + counts.wishlist : null;
 
@@ -373,10 +329,7 @@ function Shelves() {
         open={addOpen}
         initialTab={tab}
         onClose={() => setAddOpen(false)}
-        onAdded={() => {
-          setAddOpen(false);
-          setRefreshKey((k) => k + 1);
-        }}
+        onAdded={() => setAddOpen(false)}
       />
     </AppShell>
   );
@@ -409,9 +362,6 @@ function AddShelfDialog({
   const [type, setType] = useState<ShelfTab>(initialTab);
   const [query, setQuery] = useState("");
   const [debounced, setDebounced] = useState("");
-  const [results, setResults] = useState<LookupResult[] | null>(null);
-  const [searching, setSearching] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
   const [manual, setManual] = useState(false);
   const [fetchingLink, setFetchingLink] = useState(false);
   const [title, setTitle] = useState("");
@@ -420,9 +370,24 @@ function AddShelfDialog({
   const [imageUrl, setImageUrl] = useState("");
   const [metadata, setMetadata] = useState<Record<string, string>>({});
   const [duplicates, setDuplicates] = useState<{ id: string; title: string; status: string }[]>([]);
-  const [checkingDuplicates, setCheckingDuplicates] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [linkFetchError, setLinkFetchError] = useState<string | null>(null);
+
+  const addItem = useAddShelfItem();
+  const findDupes = useFindShelfDuplicates();
+  const queryClient = useQueryClient();
+
+  const tmdbKind = type === "tv" ? "tv" : "movie";
+  const searchEnabled = open && !manual && type !== "wishlist" && debounced.length >= 2;
+  const tmdbQuery = useTmdbSearch(tmdbKind, debounced, searchEnabled && type !== "book");
+  const booksQuery = useBookSearch(debounced, searchEnabled && type === "book");
+  const lookupQuery = type === "book" ? booksQuery : tmdbQuery;
+  const results = searchEnabled ? (lookupQuery.data ?? null) : null;
+  const searching = searchEnabled && lookupQuery.isFetching;
+  const searchError =
+    searchEnabled && lookupQuery.isError
+      ? "Lookup failed — try again, or add it manually below."
+      : linkFetchError;
 
   useEffect(() => {
     if (open) {
@@ -435,9 +400,6 @@ function AddShelfDialog({
   function reset() {
     setQuery("");
     setDebounced("");
-    setResults(null);
-    setSearching(false);
-    setSearchError(null);
     setManual(false);
     setFetchingLink(false);
     setTitle("");
@@ -446,8 +408,8 @@ function AddShelfDialog({
     setImageUrl("");
     setMetadata({});
     setDuplicates([]);
-    setSaving(false);
     setSaveError(null);
+    setLinkFetchError(null);
   }
 
   // Debounce the lookup query like shelf's SearchPicker (350ms).
@@ -455,33 +417,6 @@ function AddShelfDialog({
     const t = setTimeout(() => setDebounced(query.trim()), 350);
     return () => clearTimeout(t);
   }, [query]);
-
-  useEffect(() => {
-    if (!open || type === "wishlist" || manual || debounced.length < 2) return;
-    let live = true;
-    setSearching(true);
-    setSearchError(null);
-    const run =
-      type === "book"
-        ? searchBooks({ data: debounced })
-        : searchTmdb({ data: { query: debounced, kind: type === "tv" ? "tv" : "movie" } });
-    run
-      .then((rows) => {
-        if (live) {
-          setResults(rows);
-          setSearching(false);
-        }
-      })
-      .catch(() => {
-        if (live) {
-          setSearchError("Lookup failed — try again, or add it manually below.");
-          setSearching(false);
-        }
-      });
-    return () => {
-      live = false;
-    };
-  }, [open, type, manual, debounced]);
 
   function pick(r: LookupResult) {
     setTitle(r.title);
@@ -495,7 +430,6 @@ function AddShelfDialog({
     setType(t);
     setQuery("");
     setDebounced("");
-    setResults(null);
     setManual(false);
     setTitle("");
     setLink("");
@@ -503,30 +437,34 @@ function AddShelfDialog({
     setMetadata({});
     setDuplicates([]);
     setSaveError(null);
+    setLinkFetchError(null);
   }
 
   async function fetchByUrl() {
-    if (!query.trim() || fetchingLink) return;
+    const raw = query.trim();
+    if (!raw || fetchingLink) return;
     setFetchingLink(true);
-    setSearchError(null);
+    setLinkFetchError(null);
     try {
-      const r = await fetchLinkPreview({ data: query.trim() });
+      const r = await queryClient.fetchQuery({
+        queryKey: queryKeys.lookup.link(raw),
+        queryFn: () => fetchLinkPreview({ data: raw }),
+      });
       if (r) pick(r);
-      else setSearchError("Couldn't read that page — fill in the details below instead.");
+      else setLinkFetchError("Couldn't read that page — fill in the details below instead.");
     } catch {
-      setSearchError("Couldn't read that page — fill in the details below instead.");
+      setLinkFetchError("Couldn't read that page — fill in the details below instead.");
     } finally {
       setFetchingLink(false);
     }
   }
 
   async function save(status: "to_try" | "done") {
-    if (!title.trim() || saving || checkingDuplicates) return;
+    if (!title.trim() || addItem.isPending || findDupes.isPending) return;
     setSaveError(null);
     if (duplicates.length === 0) {
-      setCheckingDuplicates(true);
       try {
-        const matches = await findShelfDuplicates({ data: { type, title } });
+        const matches = await findDupes.mutateAsync({ type, title });
         if (matches.length > 0) {
           setDuplicates(matches.map((m) => ({ ...m, status: String(m.status) })));
           return;
@@ -534,32 +472,27 @@ function AddShelfDialog({
       } catch (e) {
         setSaveError(e instanceof Error ? e.message : "Duplicate check failed.");
         return;
-      } finally {
-        setCheckingDuplicates(false);
       }
     }
-    setSaving(true);
     try {
       const cleaned = Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ""));
-      await addShelfItem({
-        data: {
-          type,
-          title: title.trim(),
-          notes: notes.trim() || undefined,
-          link: link.trim() || undefined,
-          imageUrl: imageUrl.trim() || undefined,
-          metadata: Object.keys(cleaned).length ? cleaned : undefined,
-          status,
-        },
+      await addItem.mutateAsync({
+        type,
+        title: title.trim(),
+        notes: notes.trim() || undefined,
+        link: link.trim() || undefined,
+        imageUrl: imageUrl.trim() || undefined,
+        metadata: Object.keys(cleaned).length ? cleaned : undefined,
+        status,
       });
       onAdded();
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : "Couldn't save that item.");
-    } finally {
-      setSaving(false);
     }
   }
 
+  const saving = addItem.isPending;
+  const checkingDuplicates = findDupes.isPending;
   const showForm = manual || title !== "";
   const meta = ADD_TYPE_META.find((m) => m.id === type)!;
   const doneLabel = type === "book" ? "Read" : type === "wishlist" ? "Got it" : "Watched";

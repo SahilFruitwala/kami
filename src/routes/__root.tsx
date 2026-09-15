@@ -1,5 +1,7 @@
 import { createRootRoute, HeadContent, Navigate, Outlet, Scripts } from "@tanstack/react-router";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/lib/auth/provider";
+import { getAppQueryClient } from "@/lib/query-client";
 import { Toaster } from "sonner";
 import { useTheme } from "@/hooks/use-theme.ts";
 import appCss from "../styles.css?url";
@@ -63,9 +65,11 @@ export const Route = createRootRoute({
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-dvh bg-paper text-ink">
-        <AuthProvider>
-          <ThemeShell />
-        </AuthProvider>
+        <QueryClientProvider client={getAppQueryClient()}>
+          <AuthProvider>
+            <ThemeShell />
+          </AuthProvider>
+        </QueryClientProvider>
         <Scripts />
       </body>
     </html>
