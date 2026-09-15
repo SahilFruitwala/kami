@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, ViewTransition } from "react";
-import { ArrowLeft, ArrowRight, BookmarkPlus, ExternalLink, Eye, FolderOpen, PenLine, Timer } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookmarkPlus, ExternalLink, Eye, PenLine } from "lucide-react";
 import { toast } from "sonner";
 import type { Article } from "@/lib/article-types.ts";
 import { applyHighlights } from "@/lib/highlight-html.ts";
@@ -19,72 +19,8 @@ import { ReaderPrefsPanel } from "@/components/reader/reader-prefs.tsx";
 import { WashiTag } from "@/components/kami.tsx";
 import { useReaderProgress, useSelectionMenu } from "@/hooks/use-reader-selection.ts";
 import { useReaderTts } from "@/hooks/use-reader-tts.ts";
+import { TONES } from "@/lib/paper-tones.ts";
 import { cn } from "@/lib/utils.ts";
-
-type PaperTone = "pale" | "aged" | "sumi";
-
-const TONES: Record<
-  PaperTone,
-  { bg: string; fg: string; label: string; glyph: string; scheme: string; vars: Record<string, string> }
-> = {
-  pale: {
-    bg: "#FFFDF9",
-    fg: "#1d1b18",
-    label: "Pale Washi",
-    glyph: "P",
-    scheme: "light",
-    vars: {
-      "--color-bg": "#f9f2ed",
-      "--color-paper": "#FFFDF9",
-      "--color-paper-warm": "#f3ede7",
-      "--color-surface": "#FFFDF9",
-      "--color-ink": "#1d1b18",
-      "--color-ink-soft": "#58413c",
-      "--color-ink-muted": "#8c716b",
-      "--color-faint": "#c9b8b0",
-      "--color-line": "#e7e0d5",
-      "--color-ink-accent": "#2d3b48",
-    },
-  },
-  aged: {
-    bg: "#F6EFE6",
-    fg: "#1d1b18",
-    label: "Aged Rice Paper",
-    glyph: "A",
-    scheme: "light",
-    vars: {
-      "--color-bg": "#efe5d3",
-      "--color-paper": "#F6EFE6",
-      "--color-paper-warm": "#ece0cb",
-      "--color-surface": "#FBF6EC",
-      "--color-ink": "#1d1b18",
-      "--color-ink-soft": "#58413c",
-      "--color-ink-muted": "#8c716b",
-      "--color-faint": "#c9b8b0",
-      "--color-line": "#ddd0b8",
-      "--color-ink-accent": "#2d3b48",
-    },
-  },
-  sumi: {
-    bg: "#1D1B18",
-    fg: "#EDE7E2",
-    label: "Sumi Dark",
-    glyph: "S",
-    scheme: "dark",
-    vars: {
-      "--color-bg": "#161514",
-      "--color-paper": "#1c1b1a",
-      "--color-paper-warm": "#211f1e",
-      "--color-surface": "#252320",
-      "--color-ink": "#EDE7E2",
-      "--color-ink-soft": "#C8C2B8",
-      "--color-ink-muted": "#8A847C",
-      "--color-faint": "#5c564f",
-      "--color-line": "#3A3631",
-      "--color-ink-accent": "#d4a373",
-    },
-  },
-};
 
 export function ReaderView({
   item,
@@ -103,7 +39,6 @@ export function ReaderView({
   const prefsRef = useRef<HTMLDivElement>(null);
   const notesRef = useRef<HTMLTextAreaElement>(null);
   const [prefsOpen, setPrefsOpen] = useState(false);
-  const [tone, setTone] = useState<PaperTone>("pale");
   const [zen, setZen] = useState(false);
   const hasLeadImage = /<img\b/i.test(article.contentHtml.slice(0, 1200));
 
@@ -111,6 +46,8 @@ export function ReaderView({
   const readerFontSize = useLibraryStore((s) => s.readerFontSize);
   const readerFont = useLibraryStore((s) => s.readerFont);
   const highlightColor = useLibraryStore((s) => s.highlightColor);
+  const paperTone = useLibraryStore((s) => s.paperTone);
+  const setPaperTone = useLibraryStore((s) => s.setPaperTone);
   const bumpReaderFontSize = useLibraryStore((s) => s.bumpReaderFontSize);
   const setReaderFont = useLibraryStore((s) => s.setReaderFont);
   const setHighlightColor = useLibraryStore((s) => s.setHighlightColor);
@@ -133,7 +70,6 @@ export function ReaderView({
   const tts = useReaderTts(article.canonicalUrl, bodyRef);
 
   const percent = Math.round(progress * 100);
-  const remaining = Math.max(1, Math.round(article.readingMinutes * (1 - progress)));
 
   const nextItem = useMemo(() => {
     const sorted = [...library]
@@ -203,7 +139,7 @@ export function ReaderView({
     }
   }
 
-  const sheet = TONES[tone];
+  const sheet = TONES[paperTone] ?? TONES.pale;
   const sheetStyle = {
     backgroundColor: sheet.bg,
     color: sheet.fg,
@@ -260,9 +196,11 @@ export function ReaderView({
             readerFontSize={readerFontSize}
             readerFont={readerFont}
             highlightColor={highlightColor}
+            paperTone={paperTone}
             onBumpSize={bumpReaderFontSize}
             onFont={setReaderFont}
             onHighlightColor={setHighlightColor}
+            onPaperTone={setPaperTone}
           />
         }
       />
@@ -271,89 +209,7 @@ export function ReaderView({
         <HighlightMenu menu={menu} activeColor={highlightColor} onSave={saveHighlight} />
       ) : null}
 
-      <div className="mx-auto w-full max-w-6xl px-4 pb-32 sm:px-6">
-        {/* Reading utilities ribbon */}
-        <div className="kami-sheet mt-6 mb-8 flex flex-wrap items-center justify-between gap-4 px-6 py-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <nav
-              aria-label="Breadcrumb"
-              className="flex items-center gap-2 font-sans text-[11px] tracking-wider text-ink-muted uppercase"
-            >
-              <button
-                type="button"
-                onClick={onBack}
-                className="flex items-center gap-1 transition-colors hover:text-hanko"
-              >
-                <FolderOpen className="size-4" aria-hidden="true" />
-                Library
-              </button>
-              <span className="text-line" aria-hidden="true">/</span>
-              <span className="font-medium text-ink-soft">
-                {item.source === "x" ? "X" : item.siteName || "Article"}
-              </span>
-            </nav>
-            <span className="size-1.5 rounded-full bg-line" aria-hidden="true" />
-            <span className="flex items-center gap-1.5 rounded-full bg-bamboo-wash px-2.5 py-0.5 font-sans text-xs text-bamboo">
-              <Timer className="size-[15px]" aria-hidden="true" />
-              {percent}% · {remaining} min remaining
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <div
-              className="flex items-center gap-1 rounded-lg bg-paper-warm p-1"
-              role="group"
-              aria-label="Paper tone"
-            >
-              {(Object.keys(TONES) as PaperTone[]).map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  title={TONES[key].label}
-                  aria-label={TONES[key].label}
-                  aria-pressed={tone === key}
-                  onClick={() => setTone(key)}
-                  className={cn(
-                    "flex size-6 items-center justify-center rounded-md text-[9px] font-bold transition-transform active:scale-95",
-                    tone === key
-                      ? "shadow-sm ring-2 ring-hanko/40"
-                      : "opacity-80 hover:opacity-100",
-                  )}
-                  style={{ backgroundColor: TONES[key].bg, color: TONES[key].fg }}
-                >
-                  {TONES[key].glyph}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-1 rounded-lg bg-paper-warm px-2 py-1">
-              <button
-                type="button"
-                onClick={() => bumpReaderFontSize(-1)}
-                className="px-1.5 font-sans text-xs font-semibold text-ink-soft transition-colors hover:text-hanko"
-                aria-label="Decrease type size"
-              >
-                A−
-              </button>
-              <span className="text-[10px] text-line" aria-hidden="true">|</span>
-              <button
-                type="button"
-                onClick={() => bumpReaderFontSize(1)}
-                className="px-1.5 font-sans text-xs font-semibold text-ink-soft transition-colors hover:text-hanko"
-                aria-label="Increase type size"
-              >
-                A+
-              </button>
-            </div>
-            <button
-              type="button"
-              onClick={() => void exportToJournal()}
-              className="flex items-center gap-2 rounded-lg bg-hanko px-3.5 py-1.5 font-sans text-xs font-medium text-white shadow-sm transition-all hover:bg-shu active:translate-y-px"
-            >
-              <PenLine className="size-4" aria-hidden="true" />
-              Export to Journal
-            </button>
-          </div>
-        </div>
-
+      <div className="mx-auto w-full max-w-6xl px-4 pt-6 pb-32 sm:px-6">
         {/* Reading sheet */}
         <div
           className="relative rounded-xl p-6 shadow-[var(--shadow-raised)] transition-colors duration-300 sm:p-8 lg:p-12"
@@ -424,6 +280,7 @@ export function ReaderView({
                 item={item}
                 onNote={(highlightId, note) => setHighlightNote(item.id, highlightId, note)}
                 onRemove={(highlightId) => removeHighlight(item.id, highlightId)}
+                onExport={() => void exportToJournal()}
               />
 
               <footer className="mt-10">
@@ -638,10 +495,12 @@ function MarginaliaHighlights({
   item,
   onNote,
   onRemove,
+  onExport,
 }: {
   item: LibraryItem;
   onNote: (highlightId: string, note: string) => void;
   onRemove: (highlightId: string) => void;
+  onExport: () => void;
 }) {
   if (item.highlights.length === 0) {
     return (
@@ -657,7 +516,17 @@ function MarginaliaHighlights({
         <span className="font-display text-sm tracking-widest uppercase">End</span>
         <span className="h-px w-12 bg-current" aria-hidden="true" />
       </div>
-      <h2 className="mt-4 font-display text-xl">Inked Passages</h2>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="font-display text-xl">Inked Passages</h2>
+        <button
+          type="button"
+          onClick={onExport}
+          className="flex items-center gap-1.5 rounded-[0.25rem] bg-hanko px-3 py-1.5 font-sans text-xs font-medium text-white shadow-sm transition-all hover:bg-shu active:translate-y-px"
+        >
+          <PenLine className="size-3.5" aria-hidden="true" />
+          Export to Journal
+        </button>
+      </div>
       <ul className="mt-4 space-y-4">
         {item.highlights.map((highlight) => (
           <li key={highlight.id} className="rounded-[0.25rem] bg-ink/5 p-4 shadow-sm">

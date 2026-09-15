@@ -1,38 +1,55 @@
+import { Link } from "@tanstack/react-router";
 import { BookMarked, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { Show, SignInButton, SignUpButton, UserButton } from "@/lib/auth/gates";
-import type { LibraryTab } from "@/lib/filter-library.ts";
+import { useLibraryStore } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
 
-export function LibraryHeader({
+export type SitePane = "home" | "library" | "vault";
+
+/** Top-level sanctuary navigation shared by Home, Library, and Vault. */
+export function SiteHeader({
+  active,
   onOpenTools,
-  tab,
-  onTab,
-  minutesToday,
-  passagesInked,
 }: {
+  active: SitePane;
   onOpenTools: () => void;
-  tab: LibraryTab;
-  onTab: (tab: LibraryTab) => void;
-  minutesToday: number;
-  passagesInked: number;
 }) {
+  const library = useLibraryStore((s) => s.library);
+  const minutesToday = library
+    .filter((row) => {
+      const start = new Date();
+      start.setHours(0, 0, 0, 0);
+      return row.savedAt >= start.getTime();
+    })
+    .reduce((n, row) => n + (row.readingMinutes || 0), 0);
+  const passagesInked = library.reduce(
+    (n, row) => n + (row.highlights?.length ?? 0),
+    0,
+  );
+
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur-xl">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-12">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="kami-hanko flex size-8 items-center justify-center rounded-[0.25rem] font-display text-sm font-bold">
-            K
-          </span>
-          <div className="leading-none">
-            <p className="font-display text-base font-semibold tracking-tight text-ink">
-              KAMI
-            </p>
-            <p className="kami-label mt-0.5 hidden text-ink-muted sm:block">
-              Washi &amp; Thought
-            </p>
-          </div>
+          <Link
+            to="/"
+            className="flex items-center gap-2.5 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            aria-label="Kami home"
+          >
+            <span className="kami-hanko flex size-8 items-center justify-center rounded-[0.25rem] font-display text-sm font-bold">
+              K
+            </span>
+            <span className="leading-none">
+              <span className="block font-display text-base font-semibold tracking-tight text-ink">
+                KAMI
+              </span>
+              <span className="kami-label mt-0.5 hidden text-ink-muted sm:block">
+                Washi &amp; Thought
+              </span>
+            </span>
+          </Link>
           <span className="mx-1 hidden h-6 w-px bg-line md:block" aria-hidden="true" />
           <p className="hidden items-center gap-1.5 rounded-[0.25rem] bg-paper-warm px-2.5 py-1 text-xs font-medium text-ink-soft xl:flex">
             <span className="size-1.5 rounded-full bg-ok" aria-hidden="true" />
@@ -40,11 +57,14 @@ export function LibraryHeader({
           </p>
         </div>
 
-        <nav aria-label="Sanctuary panes" className="hidden items-center gap-1 lg:flex">
-          <PaneLink active={tab !== "vault"} onClick={() => onTab("inbox")}>
+        <nav aria-label="Sanctuary pages" className="hidden items-center gap-1 lg:flex">
+          <PaneLink to="/" active={active === "home"}>
+            Home
+          </PaneLink>
+          <PaneLink to="/library" active={active === "library"}>
             Library
           </PaneLink>
-          <PaneLink active={tab === "vault"} onClick={() => onTab("vault")}>
+          <PaneLink to="/vault" active={active === "vault"}>
             Vault
           </PaneLink>
         </nav>
@@ -70,16 +90,19 @@ export function LibraryHeader({
           <UserButton />
         </div>
       </div>
-      {/* Mobile pane switcher */}
+      {/* Mobile page switcher */}
       <nav
-        aria-label="Sanctuary panes"
+        aria-label="Sanctuary pages"
         className="flex items-center gap-1 border-t border-line px-4 py-1.5 lg:hidden"
       >
-        <PaneLink active={tab !== "vault"} onClick={() => onTab("inbox")}>
+        <PaneLink to="/" active={active === "home"}>
           <BookMarked className="size-3.5" aria-hidden="true" />
+          Home
+        </PaneLink>
+        <PaneLink to="/library" active={active === "library"}>
           Library
         </PaneLink>
-        <PaneLink active={tab === "vault"} onClick={() => onTab("vault")}>
+        <PaneLink to="/vault" active={active === "vault"}>
           Vault
         </PaneLink>
       </nav>
@@ -88,18 +111,17 @@ export function LibraryHeader({
 }
 
 function PaneLink({
+  to,
   active,
-  onClick,
   children,
 }: {
+  to: "/" | "/library" | "/vault";
   active: boolean;
-  onClick: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <Link
+      to={to}
       aria-current={active ? "page" : undefined}
       className={cn(
         "rounded-[0.25rem] px-3 py-1.5 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
@@ -108,7 +130,7 @@ function PaneLink({
           : "font-medium text-ink-muted hover:text-ink",
       )}
     >
-      {children}
-    </button>
+      <span className="flex items-center gap-1.5">{children}</span>
+    </Link>
   );
 }

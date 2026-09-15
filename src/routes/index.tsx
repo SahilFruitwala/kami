@@ -1,183 +1,111 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { addTransitionType, startTransition, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
+import { AppGate } from "@/components/app-gate.tsx";
+import { ArticleList } from "@/components/article-list.tsx";
 import { DirectionalTransition } from "@/components/directional-transition.tsx";
-import { LandingPage } from "@/components/landing-page.tsx";
-import { LibraryHome } from "@/components/library/library-home.tsx";
-import { ReaderView } from "@/components/reader-view.tsx";
-import { useLibraryFilters } from "@/hooks/use-library-filters.ts";
-import { useLibraryNav } from "@/hooks/use-library-nav.ts";
+import { CaptureForm } from "@/components/library/capture-form.tsx";
+import { PasteDialog, ToolsDialog } from "@/components/library/library-dialogs.tsx";
+import {
+  DeskHero,
+  FoldersCard,
+  ReadingRhythmCard,
+  RecentPassagesCard,
+  SiteFooter,
+  useDeskHeroItem,
+  useDeskStats,
+} from "@/components/library/widgets.tsx";
+import { SiteHeader } from "@/components/site-header.tsx";
+import { KamiEyebrow } from "@/components/kami.tsx";
+import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
 import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { buildBookmarklet, decodeImportPayload } from "@/lib/bookmarklet.ts";
-import {
-  bootstrapLibraryFromServer,
-  clearLibraryLocal,
-} from "@/lib/library-remote";
 import { readDraftUrl } from "@/lib/session-article.ts";
-import {
-  itemToArticle,
-  useLibraryStore,
-  type LibraryItem,
-} from "@/lib/store.ts";
+import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
 
 type HomeSearch = {
-  id?: string;
   import?: string;
 };
 
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>): HomeSearch => ({
-    id: typeof search.id === "string" && search.id.length > 0 ? search.id : undefined,
     import:
       typeof search.import === "string" && search.import.length > 0 ? search.import : undefined,
   }),
-  component: QuartoApp,
+  component: HomePage,
 });
 
-function QuartoApp() {
-  const { user, isPending } = useCurrentUserState();
-  const userId = user?.id;
-  const [libraryReady, setLibraryReady] = useState(false);
-  const [libraryError, setLibraryError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isPending) return;
-    if (!userId) {
-      clearLibraryLocal();
-      setLibraryReady(false);
-      setLibraryError(null);
-      return;
-    }
-
-    let cancelled = false;
-    setLibraryReady(false);
-    setLibraryError(null);
-
-    void bootstrapLibraryFromServer()
-      .then(() => {
-        if (!cancelled) setLibraryReady(true);
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        const message =
-          error instanceof Error ? error.message : "Could not load your library.";
-        setLibraryError(message);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userId, isPending]);
-
-  if (isPending) {
-    return <AuthLoadingScreen label="Checking your session…" />;
-  }
-
-  if (!user) {
-    return <LandingPage />;
-  }
-
-  if (libraryError) {
-    return (
-      <AuthLoadingScreen
-        label={libraryError}
-        actionLabel="Try again"
-        onAction={() => {
-          setLibraryError(null);
-          setLibraryReady(false);
-          void bootstrapLibraryFromServer()
-            .then(() => setLibraryReady(true))
-            .catch((error: unknown) => {
-              const message =
-                error instanceof Error
-                  ? error.message
-                  : "Could not load your library.";
-              setLibraryError(message);
-            });
-        }}
-      />
-    );
-  }
-
-  if (!libraryReady) {
-    return <AuthLoadingScreen label="Loading your library…" />;
-  }
-
-  return <Home />;
+function goRead(
+  navigate: ReturnType<typeof Route.useNavigate>,
+  id: string,
+) {
+  startTransition(() => {
+    addTransitionType("nav-forward");
+    void navigate({ to: "/read", search: { id } });
+  });
 }
 
-function AuthLoadingScreen({
-  label,
-  actionLabel,
-  onAction,
-}: {
-  label: string;
-  actionLabel?: string;
-  onAction?: () => void;
-}) {
-  const isError = Boolean(actionLabel && onAction);
+function HomePage() {
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-paper px-6 text-ink">
-      <div
-        className="flex w-full max-w-sm flex-col items-center gap-4 text-center"
-        role={isError ? "alert" : "status"}
-        aria-live="polite"
-      >
-        <p className="font-display text-2xl tracking-tight" translate="no">
-          Quarto
-        </p>
-        {!isError ? (
-          <div className="flex w-full flex-col gap-2.5" aria-hidden="true">
-            <div className="h-11 animate-pulse rounded-md bg-paper-warm" />
-            <div className="h-4 w-2/3 animate-pulse self-center rounded-full bg-paper-warm" />
-            <div className="h-16 animate-pulse rounded-xl bg-paper-warm" />
-          </div>
-        ) : null}
-        <p className="text-sm text-ink-muted">{label}</p>
-        {actionLabel && onAction ? (
-          <button
-            type="button"
-            onClick={onAction}
-            className="h-11 rounded-full bg-ink px-5 text-sm font-medium text-paper transition hover:bg-ink-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30"
-          >
-            {actionLabel}
-          </button>
-        ) : null}
-      </div>
-    </main>
+    <AppGate>
+      <DirectionalTransition>
+        <Home />
+      </DirectionalTransition>
+    </AppGate>
   );
 }
 
 function Home() {
-  const [toolsOpen, setToolsOpen] = useState(false);
-  const [bookmarklet, setBookmarklet] = useState("");
-  const booted = useRef(false);
-
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
+  const tools = useCaptureTools();
+  const booted = useRef(false);
 
-  const { openId, goOpen } = useLibraryNav(navigate, search.id);
-  const save = useSaveArticle(goOpen);
-  const paste = usePasteImport(goOpen);
-  const filters = useLibraryFilters();
+  const openOnSave = (id: string | null) => {
+    if (id) goRead(navigate, id);
+  };
+  const save = useSaveArticle(openOnSave);
+  const paste = usePasteImport(openOnSave);
 
-  const openItem = useLibraryStore((s) =>
-    openId ? (s.library.find((row) => row.id === openId) ?? null) : null,
+  const hero = useDeskHeroItem();
+  const stats = useDeskStats();
+  const library = useLibraryStore((s) => s.library);
+  const removeItem = useLibraryStore((s) => s.removeItem);
+  const fresh = useMemo(
+    () =>
+      [...library]
+        .filter((row) => !row.archived)
+        .sort((a, b) => b.savedAt - a.savedAt)
+        .slice(0, 4),
+    [library],
   );
-  const archiveItem = useLibraryStore((s) => s.archiveItem);
-  const article = openItem?.contentHtml ? itemToArticle(openItem) : null;
+
+  function openItem(item: LibraryItem) {
+    goRead(navigate, item.id);
+  }
+
+  function openPaste(seedUrl?: string) {
+    if (seedUrl) paste.setPasteUrl(seedUrl);
+    paste.setPasteOpen(true);
+  }
 
   async function openItemOrFetch(item: LibraryItem) {
-    goOpen(item.id);
+    openItem(item);
     if (!item.contentHtml) await save.save(item.url, true);
   }
 
   useEffect(() => {
     if (booted.current) return;
     booted.current = true;
-    setBookmarklet(buildBookmarklet(window.location.origin));
+
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        document.getElementById("source-url")?.focus();
+      }
+    }
+    document.addEventListener("keydown", onKey);
 
     if (search.import) {
       const payload = decodeImportPayload(search.import);
@@ -193,83 +121,127 @@ function Home() {
         },
         replace: true,
       });
-      return;
+    } else {
+      const draft = readDraftUrl();
+      if (draft) {
+        save.setUrl(draft);
+        void save.save(draft, true);
+      }
     }
-
-    const draft = readDraftUrl();
-    if (draft && !search.id) {
-      save.setUrl(draft);
-      void save.save(draft, true);
-    }
+    return () => document.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  if (article && openItem) {
-    return (
-      <DirectionalTransition>
-        <ReaderView
-          item={openItem}
-          article={article}
-          onBack={() => goOpen(null)}
-          onOpenItem={(item) => void openItemOrFetch(item)}
-          onArchive={() => {
-            archiveItem(openItem.id, !openItem.archived);
-            if (!openItem.archived) {
-              goOpen(null);
-              toast.success("Archived");
-            } else {
-              toast.success("Moved to inbox");
-            }
-          }}
-        />
-      </DirectionalTransition>
-    );
-  }
-
   return (
-    <DirectionalTransition>
-      <LibraryHome
-        url={save.url}
-        busy={save.busy || paste.busy}
-        error={save.error}
-        savingWithoutOpen={save.busy && !openId}
-        bookmarklet={bookmarklet}
-        toolsOpen={toolsOpen}
-        onToolsOpenChange={setToolsOpen}
-        onUrlChange={save.setUrl}
-        onClearError={() => save.setError("")}
-        onSave={(url) => void save.save(url, true)}
-        onSaveLinkOnly={() => void save.saveLinkOnly()}
-        filters={{
-          tab: filters.tab,
-          folderFilter: filters.folderFilter,
-          tagFilter: filters.tagFilter,
-          query: filters.query,
-          favoritesOnly: filters.favoritesOnly,
-          onTab: filters.setTab,
-          onFolder: filters.setFolderFilter,
-          onTag: filters.setTagFilter,
-          onQuery: filters.setQuery,
-          onFavoritesOnly: filters.setFavoritesOnly,
-        }}
-        paste={{
-          open: paste.pasteOpen,
-          onOpenChange: paste.setPasteOpen,
-          title: paste.pasteTitle,
-          body: paste.pasteBody,
-          url: paste.pasteUrl,
-          busy: paste.busy,
-          onTitle: paste.setPasteTitle,
-          onBody: paste.setPasteBody,
-          onUrl: paste.setPasteUrl,
-          onImport: () => void paste.importPasted(),
-          onOpenPaste: (seed) => {
-            if (seed) paste.setPasteUrl(seed);
-            paste.setPasteOpen(true);
-          },
-        }}
-        onOpenItem={(item) => void openItemOrFetch(item)}
+    <main className="kami-desk relative flex min-h-dvh flex-col overflow-x-hidden">
+      <SiteHeader active="home" onOpenTools={() => tools.setToolsOpen(true)} />
+
+      <div className="flex-1">
+      <section className="w-full bg-paper/60 backdrop-blur-sm">
+        <div className="mx-auto w-full max-w-7xl px-4 pt-10 pb-8 sm:px-6 lg:px-12">
+          <KamiEyebrow>
+            Kami Sanctuary
+            <span className="size-1 rounded-full bg-hanko/40" aria-hidden="true" />
+            <span className="text-bamboo">{stats.total} works bound</span>
+          </KamiEyebrow>
+          <h1 className="mt-2 font-display text-4xl tracking-tight text-ink sm:text-5xl">
+            Your quiet reading list.
+          </h1>
+          <p className="mt-3 max-w-xl font-body text-base leading-relaxed text-ink-soft">
+            Paste a link to bind it into washi. Read distraction-free, ink what
+            resonates, and find it all in the vault.
+          </p>
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <StatChip label={`${stats.inbox} on the desk`} />
+            <StatChip label={`${stats.vaultCount} passages inked`} />
+            <StatChip label={`${stats.minutesToday} mins gathered today`} />
+          </div>
+          <div className="mt-6 max-w-2xl">
+            <CaptureForm
+              url={save.url}
+              busy={save.busy}
+              error={save.error}
+              onUrlChange={save.setUrl}
+              onClearError={() => save.setError("")}
+              onSave={(next) => void save.save(next, true)}
+              onSaveLinkOnly={() => void save.saveLinkOnly()}
+              onOpenPaste={openPaste}
+            />
+          </div>
+          {save.busy ? (
+            <p className="mt-3 text-sm text-ink-muted" role="status" aria-live="polite">
+              Saving a clean copy…
+            </p>
+          ) : null}
+        </div>
+      </section>
+
+      <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-12">
+        {hero ? (
+          <DeskHero item={hero} onOpen={(item) => void openItemOrFetch(item)} />
+        ) : null}
+
+        <div className="mt-10 grid grid-cols-1 items-start gap-8 xl:grid-cols-12">
+          <div className="xl:col-span-8">
+            <div className="flex items-baseline justify-between gap-3">
+              <p className="flex items-baseline gap-2">
+                <span className="font-display text-xl text-ink">Fresh on the Desk</span>
+                <span className="font-sans text-xs text-ink-muted">/ Latest bindings</span>
+              </p>
+              <Link
+                to="/library"
+                className="shrink-0 font-sans text-xs font-medium text-hanko hover:underline"
+              >
+                Browse Library →
+              </Link>
+            </div>
+            <div className="mt-6">
+              <ArticleList
+                items={fresh}
+                emptyTitle="Your desk is empty"
+                emptyCopy="Paste a URL above to save a blog or X article for later."
+                onOpen={(item) => void openItemOrFetch(item)}
+                onRemove={removeItem}
+              />
+            </div>
+          </div>
+          <aside className="flex flex-col gap-6 xl:col-span-4">
+            <ReadingRhythmCard />
+            <RecentPassagesCard onOpenItem={(item) => void openItemOrFetch(item)} hero={hero} />
+            <FoldersCard />
+          </aside>
+        </div>
+      </div>
+      </div>
+
+      <SiteFooter />
+
+      <PasteDialog
+        open={paste.pasteOpen}
+        onOpenChange={paste.setPasteOpen}
+        title={paste.pasteTitle}
+        body={paste.pasteBody}
+        url={paste.pasteUrl}
+        busy={paste.busy}
+        onTitle={paste.setPasteTitle}
+        onBody={paste.setPasteBody}
+        onUrl={paste.setPasteUrl}
+        onImport={() => void paste.importPasted()}
       />
-    </DirectionalTransition>
+
+      <ToolsDialog
+        open={tools.toolsOpen}
+        onOpenChange={tools.setToolsOpen}
+        bookmarklet={tools.bookmarklet || buildBookmarklet(window.location.origin)}
+      />
+    </main>
+  );
+}
+
+function StatChip({ label }: { label: string }) {
+  return (
+    <span className="rounded-full bg-bamboo-wash px-2.5 py-1 font-sans text-[11px] font-medium text-bamboo">
+      {label}
+    </span>
   );
 }

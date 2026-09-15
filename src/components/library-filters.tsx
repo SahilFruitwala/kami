@@ -16,11 +16,9 @@ export function LibraryFilters({
 }: {
   folderFilter: string | "all" | "none";
   tagFilter: string | null;
-  query: string;
   favoritesOnly: boolean;
   onFolder: (value: string | "all" | "none") => void;
   onTag: (tag: string | null) => void;
-  onQuery: (value: string) => void;
   onFavoritesOnly: (value: boolean) => void;
 }) {
   const folders = useLibraryStore((s) => s.folders);
