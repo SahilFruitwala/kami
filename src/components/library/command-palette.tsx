@@ -1,6 +1,23 @@
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { BookOpen, Clapperboard, House, LibraryBig, NotebookPen, Settings, Vault } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookOpen,
+  Clapperboard,
+  ClipboardPaste,
+  Gift,
+  House,
+  LibraryBig,
+  Link2,
+  LoaderCircle,
+  NotebookPen,
+  Plus,
+  Settings,
+  Tv,
+  Vault,
+} from "lucide-react";
+import { toast } from "sonner";
 import {
   CommandDialog,
   CommandEmpty,
@@ -11,17 +28,73 @@ import {
   CommandSeparator,
   CommandShortcut,
 } from "@/components/ui/command.tsx";
-import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import { articleToItem, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import { extractArticle, saveLinkArticle } from "@/lib/article-fns.ts";
+import { persistArticleItem } from "@/lib/library-remote.ts";
+import {
+  addShelfItem,
+  type ShelfTab,
+} from "@/lib/shelves-fns.ts";
+import {
+  fetchLinkPreview,
+  searchBooks,
+  searchTmdb,
+  type LookupResult,
+} from "@/lib/shelves-lookup.ts";
 
-/** Global ⌘K palette: jump between panes or open a bound work. */
+type AddPage = "home" | ShelfTab;
+
+const ADD_PAGES: { id: ShelfTab; label: string; hint: string; icon: typeof Clapperboard }[] = [
+  { id: "movie", label: "Movie", hint: "Search TMDB by title", icon: Clapperboard },
+  { id: "tv", label: "TV series", hint: "Search TMDB by title", icon: Tv },
+  { id: "book", label: "Book", hint: "Search Open Library", icon: BookOpen },
+  { id: "wishlist", label: "Wishlist", hint: "Paste a product link", icon: Gift },
+];
+
+function looksLikeUrl(raw: string): boolean {
+  const v = raw.trim();
+  if (!v) return false;
+  if (/^https?:\/\/\S+\.\S+/i.test(v)) return true;
+  if (/^www\.\S+\.\S+/i.test(v)) return true;
+  // bare domain + path, e.g. example.com/article
+  if (/^[^\s@]+\.[a-z]{2,}(\/\S*)?$/i.test(v) && !v.includes(" ")) return true;
+  return false;
+}
+
+function normalizeUrl(raw: string): string {
+  const v = raw.trim();
+  if (/^https?:\/\//i.test(v)) return v;
+  return `https://${v}`;
+}
+
+/**
+ * Global ⌘K palette (mounted in AppShell, so it works on every pane):
+ * - paste a link → save article, or add it to the wishlist
+ * - jump to a shelf search → live TMDB / Open Library / link-preview results
+ *   with one-key add, or a manual fallback
+ * - jump between panes, or open a bound work.
+ */
 export function CommandPalette({
   onOpenItem,
 }: {
   onOpenItem: (item: LibraryItem) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [page, setPage] = useState<AddPage>("home");
   const navigate = useNavigate();
   const library = useLibraryStore((s) => s.library);
+
+  const [savingUrl, setSavingUrl] = useState(false);
+  const [addingKey, setAddingKey] = useState<string | null>(null);
+
+  // Shelf search state (only live while a shelf page is active).
+  const [results, setResults] = useState<LookupResult[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const [linkPreview, setLinkPreview] = useState<LookupResult | null>(null);
+  const [fetchingLink, setFetchingLink] = useState(false);
+  const deferredQuery = useDeferredValue(query);
+  const requestId = useRef(0);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -34,76 +107,498 @@ export function CommandPalette({
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  function go(to: "/" | "/library" | "/journal" | "/shelves" | "/vault" | "/settings") {
+  // Reset to home every time the palette opens; clear the query on close.
+  useEffect(() => {
+    if (open) {
+      setPage("home");
+      setResults(null);
+      setLinkPreview(null);
+    } else {
+      setQuery("");
+      setSavingUrl(false);
+      setAddingKey(null);
+    }
+  }, [open ]);
+
+  const urlLike = useMemo(() => looksLikeUrl(query), [query]);
+  const trimmedQuery = query.trim();
+  const activeAddMeta = ADD_PAGES.find((p) => p.id === page);
+
+  // Live lookup for movie / tv / book pages.
+  useEffect(() => {
+    if (!open || page === "home" || page === "wishlist") return;
+    const q = deferredQuery.trim();
+    if (q.length < 2) {
+      setResults(null);
+      setSearching(false);
+      return;
+    }
+    const id = ++requestId.current;
+    setSearching(true);
+    const run =
+      page === "book"
+        ? searchBooks({ data: q })
+        : searchTmdb({ data: { query: q, kind: page === "tv" ? "tv" : "movie" } });
+    run
+      .then((rows) => {
+        if (requestId.current === id) {
+          setResults(rows);
+          setSearching(false);
+        }
+      })
+      .catch(() => {
+        if (requestId.current === id) {
+          setResults([]);
+          setSearching(false);
+        }
+      });
+  }, [open, page, deferredQuery]);
+
+  // Wishlist page: auto-fetch a link preview when the query is a URL.
+  useEffect(() => {
+    if (!open || page !== "wishlist") return;
+    const q = deferredQuery.trim();
+    if (!looksLikeUrl(q)) {
+      setLinkPreview(null);
+      setFetchingLink(false);
+      return;
+    }
+    const id = ++requestId.current;
+    setFetchingLink(true);
+    setLinkPreview(null);
+    void fetchLinkPreview({ data: normalizeUrl(q) })
+      .then((r) => {
+        if (requestId.current === id) {
+          setLinkPreview(r);
+          setFetchingLink(false);
+        }
+      })
+      .catch(() => {
+        if (requestId.current === id) setFetchingLink(false);
+      });
+  }, [open, page, deferredQuery]);
+
+  function close() {
     setOpen(false);
+  }
+
+  function go(to: "/" | "/library" | "/journal" | "/shelves" | "/vault" | "/settings") {
+    close();
     void navigate({ to });
   }
 
   function openWork(item: LibraryItem) {
-    setOpen(false);
+    close();
     onOpenItem(item);
   }
 
-  const works = [...library]
-    .sort((a, b) => b.savedAt - a.savedAt)
-    .slice(0, 60);
+  function enterAdd(next: ShelfTab, seedQuery?: string) {
+    setPage(next);
+    setResults(null);
+    setLinkPreview(null);
+    if (seedQuery != null) setQuery(seedQuery);
+  }
+
+  /** Persist + open the canonical server row, so `/read?id=` resolves now and after refresh. */
+  async function persistAndOpen(item: LibraryItem, successLabel: string) {
+    try {
+      const saved = await persistArticleItem(item);
+      toast.success(successLabel);
+      close();
+      void navigate({ to: "/read", search: { id: saved.id } });
+    } catch (err) {
+      console.error("[command-palette] persist failed:", err);
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        // Offline: keep the optimistic local copy so the reader still opens.
+        // The outbox keeps one retry queued.
+        toast.success("Saved here — will sync when back online");
+        close();
+        void navigate({ to: "/read", search: { id: item.id } });
+        return;
+      }
+      // Online failure: stay open and show the real reason — navigating to a
+      // row the next refresh can't see is worse than no navigation.
+      toast.error(err instanceof Error ? err.message : "Could not save that article.");
+    }
+  }
+
+  async function saveArticleFromQuery(saveLinkOnly = false) {
+    const raw = normalizeUrl(trimmedQuery);
+    if (!raw || savingUrl) return;
+    setSavingUrl(true);
+    try {
+      const result = saveLinkOnly
+        ? await saveLinkArticle({ data: { url: raw } })
+        : await extractArticle({ data: { url: raw } });
+      if (!result.ok) {
+        // Fall back to a link-only save so the URL is never lost.
+        if (!saveLinkOnly) {
+          try {
+            const fallback = await saveLinkArticle({ data: { url: raw } });
+            if (fallback.ok) {
+              await persistAndOpen(articleToItem(fallback.article), "Saved link — clean copy unavailable");
+              return;
+            }
+          } catch {
+            // fall through to the error toast below
+          }
+        }
+        toast.error(result.error);
+        return;
+      }
+      await persistAndOpen(articleToItem(result.article), "Saved to your list");
+    } catch {
+      toast.error("Could not save that link. Try again.");
+    } finally {
+      setSavingUrl(false);
+    }
+  }
+
+  async function addShelfResult(r: LookupResult, type: ShelfTab) {
+    const key = `${type}:${r.title}:${r.link ?? ""}`;
+    if (addingKey) return;
+    setAddingKey(key);
+    try {
+      const cleaned = Object.fromEntries(
+        Object.entries(r.metadata ?? {}).filter(([, v]) => v.trim() !== ""),
+      );
+      await addShelfItem({
+        data: {
+          type,
+          title: r.title.trim(),
+          link: r.link?.trim() || (page === "wishlist" && urlLike ? normalizeUrl(trimmedQuery) : undefined),
+          imageUrl: r.imageUrl?.trim() || undefined,
+          metadata: Object.keys(cleaned).length ? cleaned : undefined,
+          status: "to_try",
+        },
+      });
+      toast.success(`Added “${r.title}”`, {
+        action: {
+          label: "View shelf",
+          onClick: () => void navigate({ to: "/shelves", search: { tab: type } }),
+        },
+      });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't save that item.");
+    } finally {
+      setAddingKey(null);
+    }
+  }
+
+  async function addManualTitle(type: ShelfTab) {
+    const title = trimmedQuery || linkPreview?.title || "";
+    if (!title.trim() || addingKey) return;
+    const meta: Record<string, string> = {};
+    if (linkPreview?.metadata.description) meta.description = linkPreview.metadata.description;
+    if (linkPreview?.metadata.source) meta.source = linkPreview.metadata.source;
+    await addShelfResult(
+      {
+        title: title.trim().slice(0, 300),
+        link: urlLike ? normalizeUrl(trimmedQuery) : linkPreview?.link,
+        imageUrl: linkPreview?.imageUrl,
+        metadata: meta,
+      },
+      type,
+    );
+  }
+
+  const works = useMemo(
+    () => [...library].sort((a, b) => b.savedAt - a.savedAt).slice(0, 40),
+    [library],
+  );
+
+  const placeholder =
+    page === "home"
+      ? "Paste a link to save, or search works & shelves…"
+      : page === "wishlist"
+        ? "Paste a product link, or type a wishlist title…"
+        : `${activeAddMeta?.hint ?? "Search"} — type to search, Enter adds`;
 
   return (
-    <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Search works, jump to a pane…" />
+    <CommandDialog
+      open={open}
+      onOpenChange={setOpen}
+      title={page === "home" ? "Command palette" : `Add ${activeAddMeta?.label ?? ""}`}
+      description={
+        page === "home"
+          ? "Paste a link to save an article, or search movies, series, books and wishlist."
+          : `Search and add ${activeAddMeta?.label ?? "items"} to your shelves.`
+      }
+      // taller so live results breathe
+      className="sm:max-w-xl"
+      shouldFilter={page === "home"}
+    >
+      <CommandInput
+        value={query}
+        onValueChange={setQuery}
+        placeholder={placeholder}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && page !== "home") {
+            e.preventDefault();
+            setPage("home");
+          }
+          // In a shelf page, Enter adds the raw query as a manual item.
+          if (e.key === "Enter" && page !== "home" && trimmedQuery.length > 0) {
+            // Let cmdk pick a highlighted result first; only manual-add when
+            // there are no live results to choose from.
+            if (results == null || results.length === 0) {
+              e.preventDefault();
+              void addManualTitle(page);
+            }
+          }
+        }}
+      />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
-        <CommandGroup heading="Go to">
-          <CommandItem value="go home" onSelect={() => go("/")}>
-            <House aria-hidden="true" />
-            Home
-            <CommandShortcut>G H</CommandShortcut>
-          </CommandItem>
-          <CommandItem value="go library" onSelect={() => go("/library")}>
-            <LibraryBig aria-hidden="true" />
-            Library
-            <CommandShortcut>G L</CommandShortcut>
-          </CommandItem>
-          <CommandItem value="go journal" onSelect={() => go("/journal")}>
-            <NotebookPen aria-hidden="true" />
-            Journal
-            <CommandShortcut>G J</CommandShortcut>
-          </CommandItem>
-          <CommandItem value="go shelves movies tv books wishlist" onSelect={() => go("/shelves")}>
-            <Clapperboard aria-hidden="true" />
-            Shelves
-            <CommandShortcut>G M</CommandShortcut>
-          </CommandItem>
-          <CommandItem value="go vault highlights" onSelect={() => go("/vault")}>
-            <Vault aria-hidden="true" />
-            Vault
-            <CommandShortcut>G V</CommandShortcut>
-          </CommandItem>
-          <CommandItem value="go settings preferences" onSelect={() => go("/settings")}>
-            <Settings aria-hidden="true" />
-            Settings
-            <CommandShortcut>G S</CommandShortcut>
-          </CommandItem>
-        </CommandGroup>
-        <CommandSeparator />
-        <CommandGroup heading="Works">
-          {works.map((item) => (
-            <CommandItem
-              key={item.id}
-              value={`${item.title} ${item.author ?? ""} ${item.siteName ?? ""} ${item.url} ${(item.tags ?? []).join(" ")} ${item.note ?? ""} ${(item.highlights ?? []).map((h) => `${h.text} ${h.note}`).join(" ")}`}
-              keywords={[...(item.tags ?? []), item.author ?? "", item.siteName ?? ""]}
-              onSelect={() => openWork(item)}
+        <CommandEmpty>
+          {page !== "home" && trimmedQuery.length >= 2 ? (
+            <button
+              type="button"
+              className="mx-auto flex items-center gap-2 rounded-full bg-hanko px-4 py-2 text-sm font-semibold text-white hover:bg-shu"
+              onClick={() => void addManualTitle(page)}
             >
-              <BookOpen aria-hidden="true" />
-              <span className="truncate">{item.title}</span>
-              {item.highlights?.length ? (
-                <CommandShortcut>{item.highlights.length} inked</CommandShortcut>
-              ) : item.readingMinutes ? (
-                <CommandShortcut>{item.readingMinutes} min</CommandShortcut>
+              <Plus className="size-4" aria-hidden="true" />
+              Add “{trimmedQuery.slice(0, 60)}” manually
+            </button>
+          ) : (
+            "No results found."
+          )}
+        </CommandEmpty>
+
+        {page === "home" ? (
+          <>
+            <CommandGroup heading="Add">
+              {urlLike ? (
+                <>
+                  <CommandItem
+                    value={`save article ${trimmedQuery}`}
+                    keywords={["paste", "link", "url", "clip", "save article"]}
+                    disabled={savingUrl}
+                    onSelect={() => void saveArticleFromQuery(false)}
+                  >
+                    {savingUrl ? (
+                      <LoaderCircle className="animate-spin" aria-hidden="true" />
+                    ) : (
+                      <ClipboardPaste aria-hidden="true" />
+                    )}
+                    <span className="truncate">Save article from link</span>
+                    <CommandShortcut>↵</CommandShortcut>
+                  </CommandItem>
+                  <CommandItem
+                    value={`wishlist from link ${trimmedQuery}`}
+                    keywords={["wishlist", "product", "buy", "link"]}
+                    onSelect={() => enterAdd("wishlist")}
+                  >
+                    <Gift aria-hidden="true" />
+                    <span className="truncate">Add link to wishlist…</span>
+                    <CommandShortcut>
+                      <ArrowRight className="size-3.5" aria-hidden="true" />
+                    </CommandShortcut>
+                  </CommandItem>
+                </>
               ) : null}
-            </CommandItem>
-          ))}
-        </CommandGroup>
+              {ADD_PAGES.map((p) => (
+                <CommandItem
+                  key={p.id}
+                  value={`add ${p.label} ${p.hint}`}
+                  keywords={[p.label.toLowerCase(), p.id, "add", "search", p.hint]}
+                  onSelect={() => enterAdd(p.id, trimmedQuery.length >= 2 ? trimmedQuery : "")}
+                >
+                  <p.icon aria-hidden="true" />
+                  <span className="truncate">
+                    Add {p.label.toLowerCase()}…
+                    {trimmedQuery.length >= 2 && !urlLike ? (
+                      <span className="text-muted-foreground"> for “{trimmedQuery.slice(0, 40)}”</span>
+                    ) : null}
+                  </span>
+                  <CommandShortcut>
+                    <ArrowRight className="size-3.5" aria-hidden="true" />
+                  </CommandShortcut>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+            <CommandSeparator />
+            <CommandGroup heading="Go to">
+              <CommandItem value="go home" onSelect={() => go("/")}>
+                <House aria-hidden="true" />
+                Home
+                <CommandShortcut>G H</CommandShortcut>
+              </CommandItem>
+              <CommandItem value="go library" onSelect={() => go("/library")}>
+                <LibraryBig aria-hidden="true" />
+                Library
+                <CommandShortcut>G L</CommandShortcut>
+              </CommandItem>
+              <CommandItem value="go journal" onSelect={() => go("/journal")}>
+                <NotebookPen aria-hidden="true" />
+                Journal
+                <CommandShortcut>G J</CommandShortcut>
+              </CommandItem>
+              <CommandItem value="go shelves movies tv books wishlist" onSelect={() => go("/shelves")}>
+                <Clapperboard aria-hidden="true" />
+                Shelves
+                <CommandShortcut>G M</CommandShortcut>
+              </CommandItem>
+              <CommandItem value="go vault highlights" onSelect={() => go("/vault")}>
+                <Vault aria-hidden="true" />
+                Vault
+                <CommandShortcut>G V</CommandShortcut>
+              </CommandItem>
+              <CommandItem value="go settings preferences" onSelect={() => go("/settings")}>
+                <Settings aria-hidden="true" />
+                Settings
+                <CommandShortcut>G S</CommandShortcut>
+              </CommandItem>
+            </CommandGroup>
+            <CommandSeparator />
+            <CommandGroup heading="Works">
+              {works.map((item) => (
+                <CommandItem
+                  key={item.id}
+                  value={`${item.title} ${item.author ?? ""} ${item.siteName ?? ""} ${item.url} ${(item.tags ?? []).join(" ")} ${item.note ?? ""} ${(item.highlights ?? []).map((h) => `${h.text} ${h.note}`).join(" ")}`}
+                  keywords={[...(item.tags ?? []), item.author ?? "", item.siteName ?? ""]}
+                  onSelect={() => openWork(item)}
+                >
+                  <BookOpen aria-hidden="true" />
+                  <span className="truncate">{item.title}</span>
+                  {item.highlights?.length ? (
+                    <CommandShortcut>{item.highlights.length} inked</CommandShortcut>
+                  ) : item.readingMinutes ? (
+                    <CommandShortcut>{item.readingMinutes} min</CommandShortcut>
+                  ) : null}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </>
+        ) : (
+          <>
+            <CommandGroup heading={`Add ${activeAddMeta?.label ?? ""}`}>
+              <CommandItem
+                value="__back"
+                keywords={["back", "home", "cancel"]}
+                onSelect={() => setPage("home")}
+              >
+                <ArrowLeft aria-hidden="true" />
+                Back to all commands
+                <CommandShortcut>esc</CommandShortcut>
+              </CommandItem>
+              {page === "wishlist" && urlLike ? (
+                <CommandItem
+                  value={`save wishlist link ${trimmedQuery}`}
+                  keywords={["fetch", "link", "wishlist", "product"]}
+                  disabled={fetchingLink || addingKey != null}
+                  onSelect={() => {
+                    if (linkPreview) void addShelfResult(linkPreview, "wishlist");
+                    else if (!fetchingLink) void addManualTitle("wishlist");
+                  }}
+                >
+                  {fetchingLink || addingKey ? (
+                    <LoaderCircle className="animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Link2 aria-hidden="true" />
+                  )}
+                  <span className="truncate">
+                    {fetchingLink
+                      ? "Reading link…"
+                      : linkPreview
+                        ? `Add “${linkPreview.title.slice(0, 50)}” to wishlist`
+                        : "Add link to wishlist"}
+                  </span>
+                  <CommandShortcut>↵</CommandShortcut>
+                </CommandItem>
+              ) : null}
+              {page === "wishlist" && !urlLike && trimmedQuery.length >= 2 ? (
+                <CommandItem
+                  value={`manual wishlist ${trimmedQuery}`}
+                  keywords={["manual", "wishlist", "add"]}
+                  disabled={addingKey != null}
+                  onSelect={() => void addManualTitle("wishlist")}
+                >
+                  {addingKey ? (
+                    <LoaderCircle className="animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Plus aria-hidden="true" />
+                  )}
+                  <span className="truncate">Add “{trimmedQuery.slice(0, 50)}” to wishlist</span>
+                  <CommandShortcut>↵</CommandShortcut>
+                </CommandItem>
+              ) : null}
+              {page !== "wishlist" && trimmedQuery.trim().length >= 2 ? (
+                <CommandItem
+                  value={`manual ${page} ${trimmedQuery}`}
+                  keywords={["manual", "add", page]}
+                  disabled={addingKey != null}
+                  onSelect={() => void addManualTitle(page)}
+                >
+                  {addingKey ? (
+                    <LoaderCircle className="animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Plus aria-hidden="true" />
+                  )}
+                  <span className="truncate">
+                    Add “{trimmedQuery.slice(0, 50)}” as {activeAddMeta?.label.toLowerCase()}
+                  </span>
+                  <CommandShortcut>↵</CommandShortcut>
+                </CommandItem>
+              ) : null}
+            </CommandGroup>
+
+            {page === "wishlist" ? null : (
+              <CommandGroup heading={searching ? "Searching…" : results?.length ? "Results — pick to add" : undefined}>
+                {searching
+                  ? Array.from({ length: 3 }).map((_, i) => (
+                      <CommandItem key={`skeleton-${i}`} value={`searching-${i}`} disabled>
+                        <LoaderCircle className="animate-spin" aria-hidden="true" />
+                        <span className="truncate text-muted-foreground">Searching…</span>
+                      </CommandItem>
+                    ))
+                  : (results ?? []).map((r, i) => {
+                      const key = `${page}:${r.title}:${r.link ?? i}`;
+                      const busy = addingKey === key;
+                      const sub = [r.metadata.year, r.metadata.genre, r.metadata.author]
+                        .filter(Boolean)
+                        .join(" · ");
+                      return (
+                        <CommandItem
+                          key={`${r.title}-${i}`}
+                          value={`${r.title} ${sub} ${r.link ?? ""}`}
+                          keywords={[r.title, r.metadata.author ?? "", r.metadata.year ?? ""]}
+                          disabled={addingKey != null}
+                          onSelect={() => void addShelfResult(r, page)}
+                        >
+                          {r.imageUrl ? (
+                            <img
+                              src={r.imageUrl}
+                              alt=""
+                              className="h-8 w-6 shrink-0 rounded border border-line object-cover"
+                            />
+                          ) : busy ? (
+                            <LoaderCircle className="animate-spin" aria-hidden="true" />
+                          ) : (
+                            <Plus aria-hidden="true" />
+                          )}
+                          <span className="min-w-0 flex-1 truncate">
+                            {r.title}
+                            {sub ? <span className="text-muted-foreground"> · {sub}</span> : null}
+                          </span>
+                          {busy ? (
+                            <CommandShortcut>adding…</CommandShortcut>
+                          ) : (
+                            <CommandShortcut>add</CommandShortcut>
+                          )}
+                        </CommandItem>
+                      );
+                    })}
+              </CommandGroup>
+            )}
+            {page !== "wishlist" ? (
+              <p className="px-3 py-2 text-center text-[11px] text-muted-foreground">
+                {page === "book"
+                  ? "Powered by Open Library."
+                  : "This product uses the TMDB API but is not endorsed or certified by TMDB."}
+              </p>
+            ) : null}
+          </>
+        )}
       </CommandList>
     </CommandDialog>
   );
