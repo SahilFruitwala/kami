@@ -40,12 +40,21 @@ export function LibraryFilters({
         <Star className={cn("size-3.5", favoritesOnly && "fill-current")} aria-hidden="true" />
         Favorites
       </FilterChip>
-      <FilterChip active={folderFilter === "none"} onClick={() => onFolder("all")}>
+      <FilterChip active={folderFilter === "all"} onClick={() => onFolder("all")}>
         All slipcases
+      </FilterChip>
+      <FilterChip
+        active={folderFilter === "none"}
+        onClick={() => onFolder(folderFilter === "none" ? "all" : "none")}
+      >
+        Unfiled
       </FilterChip>
       {folders.map((folder) => (
         <span key={folder.id} className="inline-flex items-center">
-          <FilterChip active={folderFilter === folder.id} onClick={() => onFolder(folder.id)}>
+          <FilterChip
+            active={folderFilter === folder.id}
+            onClick={() => onFolder(folderFilter === folder.id ? "all" : folder.id)}
+          >
             {folder.name}
           </FilterChip>
           <button

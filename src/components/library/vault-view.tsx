@@ -470,7 +470,8 @@ function SlipCard({
   onOpenItem: (item: LibraryItem) => void;
 }) {
   const { item, highlight } = slip;
-  const [loved, setLoved] = useState(false);
+  const setFavorited = useLibraryStore((s) => s.setFavorited);
+  const favorited = item.favorited;
 
   async function copyText(text: string, message: string) {
     try {
@@ -545,15 +546,19 @@ function SlipCard({
         </div>
         <button
           type="button"
-          onClick={() => setLoved((v) => !v)}
-          aria-pressed={loved}
-          aria-label="Keep in quick-access scroll"
+          onClick={() => {
+            setFavorited(item.id, !favorited);
+            toast.success(favorited ? "Removed from Favorites" : "Added to Favorites");
+          }}
+          aria-pressed={favorited}
+          aria-label={favorited ? "Remove from Favorites" : "Add to Favorites"}
+          title={favorited ? "Remove from Favorites" : "Add to Favorites"}
           className={cn(
             "transition-transform hover:scale-110",
-            loved ? "text-hanko" : "text-ink-muted hover:text-hanko",
+            favorited ? "text-hanko" : "text-ink-muted hover:text-hanko",
           )}
         >
-          <Heart className={cn("size-[18px]", loved && "fill-hanko")} aria-hidden="true" />
+          <Heart className={cn("size-[18px]", favorited && "fill-hanko")} aria-hidden="true" />
         </button>
       </div>
     </article>

@@ -3,6 +3,7 @@ import { addTransitionType, startTransition, useEffect } from "react";
 import { AppGate } from "@/components/app-gate.tsx";
 import { DirectionalTransition } from "@/components/directional-transition.tsx";
 import { ToolsDialog } from "@/components/library/library-dialogs.tsx";
+import { CommandPalette } from "@/components/library/command-palette.tsx";
 import { LibraryHome } from "@/components/library/library-home.tsx";
 import { SiteFooter } from "@/components/library/widgets.tsx";
 import { SiteHeader } from "@/components/site-header.tsx";
@@ -48,17 +49,6 @@ function Library() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        document.getElementById("library-search")?.focus();
-      }
-    }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, []);
-
   async function openItemOrFetch(item: LibraryItem) {
     startTransition(() => {
       addTransitionType("nav-forward");
@@ -93,6 +83,7 @@ function Library() {
         onOpenChange={tools.setToolsOpen}
         bookmarklet={tools.bookmarklet}
       />
+      <CommandPalette onOpenItem={(item) => void openItemOrFetch(item)} />
     </main>
   );
 }

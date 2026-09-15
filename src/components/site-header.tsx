@@ -3,7 +3,6 @@ import { BookMarked, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { Show, SignInButton, SignUpButton, UserButton } from "@/lib/auth/gates";
-import { useLibraryStore } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
 
 export type SitePane = "home" | "library" | "vault";
@@ -16,19 +15,6 @@ export function SiteHeader({
   active: SitePane;
   onOpenTools: () => void;
 }) {
-  const library = useLibraryStore((s) => s.library);
-  const minutesToday = library
-    .filter((row) => {
-      const start = new Date();
-      start.setHours(0, 0, 0, 0);
-      return row.savedAt >= start.getTime();
-    })
-    .reduce((n, row) => n + (row.readingMinutes || 0), 0);
-  const passagesInked = library.reduce(
-    (n, row) => n + (row.highlights?.length ?? 0),
-    0,
-  );
-
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur-xl">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-12">
@@ -50,11 +36,6 @@ export function SiteHeader({
               </span>
             </span>
           </Link>
-          <span className="mx-1 hidden h-6 w-px bg-line md:block" aria-hidden="true" />
-          <p className="hidden items-center gap-1.5 rounded-[0.25rem] bg-paper-warm px-2.5 py-1 text-xs font-medium text-ink-soft xl:flex">
-            <span className="size-1.5 rounded-full bg-ok" aria-hidden="true" />
-            {minutesToday} mins read today · {passagesInked} passages inked
-          </p>
         </div>
 
         <nav aria-label="Sanctuary pages" className="hidden items-center gap-1 lg:flex">

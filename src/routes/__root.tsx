@@ -79,6 +79,7 @@ function ThemeShell() {
       <Outlet />
       <Toaster
         position="bottom-center"
+        closeButton
         theme={theme === "dark" ? "dark" : "light"}
         toastOptions={{
           className:
