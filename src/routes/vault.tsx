@@ -40,7 +40,8 @@ function Vault() {
   }
 
   return (
-    <main className="kami-desk relative flex min-h-dvh flex-col overflow-x-hidden">
+    <main id="main" className="kami-desk relative flex min-h-dvh flex-col overflow-x-hidden [touch-action:manipulation]">
+      <a href="#main" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-ink focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper">Skip to content</a>
       <SiteHeader active="vault" onOpenTools={() => tools.setToolsOpen(true)} />
 
       <div className="flex-1">

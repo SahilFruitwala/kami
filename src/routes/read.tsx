@@ -85,7 +85,7 @@ function Read() {
     return (
       <main className="kami-desk flex min-h-dvh items-center justify-center px-6">
         <div className="kami-sheet flex max-w-sm flex-col items-center gap-3 p-8 text-center">
-          <p className="font-display text-2xl text-ink">Scroll not found</p>
+          <h1 className="font-display text-2xl text-ink text-balance">Scroll Not Found</h1>
           <p className="font-body text-sm text-ink-muted">
             This work may have been removed. Return to the library to keep reading.
           </p>
@@ -109,7 +109,7 @@ function Read() {
           role={fetchError ? "alert" : "status"}
           aria-live="polite"
         >
-          <p className="font-display text-2xl text-ink">{openItem.title}</p>
+          <h1 className="font-display text-2xl text-balance text-ink">{openItem.title}</h1>
           {!fetchError ? (
             <div className="h-4 w-2/3 animate-pulse rounded-full bg-paper-warm" aria-hidden="true" />
           ) : null}

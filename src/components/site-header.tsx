@@ -30,7 +30,7 @@ export function SiteHeader({
               K
             </span>
             <span className="leading-none">
-              <span className="block font-display text-base font-semibold tracking-tight text-ink">
+              <span className="block font-display text-base font-semibold tracking-tight text-ink" translate="no">
                 KAMI
               </span>
               <span className="kami-label mt-0.5 hidden text-ink-muted sm:block">

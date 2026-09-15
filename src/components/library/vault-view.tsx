@@ -180,10 +180,16 @@ export function VaultView({
           </label>
           <Input
             id="vault-search"
+            name="vault-q"
+            type="search"
+            autoComplete="off"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
             value={localQuery}
             onChange={(e) => setLocalQuery(e.target.value)}
             placeholder="Filter by concept, author, or feeling…"
-            className="border-0 bg-bg/70 pr-4 pl-10 shadow-none"
+            className="border-0 bg-bg/70 pr-4 pl-10 shadow-none focus-visible:ring-2 focus-visible:ring-hanko/40"
           />
         </div>
         <div className="flex items-center gap-1 overflow-x-auto">
@@ -211,7 +217,11 @@ export function VaultView({
         </div>
       </div>
 
-      {(tag || author) && (
+      <p className="font-sans text-xs text-ink-muted" role="status" aria-live="polite">
+        Showing {filtered.length} of {slips.length} slips{tag ? ` tagged #${tag}` : ""}{author ? ` by ${author}` : ""}{q ? ` matching “${localQuery || query}”` : ""}
+      </p>
+
+      {(tag || author || localQuery) && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-sans text-xs text-ink-muted">Filtered by</span>
           {tag ? (
@@ -232,6 +242,17 @@ export function VaultView({
               {author} ✕
             </button>
           ) : null}
+          <button
+            type="button"
+            onClick={() => {
+              setTag(null);
+              setAuthor(null);
+              setLocalQuery("");
+            }}
+            className="rounded px-2 py-0.5 font-sans text-xs font-medium text-ink-muted underline underline-offset-2 hover:text-hanko"
+          >
+            Clear all
+          </button>
         </div>
       )}
 
@@ -279,9 +300,22 @@ export function VaultView({
             </div>
           )}
           {filtered.length === 0 ? (
-            <p className="kami-sheet p-8 text-center font-body text-sm text-ink-muted italic">
-              No slips match this filtering of the river.
-            </p>
+            <div className="kami-sheet p-8 text-center">
+              <p className="font-body text-sm text-ink-muted italic">
+                No slips match this filtering of the river.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setTag(null);
+                  setAuthor(null);
+                  setLocalQuery("");
+                }}
+                className="mt-3 rounded-[0.25rem] bg-hanko px-4 py-2 font-sans text-xs font-semibold text-white shadow-sm hover:bg-shu"
+              >
+                Clear Filters
+              </button>
+            </div>
           ) : null}
         </div>
 
@@ -429,7 +463,7 @@ function ModeButton({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "flex items-center gap-1.5 rounded-md px-3 py-1 font-sans text-xs transition-all",
+        "flex items-center gap-1.5 rounded-md px-3 py-1 font-sans text-xs transition-colors",
         active ? "bg-surface text-hanko shadow-sm" : "text-ink-soft hover:text-ink",
       )}
     >
@@ -491,7 +525,7 @@ function SlipCard({
           </span>
           <Hanko glyph={(item.author || item.siteName || "K").trim().charAt(0) || "K"} square className="size-7 text-[11px]" />
         </div>
-        <blockquote className="font-display text-lg leading-snug font-normal text-ink italic">
+        <blockquote className="font-display text-lg leading-snug font-normal break-words text-ink italic">
           “{highlight.text}”
         </blockquote>
         <div>
@@ -583,6 +617,12 @@ function SlipAction({
   );
 }
 
+function weekdayLabel(daysAgo: number): string {
+  return new Intl.DateTimeFormat(undefined, { weekday: "short" }).format(
+    new Date(Date.now() - daysAgo * 86_400_000),
+  );
+}
+
 function InkSparkline({ slips }: { slips: Slip[] }) {
   const bins = useMemo(() => {
     const counts = new Array(7).fill(0) as number[];
@@ -603,10 +643,10 @@ function InkSparkline({ slips }: { slips: Slip[] }) {
         <path d={`M${pts.replaceAll(" ", " L")}`} stroke="currentColor" strokeLinecap="round" strokeWidth="2.5" vectorEffect="non-scaling-stroke" />
         <circle cx="192" cy={34 - (bins[6] / max) * 26} r="4" className="fill-hanko" />
       </svg>
-      <div className="mt-1 flex justify-between font-sans text-[10px] text-ink-muted">
-        <span>Mon</span>
-        <span>Wed</span>
-        <span>Fri</span>
+      <div className="mt-1 flex justify-between font-sans text-[10px] tabular-nums text-ink-muted">
+        <span>{weekdayLabel(6)}</span>
+        <span>{weekdayLabel(4)}</span>
+        <span>{weekdayLabel(2)}</span>
         <span>Today</span>
       </div>
       <p className="mt-2 flex items-center gap-1.5 font-body text-xs text-ink-muted">

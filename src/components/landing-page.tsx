@@ -39,7 +39,7 @@ const FEATURES = [
   {
     icon: MousePointerClick,
     title: "Bookmarklet Capture",
-    copy: "One click saves the page you are reading — even when a site blocks server-side scraping.",
+    copy: "1 click saves the page you are reading — even when a site blocks server-side scraping.",
   },
   {
     icon: LibraryBig,
@@ -68,8 +68,8 @@ const STEPS = [
 
 const FAQS = [
   {
-    q: "What can I save to Quarto?",
-    a: "Public blog posts and X articles. Paste the URL and Quarto extracts a clean reading copy with title, excerpt, hero image, and body text.",
+    q: "What can I save to KAMI?",
+    a: "Public blog posts and X articles. Paste the URL and KAMI extracts a clean reading copy with title, excerpt, hero image, and body text.",
   },
   {
     q: "What happens when a site blocks scraping?",
@@ -84,7 +84,7 @@ const FAQS = [
     a: "Yes. Your saves stay in your account on this app. Nothing is published or shared unless you choose to.",
   },
   {
-    q: "Does Quarto work on mobile?",
+    q: "Does KAMI work on mobile?",
     a: "Yes. The library, reader, and capture bar are responsive with large touch targets and safe-area-aware layouts.",
   },
 ] as const;
@@ -111,7 +111,7 @@ export function LandingPage() {
           <span className="flex size-8 items-center justify-center rounded-md bg-ink text-paper">
             <BookMarked className="size-4" aria-hidden="true" />
           </span>
-          <span className="text-sm font-semibold tracking-tight">Quarto</span>
+          <span className="text-sm font-semibold tracking-tight" translate="no">KAMI</span>
         </Link>
         <nav aria-label="Primary" className="hidden items-center gap-6 text-sm text-ink-soft md:flex">
           <a href="#features" className="rounded-sm transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30">
@@ -175,14 +175,14 @@ export function LandingPage() {
             </div>
 
             {/* Product mock — pure CSS, zero image cost, no CLS */}
-            <div className="relative" aria-label="Preview of the Quarto library and reader" role="img">
+            <div className="relative" aria-label="Preview of the KAMI library and reader" role="img">
               <div className="rounded-2xl bg-surface p-4 shadow-device sm:p-5">
                 <div className="flex items-center gap-2 border-b border-line pb-3">
                   <span className="flex size-7 items-center justify-center rounded-md bg-ink text-paper">
                     <BookMarked className="size-3.5" aria-hidden="true" />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold">Quarto</p>
+                    <p className="truncate text-sm font-semibold" translate="no">KAMI</p>
                     <p className="text-xs text-ink-muted">Save &amp; read later</p>
                   </div>
                   <span className="rounded-full bg-paper-warm px-2.5 py-1 text-xs text-ink-soft">
@@ -237,7 +237,7 @@ export function LandingPage() {
         </section>
 
         {/* Strip */}
-        <section aria-label="Who Quarto is for" className="border-y border-line bg-surface/60">
+        <section aria-label="Who KAMI is for" className="border-y border-line bg-surface/60">
           <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 py-4 text-sm text-ink-muted sm:px-6">
             <span className="font-medium text-ink-soft">Built for</span>
             <span>Essay collectors</span>
@@ -378,7 +378,7 @@ export function LandingPage() {
               Stop Losing Great Reads to Open Tabs
             </h2>
             <p className="mx-auto mt-3 max-w-md text-base leading-relaxed text-paper/75">
-              Join Quarto and turn scattered links into a library you actually finish.
+              Join KAMI and turn scattered links into a library you actually finish.
             </p>
             <div className="mt-6 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
               <SignUpButton mode="modal">
@@ -411,7 +411,7 @@ export function LandingPage() {
             <span className="flex size-6 items-center justify-center rounded-md bg-ink text-paper">
               <BookMarked className="size-3.5" aria-hidden="true" />
             </span>
-            <span translate="no">Quarto</span> — your quiet reading list.
+            <span translate="no">KAMI</span> — your quiet reading list.
           </span>
           <nav aria-label="Footer" className="flex items-center gap-5">
             <a href="#features" className="rounded-sm transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30">Features</a>

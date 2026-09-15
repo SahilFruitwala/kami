@@ -1,4 +1,4 @@
-import { memo, type CSSProperties, type MouseEvent, type RefObject } from "react";
+import { memo, type CSSProperties, type KeyboardEvent, type MouseEvent, type RefObject } from "react";
 
 export const ReaderBody = memo(function ReaderBody({
   html,
@@ -6,6 +6,7 @@ export const ReaderBody = memo(function ReaderBody({
   fontId,
   onSelectEnd,
   onClick,
+  onKeyDown,
   bodyRef,
 }: {
   html: string;
@@ -13,6 +14,7 @@ export const ReaderBody = memo(function ReaderBody({
   fontId: string;
   onSelectEnd: () => void;
   onClick: (event: MouseEvent<HTMLDivElement>) => void;
+  onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
   bodyRef: RefObject<HTMLDivElement | null>;
 }) {
   return (
@@ -24,6 +26,7 @@ export const ReaderBody = memo(function ReaderBody({
       onMouseUp={onSelectEnd}
       onTouchEnd={onSelectEnd}
       onClick={onClick}
+      onKeyDown={onKeyDown}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

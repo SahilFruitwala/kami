@@ -4,7 +4,7 @@ import { Toaster } from "sonner";
 import { useTheme } from "@/hooks/use-theme.ts";
 import appCss from "../styles.css?url";
 
-const APP_NAME = "Quarto";
+const APP_NAME = "KAMI";
 
 const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem('quarto-theme');var t=s==='light'||s==='dark'?s:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');if(t==='dark')document.documentElement.classList.add('dark');document.documentElement.style.colorScheme=t;}catch(e){}})();`;
 
@@ -14,17 +14,17 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Quarto — Save Anything Worth Reading" },
+      { title: "KAMI — Save Anything Worth Reading" },
       {
         name: "description",
         content:
-          "Quarto is a quiet read-later app for blogs and X articles — save a link, read a clean distraction-free page, highlight, tag, and find it in seconds.",
+          "KAMI is a quiet read-later app for blogs and X articles — save a link, read a clean distraction-free page, highlight, tag, and find it in seconds.",
       },
       { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#F3EEE4" },
       { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#161310" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: APP_NAME },
-      { property: "og:title", content: "Quarto — Save Anything Worth Reading" },
+      { property: "og:title", content: "KAMI — Save Anything Worth Reading" },
       {
         property: "og:description",
         content:
@@ -32,7 +32,7 @@ export const Route = createRootRoute({
       },
       { property: "og:image", content: "/og.jpg" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "Quarto — Save Anything Worth Reading" },
+      { name: "twitter:title", content: "KAMI — Save Anything Worth Reading" },
       {
         name: "twitter:description",
         content:

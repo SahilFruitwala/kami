@@ -86,7 +86,7 @@ export function ReaderPrefsPanel({
           className="size-9 bg-paper-warm text-ink hover:bg-paper-warm/80"
           onClick={() => onBumpSize(-1)}
         >
-          <Minus className="size-4" />
+          <Minus className="size-4" aria-hidden="true" />
         </Button>
         <div className="flex flex-1 items-center justify-center gap-1.5 px-1" aria-hidden="true">
           {READER_FONT_SIZES.map((_, i) => (
@@ -108,7 +108,7 @@ export function ReaderPrefsPanel({
           className="size-9 bg-paper-warm text-ink hover:bg-paper-warm/80"
           onClick={() => onBumpSize(1)}
         >
-          <Plus className="size-4" />
+          <Plus className="size-4" aria-hidden="true" />
         </Button>
       </div>
 

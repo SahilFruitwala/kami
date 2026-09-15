@@ -19,9 +19,9 @@ export function LibraryTabs({
   }
 
   return (
-    <nav
+    <div
       aria-label="Library views"
-      role="tablist"
+      role="group"
       className="flex items-center gap-1.5 overflow-x-auto pb-1"
     >
       <TabButton active={tab === "inbox"} onClick={() => select("inbox")}>
@@ -30,7 +30,7 @@ export function LibraryTabs({
       <TabButton active={tab === "archive"} onClick={() => select("archive")}>
         Archived Inks ({archiveCount})
       </TabButton>
-    </nav>
+    </div>
   );
 }
 
@@ -46,11 +46,10 @@ function TabButton({
   return (
     <button
       type="button"
-      role="tab"
-      aria-selected={active}
+      aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "rounded-[0.25rem] px-4 py-2 font-sans text-xs font-medium whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+        "rounded-[0.25rem] px-4 py-2 font-sans text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
         active
           ? "bg-hanko font-semibold text-white shadow-sm"
           : "text-ink-soft hover:bg-paper-warm hover:text-ink",
