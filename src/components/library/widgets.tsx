@@ -92,6 +92,55 @@ export function DeskHero({
   );
 }
 
+/** First-run guide shown on Home while the desk is empty. Mirrors Settings → Help. */
+export function EmptyDeskGuide() {
+  return (
+    <section aria-label="Getting started" className="kami-sheet-raised relative overflow-hidden p-8 md:p-10">
+      <div
+        className="pointer-events-none absolute -right-20 -bottom-20 size-80 rounded-full bg-hanko/10 blur-3xl"
+        aria-hidden="true"
+      />
+      <div className="relative z-10">
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <WashiTag tone="vermilion">First Evening</WashiTag>
+          <span className="font-sans text-[11px] tabular-nums text-ink-muted">
+            Three steps to a quiet desk
+          </span>
+        </div>
+        <h2 className="mb-2 font-display text-2xl leading-tight tracking-tight text-ink text-balance md:text-3xl">
+          Your desk is empty — bind your first link.
+        </h2>
+        <ol className="mt-6 grid gap-3 md:grid-cols-3">
+          {[
+            ["1 · Bind a link", "Paste a blog or X URL above. Kami keeps a clean, distraction-free copy."],
+            ["2 · Ink a passage", "Select any passage in the reader. It is pressed into the Highlight Vault."],
+            ["3 · Find it in seconds", "Filter the Library, or press ⌘K to jump to works and highlights."],
+          ].map(([title, copy]) => (
+            <li key={title} className="rounded-[0.25rem] bg-bg/60 p-4">
+              <p className="font-sans text-sm font-semibold text-ink">{title}</p>
+              <p className="mt-1 font-body text-sm leading-relaxed text-ink-muted">{copy}</p>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-6 flex flex-wrap items-center gap-4">
+          <Link
+            to="/settings"
+            hash="help"
+            className="inline-flex items-center gap-2 rounded-[0.25rem] bg-hanko px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-sm transition-all hover:bg-shu active:translate-y-px"
+          >
+            <BookOpen className="size-[18px]" aria-hidden="true" />
+            Open the full guide
+          </Link>
+          <span className="inline-flex items-center gap-1.5 font-sans text-xs text-ink-muted">
+            <Highlighter className="size-3.5" aria-hidden="true" />
+            This card retires itself once you bind something
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function ReadingRhythmCard() {
   const library = useLibraryStore((s) => s.library);
   const { minutesToday } = useDeskStats();

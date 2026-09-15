@@ -7,6 +7,7 @@ import {
   removeLibraryItem,
   renameLibraryFolder,
   upsertLibraryItem,
+  wipeLibrary,
   type LibrarySnapshot,
 } from "@/lib/library-fns";
 import {
@@ -24,10 +25,67 @@ export function setLibraryRemoteEnabled(enabled: boolean) {
   remoteEnabled = enabled;
 }
 
-function sync(task: () => Promise<unknown>) {
+type OutboxEntry = { id: number; label: string; run: () => Promise<unknown> };
+
+let outboxSeq = 0;
+const outbox: OutboxEntry[] = [];
+const outboxListeners = new Set<(count: number) => void>();
+
+function notifyOutbox() {
+  for (const fn of outboxListeners) fn(outbox.length);
+}
+
+/** Subscribe to the pending-sync count (offline outbox). Immediate initial call. */
+export function subscribeOutbox(fn: (count: number) => void): () => void {
+  outboxListeners.add(fn);
+  fn(outbox.length);
+  return () => {
+    outboxListeners.delete(fn);
+  };
+}
+
+export function pendingSyncCount(): number {
+  return outbox.length;
+}
+
+function enqueue(entry: Omit<OutboxEntry, "id">) {
+  outbox.push({ ...entry, id: ++outboxSeq });
+  notifyOutbox();
+}
+
+function sync(label: string, task: () => Promise<unknown>) {
   if (!remoteEnabled) return;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    enqueue({ label, run: task });
+    return;
+  }
   void task().catch((err) => {
     console.error("[library]", err);
+    enqueue({ label, run: task });
+  });
+}
+
+/** Retry every queued mutation in order. Keeps failures queued for later. */
+export async function flushSyncOutbox(): Promise<{ done: number; failed: number }> {
+  let done = 0;
+  const failed: OutboxEntry[] = [];
+  for (const entry of outbox.splice(0)) {
+    try {
+      await entry.run();
+      done += 1;
+    } catch (err) {
+      console.error("[library]", err);
+      failed.push(entry);
+    }
+  }
+  outbox.unshift(...failed);
+  notifyOutbox();
+  return { done, failed: failed.length };
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("online", () => {
+    void flushSyncOutbox();
   });
 }
 
@@ -96,15 +154,15 @@ export async function bootstrapLibraryFromServer(): Promise<void> {
 }
 
 export function syncUpsertItem(item: LibraryItem) {
-  sync(() => upsertLibraryItem({ data: item }));
+  sync("save", () => upsertLibraryItem({ data: item }));
 }
 
 export function syncArchiveItem(id: string, archived: boolean) {
-  sync(() => patchLibraryItem({ data: { id, archived } }));
+  sync("archive", () => patchLibraryItem({ data: { id, archived } }));
 }
 
 export function syncRemoveItem(id: string) {
-  sync(() => removeLibraryItem({ data: { id } }));
+  sync("remove", () => removeLibraryItem({ data: { id } }));
 }
 
 export function syncPatchItem(
@@ -117,19 +175,26 @@ export function syncPatchItem(
     highlights?: LibraryItem["highlights"];
   },
 ) {
-  sync(() => patchLibraryItem({ data: { id, ...patch } }));
+  sync("update", () => patchLibraryItem({ data: { id, ...patch } }));
 }
 
 export function syncAddFolder(folder: Folder) {
-  sync(() => addLibraryFolder({ data: { id: folder.id, name: folder.name } }));
+  sync("folder", () => addLibraryFolder({ data: { id: folder.id, name: folder.name } }));
 }
 
 export function syncRenameFolder(id: string, name: string) {
-  sync(() => renameLibraryFolder({ data: { id, name } }));
+  sync("folder", () => renameLibraryFolder({ data: { id, name } }));
 }
 
 export function syncRemoveFolder(id: string) {
-  sync(() => removeLibraryFolder({ data: { id } }));
+  sync("folder", () => removeLibraryFolder({ data: { id } }));
+}
+
+/** Delete every server row for this account, then clear local state.
+ *  Explicit user action — not queued; throws when unreachable. */
+export async function wipeLibraryAccount(): Promise<void> {
+  await wipeLibrary();
+  useLibraryStore.setState({ library: [], folders: [], openId: null });
 }
 
 export function clearLibraryLocal() {

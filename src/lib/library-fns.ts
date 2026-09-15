@@ -275,6 +275,17 @@ export const removeLibraryItem = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+/** Delete every article + folder owned by this user. Scoped by userId —
+ *  nothing outside the caller's account is touched. */
+export const wipeLibrary = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }): Promise<{ ok: true }> => {
+    const db = await getDb();
+    await db.delete(articles).where(eq(articles.userId, context.userId));
+    await db.delete(folders).where(eq(folders.userId, context.userId));
+    return { ok: true };
+  });
+
 export const addLibraryFolder = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((input: unknown) =>
