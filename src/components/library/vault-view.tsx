@@ -174,19 +174,6 @@ export function VaultView({
     toast.success("Vault exported as CSV");
   }
 
-  async function copyAll() {
-    const lines = filtered.map(
-      ({ item, highlight }) =>
-        `“${highlight.text}” — ${item.author || item.siteName || "Unknown"}, ${item.title}${highlight.note ? ` (note: ${highlight.note})` : ""}`,
-    );
-    try {
-      await navigator.clipboard.writeText(lines.join("\n\n"));
-      toast.success(`${filtered.length} slips copied`);
-    } catch {
-      toast.error("Copy failed");
-    }
-  }
-
   if (slips.length === 0) {
     return (
       <div className="kami-sheet mx-auto flex max-w-2xl flex-col items-center gap-3 px-6 py-16 text-center">
@@ -285,15 +272,6 @@ export function VaultView({
             title="Download filtered slips as CSV"
           >
             CSV
-          </button>
-          <button
-            type="button"
-            onClick={() => void copyAll()}
-            className="flex items-center gap-1 rounded px-2 py-1 font-sans text-xs text-hanko transition-colors hover:bg-shu-tint"
-            title="Copy filtered slips to clipboard"
-          >
-            <Copy className="size-[15px]" aria-hidden="true" />
-            Copy all
           </button>
         </div>
       </div>
