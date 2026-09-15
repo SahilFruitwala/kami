@@ -2,6 +2,27 @@ import type { Article } from "./article-types.ts";
 
 const DRAFT_KEY = "quarto-draft-url";
 const ARTICLE_KEY = "quarto-current-article";
+const IMPORT_KEY = "quarto-import-payload";
+
+/** Stash a raw `?import=` payload so it survives the auth/loading gate. */
+export function stashImportPayload(raw: string) {
+  try {
+    if (raw) sessionStorage.setItem(IMPORT_KEY, raw);
+  } catch {
+    // quota / private mode — caller falls back to direct handling
+  }
+}
+
+/** Take (and clear) a stashed `?import=` payload. */
+export function takeStashedImportPayload(): string | null {
+  try {
+    const raw = sessionStorage.getItem(IMPORT_KEY);
+    if (raw) sessionStorage.removeItem(IMPORT_KEY);
+    return raw;
+  } catch {
+    return null;
+  }
+}
 
 export function normalizeSourceUrl(raw: string): string {
   let value = raw.trim().replace(/[<>"]/g, "");

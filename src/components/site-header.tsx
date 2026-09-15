@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { BookMarked, Sparkles } from "lucide-react";
+import { BookMarked } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { Show, SignInButton, SignUpButton, UserButton } from "@/lib/auth/gates";
@@ -10,10 +10,12 @@ export type SitePane = "home" | "library" | "vault";
 /** Top-level sanctuary navigation shared by Home, Library, and Vault. */
 export function SiteHeader({
   active,
-  onOpenTools,
+  // Capture tools disabled for now — kept optional so callers don't break.
+  // Re-enable by restoring the button below.
+  onOpenTools: _onOpenTools,
 }: {
   active: SitePane;
-  onOpenTools: () => void;
+  onOpenTools?: () => void;
 }) {
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur-xl">
@@ -52,10 +54,20 @@ export function SiteHeader({
 
         <div className="flex items-center gap-1 sm:gap-2">
           <ThemeToggle />
-          <Button type="button" variant="ghost" className="h-11 gap-2" onClick={onOpenTools}>
+          {/* Capture tools button disabled for now (bookmarklet flow unreliable).
+              To re-enable, restore the <Button> below.
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-11 gap-2"
+            onClick={_onOpenTools}
+            aria-label="Open capture tools"
+            title="Capture tools — bookmarklet for saving blocked articles"
+          >
             <Sparkles className="size-4" aria-hidden="true" />
             <span className="hidden sm:inline">Capture tools</span>
           </Button>
+          */}
           <Show when="signed-out">
             <SignInButton mode="modal">
               <Button type="button" variant="outline" className="h-11">
