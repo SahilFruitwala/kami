@@ -263,6 +263,12 @@ export function SiteFooter() {
           </p>
         </div>
         <div className="flex items-center gap-6">
+          <Link
+            to="/settings"
+            className="font-sans text-xs text-ink-muted hover:text-hanko hover:underline"
+          >
+            Settings
+          </Link>
           <span className="flex items-center gap-1.5 font-sans text-xs text-ink-muted">
             <Clock3 className="size-3.5" aria-hidden="true" />
             {inbox} on the desk

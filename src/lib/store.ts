@@ -141,6 +141,9 @@ export type LibraryState = {
   preferredLightTone: PaperTone;
   ttsRate: number;
   ttsVoiceURI: string;
+  progressById: Record<string, number>;
+  resumeEnabled: boolean;
+  setProgress: (id: string, progress: number) => void;
   upsertItem: (item: LibraryItem) => void;
   archiveItem: (id: string, archived: boolean) => void;
   removeItem: (id: string) => void;
@@ -163,6 +166,7 @@ export type LibraryState = {
   setHighlightNote: (itemId: string, highlightId: string, note: string) => void;
   setFavorited: (itemId: string, favorited: boolean) => void;
   setItemNote: (itemId: string, note: string) => void;
+  setResumeEnabled: (enabled: boolean) => void;
   clearLibrary: () => void;
 };
 
@@ -179,6 +183,8 @@ type Persisted = {
   preferredLightTone?: string;
   ttsRate?: number;
   ttsVoiceURI?: string;
+  progressById?: Record<string, number>;
+  resumeEnabled?: boolean;
 };
 
 function clampFontSize(value: number): number {
@@ -275,6 +281,14 @@ export const useLibraryStore = create<LibraryState>()(
       preferredLightTone: "pale",
       ttsRate: 1,
       ttsVoiceURI: "",
+      progressById: {},
+      resumeEnabled: true,
+      setProgress: (id, progress) =>
+        set((state) => {
+          const clamped = Math.min(1, Math.max(0, progress));
+          if (Math.abs((state.progressById[id] ?? 0) - clamped) < 0.005) return state;
+          return { progressById: { ...state.progressById, [id]: clamped } };
+        }),
       upsertItem: (item) => {
         let merged: LibraryItem = item;
         set((state) => {
@@ -432,6 +446,7 @@ export const useLibraryStore = create<LibraryState>()(
         }));
         remoteSync((m) => m.syncPatchItem(itemId, { note: cleaned }));
       },
+      setResumeEnabled: (enabled) => set({ resumeEnabled: enabled }),
       clearLibrary: () => set({ library: [], openId: null }),
     }),
     {
@@ -447,6 +462,8 @@ export const useLibraryStore = create<LibraryState>()(
         preferredLightTone: state.preferredLightTone,
         ttsRate: state.ttsRate,
         ttsVoiceURI: state.ttsVoiceURI,
+        progressById: state.progressById,
+        resumeEnabled: state.resumeEnabled,
       }),
       migrate: (persisted) => {
         const raw = (persisted || {}) as Persisted;
@@ -464,6 +481,9 @@ export const useLibraryStore = create<LibraryState>()(
               : "pale",
           ttsRate: typeof raw.ttsRate === "number" ? raw.ttsRate : 1,
           ttsVoiceURI: raw.ttsVoiceURI || "",
+          progressById:
+            raw.progressById && typeof raw.progressById === "object" ? raw.progressById : {},
+          resumeEnabled: raw.resumeEnabled === false ? false : true,
         };
       },
     },

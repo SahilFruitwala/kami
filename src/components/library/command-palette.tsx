@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { BookOpen, House, LibraryBig, Vault } from "lucide-react";
+import { BookOpen, House, LibraryBig, Settings, Vault } from "lucide-react";
 import {
   CommandDialog,
   CommandEmpty,
@@ -34,7 +34,7 @@ export function CommandPalette({
     return () => document.removeEventListener("keydown", onKey);
   }, []);
 
-  function go(to: "/" | "/library" | "/vault") {
+  function go(to: "/" | "/library" | "/vault" | "/settings") {
     setOpen(false);
     void navigate({ to });
   }
@@ -46,7 +46,7 @@ export function CommandPalette({
 
   const works = [...library]
     .sort((a, b) => b.savedAt - a.savedAt)
-    .slice(0, 20);
+    .slice(0, 60);
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
@@ -69,19 +69,26 @@ export function CommandPalette({
             Vault
             <CommandShortcut>G V</CommandShortcut>
           </CommandItem>
+          <CommandItem value="go settings preferences" onSelect={() => go("/settings")}>
+            <Settings aria-hidden="true" />
+            Settings
+            <CommandShortcut>G S</CommandShortcut>
+          </CommandItem>
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Works">
           {works.map((item) => (
             <CommandItem
               key={item.id}
-              value={`${item.title} ${item.author ?? ""} ${item.siteName ?? ""} ${item.url}`}
-              keywords={[item.author ?? "", item.siteName ?? ""]}
+              value={`${item.title} ${item.author ?? ""} ${item.siteName ?? ""} ${item.url} ${(item.tags ?? []).join(" ")} ${item.note ?? ""} ${(item.highlights ?? []).map((h) => `${h.text} ${h.note}`).join(" ")}`}
+              keywords={[...(item.tags ?? []), item.author ?? "", item.siteName ?? ""]}
               onSelect={() => openWork(item)}
             >
               <BookOpen aria-hidden="true" />
               <span className="truncate">{item.title}</span>
-              {item.readingMinutes ? (
+              {item.highlights?.length ? (
+                <CommandShortcut>{item.highlights.length} inked</CommandShortcut>
+              ) : item.readingMinutes ? (
                 <CommandShortcut>{item.readingMinutes} min</CommandShortcut>
               ) : null}
             </CommandItem>

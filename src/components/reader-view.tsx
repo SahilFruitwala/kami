@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, ViewTransition } from "react";
-import { ArrowLeft, ArrowRight, BookmarkPlus, ExternalLink, Eye, PenLine } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookmarkPlus, ExternalLink, Eye, PenLine, Printer, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import type { Article } from "@/lib/article-types.ts";
 import { applyHighlights } from "@/lib/highlight-html.ts";
@@ -48,6 +48,9 @@ export function ReaderView({
   const highlightColor = useLibraryStore((s) => s.highlightColor);
   const paperTone = useLibraryStore((s) => s.paperTone);
   const setPaperTone = useLibraryStore((s) => s.setPaperTone);
+  const resumeEnabled = useLibraryStore((s) => s.resumeEnabled);
+  const savedProgress = useLibraryStore((s) => s.progressById[item.id] ?? 0);
+  const [resumeDismissed, setResumeDismissed] = useState(false);
   const bumpReaderFontSize = useLibraryStore((s) => s.bumpReaderFontSize);
   const setReaderFont = useLibraryStore((s) => s.setReaderFont);
   const setHighlightColor = useLibraryStore((s) => s.setHighlightColor);
@@ -65,11 +68,39 @@ export function ReaderView({
     [article.contentHtml, item.highlights],
   );
 
-  const progress = useReaderProgress(article.canonicalUrl);
+  const progress = useReaderProgress(article.canonicalUrl, item.id);
   const { menu, onSelectEnd, clearMenu } = useSelectionMenu(article.canonicalUrl, bodyRef);
   const tts = useReaderTts(article.canonicalUrl, bodyRef);
 
   const percent = Math.round(progress * 100);
+  const showResume =
+    resumeEnabled &&
+    !resumeDismissed &&
+    savedProgress > 0.08 &&
+    savedProgress < 0.95 &&
+    progress < 0.05;
+
+  function resumeReading() {
+    const el = document.documentElement;
+    const max = el.scrollHeight - el.clientHeight;
+    window.scrollTo({ top: Math.round(savedProgress * max), behavior: "instant" as ScrollBehavior });
+    setResumeDismissed(true);
+  }
+
+  async function shareArticle() {
+    const url = article.canonicalUrl || article.url;
+    const data = { title: article.title, text: article.title, url };
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share(data);
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied — share it anywhere");
+    } catch {
+      // user dismissed share sheet or clipboard blocked — stay quiet
+    }
+  }
 
   const nextItem = useMemo(() => {
     const sorted = [...library]
@@ -171,6 +202,7 @@ export function ReaderView({
         aria-valuenow={percent}
         aria-valuemin={0}
         aria-valuemax={100}
+        title={`${percent}% read`}
         className="fixed inset-x-0 top-0 z-50 h-0.5 bg-line"
       >
         <div
@@ -178,6 +210,30 @@ export function ReaderView({
           style={{ width: `${percent}%` }}
         />
       </div>
+
+      {showResume ? (
+        <div className="fixed top-3 left-1/2 z-50 flex w-[92%] max-w-md -translate-x-1/2 items-center justify-between gap-3 rounded-full bg-ink px-4 py-2 text-paper shadow-[var(--shadow-raised)]" role="status">
+          <p className="truncate font-sans text-xs">
+            Resume at {Math.round(savedProgress * 100)}%?
+          </p>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={resumeReading}
+              className="rounded-full bg-paper px-3 py-1 font-sans text-xs font-semibold text-ink"
+            >
+              Resume
+            </button>
+            <button
+              type="button"
+              onClick={() => setResumeDismissed(true)}
+              className="font-sans text-xs text-paper/70 underline underline-offset-2 hover:text-paper"
+            >
+              Start over
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <ReaderHeader
         favorited={item.favorited}
@@ -317,16 +373,34 @@ export function ReaderView({
               />
 
               <footer className="mt-10">
-                <p className="flex items-center gap-2 text-sm font-medium opacity-60">
-                  <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
-                  <a
-                    href={article.canonicalUrl || article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-2 transition-colors hover:text-hanko"
+                <p className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm font-medium opacity-60">
+                  <span className="flex items-center gap-2">
+                    <ExternalLink className="size-3.5 shrink-0" aria-hidden="true" />
+                    <a
+                      href={article.canonicalUrl || article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline underline-offset-2 transition-colors hover:text-hanko"
+                    >
+                      View Original Article
+                    </a>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => void shareArticle()}
+                    className="flex items-center gap-1.5 underline underline-offset-2 transition-colors hover:text-hanko"
                   >
-                    View Original Article
-                  </a>
+                    <Share2 className="size-3.5 shrink-0" aria-hidden="true" />
+                    Share
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.print()}
+                    className="flex items-center gap-1.5 underline underline-offset-2 transition-colors hover:text-hanko"
+                  >
+                    <Printer className="size-3.5 shrink-0" aria-hidden="true" />
+                    Print
+                  </button>
                 </p>
               </footer>
             </article>
@@ -410,7 +484,7 @@ export function ReaderView({
                 <div className="flex items-center justify-between">
                   <span className="kami-label opacity-60">Focus Rhythm</span>
                   <span className="font-sans text-[11px] font-medium text-ok">
-                    {percent > 60 ? "Deep State" : percent > 20 ? "Settling In" : "Opening"}
+                    {percent}% · {percent > 60 ? "Deep State" : percent > 20 ? "Settling In" : "Opening"}
                   </span>
                 </div>
                 <FocusWave percent={percent} />

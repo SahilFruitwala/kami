@@ -34,7 +34,15 @@ export function filterLibraryItems(
       return false;
     }
     if (!q) return true;
-    const hay = [row.title, row.author, row.siteName, row.excerpt, row.note, ...(row.tags ?? [])]
+    const hay = [
+      row.title,
+      row.author,
+      row.siteName,
+      row.excerpt,
+      row.note,
+      ...(row.tags ?? []),
+      ...(row.highlights ?? []).flatMap((h) => [h.text, h.note]),
+    ]
       .join(" ")
       .toLowerCase();
     return hay.includes(q);
