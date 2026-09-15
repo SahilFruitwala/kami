@@ -5,6 +5,7 @@ import { AppGate } from "@/components/app-gate.tsx";
 import { ArticleList } from "@/components/article-list.tsx";
 import { DirectionalTransition } from "@/components/directional-transition.tsx";
 import { CaptureForm } from "@/components/library/capture-form.tsx";
+import { CommandPalette } from "@/components/library/command-palette.tsx";
 import { PasteDialog, ToolsDialog } from "@/components/library/library-dialogs.tsx";
 import {
   DeskHero,
@@ -13,7 +14,6 @@ import {
   RecentPassagesCard,
   SiteFooter,
   useDeskHeroItem,
-  useDeskStats,
 } from "@/components/library/widgets.tsx";
 import { SiteHeader } from "@/components/site-header.tsx";
 import { KamiEyebrow } from "@/components/kami.tsx";
@@ -69,7 +69,6 @@ function Home() {
   const paste = usePasteImport(openOnSave);
 
   const hero = useDeskHeroItem();
-  const stats = useDeskStats();
   const library = useLibraryStore((s) => s.library);
   const removeItem = useLibraryStore((s) => s.removeItem);
   const fresh = useMemo(
@@ -99,14 +98,7 @@ function Home() {
     if (booted.current) return;
     booted.current = true;
 
-    function onKey(e: KeyboardEvent) {
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        e.preventDefault();
-        document.getElementById("source-url")?.focus();
-      }
-    }
-    document.addEventListener("keydown", onKey);
-
+    // ⌘K is handled by CommandPalette.
     if (search.import) {
       const payload = decodeImportPayload(search.import);
       if (payload) {
@@ -128,7 +120,6 @@ function Home() {
         void save.save(draft, true);
       }
     }
-    return () => document.removeEventListener("keydown", onKey);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -141,8 +132,6 @@ function Home() {
         <div className="mx-auto w-full max-w-7xl px-4 pt-10 pb-8 sm:px-6 lg:px-12">
           <KamiEyebrow>
             Kami Sanctuary
-            <span className="size-1 rounded-full bg-hanko/40" aria-hidden="true" />
-            <span className="text-bamboo">{stats.total} works bound</span>
           </KamiEyebrow>
           <h1 className="mt-2 font-display text-4xl tracking-tight text-ink sm:text-5xl">
             Your quiet reading list.
@@ -151,11 +140,6 @@ function Home() {
             Paste a link to bind it into washi. Read distraction-free, ink what
             resonates, and find it all in the vault.
           </p>
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            <StatChip label={`${stats.inbox} on the desk`} />
-            <StatChip label={`${stats.vaultCount} passages inked`} />
-            <StatChip label={`${stats.minutesToday} mins gathered today`} />
-          </div>
           <div className="mt-6 max-w-2xl">
             <CaptureForm
               url={save.url}
@@ -234,14 +218,8 @@ function Home() {
         onOpenChange={tools.setToolsOpen}
         bookmarklet={tools.bookmarklet || buildBookmarklet(window.location.origin)}
       />
-    </main>
-  );
-}
 
-function StatChip({ label }: { label: string }) {
-  return (
-    <span className="rounded-full bg-bamboo-wash px-2.5 py-1 font-sans text-[11px] font-medium text-bamboo">
-      {label}
-    </span>
+      <CommandPalette onOpenItem={(item) => void openItemOrFetch(item)} />
+    </main>
   );
 }

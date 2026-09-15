@@ -1,8 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { addTransitionType, startTransition } from "react";
+import { addTransitionType, startTransition, useState } from "react";
 import { AppGate } from "@/components/app-gate.tsx";
 import { DirectionalTransition } from "@/components/directional-transition.tsx";
-import { ToolsDialog } from "@/components/library/library-dialogs.tsx";
+import { ToolsDialog, TranscribeDialog } from "@/components/library/library-dialogs.tsx";
+import { CommandPalette } from "@/components/library/command-palette.tsx";
 import { VaultView } from "@/components/library/vault-view.tsx";
 import { SiteFooter } from "@/components/library/widgets.tsx";
 import { SiteHeader } from "@/components/site-header.tsx";
@@ -29,6 +30,7 @@ function Vault() {
   const navigate = useNavigate();
   const tools = useCaptureTools();
   const stats = useDeskStats();
+  const [transcribeOpen, setTranscribeOpen] = useState(false);
 
   function openItem(item: LibraryItem) {
     startTransition(() => {
@@ -64,17 +66,22 @@ function Vault() {
           query=""
           onOpenItem={openItem}
           onExitVault={() => void navigate({ to: "/" })}
-          onTranscribe={() => void navigate({ to: "/" })}
+          onTranscribe={() => setTranscribeOpen(true)}
         />
       </div>
       </div>
 
       <SiteFooter />
+      <TranscribeDialog
+        open={transcribeOpen}
+        onOpenChange={setTranscribeOpen}
+      />
       <ToolsDialog
         open={tools.toolsOpen}
         onOpenChange={tools.setToolsOpen}
         bookmarklet={tools.bookmarklet}
       />
+      <CommandPalette onOpenItem={openItem} />
     </main>
   );
 }
