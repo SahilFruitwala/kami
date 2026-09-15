@@ -46,6 +46,38 @@ const libraryItemSchema = z.object({
   note: z.string().max(2000).default(""),
 });
 
+/**
+ * Clamp extractor fields *before* Zod so an oversize og:image URL or title
+ * cannot hard-fail the upsert validator (the handler clamp never ran when
+ * parse threw first — Cmd+K / capture looked successful until refresh).
+ */
+function clampLibraryItemInput(input: unknown): unknown {
+  if (!input || typeof input !== "object") return input;
+  const o = input as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === "string" ? v : v == null ? v : String(v));
+  const titleRaw = str(o.title);
+  const hero = str(o.heroImage);
+  return {
+    ...o,
+    title:
+      typeof titleRaw === "string"
+        ? titleRaw.trim().slice(0, 500) || "Untitled"
+        : o.title,
+    author: typeof o.author === "string" ? o.author.slice(0, 300) : o.author,
+    siteName: typeof o.siteName === "string" ? o.siteName.slice(0, 200) : o.siteName,
+    excerpt: typeof o.excerpt === "string" ? o.excerpt.slice(0, 4000) : o.excerpt,
+    contentHtml:
+      typeof o.contentHtml === "string" ? o.contentHtml.slice(0, 1_500_000) : o.contentHtml,
+    heroImage:
+      typeof hero === "string" ? (hero.length <= 2000 ? hero : null) : o.heroImage,
+    published:
+      typeof o.published === "string" ? o.published.slice(0, 100) : o.published,
+    note: typeof o.note === "string" ? o.note.slice(0, 2000) : o.note,
+    tags: Array.isArray(o.tags) ? o.tags.slice(0, 12) : o.tags,
+    highlights: Array.isArray(o.highlights) ? o.highlights.slice(0, 80) : o.highlights,
+  };
+}
+
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.map((v) => String(v)).filter(Boolean);
@@ -135,12 +167,11 @@ export const getLibrary = createServerFn({ method: "GET" })
 
 export const upsertLibraryItem = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((input: unknown) => libraryItemSchema.parse(input))
+  .validator((input: unknown) => libraryItemSchema.parse(clampLibraryItemInput(input)))
   .handler(async ({ context, data }): Promise<LibraryItem> => {
     const db = await getDb();
-    // Clamp extractor output to column/validator caps so an oversize title,
-    // hero image URL, or very long article can never hard-fail a save.
-    // Identity fields (id/url/canonicalUrl) are never truncated.
+    // Fields are pre-clamped in the validator; keep a defensive pass here so
+    // identity fields stay intact and tags/highlights stay bounded.
     const title = data.title.trim().slice(0, 500) || "Untitled";
     const excerpt = data.excerpt.slice(0, 4000);
     const contentHtml = data.contentHtml.slice(0, 1_500_000);
@@ -396,14 +427,25 @@ export const removeLibraryFolder = createServerFn({ method: "POST" })
 
 export const importLibrarySnapshot = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((input: unknown) =>
-    z
+  .validator((input: unknown) => {
+    const raw =
+      input && typeof input === "object"
+        ? (input as { library?: unknown; folders?: unknown })
+        : null;
+    return z
       .object({
         library: z.array(libraryItemSchema).max(200),
-        folders: z.array(z.object({ id: z.string().min(1).max(200), name: z.string().min(1).max(32) })).max(24),
+        folders: z
+          .array(z.object({ id: z.string().min(1).max(200), name: z.string().min(1).max(32) }))
+          .max(24),
       })
-      .parse(input),
-  )
+      .parse({
+        library: Array.isArray(raw?.library)
+          ? raw.library.map(clampLibraryItemInput)
+          : raw?.library,
+        folders: raw?.folders,
+      });
+  })
   .handler(async ({ context, data }): Promise<LibrarySnapshot> => {
     const db = await getDb();
     const [{ value: existingCount }] = await db
