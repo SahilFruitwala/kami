@@ -289,7 +289,7 @@ export function ReaderView({
                   <a
                     href={article.canonicalUrl || article.url}
                     target="_blank"
-                    rel="noreferrer"
+                    rel="noopener noreferrer"
                     className="underline underline-offset-2 transition-colors hover:text-hanko"
                   >
                     View original article
