@@ -21,7 +21,11 @@ import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
 import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
 import { buildBookmarklet, decodeImportPayload } from "@/lib/bookmarklet.ts";
-import { readDraftUrl } from "@/lib/session-article.ts";
+import {
+  readDraftUrl,
+  stashImportPayload,
+  takeStashedImportPayload,
+} from "@/lib/session-article.ts";
 import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
 
 type HomeSearch = {
@@ -47,6 +51,26 @@ function goRead(
 }
 
 function HomePage() {
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+
+  // Runs outside AppGate so `?import=` survives the signed-out landing page
+  // and the library-loading skeleton (both render instead of <Home />).
+  useEffect(() => {
+    if (search.import) {
+      stashImportPayload(search.import);
+      void navigate({
+        search: (prev) => {
+          const next = { ...prev };
+          delete next.import;
+          return next;
+        },
+        replace: true,
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <AppGate>
       <DirectionalTransition>
@@ -99,20 +123,29 @@ function Home() {
     booted.current = true;
 
     // ⌘K is handled by CommandPalette.
-    if (search.import) {
-      const payload = decodeImportPayload(search.import);
+    // `?import=` is stashed by <HomePage /> before the auth gate, so pick up
+    // the stash here (covers signed-out → sign-in and loading states).
+    const raw = search.import ?? takeStashedImportPayload();
+    if (raw) {
+      const payload = decodeImportPayload(raw);
       if (payload) {
         paste.seedPaste(payload);
         toast.message("Captured from bookmarklet — review and import.");
+      } else {
+        toast.error(
+          "Could not read the captured page — the URL was likely truncated. Try a smaller article section or Paste article instead.",
+        );
       }
-      void navigate({
-        search: (prev) => {
-          const next = { ...prev };
-          delete next.import;
-          return next;
-        },
-        replace: true,
-      });
+      if (search.import) {
+        void navigate({
+          search: (prev) => {
+            const next = { ...prev };
+            delete next.import;
+            return next;
+          },
+          replace: true,
+        });
+      }
     } else {
       const draft = readDraftUrl();
       if (draft) {

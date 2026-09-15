@@ -76,6 +76,34 @@ type ToolsDialogProps = {
 };
 
 export function ToolsDialog({ open, onOpenChange, bookmarklet }: ToolsDialogProps) {
+  async function copyBookmarklet() {
+    if (!bookmarklet) {
+      toast.error("Bookmarklet is not ready yet — close and try again.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(bookmarklet);
+      toast.success("Bookmarklet copied — paste it as a new bookmark URL");
+    } catch {
+      // Clipboard API fails on insecure contexts / denied permissions.
+      // Fall back to a hidden textarea + execCommand so users can copy manually.
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = bookmarklet;
+        ta.setAttribute("readonly", "");
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+        toast.success("Bookmarklet copied — paste it as a new bookmark URL");
+      } catch {
+        toast.error("Could not copy — select the code below manually");
+      }
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -86,24 +114,37 @@ export function ToolsDialog({ open, onOpenChange, bookmarklet }: ToolsDialogProp
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 text-sm text-ink-soft">
-          <p>
-            Copy this bookmarklet into a bookmark. On any article page, click it to open Quarto with
-            the content ready to import.
-          </p>
+          <ol className="list-decimal space-y-1.5 pl-5">
+            <li>Copy the Quarto bookmarklet below into a new bookmark.</li>
+            <li>On any blocked article page, click that bookmark.</li>
+            <li>Quarto opens with the content ready — review and import.</li>
+          </ol>
           <Button
             type="button"
             className="w-full"
-            onClick={() => {
-              void navigator.clipboard.writeText(bookmarklet).then(
-                () => toast.success("Bookmarklet copied — paste it as a new bookmark URL"),
-                () => toast.error("Could not copy"),
-              );
-            }}
+            disabled={!bookmarklet}
+            onClick={() => void copyBookmarklet()}
           >
             Copy Quarto bookmarklet
           </Button>
+          {bookmarklet ? (
+            <details className="rounded-md border border-line bg-paper-warm p-2">
+              <summary className="cursor-pointer text-xs font-medium text-ink-muted">
+                Manual copy — show bookmarklet code
+              </summary>
+              <code className="mt-2 block max-h-32 overflow-y-auto break-all text-[11px] leading-relaxed text-ink-muted select-all">
+                {bookmarklet}
+              </code>
+            </details>
+          ) : (
+            <p className="text-xs text-ink-muted" role="status">
+              Preparing bookmarklet…
+            </p>
+          )}
           <p className="text-xs text-ink-muted">
             Capture runs inside this app. There is no separate API or Worker to deploy.
+            Bookmarklets need a desktop browser bookmark bar — they don&apos;t work on
+            mobile browsers, where Paste article is the fallback.
           </p>
         </div>
       </DialogContent>
