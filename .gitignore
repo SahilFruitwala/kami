@@ -16,3 +16,6 @@ screenshots/
 
 # clerk configuration (can include secrets)
 /.clerk/
+opencode.json
+
+washi-screens/

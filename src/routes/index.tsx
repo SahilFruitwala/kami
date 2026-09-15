@@ -211,6 +211,7 @@ function Home() {
           item={openItem}
           article={article}
           onBack={() => goOpen(null)}
+          onOpenItem={(item) => void openItemOrFetch(item)}
           onArchive={() => {
             archiveItem(openItem.id, !openItem.archived);
             if (!openItem.archived) {

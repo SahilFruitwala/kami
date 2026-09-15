@@ -258,7 +258,7 @@ export const useLibraryStore = create<LibraryState>()(
       folders: [],
       openId: null,
       readerFontSize: DEFAULT_READER_FONT_SIZE,
-      readerFont: "newsreader",
+      readerFont: "literata",
       highlightColor: "amber",
       ttsRate: 1,
       ttsVoiceURI: "",

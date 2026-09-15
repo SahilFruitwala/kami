@@ -62,17 +62,23 @@ export function ReaderHeader({
 }: ReaderHeaderProps) {
   return (
     <header
-      className="sticky top-0 z-20 border-b border-line bg-paper/90 backdrop-blur-sm"
+      className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur-xl"
       style={{ viewTransitionName: "reader-header" }}
     >
       <nav
         aria-label="Reader navigation and tools"
-        className="mx-auto flex w-full max-w-3xl items-center gap-1 px-2 py-2 sm:px-6"
+        className="mx-auto flex w-full max-w-6xl items-center gap-1 px-2 py-2 sm:px-6"
       >
-        <Button variant="ghost" className="gap-2 px-3 text-ink font-medium" onClick={onBack}>
+        <Button variant="ghost" className="gap-2 px-3 font-medium text-ink" onClick={onBack}>
           <ArrowLeft className="size-4" aria-hidden="true" />
           <span className="hidden sm:inline">Library</span>
         </Button>
+        <span className="ml-1 hidden items-center gap-2 font-display text-sm text-ink-soft md:flex" aria-hidden="true">
+          <span className="kami-hanko flex size-5 items-center justify-center rounded-[0.25rem] text-[10px] font-bold">
+            K
+          </span>
+          Reader
+        </span>
         <div className="ml-auto flex items-center gap-1" role="toolbar" aria-label="Reading controls">
           {canSpeak ? (
             <>
@@ -110,7 +116,7 @@ export function ReaderHeader({
             aria-pressed={favorited}
             onClick={onToggleFavorite}
           >
-            <Star className={cn("size-4", favorited && "fill-ink text-ink")} aria-hidden="true" />
+            <Star className={cn("size-4", favorited && "fill-hanko text-hanko")} aria-hidden="true" />
           </Button>
           <ThemeToggle className="size-11" />
           <div className="relative" ref={prefsRef}>
@@ -139,7 +145,7 @@ export function ReaderHeader({
       {tts !== "idle" || listenOpen ? (
         <section
           aria-label="Audio reader controls"
-          className="mx-auto flex w-full max-w-3xl flex-wrap items-center gap-3 px-4 pb-3 sm:px-6"
+          className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-3 px-4 pb-3 sm:px-6"
         >
           <p className="min-w-0 flex-1 font-display text-2xl leading-tight tracking-tight text-ink" aria-live="polite">
             {word || (tts === "paused" ? "Paused" : "Listening")}
@@ -149,7 +155,7 @@ export function ReaderHeader({
           </label>
           <select
             id="tts-voice"
-            className="h-10 max-w-40 rounded-lg bg-surface px-2 text-sm font-medium text-ink shadow-border"
+            className="h-10 max-w-40 rounded-lg bg-surface px-2 text-sm font-medium text-ink shadow-[var(--shadow-border)]"
             value={ttsVoiceURI}
             onChange={(e) => onTtsVoice(e.target.value)}
           >
@@ -165,7 +171,7 @@ export function ReaderHeader({
           </label>
           <select
             id="tts-rate"
-            className="h-10 rounded-lg bg-surface px-2 text-sm font-medium text-ink shadow-border"
+            className="h-10 rounded-lg bg-surface px-2 text-sm font-medium text-ink shadow-[var(--shadow-border)]"
             value={String(ttsRate)}
             onChange={(e) => onTtsRate(Number(e.target.value))}
           >

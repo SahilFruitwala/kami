@@ -9,11 +9,9 @@ import { cn } from "@/lib/utils.ts";
 export function LibraryFilters({
   folderFilter,
   tagFilter,
-  query,
   favoritesOnly,
   onFolder,
   onTag,
-  onQuery,
   onFavoritesOnly,
 }: {
   folderFilter: string | "all" | "none";
@@ -39,60 +37,42 @@ export function LibraryFilters({
   }
 
   return (
-    <search aria-label="Search and filter library" className="mt-6 space-y-3">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <label htmlFor="library-search" className="sr-only">
-          Search your library
-        </label>
-        <Input
-          id="library-search"
-          name="q"
-          type="search"
-          autoComplete="off"
-          value={query}
-          onChange={(e) => onQuery(e.target.value)}
-          placeholder="Search title, tags, notes…"
-          className="h-11 sm:flex-1"
-        />
-        <Button
-          type="button"
-          variant={favoritesOnly ? "default" : "secondary"}
-          className={cn(
-            "h-11 gap-2 font-medium",
-            !favoritesOnly && "text-ink bg-paper-warm hover:bg-paper-warm/80",
-          )}
-          aria-pressed={favoritesOnly}
-          onClick={() => onFavoritesOnly(!favoritesOnly)}
+    <div className="flex flex-wrap items-center gap-2" aria-label="Quick filters">
+      <FilterChip active={favoritesOnly} onClick={() => onFavoritesOnly(!favoritesOnly)}>
+        <Star className={cn("size-3.5", favoritesOnly && "fill-current")} aria-hidden="true" />
+        Favorites
+      </FilterChip>
+      <FilterChip active={folderFilter === "none"} onClick={() => onFolder("all")}>
+        All slipcases
+      </FilterChip>
+      {folders.map((folder) => (
+        <span key={folder.id} className="inline-flex items-center">
+          <FilterChip active={folderFilter === folder.id} onClick={() => onFolder(folder.id)}>
+            {folder.name}
+          </FilterChip>
+          <button
+            type="button"
+            className="ml-1 flex size-7 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            aria-label={`Delete folder ${folder.name}`}
+            onClick={() => {
+              if (folderFilter === folder.id) onFolder("all");
+              removeFolder(folder.id);
+            }}
+          >
+            <X className="size-3.5" aria-hidden="true" />
+          </button>
+        </span>
+      ))}
+      {tags.slice(0, 8).map((tag) => (
+        <FilterChip
+          key={tag}
+          active={tagFilter === tag}
+          onClick={() => onTag(tagFilter === tag ? null : tag)}
         >
-          <Star className={cn("size-4", favoritesOnly && "fill-current")} aria-hidden="true" />
-          Favorites
-        </Button>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <FilterChip active={folderFilter === "all"} onClick={() => onFolder("all")}>
-          All
+          #{tag}
         </FilterChip>
-        <FilterChip active={folderFilter === "none"} onClick={() => onFolder("none")}>
-          Unfiled
-        </FilterChip>
-        {folders.map((folder) => (
-          <span key={folder.id} className="inline-flex items-center">
-            <FilterChip active={folderFilter === folder.id} onClick={() => onFolder(folder.id)}>
-              {folder.name}
-            </FilterChip>
-            <button
-              type="button"
-              className="ml-1 flex size-7 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30"
-              aria-label={`Delete folder ${folder.name}`}
-              onClick={() => {
-                if (folderFilter === folder.id) onFolder("all");
-                removeFolder(folder.id);
-              }}
-            >
-              <X className="size-3.5" aria-hidden="true" />
-            </button>
-          </span>
-        ))}
+      ))}
+      <span className="inline-flex items-center gap-1">
         <label htmlFor="new-folder" className="sr-only">
           New folder name
         </label>
@@ -106,34 +86,21 @@ export function LibraryFilters({
             e.preventDefault();
             createFolder();
           }}
-          placeholder="New folder…"
+          placeholder="New slipcase…"
           autoComplete="off"
-          className="h-11 w-36"
+          className="h-9 w-32 bg-surface"
         />
         <Button
           variant="ghost"
           size="icon"
-          className="size-11 text-ink-soft hover:text-ink"
+          className="size-9 text-ink-soft hover:text-hanko"
           aria-label="Create folder"
           onClick={createFolder}
         >
           <FolderPlus className="size-4" aria-hidden="true" />
         </Button>
-      </div>
-      {tags.length > 0 ? (
-        <div className="flex flex-wrap items-center gap-2 pt-1" aria-label="Tags">
-          {tags.map((tag) => (
-            <FilterChip
-              key={tag}
-              active={tagFilter === tag}
-              onClick={() => onTag(tagFilter === tag ? null : tag)}
-            >
-              #{tag}
-            </FilterChip>
-          ))}
-        </div>
-      ) : null}
-    </search>
+      </span>
+    </div>
   );
 }
 
@@ -152,10 +119,10 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "h-10 rounded-full px-3.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 shadow-border",
+        "inline-flex h-8 items-center gap-1.5 rounded-[0.25rem] px-3 font-sans text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
         active
-          ? "bg-ink text-paper font-semibold shadow-sm"
-          : "bg-surface text-ink hover:bg-paper-warm hover:text-ink",
+          ? "bg-hanko font-semibold text-white shadow-sm"
+          : "bg-paper-warm text-ink-soft hover:bg-line hover:text-ink",
       )}
     >
       {children}

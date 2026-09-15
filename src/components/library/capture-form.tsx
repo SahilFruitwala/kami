@@ -3,6 +3,7 @@ import {
   ClipboardPaste,
   Link2,
   LoaderCircle,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -29,17 +30,8 @@ export function CaptureForm({
   onOpenPaste,
 }: CaptureFormProps) {
   return (
-    <section className="pt-4">
-      <h1 className="font-display text-3xl leading-tight tracking-tight text-ink sm:text-4xl">
-        Your quiet reading list.
-      </h1>
-      <p className="mt-2 max-w-lg text-base leading-normal text-ink-soft">
-        Paste a link to save it. If a site blocks capture, paste the text or use the
-        bookmarklet.
-      </p>
-
+    <section aria-label="Capture an article">
       <form
-        className="mt-8"
         onSubmit={(e) => {
           e.preventDefault();
           onSave();
@@ -48,7 +40,8 @@ export function CaptureForm({
         <label htmlFor="source-url" className="sr-only">
           Article URL
         </label>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+        <div className="kami-sheet flex items-center gap-2 px-3 py-2">
+          <Search className="size-[18px] shrink-0 text-ink-muted" aria-hidden="true" />
           <Input
             id="source-url"
             name="article-url"
@@ -58,15 +51,22 @@ export function CaptureForm({
             autoCorrect="off"
             autoComplete="off"
             spellCheck={false}
-            placeholder="Paste a blog or X URL…"
+            placeholder="Paste a blog or X URL to bind it into washi…"
             value={url}
             onChange={(e) => {
               onUrlChange(e.target.value);
               onClearError();
             }}
-            className="sm:flex-1"
+            className="h-10 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
           />
-          <Button type="submit" className="sm:w-32" disabled={busy}>
+          <kbd className="hidden shrink-0 rounded-[0.25rem] bg-paper-warm px-1.5 py-0.5 font-sans text-[11px] text-ink-muted sm:inline-block">
+            ⌘K
+          </kbd>
+          <Button
+            type="submit"
+            className="h-10 shrink-0 bg-hanko text-white shadow-sm hover:bg-shu active:translate-y-px"
+            disabled={busy}
+          >
             {busy ? (
               <>
                 <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -83,7 +83,7 @@ export function CaptureForm({
         </div>
         {error ? (
           <div className="mt-2 space-y-2" role="alert" aria-live="assertive">
-            <p className="text-sm font-medium text-danger">{error}</p>
+            <p className="text-sm font-medium text-hanko">{error}</p>
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"
@@ -102,8 +102,9 @@ export function CaptureForm({
             </div>
           </div>
         ) : (
-          <p className="mt-2.5 text-xs font-medium text-ink-muted sm:text-sm">
-            Public pages only. Stays on this device.
+          <p className="mt-2 text-xs font-medium text-ink-muted">
+            Public pages only. Press <kbd className="rounded bg-paper-warm px-1">⌘K</kbd> to
+            search the shelf — paste above to bind a new scroll.
           </p>
         )}
       </form>
