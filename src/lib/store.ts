@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Article, ArticleSource } from "./article-types.ts";
+import { isPaperTone, type PaperTone } from "./paper-tones.ts";
 
 function remoteSync(run: (m: typeof import("./library-remote.ts")) => void) {
   void import("./library-remote.ts")
@@ -131,6 +132,7 @@ export type LibraryState = {
   readerFontSize: number;
   readerFont: ReaderFontId;
   highlightColor: HighlightColorId;
+  paperTone: PaperTone;
   ttsRate: number;
   ttsVoiceURI: string;
   upsertItem: (item: LibraryItem) => void;
@@ -141,6 +143,7 @@ export type LibraryState = {
   bumpReaderFontSize: (delta: number) => void;
   setReaderFont: (font: ReaderFontId) => void;
   setHighlightColor: (color: HighlightColorId) => void;
+  setPaperTone: (tone: PaperTone) => void;
   setTtsRate: (rate: number) => void;
   setTtsVoiceURI: (uri: string) => void;
   addFolder: (name: string) => string;
@@ -166,6 +169,7 @@ type Persisted = {
   readerFontSize?: number;
   readerFont?: string;
   highlightColor?: string;
+  paperTone?: string;
   ttsRate?: number;
   ttsVoiceURI?: string;
 };
@@ -260,6 +264,7 @@ export const useLibraryStore = create<LibraryState>()(
       readerFontSize: DEFAULT_READER_FONT_SIZE,
       readerFont: "literata",
       highlightColor: "amber",
+      paperTone: "pale",
       ttsRate: 1,
       ttsVoiceURI: "",
       upsertItem: (item) => {
@@ -298,6 +303,7 @@ export const useLibraryStore = create<LibraryState>()(
       setReaderFont: (font) => set({ readerFont: isReaderFont(font) ? font : "newsreader" }),
       setHighlightColor: (color) =>
         set({ highlightColor: isHighlightColor(color) ? color : "amber" }),
+      setPaperTone: (tone) => set({ paperTone: isPaperTone(tone) ? tone : "pale" }),
       setTtsRate: (rate) => set({ ttsRate: Math.min(1.75, Math.max(0.7, rate)) }),
       setTtsVoiceURI: (uri) => set({ ttsVoiceURI: uri }),
       addFolder: (name) => {
@@ -418,13 +424,14 @@ export const useLibraryStore = create<LibraryState>()(
     }),
     {
       name: "quarto-library",
-      version: 9,
+      version: 10,
       // Library rows live in Postgres now; only reader prefs stay on-device.
       partialize: (state) => ({
         openId: state.openId,
         readerFontSize: state.readerFontSize,
         readerFont: state.readerFont,
         highlightColor: state.highlightColor,
+        paperTone: state.paperTone,
         ttsRate: state.ttsRate,
         ttsVoiceURI: state.ttsVoiceURI,
       }),
@@ -437,6 +444,7 @@ export const useLibraryStore = create<LibraryState>()(
           readerFontSize: migrateFontSize(raw),
           readerFont: isReaderFont(raw.readerFont) ? raw.readerFont : "newsreader",
           highlightColor: isHighlightColor(raw.highlightColor) ? raw.highlightColor : "amber",
+          paperTone: isPaperTone(raw.paperTone) ? raw.paperTone : "pale",
           ttsRate: typeof raw.ttsRate === "number" ? raw.ttsRate : 1,
           ttsVoiceURI: raw.ttsVoiceURI || "",
         };

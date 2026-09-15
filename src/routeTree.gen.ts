@@ -10,7 +10,10 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LibraryRouteImport } from './routes/library'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ReadRouteImport } from './routes/read'
+import { Route as VaultRouteImport } from './routes/vault'
 import { Route as ApiImgRouteImport } from './routes/api/img'
 
 const IndexRoute = IndexRouteImport.update({
@@ -18,9 +21,24 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LibraryRoute = LibraryRouteImport.update({
+  id: '/library',
+  path: '/library',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReadRoute = ReadRouteImport.update({
+  id: '/read',
+  path: '/read',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VaultRoute = VaultRouteImport.update({
+  id: '/vault',
+  path: '/vault',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiImgRoute = ApiImgRouteImport.update({
@@ -31,31 +49,43 @@ const ApiImgRoute = ApiImgRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/read': typeof ReadRoute
+  '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/read': typeof ReadRoute
+  '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
+  '/read': typeof ReadRoute
+  '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/api/img'
+  fullPaths: '/' | '/library' | '/login' | '/read' | '/vault' | '/api/img'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/api/img'
-  id: '__root__' | '/' | '/login' | '/api/img'
+  to: '/' | '/library' | '/login' | '/read' | '/vault' | '/api/img'
+  id: '__root__' | '/' | '/library' | '/login' | '/read' | '/vault' | '/api/img'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
+  ReadRoute: typeof ReadRoute
+  VaultRoute: typeof VaultRoute
   ApiImgRoute: typeof ApiImgRoute
 }
 
@@ -68,11 +98,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/library': {
+      id: '/library'
+      path: '/library'
+      fullPath: '/library'
+      preLoaderRoute: typeof LibraryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/read': {
+      id: '/read'
+      path: '/read'
+      fullPath: '/read'
+      preLoaderRoute: typeof ReadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vault': {
+      id: '/vault'
+      path: '/vault'
+      fullPath: '/vault'
+      preLoaderRoute: typeof VaultRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/img': {
@@ -87,7 +138,10 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
+  ReadRoute: ReadRoute,
+  VaultRoute: VaultRoute,
   ApiImgRoute: ApiImgRoute,
 }
 export const routeTree = rootRouteImport

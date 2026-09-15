@@ -1,6 +1,6 @@
 import type { LibraryItem } from "@/lib/store.ts";
 
-export type LibraryTab = "inbox" | "archive" | "vault";
+export type LibraryTab = "inbox" | "archive";
 export type FolderFilter = "all" | "none" | string;
 
 export type LibraryFilterState = {
@@ -17,8 +17,7 @@ export function filterLibraryItems(
 ): LibraryItem[] {
   const q = filters.query.trim().toLowerCase();
   return library.filter((row) => {
-    if (filters.tab === "archive" && !row.archived) return false;
-    if (filters.tab === "inbox" && row.archived) return false;
+    if (filters.tab === "archive" ? !row.archived : row.archived) return false;
     if (filters.favoritesOnly && !row.favorited) return false;
     if (filters.folderFilter === "none" && row.folderId) return false;
     if (

@@ -112,13 +112,13 @@ export function VaultView({
       ({ item, highlight }) =>
         `> ${highlight.text}\n>\n> — ${item.author || item.siteName || "Unknown"}, *${item.title}*${highlight.note ? `\n\nMarginalia: ${highlight.note}` : ""}`,
     );
-    const blob = new Blob([`# Tanzaku Vault — Inked Passages\n\n${lines.join("\n\n---\n\n")}\n`], {
+    const blob = new Blob([`# Highlight Vault — Inked Passages\n\n${lines.join("\n\n---\n\n")}\n`], {
       type: "text/markdown",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "tanzaku-vault.md";
+    a.download = "highlight-vault.md";
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Vault exported as markdown");
@@ -131,7 +131,7 @@ export function VaultView({
         <p className="font-display text-2xl text-ink-soft italic">The vault awaits its first slip</p>
         <p className="max-w-sm font-body text-sm leading-relaxed text-ink-muted">
           Open any work and select a passage — inked highlights are pressed here as
-          tanzaku slips, ready to cite in your journal.
+          highlight slips, ready to cite in your journal.
         </p>
         <button
           type="button"
@@ -158,7 +158,7 @@ export function VaultView({
         <div className="ml-auto inline-flex items-center self-start rounded-lg bg-paper-warm p-1 md:self-auto">
           <ModeButton active={mode === "tanzaku"} onClick={() => setMode("tanzaku")}>
             <LayoutGrid className="size-4" aria-hidden="true" />
-            Tanzaku Slips
+            Slips
           </ModeButton>
           <ModeButton active={mode === "river"} onClick={() => setMode("river")}>
             <Waves className="size-4" aria-hidden="true" />
@@ -375,7 +375,7 @@ export function VaultView({
               className="flex w-full items-center justify-center gap-1.5 rounded bg-hanko px-3 py-2 font-sans text-xs font-medium text-white shadow transition-colors hover:bg-shu"
             >
               <PenLine className="size-4" aria-hidden="true" />
-              Ink New Tanzaku Slip
+              Ink New Slip
             </button>
           </div>
         </div>
@@ -483,12 +483,6 @@ function SlipCard({
 
   return (
     <article className="kami-sheet group relative flex break-inside-avoid flex-col justify-between p-6 transition-shadow hover:shadow-[var(--shadow-border-hover)]">
-      <span
-        className="absolute -top-1 right-6 flex h-7 w-5 items-end justify-center rounded-b-sm bg-hanko pb-1 shadow-sm"
-        aria-hidden="true"
-      >
-        <span className="size-1 rounded-full bg-white/80" />
-      </span>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <span className="kami-label text-ink-muted">

@@ -1,4 +1,4 @@
-import { Minus, Moon, Plus, Sun } from "lucide-react";
+import { Minus, Plus } from "lucide-react";
 import {
   HIGHLIGHT_COLORS,
   READER_FONTS,
@@ -6,7 +6,7 @@ import {
   type HighlightColorId,
   type ReaderFontId,
 } from "@/lib/store.ts";
-import { useThemeStore } from "@/hooks/use-theme.ts";
+import { PAPER_TONES, type PaperTone } from "@/lib/paper-tones.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { cn } from "@/lib/utils.ts";
 
@@ -14,26 +14,68 @@ export function ReaderPrefsPanel({
   readerFontSize,
   readerFont,
   highlightColor,
+  paperTone,
   onBumpSize,
   onFont,
   onHighlightColor,
+  onPaperTone,
 }: {
   readerFontSize: number;
   readerFont: ReaderFontId;
   highlightColor: HighlightColorId;
+  paperTone: PaperTone;
   onBumpSize: (delta: number) => void;
   onFont: (font: ReaderFontId) => void;
   onHighlightColor: (color: HighlightColorId) => void;
+  onPaperTone: (tone: PaperTone) => void;
 }) {
-  const theme = useThemeStore((s) => s.theme);
-  const setTheme = useThemeStore((s) => s.setTheme);
   return (
     <div
       role="dialog"
       aria-label="Reading preferences"
-      className="absolute right-0 top-full z-40 mt-2 w-64 rounded-xl bg-surface p-3.5 shadow-device border border-line"
+      className="screen-scroll absolute right-0 top-full z-40 mt-2 max-h-[80vh] w-64 overflow-y-auto rounded-xl bg-surface p-3.5 shadow-device border border-line"
     >
-      <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Text size</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Paper</p>
+      <div className="mt-2 grid grid-cols-3 gap-1.5" role="group" aria-label="Paper tone">
+        {PAPER_TONES.map((toneOption) => (
+          <button
+            key={toneOption.id}
+            type="button"
+            title={toneOption.label}
+            aria-label={toneOption.label}
+            aria-pressed={paperTone === toneOption.id}
+            onClick={() => onPaperTone(toneOption.id)}
+            className={cn(
+              "flex flex-col items-center gap-1.5 rounded-lg px-2 py-2 transition-colors",
+              paperTone === toneOption.id
+                ? "bg-paper-warm font-semibold shadow-xs ring-1 ring-hanko/40"
+                : "hover:bg-paper-warm/60",
+            )}
+          >
+            <span
+              aria-hidden="true"
+              className="flex size-7 items-center justify-center rounded-md text-[11px] font-bold"
+              style={{
+                backgroundColor: toneOption.bg,
+                color: toneOption.fg,
+                border: "1px solid var(--color-line)",
+              }}
+            >
+              {toneOption.glyph}
+            </span>
+            <span
+              className={cn(
+                "text-[11px] font-medium",
+                paperTone === toneOption.id ? "text-ink" : "text-ink-soft",
+              )}
+            >
+              {toneOption.shortLabel}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-ink-soft">Text size</p>
       <div className="mt-2.5 flex items-center gap-2">
         <Button
           type="button"
@@ -88,38 +130,6 @@ export function ReaderPrefsPanel({
             {font.label}
           </button>
         ))}
-      </div>
-
-      <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-ink-soft">Theme</p>
-      <div className="mt-2 grid grid-cols-2 gap-1.5">
-        <button
-          type="button"
-          aria-pressed={theme === "light"}
-          className={cn(
-            "flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
-            theme === "light"
-              ? "bg-paper-warm text-ink font-semibold shadow-xs"
-              : "text-ink-soft hover:bg-paper-warm/60 hover:text-ink",
-          )}
-          onClick={() => setTheme("light")}
-        >
-          <Sun className="size-4" />
-          Light
-        </button>
-        <button
-          type="button"
-          aria-pressed={theme === "dark"}
-          className={cn(
-            "flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors",
-            theme === "dark"
-              ? "bg-paper-warm text-ink font-semibold shadow-xs"
-              : "text-ink-soft hover:bg-paper-warm/60 hover:text-ink",
-          )}
-          onClick={() => setTheme("dark")}
-        >
-          <Moon className="size-4" />
-          Dark
-        </button>
       </div>
 
       <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-ink-soft">Default highlight</p>

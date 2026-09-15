@@ -6,13 +6,11 @@ export function LibraryTabs({
   tab,
   inboxCount,
   archiveCount,
-  vaultCount,
   onTab,
 }: {
   tab: LibraryTab;
   inboxCount: number;
   archiveCount: number;
-  vaultCount: number;
   onTab: (tab: LibraryTab) => void;
 }) {
   function select(next: LibraryTab) {
@@ -31,9 +29,6 @@ export function LibraryTabs({
       </TabButton>
       <TabButton active={tab === "archive"} onClick={() => select("archive")}>
         Archived Inks ({archiveCount})
-      </TabButton>
-      <TabButton active={tab === "vault"} onClick={() => select("vault")}>
-        Highlight Vault ({vaultCount})
       </TabButton>
     </nav>
   );
