@@ -96,6 +96,16 @@ function Shelves() {
     };
   }, [refreshKey]);
 
+  // ⌘K palette adds items without going through AddShelfDialog — listen so
+  // the grid refreshes when a save lands from the command palette.
+  useEffect(() => {
+    function onShelfChanged() {
+      setRefreshKey((k) => k + 1);
+    }
+    window.addEventListener("quarto:shelf-changed", onShelfChanged);
+    return () => window.removeEventListener("quarto:shelf-changed", onShelfChanged);
+  }, []);
+
   // One-way: URL → local state on first paint (deep links).
   useEffect(() => {
     if (syncedFromUrl.current) return;

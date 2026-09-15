@@ -318,5 +318,11 @@ export const fetchLinkPreview = createServerFn({ method: "GET" })
     const siteName = extractMeta(html, "og:site_name");
     if (siteName) metadata.source = siteName;
 
-    return { title: decodeEntities(title), imageUrl, link: finalUrl, metadata };
+    return {
+      title: decodeEntities(title).slice(0, 300),
+      imageUrl:
+        imageUrl && imageUrl.length <= 2000 ? imageUrl : undefined,
+      link: finalUrl.slice(0, 2000),
+      metadata,
+    };
   });

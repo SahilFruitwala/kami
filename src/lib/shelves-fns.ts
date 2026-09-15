@@ -453,6 +453,25 @@ const addShelfItemInput = z.object({
   status: z.enum(["to_try", "done"]).default("to_try"),
 });
 
+/** Drop oversize optional URLs before Zod max caps reject the whole insert. */
+function clampShelfItemInput(input: unknown): unknown {
+  if (!input || typeof input !== "object") return input;
+  const o = input as Record<string, unknown>;
+  const trimCap = (v: unknown, max: number) => {
+    if (typeof v !== "string") return v;
+    const t = v.trim();
+    if (!t) return undefined;
+    return t.length <= max ? t : undefined;
+  };
+  return {
+    ...o,
+    title: typeof o.title === "string" ? o.title.trim().slice(0, 300) : o.title,
+    notes: typeof o.notes === "string" ? o.notes.slice(0, 2000) : o.notes,
+    link: trimCap(o.link, 2000),
+    imageUrl: trimCap(o.imageUrl, 2000),
+  };
+}
+
 /**
  * Add a movie / TV show / book / wishlist item to the user's default shelf for
  * its type. Accepts the `metadata` produced by the lookup providers
@@ -462,7 +481,7 @@ const addShelfItemInput = z.object({
  */
 export const addShelfItem = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((input: unknown) => addShelfItemInput.parse(input))
+  .validator((input: unknown) => addShelfItemInput.parse(clampShelfItemInput(input)))
   .handler(async ({ context, data }) => {
     const db = await getDb();
     const title = data.title.trim();
