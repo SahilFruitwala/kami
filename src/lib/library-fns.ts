@@ -21,7 +21,10 @@ const highlightSchema = z.object({
 });
 
 const libraryItemSchema = z.object({
-  id: z.string().min(1).max(500),
+  // ids are full URLs (stripped of #fragment) — PG `text` PK has no length
+  // limit, so allow the same 2000 as url/canonicalUrl. A shorter cap here
+  // turned long pasted links into silent save failures.
+  id: z.string().min(1).max(2000),
   url: z.string().min(1).max(2000),
   canonicalUrl: z.string().min(1).max(2000),
   title: z.string().min(1).max(500),
@@ -135,6 +138,17 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
   .validator((input: unknown) => libraryItemSchema.parse(input))
   .handler(async ({ context, data }): Promise<LibraryItem> => {
     const db = await getDb();
+    // Clamp extractor output to column/validator caps so an oversize title,
+    // hero image URL, or very long article can never hard-fail a save.
+    // Identity fields (id/url/canonicalUrl) are never truncated.
+    const title = data.title.trim().slice(0, 500) || "Untitled";
+    const excerpt = data.excerpt.slice(0, 4000);
+    const contentHtml = data.contentHtml.slice(0, 1_500_000);
+    const heroImage =
+      data.heroImage && data.heroImage.length <= 2000 ? data.heroImage : null;
+    const author = data.author.slice(0, 300);
+    const siteName = data.siteName.slice(0, 200);
+    const note = data.note.slice(0, 2000);
     const tags = data.tags.map(normalizeTag).filter(Boolean).slice(0, 12);
     const highlights = data.highlights.slice(0, 80);
     const savedAt = new Date(data.savedAt);
@@ -162,19 +176,19 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
         .set({
           url: data.url,
           canonicalUrl: data.canonicalUrl,
-          title: data.title,
-          author: data.author,
-          siteName: data.siteName,
+          title,
+          author,
+          siteName,
           source: data.source,
           wordCount: data.wordCount,
           readingMinutes: data.readingMinutes,
-          excerpt: data.excerpt,
-          contentHtml: data.contentHtml,
-          heroImage: data.heroImage,
+          excerpt,
+          contentHtml,
+          heroImage,
           published: data.published,
           archived: data.archived,
           favorited: data.favorited,
-          note: data.note,
+          note,
           folderId,
           tags,
           highlights,
@@ -193,25 +207,25 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
       userId: context.userId,
       url: data.url,
       canonicalUrl: data.canonicalUrl,
-      title: data.title,
-      author: data.author,
-      siteName: data.siteName,
+      title,
+      author,
+      siteName,
       source: data.source,
       wordCount: data.wordCount,
       readingMinutes: data.readingMinutes,
-      excerpt: data.excerpt,
-      contentHtml: data.contentHtml,
-      heroImage: data.heroImage,
+      excerpt,
+      contentHtml,
+      heroImage,
       published: data.published,
       savedAt,
       archived: data.archived,
       favorited: data.favorited,
-      note: data.note,
+      note,
       folderId,
       tags,
       highlights,
     });
-    return { ...data, tags, highlights, folderId };
+    return { ...data, title, author, siteName, excerpt, contentHtml, heroImage, note, tags, highlights, folderId };
   });
 
 export const patchLibraryItem = createServerFn({ method: "POST" })
@@ -219,7 +233,7 @@ export const patchLibraryItem = createServerFn({ method: "POST" })
   .validator((input: unknown) =>
     z
       .object({
-        id: z.string().min(1).max(500),
+        id: z.string().min(1).max(2000),
         archived: z.boolean().optional(),
         favorited: z.boolean().optional(),
         note: z.string().max(2000).optional(),
@@ -266,7 +280,7 @@ export const patchLibraryItem = createServerFn({ method: "POST" })
 
 export const removeLibraryItem = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
-  .validator((input: unknown) => z.object({ id: z.string().min(1).max(500) }).parse(input))
+  .validator((input: unknown) => z.object({ id: z.string().min(1).max(2000) }).parse(input))
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     const db = await getDb();
     await db

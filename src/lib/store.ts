@@ -161,7 +161,7 @@ export type LibraryState = {
   progressById: Record<string, number>;
   resumeEnabled: boolean;
   setProgress: (id: string, progress: number) => void;
-  upsertItem: (item: LibraryItem) => void;
+  upsertItem: (item: LibraryItem, opts?: { sync?: boolean }) => void;
   archiveItem: (id: string, archived: boolean) => void;
   removeItem: (id: string) => void;
   setOpenId: (id: string | null) => void;
@@ -310,7 +310,7 @@ export const useLibraryStore = create<LibraryState>()(
           if (Math.abs((state.progressById[id] ?? 0) - clamped) < 0.005) return state;
           return { progressById: { ...state.progressById, [id]: clamped } };
         }),
-      upsertItem: (item) => {
+      upsertItem: (item, opts) => {
         let merged: LibraryItem = item;
         set((state) => {
           const existing = state.library.find((row) => row.id === item.id || row.url === item.url);
@@ -326,6 +326,7 @@ export const useLibraryStore = create<LibraryState>()(
           const rest = state.library.filter((row) => row.id !== merged.id && row.url !== merged.url);
           return { library: trimLibrary([merged, ...rest]) };
         });
+        if (opts?.sync === false) return;
         remoteSync((m) => m.syncUpsertItem(merged));
       },
       archiveItem: (id, archived) => {
