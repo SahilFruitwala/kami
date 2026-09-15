@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { BookMarked, Settings } from "lucide-react";
+import { BookMarked } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { Show, SignInButton, SignUpButton, UserButton } from "@/lib/auth/gates";
@@ -57,17 +57,6 @@ export function SiteHeader({
 
         <div className="flex items-center gap-1 sm:gap-2">
           <ThemeToggle />
-          <Link
-            to="/settings"
-            aria-label="Open settings"
-            title="Settings"
-            className={cn(
-              "flex size-11 items-center justify-center rounded-md text-ink-soft transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
-              active === "settings" && "bg-paper-warm text-ink",
-            )}
-          >
-            <Settings className="size-4" aria-hidden="true" />
-          </Link>
           {/* Capture tools button disabled for now (bookmarklet flow unreliable).
               To re-enable, restore the <Button> below.
           <Button
