@@ -99,12 +99,26 @@ export function ReaderView({
   function onBodyClick(event: MouseEvent<HTMLDivElement>) {
     const selected = window.getSelection()?.toString().trim() || "";
     if (selected.length >= 8) return;
-    const mark = (event.target as HTMLElement).closest("mark");
+    activateBodyTarget(event.target as HTMLElement, event);
+  }
+
+  function onBodyKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    const target = event.target as HTMLElement;
+    if (!target.closest("mark") && !target.closest("a")) return;
+    event.preventDefault();
+    activateBodyTarget(target, event);
+  }
+
+  function activateBodyTarget(target: HTMLElement, event: { preventDefault: () => void }) {
+    const mark = target.closest("mark");
     if (mark?.getAttribute("data-hid")) {
-      removeHighlight(item.id, mark.getAttribute("data-hid") || "");
+      document
+        .getElementById("inked-passages")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
-    const link = (event.target as HTMLElement).closest("a");
+    const link = target.closest("a");
     if (!link) return;
     event.preventDefault();
     const href = link.getAttribute("href");
@@ -135,7 +149,7 @@ export function ReaderView({
       await navigator.clipboard.writeText(lines.join("\n"));
       toast.success("Reading exported — paste it into your journal");
     } catch {
-      toast.error("Export failed");
+      toast.error("Export failed — copy the passages manually and try again");
     }
   }
 
@@ -149,7 +163,7 @@ export function ReaderView({
   } as CSSProperties;
 
   return (
-    <div className="kami-desk relative min-h-dvh">
+    <div className="kami-desk relative min-h-dvh [touch-action:manipulation]">
       {/* Reading progress — vermilion ink */}
       <div
         role="progressbar"
@@ -261,7 +275,11 @@ export function ReaderView({
                     <img
                       src={previewImageSrc(article.heroImage)}
                       alt=""
-                      className="w-full rounded-xl object-cover shadow-sm"
+                      width="1200"
+                      height="630"
+                      loading="lazy"
+                      decoding="async"
+                      className="aspect-[16/9] w-full rounded-xl object-cover shadow-sm"
                     />
                   </figure>
                 </ViewTransition>
@@ -273,13 +291,28 @@ export function ReaderView({
                 fontId={readerFont}
                 onSelectEnd={onSelectEnd}
                 onClick={onBodyClick}
+                onKeyDown={onBodyKeyDown}
                 bodyRef={bodyRef}
               />
 
               <MarginaliaHighlights
                 item={item}
                 onNote={(highlightId, note) => setHighlightNote(item.id, highlightId, note)}
-                onRemove={(highlightId) => removeHighlight(item.id, highlightId)}
+                onRemove={(highlightId) => {
+                  const snapshot = item.highlights.find((h) => h.id === highlightId);
+                  removeHighlight(item.id, highlightId);
+                  if (snapshot) {
+                    toast.success("Highlight removed", {
+                      action: {
+                        label: "Undo",
+                        onClick: () => {
+                          const restored = addHighlight(item.id, snapshot.text, snapshot.color);
+                          if (restored && snapshot.note) setHighlightNote(item.id, restored.id, snapshot.note);
+                        },
+                      },
+                    });
+                  }
+                }}
                 onExport={() => void exportToJournal()}
               />
 
@@ -292,7 +325,7 @@ export function ReaderView({
                     rel="noopener noreferrer"
                     className="underline underline-offset-2 transition-colors hover:text-hanko"
                   >
-                    View original article
+                    View Original Article
                   </a>
                 </p>
               </footer>
@@ -361,14 +394,14 @@ export function ReaderView({
                   value={item.note || ""}
                   onChange={(e) => setItemNote(item.id, e.target.value)}
                   placeholder="Private notes for this article…"
-                  className="mt-2 min-h-24 w-full bg-transparent font-body text-sm outline-none placeholder:italic placeholder:opacity-50"
+                  className="mt-2 min-h-24 w-full bg-transparent font-body text-sm outline-none placeholder:italic placeholder:opacity-50 focus-visible:ring-2 focus-visible:ring-hanko/40 rounded-md"
                 />
               </label>
 
               <button
                 type="button"
                 onClick={() => notesRef.current?.focus()}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-ink/5 px-4 py-3 font-sans text-xs font-medium shadow-sm transition-all hover:bg-ink/10 active:scale-[0.99]"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-ink/5 px-4 py-3 font-sans text-xs font-medium shadow-sm transition-colors hover:bg-ink/10 active:scale-[0.99]"
               >
                 + Add thought to this margin
               </button>
@@ -393,7 +426,7 @@ export function ReaderView({
       </div>
 
       {/* Floating zen dock */}
-      <div className="fixed bottom-6 left-1/2 z-40 flex w-[90%] max-w-2xl -translate-x-1/2 items-center justify-between gap-6 rounded-full bg-surface/95 px-6 py-3 shadow-[var(--shadow-raised)] backdrop-blur-xl">
+      <div className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex w-[90%] max-w-2xl -translate-x-1/2 items-center justify-between gap-6 rounded-full bg-surface/95 px-6 py-3 shadow-[var(--shadow-raised)] backdrop-blur-xl">
         <div className="flex min-w-0 items-center gap-3">
           <button
             type="button"
@@ -521,7 +554,7 @@ function MarginaliaHighlights({
         <button
           type="button"
           onClick={onExport}
-          className="flex items-center gap-1.5 rounded-[0.25rem] bg-hanko px-3 py-1.5 font-sans text-xs font-medium text-white shadow-sm transition-all hover:bg-shu active:translate-y-px"
+          className="flex items-center gap-1.5 rounded-[0.25rem] bg-hanko px-3 py-1.5 font-sans text-xs font-medium text-white shadow-sm transition-colors hover:bg-shu active:translate-y-px"
         >
           <PenLine className="size-3.5" aria-hidden="true" />
           Export to Journal

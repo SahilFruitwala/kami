@@ -33,7 +33,8 @@ export function HighlightsSection({
               <Input
                 value={highlight.note}
                 onChange={(e) => onNote(highlight.id, e.target.value)}
-                placeholder="Add a note"
+                placeholder="Add a note…"
+                aria-label="Note for highlight"
                 className="mt-2"
               />
               <button

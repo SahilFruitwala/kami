@@ -14,7 +14,7 @@ function LoginPage() {
   if (isPending) {
     return (
       <main className="grid min-h-dvh place-items-center bg-paper px-4 text-sm text-ink-muted">
-        Checking your session…
+        <p role="status" aria-live="polite">Checking your session…</p>
       </main>
     );
   }
@@ -35,13 +35,13 @@ function LoginPage() {
             <span className="flex size-8 items-center justify-center rounded-md bg-ink text-paper">
               <BookMarked className="size-4" aria-hidden="true" />
             </span>
-            <span className="text-sm font-semibold tracking-tight">Quarto</span>
+            <span className="text-sm font-semibold tracking-tight" translate="no">KAMI</span>
           </Link>
           <ThemeToggle />
         </div>
 
         <SignedOut>
-          <h1 className="font-display text-3xl leading-tight tracking-tight">Sign in to Quarto</h1>
+          <h1 className="font-display text-3xl leading-tight tracking-tight">Sign in to <span translate="no">KAMI</span></h1>
           <p className="mt-3 text-base leading-normal text-ink-soft">
             Your reading list stays with your account — save from any device, keep tags and
             highlights in sync.

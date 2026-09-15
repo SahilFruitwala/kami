@@ -744,7 +744,7 @@ export function articleFromLinkOnly(rawUrl: string, title?: string): Article {
   const host = pageUrl.hostname.replace(/^www\./, "");
   const safeTitle = (title || "").trim() || host;
   const contentHtml = sanitizeHtml(
-    `<p><em>Saved as a link.</em> Automatic capture was blocked — open the original, or paste the article / use the Quarto bookmarklet.</p><p><a href="${href.replace(/"/g, "&quot;")}">Open original</a></p>`,
+    `<p><em>Saved as a link.</em> Automatic capture was blocked — open the original, or paste the article / use the KAMI bookmarklet.</p><p><a href="${href.replace(/"/g, "&quot;")}">Open original</a></p>`,
     href,
   );
   return {

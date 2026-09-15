@@ -40,7 +40,7 @@ export function CaptureForm({
         <label htmlFor="source-url" className="sr-only">
           Article URL
         </label>
-        <div className="kami-sheet flex items-center gap-2 px-3 py-2">
+        <div className="kami-sheet flex items-center gap-2 px-3 py-2 focus-within:ring-2 focus-within:ring-hanko/40">
           <Search className="size-[18px] shrink-0 text-ink-muted" aria-hidden="true" />
           <Input
             id="source-url"
@@ -57,10 +57,10 @@ export function CaptureForm({
               onUrlChange(e.target.value);
               onClearError();
             }}
-            className="h-10 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
+            className="h-10 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-2 focus-visible:ring-hanko/40"
           />
-          <kbd className="hidden shrink-0 rounded-[0.25rem] bg-paper-warm px-1.5 py-0.5 font-sans text-[11px] text-ink-muted sm:inline-block">
-            ⌘K
+          <kbd className="hidden shrink-0 rounded-[0.25rem] bg-paper-warm px-1.5 py-0.5 font-sans text-[11px] text-ink-muted tabular-nums sm:inline-block">
+            ⌘&nbsp;K
           </kbd>
           <Button
             type="submit"
@@ -75,7 +75,7 @@ export function CaptureForm({
               </>
             ) : (
               <>
-                Save
+                Save Article
                 <ArrowRight className="size-4" aria-hidden="true" />
               </>
             )}
@@ -103,7 +103,7 @@ export function CaptureForm({
           </div>
         ) : (
           <p className="mt-2 text-xs font-medium text-ink-muted">
-            Public pages only. Press <kbd className="rounded bg-paper-warm px-1">⌘K</kbd> to
+            Public pages only. Press <kbd className="rounded bg-paper-warm px-1">⌘&nbsp;K</kbd> to
             search the shelf — paste above to bind a new scroll.
           </p>
         )}

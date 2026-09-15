@@ -48,20 +48,35 @@ export function PasteDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <Input placeholder="Title" value={title} onChange={(e) => onTitle(e.target.value)} />
+          <Input aria-label="Article title" placeholder="Title — e.g. How Great Essays Work…" value={title} onChange={(e) => onTitle(e.target.value)} name="paste-title" autoComplete="off" />
           <Input
-            placeholder="Source URL (optional)"
+            aria-label="Source URL (optional)"
+            placeholder="Source URL — e.g. https://example.com/essay…"
             value={url}
             onChange={(e) => onUrl(e.target.value)}
+            type="url"
+            inputMode="url"
+            name="paste-url"
+            autoComplete="off"
+            spellCheck={false}
           />
           <textarea
+            aria-label="Article text"
             className="min-h-48 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/20"
-            placeholder="Paste article text or HTML"
+            placeholder="Paste article text or HTML…"
             value={body}
             onChange={(e) => onBody(e.target.value)}
+            name="paste-body"
           />
           <Button type="button" className="w-full" disabled={busy} onClick={onImport}>
-            {busy ? <LoaderCircle className="size-4 animate-spin" /> : "Import to library"}
+            {busy ? (
+              <>
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                Importing…
+              </>
+            ) : (
+              "Import to Library"
+            )}
           </Button>
         </div>
       </DialogContent>
@@ -110,14 +125,14 @@ export function ToolsDialog({ open, onOpenChange, bookmarklet }: ToolsDialogProp
         <DialogHeader>
           <DialogTitle>Capture tools</DialogTitle>
           <DialogDescription>
-            Bypass bot walls by capturing in your browser, then sending the HTML into Quarto.
+            Bypass bot walls by capturing in your browser, then sending the HTML into KAMI.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 text-sm text-ink-soft">
           <ol className="list-decimal space-y-1.5 pl-5">
-            <li>Copy the Quarto bookmarklet below into a new bookmark.</li>
+            <li>Copy the KAMI bookmarklet below into a new bookmark.</li>
             <li>On any blocked article page, click that bookmark.</li>
-            <li>Quarto opens with the content ready — review and import.</li>
+            <li>KAMI opens with the content ready — review and import.</li>
           </ol>
           <Button
             type="button"
@@ -125,7 +140,7 @@ export function ToolsDialog({ open, onOpenChange, bookmarklet }: ToolsDialogProp
             disabled={!bookmarklet}
             onClick={() => void copyBookmarklet()}
           >
-            Copy Quarto bookmarklet
+            Copy KAMI bookmarklet
           </Button>
           {bookmarklet ? (
             <details className="rounded-md border border-line bg-paper-warm p-2">
@@ -220,29 +235,46 @@ export function TranscribeDialog({ open, onOpenChange, onOpenItem }: TranscribeD
         </DialogHeader>
         <div className="space-y-3">
           <Input
-            placeholder="Work title"
+            aria-label="Work title"
+            placeholder="Work title — e.g. The Rings of Saturn…"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
+            name="slip-title"
+            autoComplete="off"
           />
           <Input
-            placeholder="Author (optional)"
+            aria-label="Author (optional)"
+            placeholder="Author — e.g. W. G. Sebald…"
             value={author}
             onChange={(e) => setAuthor(e.target.value)}
+            name="slip-author"
+            autoComplete="off"
           />
           <textarea
+            aria-label="Passage text"
             className="min-h-32 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/20"
             placeholder="Transcribe the passage here…"
             value={passage}
             onChange={(e) => setPassage(e.target.value)}
+            name="slip-passage"
           />
           <textarea
+            aria-label="Marginalia note (optional)"
             className="min-h-20 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/20"
-            placeholder="Marginalia — your note (optional)"
+            placeholder="Marginalia — your note…"
             value={note}
             onChange={(e) => setNote(e.target.value)}
+            name="slip-note"
           />
           <Button type="button" className="w-full" disabled={busy} onClick={() => void save()}>
-            {busy ? <LoaderCircle className="size-4 animate-spin" /> : "Ink slip to vault"}
+            {busy ? (
+              <>
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                Inking…
+              </>
+            ) : (
+              "Ink Slip to Vault"
+            )}
           </Button>
         </div>
       </DialogContent>

@@ -1,6 +1,8 @@
 import { ViewTransition } from "react";
 import { BookOpen, Clock3, Highlighter, Star, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button.tsx";
+import { useLibraryStore } from "@/lib/store.ts";
 import { Hanko, WashiTag } from "@/components/kami.tsx";
 import { previewImageSrc } from "@/lib/image-url.ts";
 import { relativeTime } from "@/lib/time.ts";
@@ -55,7 +57,16 @@ function ArticleCard({
   onOpen: (item: LibraryItem) => void;
   onRemove: (id: string) => void;
 }) {
+  const upsertItem = useLibraryStore((s) => s.upsertItem);
   const glyph = (item.siteName || item.title || "K").trim().charAt(0) || "K";
+
+  function removeWithUndo() {
+    const snapshot = item;
+    onRemove(item.id);
+    toast.success(`Removed “${snapshot.title.slice(0, 40)}”`, {
+      action: { label: "Undo", onClick: () => upsertItem(snapshot) },
+    });
+  }
   return (
     <li className="group kami-sheet relative flex min-h-full flex-col justify-between overflow-hidden p-6 transition-shadow duration-300 hover:shadow-[var(--shadow-border-hover)]">
       {item.favorited ? (
@@ -86,12 +97,12 @@ function ArticleCard({
         className="mb-4 flex flex-1 flex-col rounded-[0.25rem] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
       >
         <ViewTransition name={`article-title-${item.id}`} share="text-morph" default="none">
-          <span className="font-display text-xl leading-snug font-medium text-ink transition-colors group-hover:text-hanko">
+          <span className="line-clamp-2 font-display text-xl leading-snug font-medium break-words text-ink transition-colors group-hover:text-hanko">
             {item.title}
           </span>
         </ViewTransition>
         {item.excerpt ? (
-          <span className="mt-2 line-clamp-3 font-body text-sm leading-relaxed text-ink-soft">
+          <span className="mt-2 line-clamp-3 font-body text-sm leading-relaxed break-words text-ink-soft">
             {item.excerpt}
           </span>
         ) : null}
@@ -101,6 +112,8 @@ function ArticleCard({
               <img
                 src={previewImageSrc(item.heroImage)}
                 alt=""
+                width="800"
+                height="450"
                 loading="lazy"
                 decoding="async"
                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -116,12 +129,12 @@ function ArticleCard({
           <span className="truncate">{item.author || item.siteName || "Unknown hand"}</span>
         </p>
         <p className="flex shrink-0 items-center gap-2 text-[11px] font-medium text-ink-muted">
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1 tabular-nums">
             <Clock3 className="size-3.5" aria-hidden="true" />
-            {item.readingMinutes} min
+            {item.readingMinutes}&nbsp;min
           </span>
           <span aria-hidden="true">·</span>
-          <span>{relativeTime(item.savedAt)}</span>
+          <span className="tabular-nums">{relativeTime(item.savedAt)}</span>
           {item.favorited ? (
             <Star className="size-3.5 fill-hanko text-hanko" aria-label="Favorited" />
           ) : null}
@@ -136,7 +149,7 @@ function ArticleCard({
           "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100",
         )}
         aria-label={`Remove ${item.title}`}
-        onClick={() => onRemove(item.id)}
+        onClick={removeWithUndo}
       >
         <Trash2 className="size-4" aria-hidden="true" />
       </Button>

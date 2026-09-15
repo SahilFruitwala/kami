@@ -80,7 +80,7 @@ export function LibraryHome({
               </h2>
             </div>
             <div className="relative w-full md:w-80">
-              <div className="kami-sheet flex items-center px-3 py-2.5">
+              <div className="kami-sheet flex items-center px-3 py-2.5 focus-within:ring-2 focus-within:ring-hanko/40">
                 <Search className="mr-2 size-[18px] shrink-0 text-ink-muted" aria-hidden="true" />
                 <label htmlFor="library-search" className="sr-only">
                   Search washi, authors, or concepts
@@ -90,13 +90,16 @@ export function LibraryHome({
                   name="q"
                   type="search"
                   autoComplete="off"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
                   value={filters.query}
                   onChange={(e) => filters.onQuery(e.target.value)}
                   placeholder="Search washi, authors, or concepts…"
-                  className="h-auto flex-1 border-0 bg-transparent p-0 shadow-none focus-visible:ring-0"
+                  className="h-auto flex-1 border-0 bg-transparent p-0 shadow-none focus-visible:ring-2 focus-visible:ring-hanko/40"
                 />
-                <kbd className="hidden shrink-0 rounded-[0.25rem] bg-paper-warm px-1.5 py-0.5 font-sans text-[11px] text-ink-muted sm:inline-block">
-                  ⌘K
+                <kbd className="hidden shrink-0 rounded-[0.25rem] bg-paper-warm px-1.5 py-0.5 font-sans text-[11px] text-ink-muted tabular-nums sm:inline-block">
+                  ⌘&nbsp;K
                 </kbd>
               </div>
             </div>

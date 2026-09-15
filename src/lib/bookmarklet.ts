@@ -26,6 +26,6 @@ export function decodeImportPayload(raw: string): BookmarkletPayload | null {
 /** Bookmarklet source the user can paste as a bookmark URL. */
 export function buildBookmarklet(appOrigin: string): string {
   const origin = appOrigin.replace(/\/$/, "");
-  const src = `(()=>{try{const t=document.title||"Untitled";const n=document.querySelector("article,.post-content,.entry-content,main")||document.body;const h=(n&&n.innerHTML||"").slice(0,450000);const u=location.href;const p=btoa(unescape(encodeURIComponent(JSON.stringify({title:t,url:u,html:h}))));open(${JSON.stringify(`${origin}/?import=`)}+encodeURIComponent(p),"_blank","noopener")}catch(e){alert("Quarto could not capture this page.")}})()`;
+  const src = `(()=>{try{const t=document.title||"Untitled";const n=document.querySelector("article,.post-content,.entry-content,main")||document.body;const h=(n&&n.innerHTML||"").slice(0,450000);const u=location.href;const p=btoa(unescape(encodeURIComponent(JSON.stringify({title:t,url:u,html:h}))));open(${JSON.stringify(`${origin}/?import=`)}+encodeURIComponent(p),"_blank","noopener")}catch(e){alert("KAMI could not capture this page.")}})()`;
   return `javascript:${src}`;
 }

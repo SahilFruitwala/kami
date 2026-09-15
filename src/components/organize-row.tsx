@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Folder, Plus, X } from "lucide-react";
+import { toast } from "sonner";
 import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
 
@@ -14,7 +15,13 @@ export function OrganizeRow({ item }: { item: LibraryItem }) {
   const [folderDraft, setFolderDraft] = useState("");
   const [tagDraft, setTagDraft] = useState("");
   const boxRef = useRef<HTMLDivElement>(null);
+  const tagInputRef = useRef<HTMLInputElement>(null);
   const folder = folders.find((row) => row.id === item.folderId);
+
+  useEffect(() => {
+    if (!addingTag) return;
+    if (window.matchMedia?.("(pointer: fine)").matches) tagInputRef.current?.focus();
+  }, [addingTag]);
 
   useEffect(() => {
     if (!folderOpen && !addingTag) return;
@@ -72,7 +79,12 @@ export function OrganizeRow({ item }: { item: LibraryItem }) {
               type="button"
               className="inline-flex size-6 items-center justify-center rounded-full text-ink-muted hover:bg-surface hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30"
               aria-label={`Remove tag ${tag}`}
-              onClick={() => removeTag(item.id, tag)}
+              onClick={() => {
+                removeTag(item.id, tag);
+                toast.success(`Removed tag #${tag}`, {
+                  action: { label: "Undo", onClick: () => addTag(item.id, tag) },
+                });
+              }}
             >
               <X className="size-3" aria-hidden="true" />
             </button>
@@ -80,7 +92,8 @@ export function OrganizeRow({ item }: { item: LibraryItem }) {
         ))}
         {addingTag ? (
           <input
-            autoFocus
+            ref={tagInputRef}
+            aria-label="New tag name"
             value={tagDraft}
             onChange={(e) => setTagDraft(e.target.value)}
             onKeyDown={(e) => {
@@ -95,7 +108,7 @@ export function OrganizeRow({ item }: { item: LibraryItem }) {
               else setAddingTag(false);
             }}
             placeholder="Tag name…"
-            className="h-9 w-28 rounded-full bg-surface border border-line px-3 text-sm text-ink outline-none placeholder:text-ink-muted focus:ring-2 focus:ring-ink/30"
+            className="h-9 w-28 rounded-full bg-surface border border-line px-3 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/30"
           />
         ) : (
           <button
@@ -150,6 +163,7 @@ export function OrganizeRow({ item }: { item: LibraryItem }) {
           ))}
           <div className="mt-1 flex gap-1.5 border-t border-line pt-2">
             <input
+              aria-label="New folder name"
               value={folderDraft}
               onChange={(e) => setFolderDraft(e.target.value)}
               onKeyDown={(e) => {
@@ -162,7 +176,7 @@ export function OrganizeRow({ item }: { item: LibraryItem }) {
                 }
               }}
               placeholder="New folder…"
-              className="h-9 min-w-0 flex-1 rounded-lg bg-paper px-2.5 text-sm text-ink outline-none placeholder:text-ink-muted border border-line focus:ring-2 focus:ring-ink/30"
+              className="h-9 min-w-0 flex-1 rounded-lg bg-paper px-2.5 text-sm text-ink outline-none placeholder:text-ink-muted border border-line focus-visible:ring-2 focus-visible:ring-ink/30"
             />
             <button
               type="button"

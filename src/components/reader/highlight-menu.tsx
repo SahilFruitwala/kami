@@ -51,7 +51,7 @@ export function HighlightMenu({
           onMouseDown={(e) => e.preventDefault()}
           onClick={() => onSave()}
         >
-          <Highlighter className="size-3.5" />
+          <Highlighter className="size-3.5" aria-hidden="true" />
           Highlight
         </Button>
       </div>

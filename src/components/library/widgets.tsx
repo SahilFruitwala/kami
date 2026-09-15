@@ -46,7 +46,7 @@ export function DeskHero({
   return (
     <div className="kami-sheet-raised group relative overflow-hidden p-8 md:p-10">
       <div
-        className="absolute top-0 right-10 z-20 flex h-28 w-6 flex-col items-center justify-end bg-hanko pb-2.5 shadow-md transition-all duration-300 group-hover:h-32"
+        className="absolute top-0 right-10 z-20 flex h-28 w-6 flex-col items-center justify-end bg-hanko pb-2.5 shadow-md transition-[height] duration-300 group-hover:h-32"
         aria-hidden="true"
       >
         <span className="size-1.5 rounded-full bg-white/80" />
@@ -59,13 +59,13 @@ export function DeskHero({
       <div className="relative z-10">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <WashiTag tone="vermilion">Currently On Desk</WashiTag>
-          <span className="font-sans text-[11px] text-ink-muted">
-            {item.source === "x" ? "X" : item.siteName || "Article"} · {item.readingMinutes} min
+          <span className="font-sans text-[11px] tabular-nums text-ink-muted">
+            {item.source === "x" ? "X" : item.siteName || "Article"} · {item.readingMinutes}&nbsp;min
           </span>
         </div>
-        <h3 className="mb-2 font-display text-2xl leading-tight tracking-tight text-ink md:text-3xl">
+        <h2 className="mb-2 font-display text-2xl leading-tight tracking-tight text-ink text-balance md:text-3xl">
           {item.title}
-        </h3>
+        </h2>
         {item.excerpt ? (
           <p className="mb-6 line-clamp-2 max-w-2xl font-body text-base text-ink-soft">
             {item.author ? `${item.author} — ` : ""}
@@ -108,7 +108,10 @@ export function ReadingRhythmCard() {
       const value = library.filter(
         (row) => row.savedAt >= start.getTime() && row.savedAt <= end.getTime(),
       ).length;
-      days.push({ value, label: "SMTWTFS"[d.getDay()] ?? "" });
+      days.push({
+        value,
+        label: new Intl.DateTimeFormat(undefined, { weekday: "narrow" }).format(d),
+      });
     }
     return days;
   }, [library]);
