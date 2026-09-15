@@ -4,9 +4,11 @@ import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
 import { getDb } from "@/lib/db";
 import {
+  activity,
   bookGenres,
   books,
   genres,
+  listMembers,
   lists,
   movieGenres,
   movies,
@@ -16,6 +18,7 @@ import {
   tvShows,
   watchedEpisodes,
   wishlistItems,
+  type ItemType,
 } from "@/lib/schema";
 
 export const SHELF_TABS = ["movie", "tv", "book", "wishlist"] as const;
@@ -344,4 +347,293 @@ export const getShelfItem = createServerFn({ method: "GET" })
       .limit(1);
     if (!rows[0]) return null;
     return { type: "wishlist", item: rows[0].wishlist_items };
+  });
+
+// ---------- Add (port of shelf/src/server/items.ts:addItem) ----------
+
+/** Lowercase, punctuation-stripped title for duplicate checks (mirrors shelf). */
+export function normalizeTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Keep only safe http(s) links; drop `javascript:`/`data:` etc. */
+function safeHttpUrl(value: string | null | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return undefined;
+    return parsed.toString();
+  } catch {
+    return undefined;
+  }
+}
+
+function optionalInteger(value: string | undefined): number | null {
+  if (!value?.trim()) return null;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+const DEFAULT_LIST_NAMES: Record<ItemType, string> = {
+  restaurant: "Restaurants",
+  movie: "Movies",
+  tv: "TV series",
+  book: "Books",
+  place: "Places",
+  wishlist: "Wishlist",
+};
+
+/** The user's default shelf for a type, created on first use. */
+async function getOrCreateDefaultList(userId: string, type: ItemType): Promise<string> {
+  const db = await getDb();
+  const existing = await db
+    .select({ id: lists.id })
+    .from(lists)
+    .where(and(eq(lists.ownerId, userId), eq(lists.type, type), eq(lists.isDefault, true)))
+    .limit(1);
+  if (existing[0]) return existing[0].id;
+
+  const listId = crypto.randomUUID();
+  await db.insert(lists).values({
+    id: listId,
+    name: DEFAULT_LIST_NAMES[type],
+    type,
+    ownerId: userId,
+    isDefault: true,
+  });
+  await db.insert(listMembers).values({ id: crypto.randomUUID(), listId, userId, role: "owner" });
+  return listId;
+}
+
+type AppDb = Awaited<ReturnType<typeof getDb>>;
+
+async function syncGenres(db: AppDb, type: ItemType, itemId: string, genreValue: string | undefined) {
+  if (type !== "movie" && type !== "tv" && type !== "book") return;
+  if (type === "movie") await db.delete(movieGenres).where(eq(movieGenres.movieId, itemId));
+  else if (type === "tv") await db.delete(tvShowGenres).where(eq(tvShowGenres.tvShowId, itemId));
+  else await db.delete(bookGenres).where(eq(bookGenres.bookId, itemId));
+
+  const names = [
+    ...new Map(
+      (genreValue ?? "")
+        .split(",")
+        .map((name) => name.trim())
+        .filter(Boolean)
+        .map((name) => [name.toLocaleLowerCase(), name] as const),
+    ),
+  ];
+  if (names.length === 0) return;
+
+  await db
+    .insert(genres)
+    .values(names.map(([normalizedName, name]) => ({ id: normalizedName, name, normalizedName })))
+    .onConflictDoNothing();
+
+  if (type === "movie")
+    await db.insert(movieGenres).values(names.map(([genreId]) => ({ movieId: itemId, genreId })));
+  else if (type === "tv")
+    await db
+      .insert(tvShowGenres)
+      .values(names.map(([genreId]) => ({ tvShowId: itemId, genreId })));
+  else await db.insert(bookGenres).values(names.map(([genreId]) => ({ bookId: itemId, genreId })));
+}
+
+const addShelfItemInput = z.object({
+  type: shelfType,
+  title: z.string().min(1).max(300),
+  notes: z.string().max(2000).optional(),
+  link: z.string().max(2000).optional(),
+  imageUrl: z.string().max(2000).optional(),
+  metadata: z.record(z.string(), z.string()).optional(),
+  status: z.enum(["to_try", "done"]).default("to_try"),
+});
+
+/**
+ * Add a movie / TV show / book / wishlist item to the user's default shelf for
+ * its type. Accepts the `metadata` produced by the lookup providers
+ * (`year`, `overview`, `genre`, `author`, `tmdbId`, `description`, `source`,
+ * …) and fans it out into the typed columns + genre junctions, mirroring
+ * shelf's `insertConcreteItem`.
+ */
+export const addShelfItem = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((input: unknown) => addShelfItemInput.parse(input))
+  .handler(async ({ context, data }) => {
+    const db = await getDb();
+    const title = data.title.trim();
+    if (!title) throw new Error("Title is required");
+    const metadata = data.metadata ?? {};
+    const status = data.status;
+    const listId = await getOrCreateDefaultList(context.userId, data.type);
+    const id = crypto.randomUUID();
+    const completedAt = status === "done" ? new Date() : null;
+    const link = safeHttpUrl(data.link) ?? null;
+    const imageUrl = safeHttpUrl(data.imageUrl) ?? null;
+    const notes = data.notes?.trim() ? data.notes.trim() : null;
+    const normalizedTitle = normalizeTitle(title);
+    const extraMetadata = Object.fromEntries(
+      Object.entries(metadata).filter(([, v]) => v.trim() !== ""),
+    );
+
+    if (data.type === "movie") {
+      await db.insert(movies).values({
+        id,
+        listId,
+        title,
+        normalizedTitle,
+        notes,
+        link,
+        imageUrl,
+        status,
+        extraMetadata,
+        addedBy: context.userId,
+        completedAt,
+        releaseYear: optionalInteger(metadata.year),
+        overview: metadata.overview ?? null,
+        tmdbId: optionalInteger(metadata.tmdbId),
+      });
+    } else if (data.type === "tv") {
+      await db.insert(tvShows).values({
+        id,
+        listId,
+        title,
+        normalizedTitle,
+        notes,
+        link,
+        imageUrl,
+        status,
+        extraMetadata,
+        addedBy: context.userId,
+        completedAt,
+        releaseYear: optionalInteger(metadata.year),
+        overview: metadata.overview ?? null,
+        tmdbId: optionalInteger(metadata.tmdbId),
+        episodesWatched: 0,
+      });
+    } else if (data.type === "book") {
+      await db.insert(books).values({
+        id,
+        listId,
+        title,
+        normalizedTitle,
+        notes,
+        link,
+        imageUrl,
+        status,
+        extraMetadata,
+        addedBy: context.userId,
+        completedAt,
+        author: metadata.author ?? null,
+        publishYear: optionalInteger(metadata.year),
+        overview: metadata.overview ?? null,
+      });
+    } else if (data.type === "restaurant") {
+      await db.insert(restaurants).values({
+        id,
+        listId,
+        title,
+        normalizedTitle,
+        notes,
+        link,
+        imageUrl,
+        status,
+        extraMetadata,
+        addedBy: context.userId,
+        completedAt,
+        address: metadata.address ?? null,
+        rating: metadata.rating ?? null,
+        price: metadata.price ?? null,
+        kind: metadata.kind ?? null,
+      });
+    } else if (data.type === "place") {
+      await db.insert(places).values({
+        id,
+        listId,
+        title,
+        normalizedTitle,
+        notes,
+        link,
+        imageUrl,
+        status,
+        extraMetadata,
+        addedBy: context.userId,
+        completedAt,
+        address: metadata.address ?? null,
+        rating: metadata.rating ?? null,
+        price: metadata.price ?? null,
+        kind: metadata.kind ?? null,
+      });
+    } else {
+      await db.insert(wishlistItems).values({
+        id,
+        listId,
+        title,
+        normalizedTitle,
+        notes,
+        link,
+        imageUrl,
+        status,
+        extraMetadata,
+        addedBy: context.userId,
+        completedAt,
+        price: metadata.price ?? null,
+        description: metadata.description ?? null,
+        source: metadata.source ?? null,
+      });
+    }
+
+    await syncGenres(db, data.type, id, metadata.genre);
+    await db.insert(activity).values({
+      id: crypto.randomUUID(),
+      listId,
+      userId: context.userId,
+      action: status === "done" ? "completed" : "added",
+      itemTitle: title,
+      itemType: data.type,
+    });
+    return { id, listId, type: data.type, status };
+  });
+
+/** Title matches already on this shelf — for duplicate warnings at add-time. */
+export const findShelfDuplicates = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator((input: unknown) =>
+    z.object({ type: shelfType, title: z.string().max(300) }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    const title = data.title.trim();
+    if (!title) return [];
+    const db = await getDb();
+    const listId = await getOrCreateDefaultList(context.userId, data.type);
+    const normalized = normalizeTitle(title);
+    if (data.type === "movie")
+      return db
+        .select({ id: movies.id, title: movies.title, status: movies.status })
+        .from(movies)
+        .where(and(eq(movies.listId, listId), eq(movies.normalizedTitle, normalized)))
+        .limit(5);
+    if (data.type === "tv")
+      return db
+        .select({ id: tvShows.id, title: tvShows.title, status: tvShows.status })
+        .from(tvShows)
+        .where(and(eq(tvShows.listId, listId), eq(tvShows.normalizedTitle, normalized)))
+        .limit(5);
+    if (data.type === "book")
+      return db
+        .select({ id: books.id, title: books.title, status: books.status })
+        .from(books)
+        .where(and(eq(books.listId, listId), eq(books.normalizedTitle, normalized)))
+        .limit(5);
+    return db
+      .select({ id: wishlistItems.id, title: wishlistItems.title, status: wishlistItems.status })
+      .from(wishlistItems)
+      .where(
+        and(eq(wishlistItems.listId, listId), eq(wishlistItems.normalizedTitle, normalized)),
+      )
+      .limit(5);
   });
