@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { addTransitionType, startTransition, useEffect, useMemo, useRef } from "react";
+import { addTransitionType, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell.tsx";
 import { ArticleList } from "@/components/article-list.tsx";
@@ -16,13 +16,15 @@ import {
 import { KamiEyebrow } from "@/components/kami.tsx";
 import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
-import { decodeImportPayload } from "@/lib/bookmarklet.ts";
+import { importArticle } from "@/lib/article-fns.ts";
+import { decodeImportPayload, type BookmarkletPayload } from "@/lib/bookmarklet.ts";
 import {
   readDraftUrl,
   stashImportPayload,
   takeStashedImportPayload,
 } from "@/lib/session-article.ts";
-import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import { persistArticleItem } from "@/lib/library-remote.ts";
+import { articleToItem, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
 
 type HomeSearch = {
   import?: string;
@@ -93,6 +95,8 @@ function Home() {
     [library],
   );
 
+  const [capturing, setCapturing] = useState(false);
+
   function openItem(item: LibraryItem) {
     goRead(navigate, item.id);
   }
@@ -107,6 +111,58 @@ function Home() {
     if (!item.contentHtml) await save.save(item.url, true);
   }
 
+  /**
+   * Bookmarklet capture: process the grabbed HTML, save the clean copy, and
+   * open the reader — no raw-HTML review step. Falls back to the manual
+   * Paste dialog only when auto-import can't make an article of it.
+   */
+  async function autoImportCapture(payload: BookmarkletPayload) {
+    const looksHtml = /<\/?[a-z][\s\S]*>/i.test(payload.html);
+    if (!payload.title.trim() || !payload.html.trim()) {
+      paste.seedPaste(payload);
+      toast.message("Captured from bookmarklet — review and import.");
+      return;
+    }
+    setCapturing(true);
+    try {
+      const result = await importArticle({
+        data: {
+          url: payload.url.trim() || undefined,
+          title: payload.title.trim(),
+          contentHtml: looksHtml ? payload.html : undefined,
+          contentText: looksHtml ? undefined : payload.html,
+        },
+      });
+      if (!result.ok) {
+        paste.seedPaste(payload);
+        toast.error("Auto-import needs a hand — review and import below.");
+        return;
+      }
+      // Same id as persist's optimistic row (ids derive from the URL), so the
+      // offline branch below can open it without writing twice.
+      const local = articleToItem(result.article);
+      try {
+        const saved = await persistArticleItem(local);
+        toast.success("Captured from bookmarklet — saved");
+        goRead(navigate, saved.id);
+      } catch (err) {
+        console.error("[bookmarklet] persist failed:", err);
+        if (typeof navigator !== "undefined" && navigator.onLine === false) {
+          toast.success("Saved here — will sync when back online");
+          goRead(navigate, local.id);
+        } else {
+          paste.seedPaste(payload);
+          toast.error(err instanceof Error ? err.message : "Could not save that capture.");
+        }
+      }
+    } catch {
+      paste.seedPaste(payload);
+      toast.message("Captured from bookmarklet — review and import.");
+    } finally {
+      setCapturing(false);
+    }
+  }
+
   useEffect(() => {
     if (booted.current) return;
     booted.current = true;
@@ -114,12 +170,13 @@ function Home() {
     // ⌘K is handled by CommandPalette.
     // `?import=` is stashed by <HomePage /> before the auth gate, so pick up
     // the stash here (covers signed-out → sign-in and loading states).
+    // Bookmarklet captures are imported automatically — process, save, open —
+    // and only fall back to the manual review dialog when auto-import fails.
     const raw = search.import ?? takeStashedImportPayload();
     if (raw) {
       const payload = decodeImportPayload(raw);
       if (payload) {
-        paste.seedPaste(payload);
-        toast.message("Captured from bookmarklet — review and import.");
+        void autoImportCapture(payload);
       } else {
         toast.error(
           "Could not read the captured page — the URL was likely truncated. Try a smaller article section or Paste article instead.",
@@ -171,9 +228,9 @@ function Home() {
               onOpenPaste={openPaste}
             />
           </div>
-          {save.busy ? (
+          {save.busy || capturing ? (
             <p className="mt-3 text-sm text-ink-muted" role="status" aria-live="polite">
-              Saving a clean copy…
+              {capturing ? "Importing captured page…" : "Saving a clean copy…"}
             </p>
           ) : null}
         </div>

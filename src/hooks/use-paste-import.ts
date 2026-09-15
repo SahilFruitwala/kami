@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import { importArticle } from "@/lib/article-fns.ts";
-import { articleToItem, useLibraryStore } from "@/lib/store.ts";
+import { persistArticleItem } from "@/lib/library-remote.ts";
+import { articleToItem } from "@/lib/store.ts";
 
 export function usePasteImport(goOpen: (id: string | null, replace?: boolean) => void) {
   const [pasteOpen, setPasteOpen] = useState(false);
@@ -9,7 +10,6 @@ export function usePasteImport(goOpen: (id: string | null, replace?: boolean) =>
   const [pasteBody, setPasteBody] = useState("");
   const [pasteUrl, setPasteUrl] = useState("");
   const [busy, setBusy] = useState(false);
-  const upsertItem = useLibraryStore((s) => s.upsertItem);
 
   function resetPaste() {
     setPasteTitle("");
@@ -45,11 +45,23 @@ export function usePasteImport(goOpen: (id: string | null, replace?: boolean) =>
         return;
       }
       const item = articleToItem(result.article);
-      upsertItem(item);
-      goOpen(item.id);
-      setPasteOpen(false);
-      resetPaste();
-      toast.success("Imported article");
+      try {
+        const saved = await persistArticleItem(item);
+        goOpen(saved.id);
+        setPasteOpen(false);
+        resetPaste();
+        toast.success("Imported article");
+      } catch (err) {
+        console.error("[paste-import] persist failed:", err);
+        if (typeof navigator !== "undefined" && navigator.onLine === false) {
+          goOpen(item.id);
+          setPasteOpen(false);
+          resetPaste();
+          toast.success("Saved here — will sync when back online");
+        } else {
+          toast.error(err instanceof Error ? err.message : "Import failed. Try again.");
+        }
+      }
     } catch {
       toast.error("Import failed. Try again.");
     } finally {

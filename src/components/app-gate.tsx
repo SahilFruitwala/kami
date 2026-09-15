@@ -4,6 +4,7 @@ import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import {
   bootstrapLibraryFromServer,
   clearLibraryLocal,
+  isLibraryBootstrapped,
 } from "@/lib/library-remote";
 
 /**
@@ -27,10 +28,17 @@ export function AppGate({ children }: { children: React.ReactNode }) {
     }
 
     let cancelled = false;
+    // Already synced for this user (e.g. navigating between panes remounts
+    // the gate) — render immediately instead of flashing the loader.
+    if (isLibraryBootstrapped(userId)) {
+      setLibraryReady(true);
+      setLibraryError(null);
+      return;
+    }
     setLibraryReady(false);
     setLibraryError(null);
 
-    void bootstrapLibraryFromServer()
+    void bootstrapLibraryFromServer(userId)
       .then(() => {
         if (!cancelled) setLibraryReady(true);
       })
@@ -62,7 +70,8 @@ export function AppGate({ children }: { children: React.ReactNode }) {
         onAction={() => {
           setLibraryError(null);
           setLibraryReady(false);
-          void bootstrapLibraryFromServer()
+          if (!userId) return;
+          void bootstrapLibraryFromServer(userId)
             .then(() => setLibraryReady(true))
             .catch((error: unknown) => {
               const message =

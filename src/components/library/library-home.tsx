@@ -115,7 +115,7 @@ export function LibraryHome({
     const n = snapshots.length;
     exitSelect();
     toast.success(`Removed ${n} works`, {
-      action: { label: "Undo", onClick: () => snapshots.forEach(upsertItem) },
+      action: { label: "Undo", onClick: () => snapshots.forEach((row) => upsertItem(row)) },
     });
   }
 

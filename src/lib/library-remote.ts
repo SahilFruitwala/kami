@@ -131,30 +131,87 @@ function wasLegacyMigrated(): boolean {
   }
 }
 
-/** Load the signed-in user's library; one-time import from old localStorage if empty. */
-export async function bootstrapLibraryFromServer(): Promise<void> {
-  setLibraryRemoteEnabled(true);
-  let snapshot = await getLibrary();
+export function isLibraryBootstrapped(userId: string): boolean {
+  return bootedUserId === userId;
+}
 
-  if (
-    snapshot.library.length === 0 &&
-    snapshot.folders.length === 0 &&
-    !wasLegacyMigrated()
-  ) {
-    const legacy = readLegacySnapshot();
-    if (legacy && (legacy.library.length > 0 || legacy.folders.length > 0)) {
-      snapshot = await importLibrarySnapshot({ data: legacy });
-      markLegacyMigrated();
-    } else {
-      markLegacyMigrated();
-    }
+/** Load the signed-in user's library; one-time import from old localStorage if empty.
+ *
+ * Guarded per user: every page mounts its own AppGate, so without this each
+ * navigation would refetch + replace the store — wiping an item that was just
+ * saved optimistically a moment before its server round-trip lands.
+ */
+let bootedUserId: string | null = null;
+let bootInflight: Promise<void> | null = null;
+
+export async function bootstrapLibraryFromServer(userId: string): Promise<void> {
+  if (bootedUserId === userId) return;
+  if (bootInflight) {
+    await bootInflight;
+    return;
   }
+  bootInflight = (async () => {
+    setLibraryRemoteEnabled(true);
+    let snapshot = await getLibrary();
 
-  hydrateLibrary(snapshot);
+    if (
+      snapshot.library.length === 0 &&
+      snapshot.folders.length === 0 &&
+      !wasLegacyMigrated()
+    ) {
+      const legacy = readLegacySnapshot();
+      if (legacy && (legacy.library.length > 0 || legacy.folders.length > 0)) {
+        snapshot = await importLibrarySnapshot({ data: legacy });
+        markLegacyMigrated();
+      } else {
+        markLegacyMigrated();
+      }
+    }
+
+    hydrateLibrary(snapshot);
+    bootedUserId = userId;
+  })();
+  try {
+    await bootInflight;
+  } finally {
+    bootInflight = null;
+  }
 }
 
 export function syncUpsertItem(item: LibraryItem) {
   sync("save", () => upsertLibraryItem({ data: item }));
+}
+
+/**
+ * Optimistic article save with server confirmation.
+ *
+ * Writes the item locally first (so the reader can open instantly), then
+ * performs exactly one server write and reconciles the canonical server row
+ * — the server can return a *different* id when it matches an existing row
+ * by URL — dropping the stale optimistic row if so. The local writes skip
+ * the store's fire-and-forget sync so concurrent duplicate upserts can't race
+ * each other into a phantom PK conflict. On server failure a single retry is
+ * queued in the outbox and the original error is rethrown — callers must
+ * surface it instead of toasting a success the next refresh can't see.
+ */
+export async function persistArticleItem(item: LibraryItem): Promise<LibraryItem> {
+  const store = useLibraryStore.getState();
+  store.upsertItem(item, { sync: false });
+  let saved: LibraryItem;
+  try {
+    saved = await upsertLibraryItem({ data: item });
+  } catch (err) {
+    syncUpsertItem(item);
+    throw err;
+  }
+  const live = useLibraryStore.getState();
+  live.upsertItem(saved, { sync: false });
+  if (saved.id !== item.id) {
+    useLibraryStore.setState((s) => ({
+      library: s.library.filter((row) => row.id !== item.id),
+    }));
+  }
+  return saved;
 }
 
 export function syncArchiveItem(id: string, archived: boolean) {
@@ -198,5 +255,6 @@ export async function wipeLibraryAccount(): Promise<void> {
 }
 
 export function clearLibraryLocal() {
+  bootedUserId = null;
   useLibraryStore.setState({ library: [], folders: [], openId: null });
 }
