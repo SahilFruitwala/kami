@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useState } from "react";
 import { AppGate } from "@/components/app-gate.tsx";
 import { DirectionalTransition } from "@/components/directional-transition.tsx";
@@ -12,7 +12,22 @@ import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
 import { useDeskStats } from "@/components/library/widgets.tsx";
 import type { LibraryItem } from "@/lib/store.ts";
 
+type VaultSearch = {
+  mode?: string;
+  sort?: string;
+  tag?: string;
+  author?: string;
+  q?: string;
+};
+
 export const Route = createFileRoute("/vault")({
+  validateSearch: (search: Record<string, unknown>): VaultSearch => ({
+    mode: typeof search.mode === "string" ? search.mode : undefined,
+    sort: typeof search.sort === "string" ? search.sort : undefined,
+    tag: typeof search.tag === "string" ? search.tag : undefined,
+    author: typeof search.author === "string" ? search.author : undefined,
+    q: typeof search.q === "string" ? search.q : undefined,
+  }),
   component: VaultPage,
 });
 
@@ -27,7 +42,8 @@ function VaultPage() {
 }
 
 function Vault() {
-  const navigate = useNavigate();
+  const navigate = Route.useNavigate();
+  const search = Route.useSearch();
   const tools = useCaptureTools();
   const stats = useDeskStats();
   const [transcribeOpen, setTranscribeOpen] = useState(false);
@@ -65,6 +81,23 @@ function Vault() {
       <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-12">
         <VaultView
           query=""
+          initialMode={search.mode}
+          initialSort={search.sort}
+          initialTag={search.tag}
+          initialAuthor={search.author}
+          initialLocalQuery={search.q}
+          onParamsChange={(params) => {
+            void navigate({
+              search: {
+                mode: params.mode === "tanzaku" ? undefined : params.mode,
+                sort: params.sort === "recent" ? undefined : params.sort,
+                tag: params.tag ?? undefined,
+                author: params.author ?? undefined,
+                q: params.q ? params.q : undefined,
+              },
+              replace: true,
+            });
+          }}
           onOpenItem={openItem}
           onExitVault={() => void navigate({ to: "/" })}
           onTranscribe={() => setTranscribeOpen(true)}

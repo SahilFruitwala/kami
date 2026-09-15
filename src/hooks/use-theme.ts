@@ -35,6 +35,7 @@ type ThemeState = {
   theme: Theme;
   isSystem: boolean;
   setTheme: (next: Theme) => void;
+  followSystem: () => void;
   toggleTheme: () => void;
 };
 
@@ -85,6 +86,17 @@ export const useThemeStore = create<ThemeState>()(
         set({ theme: next, isSystem: false });
         syncReaderPaper(next);
       },
+      followSystem: () => {
+        try {
+          window.localStorage.removeItem(STORAGE_KEY);
+        } catch {
+          // ignore
+        }
+        const next = getSystemTheme();
+        applyTheme(next);
+        set({ theme: next, isSystem: true });
+        syncReaderPaper(next);
+      },
     }),
   ),
 );
@@ -94,6 +106,7 @@ export function useTheme() {
   const theme = useThemeStore((s) => s.theme);
   const isSystem = useThemeStore((s) => s.isSystem);
   const setTheme = useThemeStore((s) => s.setTheme);
+  const followSystem = useThemeStore((s) => s.followSystem);
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
 
   useEffect(() => {
@@ -118,5 +131,5 @@ export function useTheme() {
     return () => mq.removeEventListener("change", onChange);
   }, [isSystem]);
 
-  return { theme, isSystem, setTheme, toggleTheme };
+  return { theme, isSystem, setTheme, followSystem, toggleTheme };
 }

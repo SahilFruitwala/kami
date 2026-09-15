@@ -789,6 +789,18 @@
   scrollbar-width: none;
 }
 
+@media print {
+  header,
+  footer,
+  aside[aria-label="Marginalia and reflection notes"],
+  .fixed {
+    display: none !important;
+  }
+  .kami-desk {
+    background: #fff;
+  }
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: 'Plus Jakarta Sans', 'Geist Variable', sans-serif;

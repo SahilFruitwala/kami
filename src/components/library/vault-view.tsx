@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
   Copy,
@@ -26,21 +26,47 @@ type VaultSort = "recent" | "linked" | "source";
 
 export function VaultView({
   query,
+  initialMode,
+  initialSort,
+  initialTag,
+  initialAuthor,
+  initialLocalQuery,
+  onParamsChange,
   onOpenItem,
   onExitVault,
   onTranscribe,
 }: {
   query: string;
+  initialMode?: string;
+  initialSort?: string;
+  initialTag?: string;
+  initialAuthor?: string;
+  initialLocalQuery?: string;
+  onParamsChange?: (params: { mode: VaultViewMode; sort: VaultSort; tag: string | null; author: string | null; q: string }) => void;
   onOpenItem: (item: LibraryItem) => void;
   onExitVault: () => void;
   onTranscribe: () => void;
 }) {
   const library = useLibraryStore((s) => s.library);
-  const [mode, setMode] = useState<VaultViewMode>("tanzaku");
-  const [sort, setSort] = useState<VaultSort>("recent");
-  const [tag, setTag] = useState<string | null>(null);
-  const [author, setAuthor] = useState<string | null>(null);
-  const [localQuery, setLocalQuery] = useState("");
+  const [mode, setMode] = useState<VaultViewMode>(initialMode === "river" || initialMode === "web" ? initialMode : "tanzaku");
+  const [sort, setSort] = useState<VaultSort>(initialSort === "linked" || initialSort === "source" ? initialSort : "recent");
+  const [tag, setTag] = useState<string | null>(initialTag ?? null);
+  const [author, setAuthor] = useState<string | null>(initialAuthor ?? null);
+  const [localQuery, setLocalQuery] = useState(initialLocalQuery ?? "");
+  const paramsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Deep-linking: view state → URL (debounced so typing doesn't spam history).
+  useEffect(() => {
+    if (!onParamsChange) return;
+    if (paramsTimer.current) clearTimeout(paramsTimer.current);
+    paramsTimer.current = setTimeout(() => {
+      onParamsChange({ mode, sort, tag, author, q: localQuery });
+    }, 300);
+    return () => {
+      if (paramsTimer.current) clearTimeout(paramsTimer.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, sort, tag, author, localQuery]);
 
   const slips = useMemo<Slip[]>(
     () =>
@@ -107,21 +133,58 @@ export function VaultView({
     [slips],
   );
 
+  function downloadBlob(blob: Blob, filename: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function exportMarkdown() {
     const lines = filtered.map(
       ({ item, highlight }) =>
         `> ${highlight.text}\n>\n> — ${item.author || item.siteName || "Unknown"}, *${item.title}*${highlight.note ? `\n\nMarginalia: ${highlight.note}` : ""}`,
     );
-    const blob = new Blob([`# Highlight Vault — Inked Passages\n\n${lines.join("\n\n---\n\n")}\n`], {
-      type: "text/markdown",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "highlight-vault.md";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadBlob(
+      new Blob([`# Highlight Vault — Inked Passages\n\n${lines.join("\n\n---\n\n")}\n`], { type: "text/markdown" }),
+      "highlight-vault.md",
+    );
     toast.success("Vault exported as markdown");
+  }
+
+  function exportCsv() {
+    const esc = (v: string | number) => `"${String(v ?? "").replaceAll('"', '""')}"`;
+    const rows = filtered.map(({ item, highlight }) =>
+      [
+        new Date(highlight.createdAt).toISOString(),
+        item.title,
+        item.author || item.siteName || "",
+        item.url,
+        (item.tags ?? []).join("; "),
+        highlight.text,
+        highlight.note,
+      ].map(esc).join(","),
+    );
+    downloadBlob(
+      new Blob([`created_at,title,author,url,tags,passage,note\n${rows.join("\n")}\n`], { type: "text/csv" }),
+      "highlight-vault.csv",
+    );
+    toast.success("Vault exported as CSV");
+  }
+
+  async function copyAll() {
+    const lines = filtered.map(
+      ({ item, highlight }) =>
+        `“${highlight.text}” — ${item.author || item.siteName || "Unknown"}, ${item.title}${highlight.note ? ` (note: ${highlight.note})` : ""}`,
+    );
+    try {
+      await navigator.clipboard.writeText(lines.join("\n\n"));
+      toast.success(`${filtered.length} slips copied`);
+    } catch {
+      toast.error("Copy failed");
+    }
   }
 
   if (slips.length === 0) {
@@ -210,9 +273,27 @@ export function VaultView({
             type="button"
             onClick={exportMarkdown}
             className="flex items-center gap-1 rounded px-2 py-1 font-sans text-xs text-hanko transition-colors hover:bg-shu-tint"
+            title="Download filtered slips as markdown"
           >
             <Download className="size-[15px]" aria-hidden="true" />
-            Export
+            MD
+          </button>
+          <button
+            type="button"
+            onClick={exportCsv}
+            className="flex items-center gap-1 rounded px-2 py-1 font-sans text-xs text-hanko transition-colors hover:bg-shu-tint"
+            title="Download filtered slips as CSV"
+          >
+            CSV
+          </button>
+          <button
+            type="button"
+            onClick={() => void copyAll()}
+            className="flex items-center gap-1 rounded px-2 py-1 font-sans text-xs text-hanko transition-colors hover:bg-shu-tint"
+            title="Copy filtered slips to clipboard"
+          >
+            <Copy className="size-[15px]" aria-hidden="true" />
+            Copy all
           </button>
         </div>
       </div>
