@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
+import { useLibraryStore } from "@/lib/store.ts";
+import { isPaperTone } from "@/lib/paper-tones.ts";
 
 export type Theme = "light" | "dark";
 
@@ -36,13 +38,32 @@ type ThemeState = {
   toggleTheme: () => void;
 };
 
+/**
+ * Keep the article reading sheet in step with the global theme: dark mode
+ * inks the sheet to Sumi, light mode restores the reader's preferred light
+ * paper (Pale/Aged). A manual paper pick still wins until the next toggle.
+ */
+export function syncReaderPaper(theme: Theme) {
+  try {
+    const lib = useLibraryStore.getState();
+    if (theme === "dark") {
+      if (lib.paperTone !== "sumi") lib.setPaperTone("sumi");
+    } else if (lib.paperTone === "sumi") {
+      const light = lib.preferredLightTone;
+      lib.setPaperTone(isPaperTone(light) && light !== "sumi" ? light : "pale");
+    }
+  } catch {
+    // library store unavailable (SSR) — nothing to sync
+  }
+}
+
 export const useThemeStore = create<ThemeState>()(
   combine(
     {
       theme: typeof window === "undefined" ? ("light" as Theme) : (getStoredTheme() ?? getSystemTheme()),
       isSystem: typeof window === "undefined" ? true : getStoredTheme() == null,
     },
-    (set) => ({
+    (set, get) => ({
       setTheme: (next: Theme) => {
         try {
           window.localStorage.setItem(STORAGE_KEY, next);
@@ -51,18 +72,18 @@ export const useThemeStore = create<ThemeState>()(
         }
         applyTheme(next);
         set({ theme: next, isSystem: false });
+        syncReaderPaper(next);
       },
       toggleTheme: () => {
-        set((state) => {
-          const next: Theme = state.theme === "dark" ? "light" : "dark";
-          try {
-            window.localStorage.setItem(STORAGE_KEY, next);
-          } catch {
-            // ignore
-          }
-          applyTheme(next);
-          return { theme: next, isSystem: false };
-        });
+        const next: Theme = get().theme === "dark" ? "light" : "dark";
+        try {
+          window.localStorage.setItem(STORAGE_KEY, next);
+        } catch {
+          // ignore
+        }
+        applyTheme(next);
+        set({ theme: next, isSystem: false });
+        syncReaderPaper(next);
       },
     }),
   ),
@@ -77,6 +98,7 @@ export function useTheme() {
 
   useEffect(() => {
     applyTheme(useThemeStore.getState().theme);
+    syncReaderPaper(useThemeStore.getState().theme);
   }, []);
 
   useEffect(() => {
@@ -90,6 +112,7 @@ export function useTheme() {
       const next: Theme = e.matches ? "dark" : "light";
       useThemeStore.setState({ theme: next });
       applyTheme(next);
+      syncReaderPaper(next);
     };
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
