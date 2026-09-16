@@ -33,7 +33,7 @@ export function ReaderPrefsPanel({
     <div
       role="dialog"
       aria-label="Reading preferences"
-      className="screen-scroll absolute right-0 top-full z-40 mt-2 max-h-[80vh] w-64 overflow-y-auto rounded-xl bg-surface p-3.5 shadow-device border border-line"
+      className="screen-scroll fixed inset-x-3 top-[calc(4rem+env(safe-area-inset-top))] z-40 max-h-[calc(100dvh-5rem-env(safe-area-inset-top))] overflow-y-auto rounded-xl border border-line bg-surface p-3.5 shadow-device sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-[80vh] sm:w-64"
     >
       <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Paper</p>
       <div className="mt-2 grid grid-cols-3 gap-1.5" role="group" aria-label="Paper tone">
@@ -46,7 +46,7 @@ export function ReaderPrefsPanel({
             aria-pressed={paperTone === toneOption.id}
             onClick={() => onPaperTone(toneOption.id)}
             className={cn(
-              "flex flex-col items-center gap-1.5 rounded-lg px-2 py-2 transition-colors",
+              "flex min-h-11 flex-col items-center gap-1.5 rounded-lg px-2 py-2 transition-colors",
               paperTone === toneOption.id
                 ? "bg-paper-warm font-semibold shadow-xs ring-1 ring-hanko/40"
                 : "hover:bg-paper-warm/60",
@@ -83,7 +83,7 @@ export function ReaderPrefsPanel({
           size="icon"
           aria-label="Decrease font size"
           disabled={readerFontSize <= 0}
-          className="size-9 bg-paper-warm text-ink hover:bg-paper-warm/80"
+          className="size-11 bg-paper-warm text-ink hover:bg-paper-warm/80 sm:size-9"
           onClick={() => onBumpSize(-1)}
         >
           <Minus className="size-4" aria-hidden="true" />
@@ -105,7 +105,7 @@ export function ReaderPrefsPanel({
           size="icon"
           aria-label="Increase font size"
           disabled={readerFontSize >= READER_FONT_SIZES.length - 1}
-          className="size-9 bg-paper-warm text-ink hover:bg-paper-warm/80"
+          className="size-11 bg-paper-warm text-ink hover:bg-paper-warm/80 sm:size-9"
           onClick={() => onBumpSize(1)}
         >
           <Plus className="size-4" aria-hidden="true" />
@@ -119,7 +119,7 @@ export function ReaderPrefsPanel({
             key={font.id}
             type="button"
             className={cn(
-              "rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
+              "min-h-11 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors",
               readerFont === font.id
                 ? "bg-paper-warm text-ink font-semibold shadow-xs"
                 : "text-ink-soft hover:bg-paper-warm/60 hover:text-ink",
@@ -141,7 +141,7 @@ export function ReaderPrefsPanel({
             aria-label={color.label}
             title={color.label}
             className={cn(
-              "size-8 rounded-full border-2 transition-transform",
+              "size-11 rounded-full border-2 transition-transform sm:size-8",
               highlightColor === color.id ? "scale-110 border-ink ring-2 ring-ink/30" : "border-transparent hover:scale-105",
             )}
             style={{ background: color.swatch }}

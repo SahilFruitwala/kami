@@ -63,12 +63,12 @@ export function ReaderHeader({
 }: ReaderHeaderProps) {
   return (
     <header
-      className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur-xl"
+      className="sticky top-0 z-40 border-b border-line bg-paper/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl"
       style={{ viewTransitionName: "reader-header" }}
     >
       <nav
         aria-label="Reader navigation and tools"
-        className="mx-auto flex w-full max-w-6xl items-center gap-1 px-2 py-2 sm:px-6"
+        className="mx-auto flex w-full max-w-6xl items-center gap-0.5 px-1 py-2 sm:gap-1 sm:px-6"
       >
         <Button variant="ghost" className="gap-2 px-3 font-medium text-ink" onClick={onBack}>
           <ArrowLeft className="size-4" aria-hidden="true" />

@@ -46,8 +46,8 @@ export function AppShell({
         <main id="main" className="kami-desk relative flex min-h-dvh flex-col overflow-x-hidden [touch-action:manipulation]">
           <a href="#main" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-ink focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper">Skip to content</a>
           <SiteHeader active={active} onOpenTools={() => tools.setToolsOpen(true)} />
-          <div className="flex-1 pb-16 lg:pl-60 lg:pb-0">{children}</div>
-          <div className="pb-16 lg:pl-60 lg:pb-0">
+          <div className="flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pl-60 lg:pb-0">{children}</div>
+          <div className="pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pl-60 lg:pb-0">
             <SiteFooter />
           </div>
           <ToolsDialog
@@ -105,7 +105,7 @@ function OfflineBanner() {
 
   return (
     <div
-      className="fixed right-4 bottom-[max(1rem,env(safe-area-inset-bottom))] z-50 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-full bg-ink py-2 pr-2 pl-4 text-paper shadow-[var(--shadow-raised)]"
+      className="fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[calc(4rem+env(safe-area-inset-bottom))] z-50 flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-2xl bg-ink py-2 pr-2 pl-4 text-paper shadow-[var(--shadow-raised)] lg:bottom-[max(1rem,env(safe-area-inset-bottom))] lg:rounded-full"
       role={online ? "status" : "alert"}
     >
       <span className="flex items-center gap-2 font-sans text-xs">
