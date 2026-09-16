@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -183,22 +184,44 @@ export const restaurants = pgTable("restaurants", {
   longitude: text("longitude"),
 });
 
-export const movies = pgTable("movies", {
-  ...shelfBase(),
-  releaseYear: integer("release_year"),
-  overview: text("overview"),
-  tmdbId: integer("tmdb_id"),
-});
+export const movies = pgTable(
+  "movies",
+  {
+    ...shelfBase(),
+    releaseYear: integer("release_year"),
+    overview: text("overview"),
+    tmdbId: integer("tmdb_id"),
+  },
+  (t) => [
+    uniqueIndex("movies_list_tmdb_uidx")
+      .on(t.listId, t.tmdbId)
+      .where(sql`${t.tmdbId} is not null`),
+    uniqueIndex("movies_list_normalized_title_uidx")
+      .on(t.listId, t.normalizedTitle)
+      .where(sql`${t.normalizedTitle} is not null and ${t.normalizedTitle} <> ''`),
+  ],
+);
 
-export const tvShows = pgTable("tv_shows", {
-  ...shelfBase(),
-  releaseYear: integer("release_year"),
-  overview: text("overview"),
-  tmdbId: integer("tmdb_id"),
-  episodesWatched: integer("episodes_watched").notNull().default(0),
-  lastEpisode: text("last_episode"),
-  totalEpisodes: integer("total_episodes"),
-});
+export const tvShows = pgTable(
+  "tv_shows",
+  {
+    ...shelfBase(),
+    releaseYear: integer("release_year"),
+    overview: text("overview"),
+    tmdbId: integer("tmdb_id"),
+    episodesWatched: integer("episodes_watched").notNull().default(0),
+    lastEpisode: text("last_episode"),
+    totalEpisodes: integer("total_episodes"),
+  },
+  (t) => [
+    uniqueIndex("tv_shows_list_tmdb_uidx")
+      .on(t.listId, t.tmdbId)
+      .where(sql`${t.tmdbId} is not null`),
+    uniqueIndex("tv_shows_list_normalized_title_uidx")
+      .on(t.listId, t.normalizedTitle)
+      .where(sql`${t.normalizedTitle} is not null and ${t.normalizedTitle} <> ''`),
+  ],
+);
 
 export const books = pgTable("books", {
   ...shelfBase(),
