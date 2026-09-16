@@ -20,7 +20,7 @@ function LoginPage() {
   }
 
   if (user) {
-    return <Navigate to="/" />;
+    return <Navigate to="/app" />;
   }
 
   return (
@@ -55,7 +55,7 @@ function LoginPage() {
         </SignedOut>
 
         <SignedIn>
-          <Navigate to="/" />
+          <Navigate to="/app" />
         </SignedIn>
       </div>
     </main>
