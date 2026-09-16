@@ -157,6 +157,21 @@ export type LibrarySnapshot = {
 };
 
 /**
+ * Sanitize article HTML before persistence. Extract/import paths already
+ * sanitize, but `upsertLibraryItem` accepts client-supplied bodies — never
+ * trust those for `dangerouslySetInnerHTML` later.
+ */
+async function sanitizeStoredHtml(html: string, baseUrl: string): Promise<string> {
+  if (!html.trim()) return "";
+  const { sanitizeHtml } = await import("./extract.server.ts");
+  try {
+    return sanitizeHtml(html, baseUrl).slice(0, 1_500_000);
+  } catch {
+    return "";
+  }
+}
+
+/**
  * Resolve a client-supplied folder id to one owned by this user (or null).
  * Prevents cross-tenant folder linkage via crafted `folderId` values.
  */
@@ -254,7 +269,10 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
     // identity fields stay intact and tags/highlights stay bounded.
     const title = data.title.trim().slice(0, 500) || "Untitled";
     const excerpt = data.excerpt.slice(0, 4000);
-    const contentHtml = data.contentHtml.slice(0, 1_500_000);
+    const contentHtml = await sanitizeStoredHtml(
+      data.contentHtml.slice(0, 1_500_000),
+      data.canonicalUrl || data.url,
+    );
     const heroImage = data.heroImage && data.heroImage.length <= 2000 ? data.heroImage : null;
     const author = data.author.slice(0, 300);
     const siteName = data.siteName.slice(0, 200);
@@ -611,6 +629,10 @@ export const importLibrarySnapshot = createServerFn({ method: "POST" })
       const tags = item.tags.map(normalizeTag).filter(Boolean).slice(0, 12);
       const highlights = item.highlights.slice(0, 80);
       const folderId = item.folderId && ownedFolderIds.has(item.folderId) ? item.folderId : null;
+      const contentHtml = await sanitizeStoredHtml(
+        item.contentHtml,
+        item.canonicalUrl || item.url,
+      );
       await db
         .insert(articles)
         .values({
@@ -625,7 +647,7 @@ export const importLibrarySnapshot = createServerFn({ method: "POST" })
           wordCount: item.wordCount,
           readingMinutes: item.readingMinutes,
           excerpt: item.excerpt,
-          contentHtml: item.contentHtml,
+          contentHtml,
           heroImage: item.heroImage,
           published: item.published,
           savedAt: new Date(item.savedAt),
