@@ -133,7 +133,7 @@ export function SiteHeader({
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-line bg-paper lg:flex">
         <div className="flex items-center gap-2.5 px-5 pt-5">
           <Link
-            to="/"
+            to="/app"
             className="flex items-center gap-2.5 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
             aria-label="Kami home"
           >
@@ -158,7 +158,7 @@ export function SiteHeader({
           <Button
             type="button"
             className="h-11 w-full gap-2 bg-hanko font-sans text-sm font-semibold text-white hover:bg-shu"
-            onClick={() => void navigate({ to: "/" })}
+            onClick={() => void navigate({ to: "/app" })}
           >
             <Plus className="size-4" aria-hidden="true" />
             Clip Article
@@ -236,7 +236,7 @@ export function SiteHeader({
       {/* Mobile top row */}
       <div className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur-xl lg:hidden">
         <div className="flex h-14 items-center justify-between gap-3 px-4">
-          <Link to="/" className="flex items-center gap-2" aria-label="Kami home">
+          <Link to="/app" className="flex items-center gap-2" aria-label="Kami home">
             <span
               className="kami-hanko flex size-7 items-center justify-center rounded-[0.25rem] font-display text-xs font-bold leading-none"
               lang="ja"

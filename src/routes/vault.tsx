@@ -83,7 +83,7 @@ function Vault() {
             });
           }}
           onOpenItem={openItem}
-          onExitVault={() => void navigate({ to: "/" })}
+          onExitVault={() => void navigate({ to: "/app" })}
           onTranscribe={() => setTranscribeOpen(true)}
         />
       </div>

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LandingPage } from "@/components/landing-page.tsx";
+import { Navigate } from "@tanstack/react-router";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import {
   bootstrapJournalFromServer,
@@ -14,8 +14,8 @@ import {
 
 /**
  * Session + library bootstrap shell shared by every app page.
- * Renders landing for signed-out visitors, a loading state while the
- * library syncs, and children once the page can render real data.
+ * Sends signed-out visitors to login, renders a loading state while the
+ * library syncs, and shows children once the page can render real data.
  */
 export function AppGate({ children }: { children: React.ReactNode }) {
   const { user, isPending } = useCurrentUserState();
@@ -73,7 +73,7 @@ export function AppGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return <LandingPage />;
+    return <Navigate to="/login" />;
   }
 
   if (libraryError) {
