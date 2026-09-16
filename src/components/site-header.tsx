@@ -38,13 +38,74 @@ const PANES: Pane[] = [
   { id: "shelves", to: "/shelves", label: "Shelf Ledger", icon: Clapperboard },
 ];
 
-/** Time-aware desk atmosphere chip, after the Stitch top bar. */
-function atmosphere(): string {
-  const h = new Date().getHours();
-  if (h < 5) return "Night Ink · Deep Sumi";
-  if (h < 12) return "Quiet Morning · Soft Sumi";
-  if (h < 18) return "Still Afternoon · Warm Paper";
-  return "Lantern Evening · Charcoal Wash";
+/** Time-aware desk atmosphere chip, after the Stitch top bar. Rotates daily so it feels alive. */
+function atmosphere(now = new Date()): string {
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const start = new Date(now.getFullYear(), 0, 0).getTime();
+  const day = Math.floor((now.getTime() - start) / 86_400_000);
+  const pick = (options: string[]) => options[day % options.length];
+
+  // Little easter eggs — rare, fun, still on-theme.
+  if (h === 3 && m === 33) return "Witching Ink · 3:33 Club";
+  if (h === 11 && m === 11) return "Eleven Eleven · Make a Wish";
+  if (h === 0 && m < 5) return "Fresh Page · Midnight Ink";
+
+  if (h < 4)
+    return pick([
+      "Night Ink · Deep Sumi",
+      "Owl Hours · Wet Brush",
+      "Silent Press · Moon Paper",
+      "Midnight Binding · Cold Tea",
+    ]);
+  if (h < 6)
+    return pick([
+      "First Light · Damp Sumi",
+      "Dawn Press · Pale Washi",
+      "Early Ink · Rooster Wash",
+      "Blue Hour · Thin Mist",
+    ]);
+  if (h < 9)
+    return pick([
+      "Quiet Morning · Soft Sumi",
+      "Warm Kettle · Fresh Fold",
+      "Morning Press · Crisp Edge",
+      "Sunrise Margin · Light Grain",
+    ]);
+  if (h < 12)
+    return pick([
+      "Late Morning · Bright Pulp",
+      "Second Cup · Steady Hand",
+      "High Sun · Clean Cut",
+      "Open Window · Paper Flutter",
+    ]);
+  if (h < 15)
+    return pick([
+      "Still Afternoon · Warm Paper",
+      "Slow Sun · Heavy Brush",
+      "Tea Break · Ink Rest",
+      "Lazy Light · Dust Motes",
+    ]);
+  if (h < 18)
+    return pick([
+      "Golden Hour · Amber Wash",
+      "Low Sun · Long Shadow",
+      "Drying Ink · Warm Deckles",
+      "Late Press · Honey Paper",
+    ]);
+  if (h < 22)
+    return pick([
+      "Lantern Evening · Charcoal Wash",
+      "Evening Bind · Soft Glow",
+      "Night Press · Warm Lamp",
+      "Crickets · Folded Corner",
+    ]);
+  return pick([
+    "Night Owl · Deep Indigo",
+    "Last Page · Fading Lantern",
+    "Deep Fold · Quiet House",
+    "Moon Margin · Dry Brush",
+  ]);
 }
 
 /** Synthetic ⌘K — the palette owns its open state and listens globally. */
