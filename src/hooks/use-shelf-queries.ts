@@ -1,10 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  getSeasonEpisodes,
+  getShowSeasons,
+  setSeasonWatched,
+  setShowWatched,
+  toggleEpisode,
+} from "@/lib/shelves-episodes";
+import {
   addShelfItem,
+  deleteShelfItem,
   findShelfDuplicates,
   getShelfCounts,
   getShelfItem,
   listShelfItems,
+  setShelfItemStatus,
   type ShelfTab,
 } from "@/lib/shelves-fns";
 import {
@@ -101,5 +110,87 @@ export function useFindShelfDuplicates() {
   return useMutation({
     mutationFn: (data: { type: ShelfTab; title: string; tmdbId?: string }) =>
       findShelfDuplicates({ data }),
+  });
+}
+
+export function useSetShelfItemStatus() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      type: ShelfTab;
+      id: string;
+      status: "to_try" | "done" | "abandoned";
+    }) => setShelfItemStatus({ data }),
+    onSuccess: () => invalidateShelves(client),
+  });
+}
+
+export function useDeleteShelfItem() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { type: ShelfTab; id: string }) => deleteShelfItem({ data }),
+    onSuccess: () => invalidateShelves(client),
+  });
+}
+
+export function useShowSeasons(itemId: string | null) {
+  return useQuery({
+    queryKey: queryKeys.shelves.seasons(itemId ?? ""),
+    queryFn: () => getShowSeasons({ data: { itemId: itemId! } }),
+    enabled: Boolean(itemId),
+    staleTime: 60 * 60_000,
+  });
+}
+
+export function useSeasonEpisodes(itemId: string | null, season: number | null) {
+  return useQuery({
+    queryKey: queryKeys.shelves.episodes(itemId ?? "", season ?? -1),
+    queryFn: () => getSeasonEpisodes({ data: { itemId: itemId!, season: season! } }),
+    enabled: Boolean(itemId) && season != null,
+    staleTime: 60 * 60_000,
+  });
+}
+
+export function useToggleEpisode(itemId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { season: number; number: number }) =>
+      toggleEpisode({ data: { itemId, ...data } }),
+    onSuccess: () => {
+      void invalidateShelves(client);
+      void client.invalidateQueries({ queryKey: queryKeys.shelves.seasons(itemId) });
+      void client.invalidateQueries({
+        queryKey: [...queryKeys.shelves.all, "episodes", itemId],
+      });
+    },
+  });
+}
+
+export function useSetSeasonWatched(itemId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { season: number; numbers: number[]; watched: boolean }) =>
+      setSeasonWatched({ data: { itemId, ...data } }),
+    onSuccess: () => {
+      void invalidateShelves(client);
+      void client.invalidateQueries({ queryKey: queryKeys.shelves.seasons(itemId) });
+      void client.invalidateQueries({
+        queryKey: [...queryKeys.shelves.all, "episodes", itemId],
+      });
+    },
+  });
+}
+
+export function useSetShowWatched() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { itemId: string; watched: boolean }) => setShowWatched({ data }),
+    onSuccess: (_r, vars) => {
+      void invalidateShelves(client);
+      void client.invalidateQueries({ queryKey: queryKeys.shelves.seasons(vars.itemId) });
+      void client.invalidateQueries({
+        queryKey: [...queryKeys.shelves.all, "episodes", vars.itemId],
+      });
+    },
   });
 }
