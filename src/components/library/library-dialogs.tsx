@@ -62,7 +62,7 @@ export function PasteDialog({
           />
           <textarea
             aria-label="Article text"
-            className="min-h-48 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/20"
+            className="min-h-48 w-full rounded-md border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/20"
             placeholder="Paste article text or HTML…"
             value={body}
             onChange={(e) => onBody(e.target.value)}
@@ -252,7 +252,7 @@ export function TranscribeDialog({ open, onOpenChange, onOpenItem }: TranscribeD
           />
           <textarea
             aria-label="Passage text"
-            className="min-h-32 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/20"
+            className="min-h-32 w-full rounded-md border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/20"
             placeholder="Transcribe the passage here…"
             value={passage}
             onChange={(e) => setPassage(e.target.value)}
@@ -260,7 +260,7 @@ export function TranscribeDialog({ open, onOpenChange, onOpenItem }: TranscribeD
           />
           <textarea
             aria-label="Marginalia note (optional)"
-            className="min-h-20 w-full rounded-md border border-line bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/20"
+            className="min-h-20 w-full rounded-md border border-line bg-surface px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/20"
             placeholder="Marginalia — your note…"
             value={note}
             onChange={(e) => setNote(e.target.value)}

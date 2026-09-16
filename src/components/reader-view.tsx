@@ -580,7 +580,7 @@ export function ReaderView({
                   value={item.note || ""}
                   onChange={(e) => setItemNote(item.id, e.target.value)}
                   placeholder="Private notes for this article…"
-                  className="mt-2 min-h-24 w-full bg-transparent font-body text-sm outline-none placeholder:italic placeholder:opacity-50 focus-visible:ring-2 focus-visible:ring-hanko/40 rounded-md"
+                  className="mt-2 min-h-24 w-full rounded-md bg-transparent px-1 py-1.5 font-body text-sm outline-none placeholder:italic placeholder:opacity-50 focus-visible:ring-2 focus-visible:ring-hanko/40"
                 />
               </label>
 
