@@ -106,11 +106,6 @@ function Home() {
     paste.setPasteOpen(true);
   }
 
-  async function openItemOrFetch(item: LibraryItem) {
-    openItem(item);
-    if (!item.contentHtml) await save.save(item.url, true);
-  }
-
   /**
    * Bookmarklet capture: process the grabbed HTML, save the clean copy, and
    * open the reader — no raw-HTML review step. Falls back to the manual
@@ -203,7 +198,7 @@ function Home() {
   }, []);
 
   return (
-    <AppShell active="home" onOpenItem={(item) => void openItemOrFetch(item)}>
+    <AppShell active="home" onOpenItem={openItem}>
       <section className="w-full bg-paper/60 backdrop-blur-sm">
         <div className="mx-auto w-full max-w-7xl px-4 pt-10 pb-8 sm:px-6 lg:px-12">
           <KamiEyebrow>
@@ -240,7 +235,7 @@ function Home() {
         {library.length === 0 ? (
           <EmptyDeskGuide />
         ) : hero ? (
-          <DeskHero item={hero} onOpen={(item) => void openItemOrFetch(item)} />
+          <DeskHero item={hero} onOpen={openItem} />
         ) : null}
 
         <div className="mt-10 grid grid-cols-1 items-start gap-8 xl:grid-cols-12">
@@ -262,14 +257,14 @@ function Home() {
                 items={fresh}
                 emptyTitle="Your desk is empty"
                 emptyCopy="Paste a URL above to save a blog or X article for later."
-                onOpen={(item) => void openItemOrFetch(item)}
+                onOpen={openItem}
                 onRemove={removeItem}
               />
             </div>
           </div>
           <aside className="flex flex-col gap-6 xl:col-span-4">
             <ReadingRhythmCard />
-            <RecentPassagesCard onOpenItem={(item) => void openItemOrFetch(item)} hero={hero} />
+            <RecentPassagesCard onOpenItem={openItem} hero={hero} />
             <FoldersCard />
           </aside>
         </div>

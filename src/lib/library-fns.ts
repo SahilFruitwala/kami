@@ -96,7 +96,11 @@ function asHighlights(value: unknown): Highlight[] {
     .filter((h): h is Highlight => Boolean(h));
 }
 
-function rowToItem(row: typeof articles.$inferSelect): LibraryItem {
+type ArticleListRow = Omit<typeof articles.$inferSelect, "contentHtml"> & {
+  contentHtml?: string;
+};
+
+function rowToItem(row: ArticleListRow, opts?: { includeBody?: boolean }): LibraryItem {
   return {
     id: row.id,
     url: row.url,
@@ -108,7 +112,9 @@ function rowToItem(row: typeof articles.$inferSelect): LibraryItem {
     wordCount: Number(row.wordCount) || 0,
     readingMinutes: Number(row.readingMinutes) || 1,
     excerpt: row.excerpt || "",
-    contentHtml: row.contentHtml || "",
+    // List/boot payloads omit bodies by default — fetch via getArticleContent
+    // when the reader opens a work (keeps bootstrap small; see loadSnapshot).
+    contentHtml: opts?.includeBody ? row.contentHtml || "" : "",
     heroImage: row.heroImage,
     published: row.published,
     savedAt: row.savedAt instanceof Date ? row.savedAt.getTime() : Date.now(),
@@ -121,10 +127,49 @@ function rowToItem(row: typeof articles.$inferSelect): LibraryItem {
   };
 }
 
+/** Columns needed for library chrome / lists — intentionally excludes `contentHtml`. */
+const articleListColumns = {
+  id: articles.id,
+  userId: articles.userId,
+  url: articles.url,
+  canonicalUrl: articles.canonicalUrl,
+  title: articles.title,
+  author: articles.author,
+  siteName: articles.siteName,
+  source: articles.source,
+  wordCount: articles.wordCount,
+  readingMinutes: articles.readingMinutes,
+  excerpt: articles.excerpt,
+  heroImage: articles.heroImage,
+  published: articles.published,
+  savedAt: articles.savedAt,
+  archived: articles.archived,
+  favorited: articles.favorited,
+  note: articles.note,
+  folderId: articles.folderId,
+  tags: articles.tags,
+  highlights: articles.highlights,
+} as const;
+
 export type LibrarySnapshot = {
   library: LibraryItem[];
   folders: Folder[];
 };
+
+/**
+ * Sanitize article HTML before persistence. Extract/import paths already
+ * sanitize, but `upsertLibraryItem` accepts client-supplied bodies — never
+ * trust those for `dangerouslySetInnerHTML` later.
+ */
+async function sanitizeStoredHtml(html: string, baseUrl: string): Promise<string> {
+  if (!html.trim()) return "";
+  const { sanitizeHtml } = await import("./extract.server.ts");
+  try {
+    return sanitizeHtml(html, baseUrl).slice(0, 1_500_000);
+  } catch {
+    return "";
+  }
+}
 
 /**
  * Resolve a client-supplied folder id to one owned by this user (or null).
@@ -145,13 +190,11 @@ async function ownedFolderId(
 }
 
 async function loadSnapshot(userId: string): Promise<LibrarySnapshot> {
-  // The library boot fetches every row (including full `contentHtml`) on
-  // each navigation remount — the heaviest query in the app. A short
-  // per-user entry absorbs those bursts; every mutation below invalidates
-  // it. Snapshots carrying ~1MB+ of article bodies stay uncached: a giant
-  // Redis value would cost more than the DB round-trip it saves.
+  // Boot ships metadata only (no `contentHtml`). Bodies are fetched on demand
+  // via `getArticleContent` when the reader opens a work — that keeps cold
+  // start and Redis entries small even for large libraries.
   return cached(
-    cacheKey("u", userId, "library", "snapshot"),
+    cacheKey("u", userId, "library", "snapshot-meta"),
     CacheTTL.library,
     async () => {
       const db = await getDb();
@@ -161,13 +204,13 @@ async function loadSnapshot(userId: string): Promise<LibrarySnapshot> {
         .where(eq(folders.userId, userId))
         .orderBy(asc(folders.createdAt));
       const articleRows = await db
-        .select()
+        .select(articleListColumns)
         .from(articles)
         .where(eq(articles.userId, userId))
         .orderBy(desc(articles.savedAt));
       return {
         folders: folderRows.map((f) => ({ id: f.id, name: f.name })),
-        library: articleRows.map(rowToItem),
+        library: articleRows.map((row) => rowToItem(row)),
       };
     },
     { skipCache: (snap) => approxJsonBytes(snap) > MAX_CACHED_SNAPSHOT_BYTES },
@@ -180,6 +223,43 @@ export const getLibrary = createServerFn({ method: "GET" })
     return loadSnapshot(context.userId);
   });
 
+/** Full library including article bodies — used for JSON export only. */
+export const getLibraryForExport = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }): Promise<LibrarySnapshot> => {
+    const db = await getDb();
+    const folderRows = await db
+      .select({ id: folders.id, name: folders.name })
+      .from(folders)
+      .where(eq(folders.userId, context.userId))
+      .orderBy(asc(folders.createdAt));
+    const articleRows = await db
+      .select()
+      .from(articles)
+      .where(eq(articles.userId, context.userId))
+      .orderBy(desc(articles.savedAt));
+    return {
+      folders: folderRows.map((f) => ({ id: f.id, name: f.name })),
+      library: articleRows.map((row) => rowToItem(row, { includeBody: true })),
+    };
+  });
+
+/** Load a single article body owned by the caller (reader on-demand fetch). */
+export const getArticleContent = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator((input: unknown) => z.object({ id: z.string().min(1).max(2000) }).parse(input))
+  .handler(async ({ context, data }): Promise<LibraryItem | null> => {
+    const db = await getDb();
+    const rows = await db
+      .select()
+      .from(articles)
+      .where(and(eq(articles.id, data.id), eq(articles.userId, context.userId)))
+      .limit(1);
+    const row = rows[0];
+    if (!row) return null;
+    return rowToItem(row, { includeBody: true });
+  });
+
 export const upsertLibraryItem = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((input: unknown) => libraryItemSchema.parse(clampLibraryItemInput(input)))
@@ -189,7 +269,10 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
     // identity fields stay intact and tags/highlights stay bounded.
     const title = data.title.trim().slice(0, 500) || "Untitled";
     const excerpt = data.excerpt.slice(0, 4000);
-    const contentHtml = data.contentHtml.slice(0, 1_500_000);
+    const contentHtml = await sanitizeStoredHtml(
+      data.contentHtml.slice(0, 1_500_000),
+      data.canonicalUrl || data.url,
+    );
     const heroImage = data.heroImage && data.heroImage.length <= 2000 ? data.heroImage : null;
     const author = data.author.slice(0, 300);
     const siteName = data.siteName.slice(0, 200);
@@ -216,6 +299,15 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
 
     if (existing[0]) {
       const id = existing[0].id;
+      // Lean client snapshots omit bodies (`contentHtml: ""`). Never clobber a
+      // stored article body with an empty upsert from metadata-only sync.
+      const prior = await db
+        .select({ contentHtml: articles.contentHtml })
+        .from(articles)
+        .where(and(eq(articles.id, id), eq(articles.userId, context.userId)))
+        .limit(1);
+      const bodyHtml =
+        contentHtml.trim() || prior[0]?.contentHtml || "";
       await db
         .update(articles)
         .set({
@@ -228,7 +320,7 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
           wordCount: data.wordCount,
           readingMinutes: data.readingMinutes,
           excerpt,
-          contentHtml,
+          contentHtml: bodyHtml,
           heroImage,
           published: data.published,
           archived: data.archived,
@@ -245,7 +337,7 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
         .where(and(eq(articles.id, id), eq(articles.userId, context.userId)))
         .limit(1);
       await invalidateUserCache(context.userId);
-      return rowToItem(rows[0]!);
+      return rowToItem(rows[0]!, { includeBody: true });
     }
 
     // `articles.id` is a global primary key, while article uniqueness is
@@ -323,7 +415,7 @@ export const patchLibraryItem = createServerFn({ method: "POST" })
       .limit(1);
     if (!current[0]) return null;
 
-    const next = rowToItem(current[0]);
+    const next = rowToItem(current[0], { includeBody: true });
     if (data.archived !== undefined) next.archived = data.archived;
     if (data.favorited !== undefined) next.favorited = data.favorited;
     if (data.note !== undefined) next.note = data.note.slice(0, 2000);
@@ -537,6 +629,10 @@ export const importLibrarySnapshot = createServerFn({ method: "POST" })
       const tags = item.tags.map(normalizeTag).filter(Boolean).slice(0, 12);
       const highlights = item.highlights.slice(0, 80);
       const folderId = item.folderId && ownedFolderIds.has(item.folderId) ? item.folderId : null;
+      const contentHtml = await sanitizeStoredHtml(
+        item.contentHtml,
+        item.canonicalUrl || item.url,
+      );
       await db
         .insert(articles)
         .values({
@@ -551,7 +647,7 @@ export const importLibrarySnapshot = createServerFn({ method: "POST" })
           wordCount: item.wordCount,
           readingMinutes: item.readingMinutes,
           excerpt: item.excerpt,
-          contentHtml: item.contentHtml,
+          contentHtml,
           heroImage: item.heroImage,
           published: item.published,
           savedAt: new Date(item.savedAt),

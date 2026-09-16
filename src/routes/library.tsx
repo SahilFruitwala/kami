@@ -3,7 +3,6 @@ import { addTransitionType, startTransition, useEffect, useRef } from "react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { LibraryHome } from "@/components/library/library-home.tsx";
 import { useLibraryFilters } from "@/hooks/use-library-filters.ts";
-import { useSaveArticle } from "@/hooks/use-save-article.ts";
 import { isLibrarySort } from "@/lib/filter-library.ts";
 import type { LibraryItem } from "@/lib/store.ts";
 
@@ -39,8 +38,6 @@ function Library() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
   const filters = useLibraryFilters();
-  // Fetch-on-open for works saved as link-only (no clean copy yet).
-  const fetchSave = useSaveArticle(() => {});
   const syncedFromUrl = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -83,16 +80,17 @@ function Library() {
     [filters.tab, filters.folderFilter, filters.tagFilter, filters.query, filters.favoritesOnly, filters.sort],
   );
 
-  async function openItemOrFetch(item: LibraryItem) {
+  function openItem(item: LibraryItem) {
+    // Reader loads the stored body on demand (lean library boot omits
+    // contentHtml); link-only stubs re-extract inside `/read`.
     startTransition(() => {
       addTransitionType("nav-forward");
       void navigate({ to: "/read", search: { id: item.id } });
     });
-    if (!item.contentHtml) await fetchSave.save(item.url, true);
   }
 
   return (
-    <AppShell active="library" onOpenItem={(item) => void openItemOrFetch(item)}>
+    <AppShell active="library" onOpenItem={openItem}>
       <LibraryHome
         filters={{
           tab: filters.tab,
@@ -108,7 +106,7 @@ function Library() {
           onFavoritesOnly: filters.setFavoritesOnly,
           onSort: filters.setSort,
         }}
-        onOpenItem={(item) => void openItemOrFetch(item)}
+        onOpenItem={openItem}
       />
     </AppShell>
   );

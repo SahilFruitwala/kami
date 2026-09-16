@@ -114,7 +114,7 @@ export function CommandPalette({
     wasOpen.current = open;
   }, [open, savingUrl, addingKey]);
 
-  const urlLike = useMemo(() => looksLikeUrl(query), [query]);
+  const urlLike = looksLikeUrl(query);
   const trimmedQuery = query.trim();
   const activeAddMeta = ADD_PAGES.find((p) => p.id === page);
 

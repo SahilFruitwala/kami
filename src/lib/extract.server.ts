@@ -3,6 +3,7 @@ import { parseHTML } from "linkedom";
 import type { Article, ExtractResult } from "./article-types.ts";
 import { pickImageSrc, preferReadableImage } from "./image-url.ts";
 import { absoluteUrl, assertPublicHttpUrl } from "./safe-url.ts";
+import { assertPublicFetchUrl } from "./safe-url.server.ts";
 import { decodeBasicEntities, xmlEscape } from "./xml.ts";
 import {
   isBareXArticleLink,
@@ -23,9 +24,10 @@ async function fetchText(
   maxRedirects = 5,
 ): Promise<{ text: string; finalUrl: string; contentType: string }> {
   // Manual redirect chain so every hop is re-validated against the SSRF
-  // denylist — `fetch(..., { redirect: "follow" })` would silently follow a
-  // redirect from a public URL to a private/metadata address.
-  let current = assertPublicHttpUrl(url).href;
+  // denylist **and** DNS resolution — `fetch(..., { redirect: "follow" })`
+  // would silently follow a redirect from a public URL to a private/metadata
+  // address (or a name that rebinds to one).
+  let current = (await assertPublicFetchUrl(url)).href;
   for (let hop = 0; hop <= maxRedirects; hop += 1) {
     const res = await fetch(current, {
       method: "GET",
@@ -49,7 +51,7 @@ async function fetchText(
         throw new Error("That page redirected to an invalid address.");
       }
       try {
-        current = assertPublicHttpUrl(next).href;
+        current = (await assertPublicFetchUrl(next)).href;
       } catch {
         throw new Error("That page redirected to an address that cannot be fetched.");
       }
@@ -62,7 +64,7 @@ async function fetchText(
     // Validate the final URL after any server-side internal rewrites.
     try {
       const finalHref = res.url || current;
-      current = assertPublicHttpUrl(finalHref).href;
+      current = (await assertPublicFetchUrl(finalHref)).href;
     } catch {
       throw new Error("That address cannot be fetched.");
     }
@@ -158,6 +160,30 @@ const ALLOWED_TAGS = new Set([
   "SUB",
 ]);
 
+/** Drop entirely (do not unwrap children — nested payloads can stay dangerous). */
+const FORBIDDEN_TAGS = new Set([
+  "SCRIPT",
+  "STYLE",
+  "IFRAME",
+  "OBJECT",
+  "EMBED",
+  "APPLET",
+  "NOSCRIPT",
+  "SVG",
+  "MATH",
+  "LINK",
+  "META",
+  "BASE",
+  "FORM",
+  "INPUT",
+  "BUTTON",
+  "TEXTAREA",
+  "SELECT",
+  "OPTION",
+  "TEMPLATE",
+  "FOREIGNOBJECT",
+]);
+
 function sanitizeHtml(html: string, baseUrl: string): string {
   const { document } = parseHTML(`<div id="root">${html}</div>`);
   const root = document.getElementById("root");
@@ -173,7 +199,7 @@ function sanitizeHtml(html: string, baseUrl: string): string {
       if (child.nodeType !== 1) continue;
       const el = child as Element;
       const tag = el.tagName.toUpperCase();
-      if (tag === "SCRIPT" || tag === "STYLE" || tag === "IFRAME" || tag === "OBJECT" || tag === "NOSCRIPT") {
+      if (FORBIDDEN_TAGS.has(tag)) {
         el.remove();
         continue;
       }
