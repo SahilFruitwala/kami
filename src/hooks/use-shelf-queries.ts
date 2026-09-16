@@ -16,11 +16,7 @@ import {
   setShelfItemStatus,
   type ShelfTab,
 } from "@/lib/shelves-fns";
-import {
-  fetchLinkPreview,
-  searchBooks,
-  searchTmdb,
-} from "@/lib/shelves-lookup";
+import { fetchLinkPreview, searchBooks, searchTmdb } from "@/lib/shelves-lookup";
 import { invalidateShelves, queryKeys } from "@/lib/query-client";
 
 export function useShelfCounts() {
@@ -63,16 +59,22 @@ export function useShelfDetail(type: ShelfTab, id: string | null) {
   });
 }
 
-export function useTmdbSearch(
-  kind: "movie" | "tv",
-  query: string,
-  enabled: boolean,
-) {
+/**
+ * Third-party lookups are now cached server-side (Upstash, hours–days), so
+ * the client can hold them longer too: repeat hovers / reopens never hit
+ * the network within a session.
+ */
+const LOOKUP_STALE_TIME = 10 * 60_000;
+const LOOKUP_GC_TIME = 30 * 60_000;
+
+export function useTmdbSearch(kind: "movie" | "tv", query: string, enabled: boolean) {
   const q = query.trim();
   return useQuery({
     queryKey: queryKeys.lookup.tmdb(kind, q),
     queryFn: () => searchTmdb({ data: { query: q, kind } }),
     enabled: enabled && q.length >= 2,
+    staleTime: LOOKUP_STALE_TIME,
+    gcTime: LOOKUP_GC_TIME,
   });
 }
 
@@ -82,6 +84,8 @@ export function useBookSearch(query: string, enabled: boolean) {
     queryKey: queryKeys.lookup.books(q),
     queryFn: () => searchBooks({ data: q }),
     enabled: enabled && q.length >= 2,
+    staleTime: LOOKUP_STALE_TIME,
+    gcTime: LOOKUP_GC_TIME,
   });
 }
 
@@ -91,6 +95,8 @@ export function useLinkPreview(url: string, enabled: boolean) {
     queryKey: queryKeys.lookup.link(href),
     queryFn: () => fetchLinkPreview({ data: href }),
     enabled: enabled && href.length >= 4,
+    staleTime: LOOKUP_STALE_TIME,
+    gcTime: LOOKUP_GC_TIME,
   });
 }
 
@@ -120,11 +126,8 @@ export function useFindShelfDuplicates() {
 export function useSetShelfItemStatus() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (data: {
-      type: ShelfTab;
-      id: string;
-      status: "to_try" | "done" | "abandoned";
-    }) => setShelfItemStatus({ data }),
+    mutationFn: (data: { type: ShelfTab; id: string; status: "to_try" | "done" | "abandoned" }) =>
+      setShelfItemStatus({ data }),
     onSuccess: () => invalidateShelves(client),
   });
 }

@@ -2,6 +2,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
+import { CacheTTL, cacheKey, cached, invalidateUserCache } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db";
 import { JOURNAL_TEXT_MAX, type JournalEntry } from "@/lib/journal";
 import { journalEntries } from "@/lib/schema";
@@ -26,13 +27,17 @@ function rowToEntry(row: typeof journalEntries.$inferSelect): JournalEntry {
 }
 
 async function loadEntries(userId: string): Promise<JournalEntry[]> {
-  const db = await getDb();
-  const rows = await db
-    .select()
-    .from(journalEntries)
-    .where(eq(journalEntries.userId, userId))
-    .orderBy(desc(journalEntries.date));
-  return rows.map(rowToEntry);
+  // Journal boots refetch the whole history; entries change rarely, so a
+  // short per-user entry absorbs remount bursts. Writes invalidate it.
+  return cached(cacheKey("u", userId, "journal", "entries"), CacheTTL.journal, async () => {
+    const db = await getDb();
+    const rows = await db
+      .select()
+      .from(journalEntries)
+      .where(eq(journalEntries.userId, userId))
+      .orderBy(desc(journalEntries.date));
+    return rows.map(rowToEntry);
+  });
 }
 
 async function upsertOwnedEntry(
@@ -92,7 +97,9 @@ export const upsertJournalEntry = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((input: unknown) => entrySchema.parse(input))
   .handler(async ({ context, data }): Promise<JournalEntry> => {
-    return upsertOwnedEntry(context.userId, data);
+    const entry = await upsertOwnedEntry(context.userId, data);
+    await invalidateUserCache(context.userId);
+    return entry;
   });
 
 export const importJournalSnapshot = createServerFn({ method: "POST" })
@@ -108,5 +115,6 @@ export const importJournalSnapshot = createServerFn({ method: "POST" })
     for (const entry of data.entries) {
       await upsertOwnedEntry(context.userId, entry);
     }
+    await invalidateUserCache(context.userId);
     return loadEntries(context.userId);
   });
