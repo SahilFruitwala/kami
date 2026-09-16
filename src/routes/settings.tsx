@@ -22,6 +22,7 @@ import {
   toVaultCsv,
 } from "@/lib/export.ts";
 import { wipeLibraryAccount } from "@/lib/library-remote.ts";
+import { getLibraryForExport } from "@/lib/library-fns.ts";
 import { useCurrentUserState } from "@/lib/auth/use-current-user.ts";
 import { cn } from "@/lib/utils.ts";
 import type { LibraryItem } from "@/lib/store.ts";
@@ -622,11 +623,6 @@ function DataCard() {
   const dupes = useMemo(() => findDuplicateGroups(library), [library]);
   const slipCount = useMemo(() => library.reduce((n, row) => n + (row.highlights?.length ?? 0), 0), [library]);
 
-  function exportJson() {
-    downloadBlob(new Blob([toLibraryJson(library, folders)], { type: "application/json" }), "kami-library.json");
-    toast.success("Library exported as JSON");
-  }
-
   function exportOpml() {
     downloadBlob(new Blob([toOPML(library)], { type: "text/xml" }), "kami-library.opml");
     toast.success("Library exported as OPML");
@@ -635,6 +631,22 @@ function DataCard() {
   function exportVaultCsv() {
     downloadBlob(new Blob([toVaultCsv(library)], { type: "text/csv" }), "highlight-vault.csv");
     toast.success("Vault exported as CSV");
+  }
+
+  async function exportJson() {
+    try {
+      // Boot omits article bodies — pull a full snapshot for a faithful export.
+      const snapshot = await getLibraryForExport();
+      downloadBlob(
+        new Blob([toLibraryJson(snapshot.library, snapshot.folders)], {
+          type: "application/json",
+        }),
+        "kami-library.json",
+      );
+      toast.success("Library exported as JSON");
+    } catch {
+      toast.error("Could not export library. Try again.");
+    }
   }
 
   async function importFile(file: File) {

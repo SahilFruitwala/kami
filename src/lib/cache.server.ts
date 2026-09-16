@@ -138,7 +138,7 @@ export const CacheTTL = {
   /** Per-user journal entries — invalidated on write. */
   journal: 120,
   /**
-   * Per-user library snapshot. Short: the payload can be large and
+   * Per-user library metadata snapshot (no article bodies). Short TTL:
    * mutations are frequent; the win is absorbing burst refetches
    * (navigation remounts, multi-tab boots).
    */

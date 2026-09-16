@@ -1,9 +1,8 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AppGate } from "@/components/app-gate.tsx";
 import { DirectionalTransition } from "@/components/directional-transition.tsx";
 import { ToolsDialog } from "@/components/library/library-dialogs.tsx";
-import { CommandPalette } from "@/components/library/command-palette.tsx";
 import { SiteFooter } from "@/components/library/widgets.tsx";
 import { NameOnboarding } from "@/components/name-onboarding.tsx";
 import { SiteHeader, type SitePane } from "@/components/site-header.tsx";
@@ -14,6 +13,14 @@ import {
   subscribeOutbox,
 } from "@/lib/library-remote.ts";
 import type { LibraryItem } from "@/lib/store.ts";
+
+// ⌘K palette is heavy (~600 lines + shelf lookup hooks) and unused until
+// opened — keep it out of the initial authenticated shell chunk.
+const CommandPalette = lazy(() =>
+  import("@/components/library/command-palette.tsx").then((m) => ({
+    default: m.CommandPalette,
+  })),
+);
 
 /**
  * Shared sanctuary shell: skip link, Sanctuary sidebar + utility bar,
@@ -48,7 +55,9 @@ export function AppShell({
             onOpenChange={tools.setToolsOpen}
             bookmarklet={tools.bookmarklet}
           />
-          <CommandPalette onOpenItem={onOpenItem} />
+          <Suspense fallback={null}>
+            <CommandPalette onOpenItem={onOpenItem} />
+          </Suspense>
           <NameOnboarding />
           <OfflineBanner />
         </main>
