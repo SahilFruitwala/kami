@@ -281,6 +281,15 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
 
     if (existing[0]) {
       const id = existing[0].id;
+      // Lean client snapshots omit bodies (`contentHtml: ""`). Never clobber a
+      // stored article body with an empty upsert from metadata-only sync.
+      const prior = await db
+        .select({ contentHtml: articles.contentHtml })
+        .from(articles)
+        .where(and(eq(articles.id, id), eq(articles.userId, context.userId)))
+        .limit(1);
+      const bodyHtml =
+        contentHtml.trim() || prior[0]?.contentHtml || "";
       await db
         .update(articles)
         .set({
@@ -293,7 +302,7 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
           wordCount: data.wordCount,
           readingMinutes: data.readingMinutes,
           excerpt,
-          contentHtml,
+          contentHtml: bodyHtml,
           heroImage,
           published: data.published,
           archived: data.archived,

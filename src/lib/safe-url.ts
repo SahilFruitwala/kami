@@ -26,6 +26,8 @@ function isPrivateIPv4(host: string): boolean {
   if (a === 172 && b >= 16 && b <= 31) return true;
   if (a === 192 && b === 168) return true;
   if (a === 100 && b >= 64 && b <= 127) return true;
+  // Azure IMDS / Wire Server (not RFC1918, but host-local metadata).
+  if (a === 168 && b === 63) return true;
   return false;
 }
 
