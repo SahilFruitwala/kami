@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState, type MouseEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { EpisodeTracker } from "@/components/library/episode-tracker.tsx";
+import { WatchWhere } from "@/components/library/watch-where.tsx";
 import { Hanko, KamiEyebrow, WashiTag } from "@/components/kami.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
@@ -25,6 +26,7 @@ import { Input } from "@/components/ui/input.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
 import {
+  SHELF_PAGE_SIZE,
   useAddShelfItem,
   useBookSearch,
   useDeleteShelfItem,
@@ -39,6 +41,7 @@ import {
 import { queryKeys } from "@/lib/query-client.ts";
 import {
   SHELF_TABS,
+  type ShelfCard,
   type ShelfDetail,
   type ShelfTab,
 } from "@/lib/shelves-fns.ts";
@@ -51,6 +54,9 @@ type ShelvesSearch = {
   status?: string;
 };
 
+/** UI filter: `all` means no status predicate on the server. */
+type StatusFilter = "to_try" | "done" | "all";
+
 const TAB_META: { id: ShelfTab; label: string; icon: typeof Clapperboard }[] = [
   { id: "movie", label: "Movies", icon: Clapperboard },
   { id: "tv", label: "TV Shows", icon: Tv },
@@ -58,19 +64,23 @@ const TAB_META: { id: ShelfTab; label: string; icon: typeof Clapperboard }[] = [
   { id: "wishlist", label: "Wishlist", icon: Gift },
 ];
 
-const STATUS_META = [
-  { id: undefined, label: "All" },
+const STATUS_META: { id: StatusFilter; label: string }[] = [
   { id: "to_try", label: "To try" },
   { id: "done", label: "Done" },
-  { id: "abandoned", label: "Abandoned" },
-] as const;
+  { id: "all", label: "All" },
+];
 
 function isShelfTab(v: unknown): v is ShelfTab {
   return typeof v === "string" && (SHELF_TABS as readonly string[]).includes(v);
 }
 
-function isShelfStatus(v: unknown): v is "to_try" | "done" | "abandoned" {
-  return v === "to_try" || v === "done" || v === "abandoned";
+function parseStatusFilter(v: unknown): StatusFilter {
+  if (v === "done" || v === "all") return v;
+  return "to_try";
+}
+
+function statusToApi(status: StatusFilter): "to_try" | "done" | undefined {
+  return status === "all" ? undefined : status;
 }
 
 export const Route = createFileRoute("/shelves")({
@@ -91,9 +101,8 @@ function Shelves() {
   const search = Route.useSearch();
   const [tab, setTab] = useState<ShelfTab>(() => (isShelfTab(search.tab) ? search.tab : "movie"));
   const [query, setQuery] = useState(() => search.q ?? "");
-  const [status, setStatus] = useState<"to_try" | "done" | "abandoned" | undefined>(() =>
-    isShelfStatus(search.status) ? search.status : undefined,
-  );
+  const [status, setStatus] = useState<StatusFilter>(() => parseStatusFilter(search.status));
+  const [limit, setLimit] = useState(SHELF_PAGE_SIZE);
   const deferredQuery = useDeferredValue(query);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -103,14 +112,16 @@ function Shelves() {
   const countsQuery = useShelfCounts();
   const itemsQuery = useShelfItems({
     type: tab,
-    status,
+    status: statusToApi(status),
     query: deferredQuery,
+    limit,
   });
   const detailQuery = useShelfDetail(tab, detailId);
 
   const counts = countsQuery.data ?? null;
   const items = itemsQuery.isPending && !itemsQuery.data ? null : (itemsQuery.data ?? []);
   const detail = detailId ? (detailQuery.data ?? null) : null;
+  const hasMore = items != null && items.length >= limit;
 
   // One-way: URL → local state on first paint (deep links).
   useEffect(() => {
@@ -118,7 +129,7 @@ function Shelves() {
     syncedFromUrl.current = true;
     if (isShelfTab(search.tab)) setTab(search.tab);
     if (typeof search.q === "string") setQuery(search.q);
-    if (isShelfStatus(search.status)) setStatus(search.status);
+    setStatus(parseStatusFilter(search.status));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -131,7 +142,8 @@ function Shelves() {
         search: {
           tab: tab === "movie" ? undefined : tab,
           q: query ? query : undefined,
-          status: status ?? undefined,
+          // Default filter is to_try — omit from the URL like the movie tab.
+          status: status === "to_try" ? undefined : status,
         },
         replace: true,
       });
@@ -140,6 +152,11 @@ function Shelves() {
       if (pushTimer.current) clearTimeout(pushTimer.current);
     };
   }, [tab, query, status, navigate]);
+
+  // Reset pagination when the list criteria change.
+  useEffect(() => {
+    setLimit(SHELF_PAGE_SIZE);
+  }, [tab, status, deferredQuery]);
 
   const total = counts ? counts.movie + counts.tv + counts.book + counts.wishlist : null;
 
@@ -205,14 +222,21 @@ function Shelves() {
                     className={cn(
                       "inline-flex shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1.5 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
                       tab === t.id
-                        ? "bg-paper-warm font-semibold text-ink"
-                        : "font-medium text-ink-muted hover:text-ink",
+                        ? "bg-hanko font-semibold text-white shadow-sm"
+                        : "font-medium text-ink-muted hover:bg-paper-warm hover:text-ink",
                     )}
                   >
                     <Icon className="size-3.5" aria-hidden="true" />
                     {t.label}
                     {n != null ? (
-                      <span className="rounded-full bg-bamboo-wash px-1.5 py-0.5 text-[10px] font-semibold text-bamboo tabular-nums">
+                      <span
+                        className={cn(
+                          "rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+                          tab === t.id
+                            ? "bg-white/20 text-white"
+                            : "bg-bamboo-wash text-bamboo",
+                        )}
+                      >
                         {n}
                       </span>
                     ) : null}
@@ -223,21 +247,27 @@ function Shelves() {
             <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
               {STATUS_META.map((s) => (
                 <button
-                  key={s.label}
+                  key={s.id}
                   type="button"
                   aria-pressed={status === s.id}
                   onClick={() => setStatus(s.id)}
                   className={cn(
                     "inline-flex shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1 font-sans text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
                     status === s.id
-                      ? "bg-paper-warm font-semibold text-ink"
-                      : "bg-surface text-ink-soft hover:bg-paper-warm",
+                      ? "bg-hanko font-semibold text-white shadow-sm"
+                      : "bg-surface text-ink-soft shadow-[var(--shadow-border)] hover:bg-paper-warm hover:text-ink",
                   )}
                 >
                   <span
                     className={cn(
                       "size-1.5 rounded-full",
-                      s.id === "done" ? "bg-hanko" : s.id === "to_try" ? "bg-ok" : "bg-line",
+                      status === s.id
+                        ? "bg-white"
+                        : s.id === "done"
+                          ? "bg-hanko"
+                          : s.id === "to_try"
+                            ? "bg-ok"
+                            : "bg-line",
                     )}
                     aria-hidden="true"
                   />
@@ -278,76 +308,33 @@ function Shelves() {
             </Button>
           </div>
         ) : (
+          <>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
             {items.map((item) => (
-              <button
+              <ShelfTile
                 key={item.id}
-                type="button"
-                onClick={() => setDetailId(item.id)}
-                className="kami-sheet group overflow-hidden text-left transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 hover:-translate-y-0.5"
-              >
-                <div className="relative aspect-[2/3] w-full overflow-hidden bg-paper-warm">
-                  {item.imageUrl ? (
-                    <img
-                      src={item.imageUrl}
-                      alt=""
-                      width={300}
-                      height={450}
-                      loading="lazy"
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <div className="flex size-full items-center justify-center font-display text-4xl text-ink-faint">
-                      {item.title.charAt(0)}
-                    </div>
-                  )}
-                  {item.status === "done" ? (
-                    <span className="absolute top-2 right-2">
-                      <Hanko glyph="✓" title="Done" />
-                    </span>
-                  ) : null}
-                </div>
-                <div className="p-3">
-                  <p className="line-clamp-2 font-display text-[15px] leading-snug font-medium text-ink">
-                    {item.title}
-                  </p>
-                  {item.subtitle ? (
-                    <p className="mt-1 line-clamp-1 font-sans text-xs text-ink-muted">{item.subtitle}</p>
-                  ) : null}
-                  <div className="mt-2">
-                    <WashiTag tone={item.status === "done" ? "vermilion" : "paper"}>
-                      {item.status === "to_try" ? "To try" : item.status === "done" ? "Done" : "Abandoned"}
-                    </WashiTag>
-                  </div>
-                  {tab === "tv" && (item.totalEpisodes || item.episodesWatched) ? (
-                    <div className="mt-2 space-y-1">
-                      <p className="font-sans text-[11px] tabular-nums text-ink-muted">
-                        {item.episodesWatched ?? 0}
-                        {item.totalEpisodes ? ` / ${item.totalEpisodes}` : ""} eps
-                        {item.lastEpisode ? ` · Last ${item.lastEpisode}` : ""}
-                      </p>
-                      {item.totalEpisodes && item.totalEpisodes > 0 ? (
-                        <span
-                          className="block h-1 w-full overflow-hidden rounded-full bg-paper-warm"
-                          aria-hidden="true"
-                        >
-                          <span
-                            className="block h-full rounded-full bg-hanko"
-                            style={{
-                              width: `${Math.min(
-                                ((item.episodesWatched ?? 0) / item.totalEpisodes) * 100,
-                                100,
-                              )}%`,
-                            }}
-                          />
-                        </span>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </div>
-              </button>
+                item={item}
+                tab={tab}
+                onOpen={() => setDetailId(item.id)}
+              />
             ))}
           </div>
+          {hasMore ? (
+            <div className="mt-8 flex justify-center">
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={itemsQuery.isFetching}
+                onClick={() => setLimit((n) => n + SHELF_PAGE_SIZE)}
+              >
+                {itemsQuery.isFetching ? (
+                  <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                ) : null}
+                Show more
+              </Button>
+            </div>
+          ) : null}
+        </>
         )}
       </div>
 
@@ -838,6 +825,134 @@ function statusLabels(type: ShelfTab) {
   return { done: "Watched", toTry: "To watch", markDone: "Mark watched", markTry: "Mark unwatched" };
 }
 
+function ShelfTile({
+  item,
+  tab,
+  onOpen,
+}: {
+  item: ShelfCard;
+  tab: ShelfTab;
+  onOpen: () => void;
+}) {
+  const setStatus = useSetShelfItemStatus();
+  const setShowWatched = useSetShowWatched();
+  const labels = statusLabels(tab);
+  const isDone = item.status === "done";
+  const busy = setStatus.isPending || setShowWatched.isPending;
+
+  async function toggleDone(e: MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+    try {
+      if (isDone) {
+        if (tab === "tv") {
+          await setShowWatched.mutateAsync({ itemId: item.id, watched: false });
+        } else {
+          await setStatus.mutateAsync({ type: tab, id: item.id, status: "to_try" });
+        }
+        toast.success(`Moved “${item.title}” back to ${labels.toTry.toLowerCase()}`);
+      } else {
+        if (tab === "tv") {
+          await setShowWatched.mutateAsync({ itemId: item.id, watched: true });
+        } else {
+          await setStatus.mutateAsync({ type: tab, id: item.id, status: "done" });
+        }
+        toast.success(`Marked “${item.title}” ${labels.done.toLowerCase()}`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't update status.");
+    }
+  }
+
+  return (
+    <article className="kami-sheet group flex flex-col overflow-hidden transition-transform hover:-translate-y-0.5">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="flex min-w-0 flex-1 flex-col text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 focus-visible:ring-inset"
+      >
+        <div className="relative aspect-[2/3] w-full overflow-hidden bg-paper-warm">
+          {item.imageUrl ? (
+            <img
+              src={item.imageUrl}
+              alt=""
+              width={300}
+              height={450}
+              loading="lazy"
+              className="size-full object-cover"
+            />
+          ) : (
+            <div className="flex size-full items-center justify-center font-display text-4xl text-ink-faint">
+              {item.title.charAt(0)}
+            </div>
+          )}
+          {isDone ? (
+            <span className="absolute top-2 right-2">
+              <Hanko glyph="✓" title={labels.done} />
+            </span>
+          ) : null}
+        </div>
+        <div className="flex flex-1 flex-col p-3 pb-2">
+          <p className="line-clamp-2 font-display text-[15px] leading-snug font-medium text-ink">
+            {item.title}
+          </p>
+          {item.subtitle ? (
+            <p className="mt-1 line-clamp-1 font-sans text-xs text-ink-muted">{item.subtitle}</p>
+          ) : null}
+          {tab === "tv" && (item.totalEpisodes || item.episodesWatched) ? (
+            <div className="mt-2 space-y-1">
+              <p className="font-sans text-[11px] tabular-nums text-ink-muted">
+                {item.episodesWatched ?? 0}
+                {item.totalEpisodes ? ` / ${item.totalEpisodes}` : ""} eps
+                {item.lastEpisode ? ` · Last ${item.lastEpisode}` : ""}
+              </p>
+              {item.totalEpisodes && item.totalEpisodes > 0 ? (
+                <span
+                  className="block h-1 w-full overflow-hidden rounded-full bg-paper-warm"
+                  aria-hidden="true"
+                >
+                  <span
+                    className="block h-full rounded-full bg-hanko"
+                    style={{
+                      width: `${Math.min(
+                        ((item.episodesWatched ?? 0) / item.totalEpisodes) * 100,
+                        100,
+                      )}%`,
+                    }}
+                  />
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      </button>
+      <div className="px-3 pb-3">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={(e) => void toggleDone(e)}
+          aria-pressed={isDone}
+          className={cn(
+            "inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-[0.25rem] font-sans text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 disabled:opacity-60",
+            isDone
+              ? "border border-line bg-surface text-ink-soft hover:bg-paper-warm hover:text-ink"
+              : "bg-hanko text-white shadow-sm hover:bg-shu",
+          )}
+        >
+          {busy ? (
+            <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+          ) : isDone ? (
+            <Check className="size-3.5 text-hanko" aria-hidden="true" />
+          ) : (
+            <Check className="size-3.5" aria-hidden="true" />
+          )}
+          {isDone ? labels.done : labels.markDone}
+        </button>
+      </div>
+    </article>
+  );
+}
+
 function ShelfFolio({
   detail,
   onClose,
@@ -915,11 +1030,7 @@ function ShelfFolio({
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap gap-1.5">
             <WashiTag tone={isDone ? "vermilion" : "paper"}>
-              {detail.item.status === "to_try"
-                ? labels.toTry
-                : detail.item.status === "done"
-                  ? labels.done
-                  : "Abandoned"}
+              {detail.item.status === "done" ? labels.done : labels.toTry}
             </WashiTag>
             {genres.map((g) => (
               <WashiTag key={g} tone="bamboo">
@@ -927,6 +1038,9 @@ function ShelfFolio({
               </WashiTag>
             ))}
           </div>
+          {(detail.type === "movie" || detail.type === "tv") && detail.item.tmdbId != null ? (
+            <WatchWhere tmdbId={String(detail.item.tmdbId)} kind={detail.type} />
+          ) : null}
           <dl className="space-y-1 font-sans text-xs text-ink-muted">
             {detail.type === "movie" && detail.item.releaseYear ? (
               <div className="flex gap-2"><dt>Year</dt><dd className="text-ink">{detail.item.releaseYear}</dd></div>

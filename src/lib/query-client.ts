@@ -35,6 +35,7 @@ export const queryKeys = {
       type: ShelfTab;
       status?: "to_try" | "done" | "abandoned";
       query: string;
+      limit: number;
     }) =>
       [
         ...queryKeys.shelves.all,
@@ -42,6 +43,7 @@ export const queryKeys = {
         args.type,
         args.status ?? "all",
         args.query,
+        args.limit,
       ] as const,
     detail: (type: ShelfTab, id: string) =>
       [...queryKeys.shelves.all, "detail", type, id] as const,

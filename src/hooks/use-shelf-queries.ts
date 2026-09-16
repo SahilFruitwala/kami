@@ -30,20 +30,24 @@ export function useShelfCounts() {
   });
 }
 
+export const SHELF_PAGE_SIZE = 12;
+
 export function useShelfItems(args: {
   type: ShelfTab;
   status?: "to_try" | "done" | "abandoned";
   query: string;
+  limit?: number;
 }) {
+  const limit = args.limit ?? SHELF_PAGE_SIZE;
   return useQuery({
-    queryKey: queryKeys.shelves.list(args),
+    queryKey: queryKeys.shelves.list({ ...args, limit }),
     queryFn: () =>
       listShelfItems({
         data: {
           type: args.type,
           status: args.status,
           query: args.query,
-          limit: 120,
+          limit,
           offset: 0,
         },
       }),

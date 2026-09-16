@@ -11,7 +11,7 @@ import { assertPublicHttpUrl } from "@/lib/safe-url";
  *   `TMDB_API_TOKEN`, `include_adult=false`. First 8 hits map to
  *   `LookupResult`: title, `w342` poster, themoviedb.org link, metadata
  *   `{ year, overview (≤300ch), genre (≤3 via static id map), tmdbId, tmdbKind }`.
- *   `tmdbId/tmdbKind` are kept so cards can fetch where-to-watch later.
+ *   `tmdbId/tmdbKind` feed `fetchWatchProviders` for the where-to-watch strip.
  * - Books: `openlibrary.org/search.json` (limit 8, typed fields). Maps to
  *   `{ author, year, genre (≤3 filtered subjects), overview (first_sentence) }`,
  *   cover from `covers.openlibrary.org`, link to the work page. No key needed.
@@ -126,6 +126,117 @@ export const searchTmdb = createServerFn({ method: "GET" })
         metadata,
       };
     });
+  });
+
+// ---------- Where to watch (TMDB / JustWatch) ----------
+
+type TmdbProvider = {
+  provider_name: string;
+  logo_path?: string | null;
+  display_priority?: number;
+};
+
+type TmdbWatchRegion = {
+  link?: string;
+  flatrate?: TmdbProvider[];
+  free?: TmdbProvider[];
+  ads?: TmdbProvider[];
+  rent?: TmdbProvider[];
+  buy?: TmdbProvider[];
+};
+
+export type WatchProvider = {
+  name: string;
+  logo?: string;
+};
+
+export type CountryWatch = {
+  code: string;
+  name: string;
+  streaming: WatchProvider[];
+  rent: WatchProvider[];
+  link?: string;
+};
+
+const regionNames =
+  typeof Intl !== "undefined" && "DisplayNames" in Intl
+    ? new Intl.DisplayNames(["en"], { type: "region" })
+    : null;
+
+/** Collapse ad tiers / channel resellers into the parent service name. */
+function canonicalProviderName(name: string): string {
+  return name
+    .replace(/\s+(Apple TV|Amazon|Roku Premium)\s+Channel$/i, "")
+    .replace(/\s+with Ads$/i, "")
+    .replace(/\s+(Basic|Standard|Premium)$/i, "")
+    .trim();
+}
+
+function dedupeProviders(lists: TmdbProvider[][]): WatchProvider[] {
+  const seen = new Set<string>();
+  const out: WatchProvider[] = [];
+  for (const list of lists) {
+    for (const p of [...list].sort(
+      (a, b) => (a.display_priority ?? 0) - (b.display_priority ?? 0),
+    )) {
+      const name = canonicalProviderName(p.provider_name);
+      if (seen.has(name)) continue;
+      seen.add(name);
+      out.push({
+        name,
+        logo: p.logo_path ? `https://image.tmdb.org/t/p/w92${p.logo_path}` : undefined,
+      });
+    }
+  }
+  return out;
+}
+
+/** Live streaming / rent availability for a TMDB movie or TV title. */
+export const fetchWatchProviders = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator((input: unknown) =>
+    z
+      .object({
+        tmdbId: z.string().min(1).max(32),
+        kind: z.enum(["movie", "tv"]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }): Promise<CountryWatch[]> => {
+    const token = process.env.TMDB_API_TOKEN;
+    if (!token) return [];
+
+    const res = await fetch(
+      `https://api.themoviedb.org/3/${data.kind}/${data.tmdbId}/watch/providers`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
+      },
+    );
+    if (!res.ok) return [];
+    const json = (await res.json()) as { results?: Record<string, TmdbWatchRegion> };
+    const results = json.results ?? {};
+
+    const countries: CountryWatch[] = [];
+    for (const [code, r] of Object.entries(results)) {
+      const streaming = dedupeProviders([
+        r.flatrate ?? [],
+        r.free ?? [],
+        r.ads ?? [],
+      ]).slice(0, 8);
+      const rent = dedupeProviders([r.rent ?? [], r.buy ?? []]).slice(0, 8);
+      if (streaming.length === 0 && rent.length === 0) continue;
+      countries.push({
+        code,
+        name: regionNames?.of(code) ?? code,
+        streaming,
+        rent,
+        link: r.link,
+      });
+    }
+
+    countries.sort((a, b) => a.name.localeCompare(b.name));
+    return countries;
   });
 
 type OpenLibraryDoc = {
