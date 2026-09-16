@@ -613,15 +613,15 @@ export function ReaderView({
       </div>
 
       {zen ? (
-        /* Zen: only text + a whisper-quiet exit pill that fades in on hover/focus */
-        <div className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2 opacity-25 transition-opacity duration-300 hover:opacity-100 focus-within:opacity-100">
+        /* Zen: quiet on desktop, fully discoverable on touch screens. */
+        <div className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2 opacity-100 transition-opacity duration-300 md:opacity-40 md:hover:opacity-100 md:focus-within:opacity-100">
           <div className="flex items-center gap-2 rounded-full bg-surface/95 py-1.5 pr-2 pl-1.5 shadow-[var(--shadow-raised)] backdrop-blur-xl">
             <button
               type="button"
               onClick={onBack}
               aria-label="Back to library"
               title="Back to library"
-              className="flex size-8 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-paper-warm hover:text-ink"
+              className="flex size-11 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-paper-warm hover:text-ink md:size-8"
             >
               <ArrowLeft className="size-4" aria-hidden="true" />
             </button>
@@ -633,7 +633,7 @@ export function ReaderView({
               onClick={() => setZen(false)}
               aria-label="Exit zen focus (Esc)"
               title="Exit zen (Esc)"
-              className="flex items-center gap-1.5 rounded-full bg-hanko px-3 py-1.5 font-sans text-xs font-medium text-white transition-colors hover:bg-shu"
+              className="flex min-h-11 items-center gap-1.5 rounded-full bg-hanko px-3 font-sans text-xs font-medium text-white transition-colors hover:bg-shu md:min-h-8"
             >
               <EyeOff className="size-4" aria-hidden="true" />
               <span>Exit Zen</span>
@@ -645,13 +645,13 @@ export function ReaderView({
         </div>
       ) : (
         /* Standard floating dock */
-        <div className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex w-[90%] max-w-2xl -translate-x-1/2 items-center justify-between gap-6 rounded-full bg-surface/95 px-6 py-3 shadow-[var(--shadow-raised)] backdrop-blur-xl">
-        <div className="flex min-w-0 items-center gap-3">
+        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 items-center justify-between gap-2 rounded-2xl bg-surface/95 px-2 py-2 shadow-[var(--shadow-raised)] backdrop-blur-xl sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] sm:w-[90%] sm:gap-6 sm:rounded-full sm:px-6 sm:py-3">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={onBack}
             aria-label="Back to library"
-            className="flex size-8 shrink-0 items-center justify-center rounded-full bg-paper-warm text-ink-soft transition-colors hover:text-hanko"
+            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-paper-warm text-ink-soft transition-colors hover:text-hanko sm:size-8"
           >
             <ArrowLeft className="size-[18px]" aria-hidden="true" />
           </button>
@@ -676,7 +676,7 @@ export function ReaderView({
             onClick={() => setZen((v) => !v)}
             aria-pressed={zen}
             className={cn(
-              "flex items-center gap-1.5 rounded-full px-3 py-1.5 font-sans text-xs transition-colors",
+              "flex size-11 items-center justify-center rounded-full font-sans text-xs transition-colors sm:size-auto sm:min-h-8 sm:gap-1.5 sm:px-3 sm:py-1.5",
               zen ? "bg-hanko text-white" : "bg-paper-warm text-ink-soft hover:text-ink",
             )}
           >
@@ -689,7 +689,7 @@ export function ReaderView({
               setFavorited(item.id, !item.favorited);
               toast.success(item.favorited ? "Ribbon removed" : "Ribbon placed — find it under Favorites");
             }}
-            className="flex items-center gap-1.5 rounded-full bg-hanko px-3.5 py-1.5 font-sans text-xs font-medium text-white shadow-sm transition-all hover:bg-shu active:scale-95"
+            className="flex size-11 items-center justify-center rounded-full bg-hanko font-sans text-xs font-medium text-white shadow-sm transition-[background-color,transform] hover:bg-shu active:scale-95 sm:size-auto sm:min-h-8 sm:gap-1.5 sm:px-3.5 sm:py-1.5"
           >
             <BookmarkPlus className="size-[18px]" aria-hidden="true" />
             <span className="hidden sm:inline">Place Ribbon</span>

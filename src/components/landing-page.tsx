@@ -132,7 +132,7 @@ export function LandingPage() {
         Skip to content
       </a>
 
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-surface/90 backdrop-blur-xl">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-2 px-[max(1rem,env(safe-area-inset-left))] sm:gap-3 sm:px-6">
           <Link
             to="/"
@@ -181,7 +181,7 @@ export function LandingPage() {
         </div>
       </header>
 
-      <main id="main" className="pt-16">
+      <main id="main" className="pt-[calc(4rem+env(safe-area-inset-top))]">
         {/* Hero */}
         <section aria-labelledby="hero-heading" id="philosophy" className="relative mx-auto w-full max-w-5xl scroll-mt-24 px-4 pt-10 pb-12 sm:px-6 sm:pt-16">
           <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">

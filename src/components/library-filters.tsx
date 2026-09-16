@@ -59,7 +59,7 @@ export function LibraryFilters({
           </FilterChip>
           <button
             type="button"
-            className="ml-1 flex size-7 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            className="ml-1 flex size-11 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 sm:size-8"
             aria-label={`Delete folder ${folder.name}`}
             onClick={() => {
               if (!window.confirm(`Delete slipcase “${folder.name}”? Works inside become Unfiled.`)) return;
@@ -96,12 +96,12 @@ export function LibraryFilters({
           }}
           placeholder="New slipcase…"
           autoComplete="off"
-          className="h-9 w-32 bg-surface"
+          className="h-11 w-32 bg-surface sm:h-9"
         />
         <Button
           variant="ghost"
           size="icon"
-          className="size-9 text-ink-soft hover:text-hanko"
+          className="size-11 text-ink-soft hover:text-hanko sm:size-9"
           aria-label="Create folder"
           onClick={createFolder}
         >
@@ -127,7 +127,7 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-[0.25rem] px-3 font-sans text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+        "inline-flex min-h-11 items-center gap-1.5 rounded-[0.25rem] px-3 font-sans text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 sm:min-h-8",
         active
           ? "bg-hanko font-semibold text-white shadow-sm"
           : "bg-paper-warm text-ink-soft hover:bg-line hover:text-ink",

@@ -18,6 +18,7 @@ const MENU_WIDTH = 260;
 const MENU_HEIGHT = 60;
 const GAP = 8;
 const TOP_SAFE = 64;
+const BOTTOM_SAFE = 88;
 
 function placeMenu(
   lineRects: MenuRect[],
@@ -38,7 +39,10 @@ function placeMenu(
     y = last!.top + last!.height + GAP;
   }
   // Keep the menu inside the viewport vertically.
-  y = Math.max(TOP_SAFE, Math.min(y, window.innerHeight - MENU_HEIGHT - 12));
+  y = Math.max(
+    TOP_SAFE,
+    Math.min(y, window.innerHeight - MENU_HEIGHT - BOTTOM_SAFE),
+  );
 
   return {
     x: Math.min(

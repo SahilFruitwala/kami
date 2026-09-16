@@ -240,7 +240,7 @@ export function SiteHeader({
       </div>
 
       {/* Mobile top row */}
-      <div className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur-xl lg:hidden">
+      <div className="sticky top-0 z-40 border-b border-line bg-paper/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl lg:hidden">
         <div className="flex h-14 items-center justify-between gap-3 px-[max(1rem,env(safe-area-inset-left))]">
           <Link to="/app" className="flex items-center gap-2" aria-label="Kami home">
             <span
