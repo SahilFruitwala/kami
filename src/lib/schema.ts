@@ -76,9 +76,27 @@ export const articles = pgTable(
   ],
 );
 
+export const journalEntries = pgTable(
+  "journal_entries",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    date: text("date").notNull(),
+    text: text("text").notNull().default(""),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("journal_entries_user_id_idx").on(t.userId),
+    uniqueIndex("journal_entries_user_date_uidx").on(t.userId, t.date),
+  ],
+);
+
 export type User = typeof user.$inferSelect;
 export type FolderRow = typeof folders.$inferSelect;
 export type ArticleRow = typeof articles.$inferSelect;
+export type JournalEntryRow = typeof journalEntries.$inferSelect;
 
 // ---------- Shelves (TV / Movies / Books / Places / Restaurants / Wishlist) ----------
 // Postgres port of the SQLite shelf app. Snake_case columns keep the import 1:1.
@@ -364,6 +382,7 @@ export const schema = {
   user,
   folders,
   articles,
+  journalEntries,
   userFeatureFlags,
   rateLimits,
   lists,
