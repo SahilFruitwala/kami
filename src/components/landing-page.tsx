@@ -17,7 +17,6 @@ import {
   Type,
   Volume2,
 } from "lucide-react";
-import { SignInButton, SignUpButton } from "@/lib/auth/gates";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { Hanko, KAMI_GLYPH, WashiTag } from "@/components/kami.tsx";
@@ -163,19 +162,20 @@ export function LandingPage() {
           </nav>
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
-            <SignInButton mode="modal">
-              <Button type="button" variant="ghost" className="h-10 rounded-[0.25rem]">
+            <Button type="button" variant="ghost" className="h-10 rounded-[0.25rem]" asChild>
+              <Link to="/login" search={{ mode: undefined }}>
                 Sign In
-              </Button>
-            </SignInButton>
-            <SignUpButton mode="modal">
-              <Button
-                type="button"
-                className="h-10 rounded-[0.25rem] bg-hanko px-4 text-white shadow-sm hover:bg-shu active:translate-y-px"
-              >
+              </Link>
+            </Button>
+            <Button
+              type="button"
+              className="h-10 rounded-[0.25rem] bg-hanko px-4 text-white shadow-sm hover:bg-shu active:translate-y-px"
+              asChild
+            >
+              <Link to="/login" search={{ mode: "sign-up" }}>
                 Begin Sanctuary
-              </Button>
-            </SignUpButton>
+              </Link>
+            </Button>
           </div>
         </div>
       </header>
@@ -201,16 +201,17 @@ export function LandingPage() {
                 it in three inks, journal it, and find it in seconds.
               </p>
               <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:items-center">
-                <SignUpButton mode="modal">
-                  <Button
-                    type="button"
-                    size="lg"
-                    className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
-                  >
+                <Button
+                  type="button"
+                  size="lg"
+                  className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
+                  asChild
+                >
+                  <Link to="/login" search={{ mode: "sign-up" }}>
                     Enter the Sanctuary
                     <ArrowRight className="size-4" aria-hidden="true" />
-                  </Button>
-                </SignUpButton>
+                  </Link>
+                </Button>
                 <Button
                   type="button"
                   variant="ghost"
@@ -350,15 +351,16 @@ export function LandingPage() {
               ))}
             </ol>
             <div className="mt-8 flex flex-col gap-2.5 sm:flex-row sm:items-center">
-              <SignUpButton mode="modal">
-                <Button
-                  type="button"
-                  size="lg"
-                  className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
-                >
+              <Button
+                type="button"
+                size="lg"
+                className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
+                asChild
+              >
+                <Link to="/login" search={{ mode: "sign-up" }}>
                   Try It Now — It’s Free
-                </Button>
-              </SignUpButton>
+                </Link>
+              </Button>
               <Button
                 type="button"
                 variant="ghost"
@@ -366,7 +368,7 @@ export function LandingPage() {
                 className="h-11 w-full rounded-[0.25rem] sm:w-auto"
                 asChild
               >
-                <Link to="/login">I Already Have an Account</Link>
+                <Link to="/login" search={{ mode: undefined }}>I Already Have an Account</Link>
               </Button>
             </div>
           </div>
@@ -538,25 +540,27 @@ export function LandingPage() {
               Join KAMI and turn scattered links into a library you actually finish.
             </p>
             <div className="mt-6 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
-              <SignUpButton mode="modal">
-                <Button
-                  type="button"
-                  size="lg"
-                  className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
-                >
+              <Button
+                type="button"
+                size="lg"
+                className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
+                asChild
+              >
+                <Link to="/login" search={{ mode: "sign-up" }}>
                   Begin Sanctuary
-                </Button>
-              </SignUpButton>
-              <SignInButton mode="modal">
-                <Button
-                  type="button"
-                  size="lg"
-                  variant="outline"
-                  className="h-11 w-full rounded-[0.25rem] border-line bg-surface text-ink-accent hover:bg-paper-warm sm:w-auto"
-                >
+                </Link>
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                className="h-11 w-full rounded-[0.25rem] border-line bg-surface text-ink-accent hover:bg-paper-warm sm:w-auto"
+                asChild
+              >
+                <Link to="/login" search={{ mode: undefined }}>
                   Sign In
-                </Button>
-              </SignInButton>
+                </Link>
+              </Button>
             </div>
           </div>
         </section>
@@ -595,7 +599,7 @@ export function LandingPage() {
             <p className="kami-label text-ink-soft">Colophon</p>
             <ul className="mt-3 space-y-2">
               <li><a href="#faq" className="hover:text-hanko">FAQ</a></li>
-              <li><Link to="/login" className="hover:text-hanko">Sign In</Link></li>
+              <li><Link to="/login" search={{ mode: undefined }} className="hover:text-hanko">Sign In</Link></li>
               <li><span aria-hidden="true">In Praise of Shadows · Tanizaki</span></li>
             </ul>
           </nav>

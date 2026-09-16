@@ -73,7 +73,7 @@ export function AppGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/login" search={{ mode: undefined }} />;
   }
 
   if (libraryError) {
