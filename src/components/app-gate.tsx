@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { LandingPage } from "@/components/landing-page.tsx";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import {
+  bootstrapJournalFromServer,
+  clearJournalLocal,
+  isJournalBootstrapped,
+} from "@/lib/journal-remote";
+import {
   bootstrapLibraryFromServer,
   clearLibraryLocal,
   isLibraryBootstrapped,
@@ -23,13 +28,15 @@ export function AppGate({ children }: { children: React.ReactNode }) {
   const [libraryError, setLibraryError] = useState<string | null>(null);
 
   const libraryReady =
-    Boolean(userId && isLibraryBootstrapped(userId)) ||
-    Boolean(userId && readyForUser === userId);
+    Boolean(
+      userId && isLibraryBootstrapped(userId) && isJournalBootstrapped(userId),
+    ) || Boolean(userId && readyForUser === userId);
 
   useEffect(() => {
     if (isPending) return;
     if (!userId) {
       clearLibraryLocal();
+      clearJournalLocal();
       setReadyForUser(null);
       setLibraryError(null);
       return;
@@ -37,15 +44,15 @@ export function AppGate({ children }: { children: React.ReactNode }) {
 
     let cancelled = false;
     // Already synced for this user (e.g. navigating between panes remounts
-    // the gate) — skip the network round-trip; render uses isLibraryBootstrapped.
-    if (isLibraryBootstrapped(userId)) {
+    // the gate) — skip the network round-trip.
+    if (isLibraryBootstrapped(userId) && isJournalBootstrapped(userId)) {
       setReadyForUser(userId);
       setLibraryError(null);
       return;
     }
     setLibraryError(null);
 
-    void bootstrapLibraryFromServer(userId)
+    void bootstrapAppData(userId)
       .then(() => {
         if (!cancelled) setReadyForUser(userId);
       })
@@ -78,7 +85,7 @@ export function AppGate({ children }: { children: React.ReactNode }) {
           setLibraryError(null);
           setReadyForUser(null);
           if (!userId) return;
-          void bootstrapLibraryFromServer(userId)
+          void bootstrapAppData(userId)
             .then(() => setReadyForUser(userId))
             .catch((error: unknown) => {
               const message =
@@ -97,6 +104,17 @@ export function AppGate({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
+}
+
+async function bootstrapAppData(userId: string): Promise<void> {
+  await Promise.all([
+    isLibraryBootstrapped(userId)
+      ? Promise.resolve()
+      : bootstrapLibraryFromServer(userId),
+    isJournalBootstrapped(userId)
+      ? Promise.resolve()
+      : bootstrapJournalFromServer(userId),
+  ]);
 }
 
 function GateLoading({
