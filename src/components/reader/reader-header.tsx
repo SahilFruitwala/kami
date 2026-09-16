@@ -11,6 +11,7 @@ import {
 import type { TtsStatus } from "@/lib/tts.ts";
 import { voiceLabel } from "@/lib/tts.ts";
 import { RATES } from "@/hooks/use-reader-tts.ts";
+import { KAMI_GLYPH } from "@/components/kami.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { cn } from "@/lib/utils.ts";
@@ -74,8 +75,11 @@ export function ReaderHeader({
           <span className="hidden sm:inline">Library</span>
         </Button>
         <span className="ml-1 hidden items-center gap-2 font-display text-sm text-ink-soft md:flex" aria-hidden="true">
-          <span className="kami-hanko flex size-5 items-center justify-center rounded-[0.25rem] text-[10px] font-bold">
-            K
+          <span
+            className="kami-hanko flex size-5 items-center justify-center rounded-[0.25rem] text-[10px] font-bold leading-none"
+            lang="ja"
+          >
+            {KAMI_GLYPH}
           </span>
           Reader
         </span>

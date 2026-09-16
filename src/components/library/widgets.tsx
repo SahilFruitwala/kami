@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
 import { BookOpen, Clock3, Highlighter, PenLine } from "lucide-react";
-import { Hanko, RhythmBars, WashiTag } from "@/components/kami.tsx";
+import { Hanko, KAMI_GLYPH, RhythmBars, WashiTag } from "@/components/kami.tsx";
 import type { LibraryItem } from "@/lib/store.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 
@@ -302,10 +302,11 @@ export function SiteFooter() {
       <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:px-6 md:flex-row lg:px-12">
         <div className="flex items-center gap-3">
           <span
-            className="kami-hanko flex size-7 items-center justify-center rounded-[0.25rem] font-display text-sm font-bold"
+            className="kami-hanko flex size-7 items-center justify-center rounded-[0.25rem] font-display text-sm font-bold leading-none"
+            lang="ja"
             aria-hidden="true"
           >
-            K
+            {KAMI_GLYPH}
           </span>
           <p className="font-body text-sm text-ink-soft">
             © Kami Sanctuary. Mindful archival reading and contemplative journaling.

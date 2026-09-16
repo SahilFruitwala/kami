@@ -8,8 +8,9 @@ import {
   Search,
   Settings as SettingsIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button.tsx";
+import { KAMI_GLYPH } from "@/components/kami.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
+import { Button } from "@/components/ui/button.tsx";
 import { Show, SignInButton, SignUpButton, UserButton } from "@/lib/auth/gates";
 import { useLibraryStore } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
@@ -74,8 +75,11 @@ export function SiteHeader({
             className="flex items-center gap-2.5 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
             aria-label="Kami home"
           >
-            <span className="kami-hanko flex size-8 items-center justify-center rounded-[0.25rem] font-display text-sm font-bold">
-              K
+            <span
+              className="kami-hanko flex size-8 items-center justify-center rounded-[0.25rem] font-display text-sm font-bold leading-none"
+              lang="ja"
+            >
+              {KAMI_GLYPH}
             </span>
             <span className="leading-none">
               <span className="block font-display text-base font-semibold tracking-tight text-ink" translate="no">
@@ -171,8 +175,11 @@ export function SiteHeader({
       <div className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur-xl lg:hidden">
         <div className="flex h-14 items-center justify-between gap-3 px-4">
           <Link to="/" className="flex items-center gap-2" aria-label="Kami home">
-            <span className="kami-hanko flex size-7 items-center justify-center rounded-[0.25rem] font-display text-xs font-bold">
-              K
+            <span
+              className="kami-hanko flex size-7 items-center justify-center rounded-[0.25rem] font-display text-xs font-bold leading-none"
+              lang="ja"
+            >
+              {KAMI_GLYPH}
             </span>
             <span className="font-display text-base font-semibold tracking-tight text-ink" translate="no">
               KAMI
