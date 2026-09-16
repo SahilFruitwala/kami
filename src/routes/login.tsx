@@ -1,14 +1,18 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
+import { SignIn, SignUp } from "@clerk/tanstack-react-start";
 import { BookMarked } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
-import { SignInButtons, SignedIn, SignedOut } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
 export const Route = createFileRoute("/login")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    mode: search.mode === "sign-up" ? ("sign-up" as const) : undefined,
+  }),
   component: LoginPage,
 });
 
 function LoginPage() {
+  const { mode } = Route.useSearch();
   const { user, isPending } = useCurrentUserState();
 
   if (isPending) {
@@ -40,23 +44,30 @@ function LoginPage() {
           <ThemeToggle />
         </div>
 
-        <SignedOut>
-          <h1 className="font-display text-3xl leading-tight tracking-tight">Sign in to <span translate="no">KAMI</span></h1>
+        <h1 className="font-display text-3xl leading-tight tracking-tight">
+          {mode === "sign-up" ? "Begin with " : "Sign in to "}
+          <span translate="no">KAMI</span>
+        </h1>
           <p className="mt-3 text-base leading-normal text-ink-soft">
             Your reading list stays with your account — save from any device, keep tags and
             highlights in sync.
           </p>
-          <div className="mt-8">
-            <SignInButtons />
+          <div className="mt-8 flex justify-center">
+            {mode === "sign-up" ? (
+              <SignUp
+                signInUrl="/login"
+                fallbackRedirectUrl="/app"
+              />
+            ) : (
+              <SignIn
+                signUpUrl="/login?mode=sign-up"
+                fallbackRedirectUrl="/app"
+              />
+            )}
           </div>
           <p className="mt-6 text-xs text-ink-muted">
             Sign in or create an account with Clerk. Your library stays private to this app.
           </p>
-        </SignedOut>
-
-        <SignedIn>
-          <Navigate to="/app" />
-        </SignedIn>
       </div>
     </main>
   );
