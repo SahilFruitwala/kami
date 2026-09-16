@@ -1,6 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
+import {
+  CacheTTL,
+  cacheKey,
+  cached,
+  hashKeyPart,
+  normalizeCacheQuery,
+} from "@/lib/cache.server.ts";
 import { assertPublicHttpUrl } from "@/lib/safe-url";
 
 /**
@@ -94,38 +101,48 @@ export const searchTmdb = createServerFn({ method: "GET" })
     const token = process.env.TMDB_API_TOKEN;
     if (!token) return [];
 
-    const url = new URL(`https://api.themoviedb.org/3/search/${data.kind}`);
-    url.searchParams.set("query", query);
-    url.searchParams.set("include_adult", "false");
+    // TMDB catalog data is stable for hours — serve repeat searches from
+    // Upstash instead of burning latency + rate limit on every keystroke.
+    // Empty results are not cached (they usually mean an upstream blip).
+    return cached(
+      cacheKey("lookup", "tmdb", data.kind, normalizeCacheQuery(query)),
+      CacheTTL.tmdbSearch,
+      async () => {
+        const url = new URL(`https://api.themoviedb.org/3/search/${data.kind}`);
+        url.searchParams.set("query", query);
+        url.searchParams.set("include_adult", "false");
 
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(10_000),
-    });
-    if (!res.ok) return [];
-    const json = (await res.json()) as { results?: TmdbResult[] };
+        const res = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (!res.ok) return [];
+        const json = (await res.json()) as { results?: TmdbResult[] };
 
-    return (json.results ?? []).slice(0, 8).map((r) => {
-      const title = (data.kind === "movie" ? r.title : r.name) ?? "Untitled";
-      const date = data.kind === "movie" ? r.release_date : r.first_air_date;
-      const metadata: Record<string, string> = {};
-      if (date) metadata.year = date.slice(0, 4);
-      if (r.overview) metadata.overview = r.overview.slice(0, 300);
-      const genreMap = data.kind === "movie" ? TMDB_MOVIE_GENRES : TMDB_TV_GENRES;
-      const genres = (r.genre_ids ?? [])
-        .map((id) => genreMap[id])
-        .filter(Boolean)
-        .slice(0, 3);
-      if (genres.length > 0) metadata.genre = genres.join(", ");
-      metadata.tmdbId = String(r.id);
-      metadata.tmdbKind = data.kind;
-      return {
-        title,
-        imageUrl: r.poster_path ? `https://image.tmdb.org/t/p/w342${r.poster_path}` : undefined,
-        link: `https://www.themoviedb.org/${data.kind}/${r.id}`,
-        metadata,
-      };
-    });
+        return (json.results ?? []).slice(0, 8).map((r) => {
+          const title = (data.kind === "movie" ? r.title : r.name) ?? "Untitled";
+          const date = data.kind === "movie" ? r.release_date : r.first_air_date;
+          const metadata: Record<string, string> = {};
+          if (date) metadata.year = date.slice(0, 4);
+          if (r.overview) metadata.overview = r.overview.slice(0, 300);
+          const genreMap = data.kind === "movie" ? TMDB_MOVIE_GENRES : TMDB_TV_GENRES;
+          const genres = (r.genre_ids ?? [])
+            .map((id) => genreMap[id])
+            .filter(Boolean)
+            .slice(0, 3);
+          if (genres.length > 0) metadata.genre = genres.join(", ");
+          metadata.tmdbId = String(r.id);
+          metadata.tmdbKind = data.kind;
+          return {
+            title,
+            imageUrl: r.poster_path ? `https://image.tmdb.org/t/p/w342${r.poster_path}` : undefined,
+            link: `https://www.themoviedb.org/${data.kind}/${r.id}`,
+            metadata,
+          };
+        });
+      },
+      { skipCache: (rows) => rows.length === 0 },
+    );
   });
 
 // ---------- Where to watch (TMDB / JustWatch) ----------
@@ -206,37 +223,45 @@ export const fetchWatchProviders = createServerFn({ method: "GET" })
     const token = process.env.TMDB_API_TOKEN;
     if (!token) return [];
 
-    const res = await fetch(
-      `https://api.themoviedb.org/3/${data.kind}/${data.tmdbId}/watch/providers`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        signal: AbortSignal.timeout(10_000),
+    // Availability changes slowly — a 24h entry turns every detail open
+    // after the first into a Redis hit instead of a TMDB round-trip.
+    return cached(
+      cacheKey("lookup", "watch", data.kind, data.tmdbId.trim().slice(0, 32)),
+      CacheTTL.watchProviders,
+      async () => {
+        const res = await fetch(
+          `https://api.themoviedb.org/3/${data.kind}/${data.tmdbId}/watch/providers`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: AbortSignal.timeout(10_000),
+          },
+        );
+        if (!res.ok) return [];
+        const json = (await res.json()) as { results?: Record<string, TmdbWatchRegion> };
+        const results = json.results ?? {};
+
+        const countries: CountryWatch[] = [];
+        for (const [code, r] of Object.entries(results)) {
+          const streaming = dedupeProviders([r.flatrate ?? [], r.free ?? [], r.ads ?? []]).slice(
+            0,
+            8,
+          );
+          const rent = dedupeProviders([r.rent ?? [], r.buy ?? []]).slice(0, 8);
+          if (streaming.length === 0 && rent.length === 0) continue;
+          countries.push({
+            code,
+            name: regionNames?.of(code) ?? code,
+            streaming,
+            rent,
+            link: r.link,
+          });
+        }
+
+        countries.sort((a, b) => a.name.localeCompare(b.name));
+        return countries;
       },
+      { skipCache: (rows) => rows.length === 0 },
     );
-    if (!res.ok) return [];
-    const json = (await res.json()) as { results?: Record<string, TmdbWatchRegion> };
-    const results = json.results ?? {};
-
-    const countries: CountryWatch[] = [];
-    for (const [code, r] of Object.entries(results)) {
-      const streaming = dedupeProviders([
-        r.flatrate ?? [],
-        r.free ?? [],
-        r.ads ?? [],
-      ]).slice(0, 8);
-      const rent = dedupeProviders([r.rent ?? [], r.buy ?? []]).slice(0, 8);
-      if (streaming.length === 0 && rent.length === 0) continue;
-      countries.push({
-        code,
-        name: regionNames?.of(code) ?? code,
-        streaming,
-        rent,
-        link: r.link,
-      });
-    }
-
-    countries.sort((a, b) => a.name.localeCompare(b.name));
-    return countries;
   });
 
 type OpenLibraryDoc = {
@@ -279,45 +304,49 @@ export const searchBooks = createServerFn({ method: "GET" })
     const q = query.trim();
     if (q.length < 2) return [];
 
-    const url = new URL("https://openlibrary.org/search.json");
-    url.searchParams.set("q", q);
-    url.searchParams.set("limit", "8");
-    url.searchParams.set(
-      "fields",
-      "key,title,author_name,first_publish_year,cover_i,subject,first_sentence",
+    // Catalog data — safe to share across users, stable for hours.
+    return cached(
+      cacheKey("lookup", "books", normalizeCacheQuery(q)),
+      CacheTTL.bookSearch,
+      async () => {
+        const url = new URL("https://openlibrary.org/search.json");
+        url.searchParams.set("q", q);
+        url.searchParams.set("limit", "8");
+        url.searchParams.set(
+          "fields",
+          "key,title,author_name,first_publish_year,cover_i,subject,first_sentence",
+        );
+
+        const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+        if (!res.ok) return [];
+        const json = (await res.json()) as { docs?: OpenLibraryDoc[] };
+
+        return (json.docs ?? []).map((d) => {
+          const metadata: Record<string, string> = {};
+          if (d.author_name?.length) metadata.author = d.author_name[0];
+          if (d.first_publish_year) metadata.year = String(d.first_publish_year);
+          const genre = bookGenres(d.subject);
+          if (genre) metadata.genre = genre;
+          const overview = bookBlurb(d.first_sentence);
+          if (overview) metadata.overview = overview;
+          return {
+            title: d.title,
+            imageUrl: d.cover_i
+              ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`
+              : undefined,
+            link: `https://openlibrary.org${d.key}`,
+            metadata,
+          };
+        });
+      },
+      { skipCache: (rows) => rows.length === 0 },
     );
-
-    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-    if (!res.ok) return [];
-    const json = (await res.json()) as { docs?: OpenLibraryDoc[] };
-
-    return (json.docs ?? []).map((d) => {
-      const metadata: Record<string, string> = {};
-      if (d.author_name?.length) metadata.author = d.author_name[0];
-      if (d.first_publish_year) metadata.year = String(d.first_publish_year);
-      const genre = bookGenres(d.subject);
-      if (genre) metadata.genre = genre;
-      const overview = bookBlurb(d.first_sentence);
-      if (overview) metadata.overview = overview;
-      return {
-        title: d.title,
-        imageUrl: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : undefined,
-        link: `https://openlibrary.org${d.key}`,
-        metadata,
-      };
-    });
   });
 
 function extractMeta(html: string, property: string): string | undefined {
   const patterns = [
-    new RegExp(
-      `<meta[^>]+(?:property|name)=["']${property}["'][^>]+content=["']([^"']*)["']`,
-      "i",
-    ),
-    new RegExp(
-      `<meta[^>]+content=["']([^"']*)["'][^>]+(?:property|name)=["']${property}["']`,
-      "i",
-    ),
+    new RegExp(`<meta[^>]+(?:property|name)=["']${property}["'][^>]+content=["']([^"']*)["']`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]+(?:property|name)=["']${property}["']`, "i"),
   ];
   for (const p of patterns) {
     const m = html.match(p);
@@ -339,18 +368,13 @@ function decodeEntities(s: string) {
 const BROWSER_HEADERS: Record<string, string> = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-  Accept:
-    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
   "Accept-Language": "en-US,en;q=0.9",
 };
 
 function amazonFallback(html: string): { title?: string; imageUrl?: string } {
-  const title = html
-    .match(/<span[^>]+id=["']productTitle["'][^>]*>([^<]+)<\/span>/i)?.[1]
-    ?.trim();
-  let imageUrl = html.match(
-    /id=["']landingImage["'][^>]*\bdata-old-hires=["']([^"']+)["']/i,
-  )?.[1];
+  const title = html.match(/<span[^>]+id=["']productTitle["'][^>]*>([^<]+)<\/span>/i)?.[1]?.trim();
+  let imageUrl = html.match(/id=["']landingImage["'][^>]*\bdata-old-hires=["']([^"']+)["']/i)?.[1];
   if (!imageUrl) {
     const dynamic = html.match(
       /id=["']landingImage["'][^>]*\bdata-a-dynamic-image=["']([^"']+)["']/i,
@@ -363,7 +387,9 @@ function amazonFallback(html: string): { title?: string; imageUrl?: string } {
 }
 
 /** Fetch a URL with per-hop SSRF validation (mirrors extract.server's guard). */
-async function fetchPreviewHtml(rawUrl: string): Promise<{ html: string; finalUrl: string } | null> {
+async function fetchPreviewHtml(
+  rawUrl: string,
+): Promise<{ html: string; finalUrl: string } | null> {
   let current: string;
   try {
     current = assertPublicHttpUrl(rawUrl).href;
@@ -408,32 +434,42 @@ export const fetchLinkPreview = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .validator((input: unknown) => z.string().max(2000).parse(input))
   .handler(async ({ data: rawUrl }): Promise<LookupResult | null> => {
-    const fetched = await fetchPreviewHtml(rawUrl);
-    if (!fetched) return null;
-    const { html, finalUrl } = fetched;
+    // Fetching + parsing a full page costs seconds; og metadata barely
+    // changes, so cache hits (7d) make repeat pastes feel instant.
+    // Keyed by URL hash — never by user — since previews aren't personal.
+    const cacheableUrl = rawUrl.trim().slice(0, 2000);
+    return cached(
+      cacheKey("lookup", "link", hashKeyPart(cacheableUrl)),
+      CacheTTL.linkPreview,
+      async () => {
+        const fetched = await fetchPreviewHtml(rawUrl);
+        if (!fetched) return null;
+        const { html, finalUrl } = fetched;
 
-    let title =
-      extractMeta(html, "og:title") ?? html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim();
-    let imageUrl = extractMeta(html, "og:image");
+        let title =
+          extractMeta(html, "og:title") ?? html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim();
+        let imageUrl = extractMeta(html, "og:image");
 
-    if ((!title || !imageUrl) && /(^|\.)amazon\./i.test(new URL(finalUrl).hostname)) {
-      const fallback = amazonFallback(html);
-      title = title ?? fallback.title;
-      imageUrl = imageUrl ?? fallback.imageUrl;
-    }
-    if (!title) return null;
+        if ((!title || !imageUrl) && /(^|\.)amazon\./i.test(new URL(finalUrl).hostname)) {
+          const fallback = amazonFallback(html);
+          title = title ?? fallback.title;
+          imageUrl = imageUrl ?? fallback.imageUrl;
+        }
+        if (!title) return null;
 
-    const metadata: Record<string, string> = {};
-    const description = extractMeta(html, "og:description");
-    if (description) metadata.description = description.slice(0, 300);
-    const siteName = extractMeta(html, "og:site_name");
-    if (siteName) metadata.source = siteName;
+        const metadata: Record<string, string> = {};
+        const description = extractMeta(html, "og:description");
+        if (description) metadata.description = description.slice(0, 300);
+        const siteName = extractMeta(html, "og:site_name");
+        if (siteName) metadata.source = siteName;
 
-    return {
-      title: decodeEntities(title).slice(0, 300),
-      imageUrl:
-        imageUrl && imageUrl.length <= 2000 ? imageUrl : undefined,
-      link: finalUrl.slice(0, 2000),
-      metadata,
-    };
+        return {
+          title: decodeEntities(title).slice(0, 300),
+          imageUrl: imageUrl && imageUrl.length <= 2000 ? imageUrl : undefined,
+          link: finalUrl.slice(0, 2000),
+          metadata,
+        };
+      },
+      { skipCache: (preview) => preview === null },
+    );
   });

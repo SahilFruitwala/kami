@@ -2,6 +2,14 @@ import { and, asc, count, desc, eq, or, sql } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
+import {
+  MAX_CACHED_SNAPSHOT_BYTES,
+  approxJsonBytes,
+  CacheTTL,
+  cacheKey,
+  cached,
+  invalidateUserCache,
+} from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db";
 import { articles, folders } from "@/lib/schema";
 import type { Highlight, HighlightColorId, LibraryItem, Folder } from "@/lib/store";
@@ -59,19 +67,14 @@ function clampLibraryItemInput(input: unknown): unknown {
   const hero = str(o.heroImage);
   return {
     ...o,
-    title:
-      typeof titleRaw === "string"
-        ? titleRaw.trim().slice(0, 500) || "Untitled"
-        : o.title,
+    title: typeof titleRaw === "string" ? titleRaw.trim().slice(0, 500) || "Untitled" : o.title,
     author: typeof o.author === "string" ? o.author.slice(0, 300) : o.author,
     siteName: typeof o.siteName === "string" ? o.siteName.slice(0, 200) : o.siteName,
     excerpt: typeof o.excerpt === "string" ? o.excerpt.slice(0, 4000) : o.excerpt,
     contentHtml:
       typeof o.contentHtml === "string" ? o.contentHtml.slice(0, 1_500_000) : o.contentHtml,
-    heroImage:
-      typeof hero === "string" ? (hero.length <= 2000 ? hero : null) : o.heroImage,
-    published:
-      typeof o.published === "string" ? o.published.slice(0, 100) : o.published,
+    heroImage: typeof hero === "string" ? (hero.length <= 2000 ? hero : null) : o.heroImage,
+    published: typeof o.published === "string" ? o.published.slice(0, 100) : o.published,
     note: typeof o.note === "string" ? o.note.slice(0, 2000) : o.note,
     tags: Array.isArray(o.tags) ? o.tags.slice(0, 12) : o.tags,
     highlights: Array.isArray(o.highlights) ? o.highlights.slice(0, 80) : o.highlights,
@@ -142,21 +145,33 @@ async function ownedFolderId(
 }
 
 async function loadSnapshot(userId: string): Promise<LibrarySnapshot> {
-  const db = await getDb();
-  const folderRows = await db
-    .select({ id: folders.id, name: folders.name })
-    .from(folders)
-    .where(eq(folders.userId, userId))
-    .orderBy(asc(folders.createdAt));
-  const articleRows = await db
-    .select()
-    .from(articles)
-    .where(eq(articles.userId, userId))
-    .orderBy(desc(articles.savedAt));
-  return {
-    folders: folderRows.map((f) => ({ id: f.id, name: f.name })),
-    library: articleRows.map(rowToItem),
-  };
+  // The library boot fetches every row (including full `contentHtml`) on
+  // each navigation remount — the heaviest query in the app. A short
+  // per-user entry absorbs those bursts; every mutation below invalidates
+  // it. Snapshots carrying ~1MB+ of article bodies stay uncached: a giant
+  // Redis value would cost more than the DB round-trip it saves.
+  return cached(
+    cacheKey("u", userId, "library", "snapshot"),
+    CacheTTL.library,
+    async () => {
+      const db = await getDb();
+      const folderRows = await db
+        .select({ id: folders.id, name: folders.name })
+        .from(folders)
+        .where(eq(folders.userId, userId))
+        .orderBy(asc(folders.createdAt));
+      const articleRows = await db
+        .select()
+        .from(articles)
+        .where(eq(articles.userId, userId))
+        .orderBy(desc(articles.savedAt));
+      return {
+        folders: folderRows.map((f) => ({ id: f.id, name: f.name })),
+        library: articleRows.map(rowToItem),
+      };
+    },
+    { skipCache: (snap) => approxJsonBytes(snap) > MAX_CACHED_SNAPSHOT_BYTES },
+  );
 }
 
 export const getLibrary = createServerFn({ method: "GET" })
@@ -175,8 +190,7 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
     const title = data.title.trim().slice(0, 500) || "Untitled";
     const excerpt = data.excerpt.slice(0, 4000);
     const contentHtml = data.contentHtml.slice(0, 1_500_000);
-    const heroImage =
-      data.heroImage && data.heroImage.length <= 2000 ? data.heroImage : null;
+    const heroImage = data.heroImage && data.heroImage.length <= 2000 ? data.heroImage : null;
     const author = data.author.slice(0, 300);
     const siteName = data.siteName.slice(0, 200);
     const note = data.note.slice(0, 2000);
@@ -230,6 +244,7 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
         .from(articles)
         .where(and(eq(articles.id, id), eq(articles.userId, context.userId)))
         .limit(1);
+      await invalidateUserCache(context.userId);
       return rowToItem(rows[0]!);
     }
 
@@ -267,7 +282,21 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
       tags,
       highlights,
     });
-    return { ...data, id, title, author, siteName, excerpt, contentHtml, heroImage, note, tags, highlights, folderId };
+    await invalidateUserCache(context.userId);
+    return {
+      ...data,
+      id,
+      title,
+      author,
+      siteName,
+      excerpt,
+      contentHtml,
+      heroImage,
+      note,
+      tags,
+      highlights,
+      folderId,
+    };
   });
 
 export const patchLibraryItem = createServerFn({ method: "POST" })
@@ -317,6 +346,7 @@ export const patchLibraryItem = createServerFn({ method: "POST" })
         highlights: next.highlights,
       })
       .where(and(eq(articles.id, data.id), eq(articles.userId, context.userId)));
+    await invalidateUserCache(context.userId);
     return next;
   });
 
@@ -328,6 +358,7 @@ export const removeLibraryItem = createServerFn({ method: "POST" })
     await db
       .delete(articles)
       .where(and(eq(articles.id, data.id), eq(articles.userId, context.userId)));
+    await invalidateUserCache(context.userId);
     return { ok: true };
   });
 
@@ -339,6 +370,7 @@ export const wipeLibrary = createServerFn({ method: "POST" })
     const db = await getDb();
     await db.delete(articles).where(eq(articles.userId, context.userId));
     await db.delete(folders).where(eq(folders.userId, context.userId));
+    await invalidateUserCache(context.userId);
     return { ok: true };
   });
 
@@ -358,12 +390,7 @@ export const addLibraryFolder = createServerFn({ method: "POST" })
     const existing = await db
       .select({ id: folders.id, name: folders.name })
       .from(folders)
-      .where(
-        and(
-          eq(folders.userId, context.userId),
-          sql`lower(${folders.name}) = lower(${name})`,
-        ),
-      )
+      .where(and(eq(folders.userId, context.userId), sql`lower(${folders.name}) = lower(${name})`))
       .limit(1);
     if (existing[0]) return { id: existing[0].id, name: existing[0].name };
 
@@ -395,6 +422,7 @@ export const addLibraryFolder = createServerFn({ method: "POST" })
       .insert(folders)
       .values({ id, userId: context.userId, name })
       .onConflictDoNothing({ target: folders.id });
+    await invalidateUserCache(context.userId);
     // Confirm ownership (a concurrent insert winning the race returns its row
     // only when we own it; otherwise fall back to the name lookup above).
     const owned = await db
@@ -409,7 +437,9 @@ export const addLibraryFolder = createServerFn({ method: "POST" })
 export const renameLibraryFolder = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator((input: unknown) =>
-    z.object({ id: z.string().min(1).max(200), name: z.string().trim().min(1).max(32) }).parse(input),
+    z
+      .object({ id: z.string().min(1).max(200), name: z.string().trim().min(1).max(32) })
+      .parse(input),
   )
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     const db = await getDb();
@@ -418,6 +448,7 @@ export const renameLibraryFolder = createServerFn({ method: "POST" })
       .update(folders)
       .set({ name })
       .where(and(eq(folders.id, data.id), eq(folders.userId, context.userId)));
+    await invalidateUserCache(context.userId);
     return { ok: true };
   });
 
@@ -433,6 +464,7 @@ export const removeLibraryFolder = createServerFn({ method: "POST" })
     await db
       .delete(folders)
       .where(and(eq(folders.id, data.id), eq(folders.userId, context.userId)));
+    await invalidateUserCache(context.userId);
     return { ok: true };
   });
 
@@ -465,6 +497,7 @@ export const importLibrarySnapshot = createServerFn({ method: "POST" })
       .where(eq(articles.userId, context.userId));
 
     // Only import local leftovers when the account library is empty.
+    // (The tail of this handler invalidates + reloads after writing.)
     if (Number(existingCount) > 0) {
       return loadSnapshot(context.userId);
     }
@@ -496,10 +529,7 @@ export const importLibrarySnapshot = createServerFn({ method: "POST" })
 
     const ownedFolderIds = new Set(
       (
-        await db
-          .select({ id: folders.id })
-          .from(folders)
-          .where(eq(folders.userId, context.userId))
+        await db.select({ id: folders.id }).from(folders).where(eq(folders.userId, context.userId))
       ).map((f) => f.id),
     );
 
@@ -535,5 +565,6 @@ export const importLibrarySnapshot = createServerFn({ method: "POST" })
         .onConflictDoNothing({ target: articles.id });
     }
 
+    await invalidateUserCache(context.userId);
     return loadSnapshot(context.userId);
   });

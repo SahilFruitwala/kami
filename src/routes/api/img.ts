@@ -30,7 +30,10 @@ export const Route = createFileRoute("/api/img")({
         return new Response(Buffer.from(result.bytes), {
           headers: {
             "content-type": result.mime,
-            "cache-control": "public, max-age=86400, immutable",
+            // Proxied posters/covers are content-addressed in practice (same
+            // URL → same bytes). Cache a month in browsers + the Vercel edge
+            // so repeat renders never refetch upstream.
+            "cache-control": "public, max-age=2592000, s-maxage=2592000, immutable",
           },
         });
       },

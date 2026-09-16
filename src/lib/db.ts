@@ -10,16 +10,12 @@ import * as schema from "./schema";
 /** Which database backend is active. */
 export type DbSource = "neon" | "pglite";
 
-export type AppDb =
-  | NodePgDatabase<typeof schema>
-  | PgliteDatabase<typeof schema>;
+export type AppDb = NodePgDatabase<typeof schema> | PgliteDatabase<typeof schema>;
 
 // An empty/whitespace DATABASE_URL (an easy misconfig in deploy UIs) must mean
 // "unset" — otherwise production would silently run on the PGLite fallback.
-const rawDatabaseUrl =
-  typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
-const databaseUrl =
-  rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
+const rawDatabaseUrl = typeof process !== "undefined" ? process.env.DATABASE_URL : undefined;
+const databaseUrl = rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : undefined;
 
 /**
  * Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
@@ -58,7 +54,15 @@ function getPool(): Pool {
     pgTypes.setTypeParser(OID_INT8, Number);
     pgTypes.setTypeParser(OID_DATE, identity);
     pgTypes.setTypeParser(OID_INTERVAL, identity);
-    globalRef.__pgPool__ = new Pool({ connectionString: databaseUrl });
+    globalRef.__pgPool__ = new Pool({
+      connectionString: databaseUrl,
+      // Serverless-friendly: cap conns per instance (Neon free tier is
+      // small), reap idle ones fast, and fail fast when the DB is
+      // unreachable instead of hanging the request.
+      max: Number(process.env.DATABASE_POOL_MAX) || 5,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 10_000,
+    });
   }
   return globalRef.__pgPool__;
 }
@@ -194,7 +198,8 @@ export function getAuthDb(): AppDb {
   };
   globalRef.__authDrizzleDb__ = drizzlePglite({
     client: lazy as unknown as PGlite,
-    schema,  });
+    schema,
+  });
   return globalRef.__authDrizzleDb__;
 }
 
