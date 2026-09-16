@@ -1,5 +1,8 @@
 import { cn } from "@/lib/utils.ts";
 
+/** Brand hanko glyph — 紙 (kami, “paper”), the root of 和紙. */
+export const KAMI_GLYPH = "紙";
+
 /** Vermilion signature seal — circular or square hanko stamp. */
 export function Hanko({
   glyph,
