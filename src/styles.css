@@ -63,6 +63,7 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    -webkit-tap-highlight-color: color-mix(in oklab, var(--color-hanko) 18%, transparent);
     @apply font-sans;
   }
 
@@ -125,6 +126,7 @@
     background-color: var(--color-bg);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    overflow-x: hidden;
     @apply bg-background text-foreground;
   }
 
@@ -137,6 +139,7 @@
   h2,
   h3 {
     text-wrap: balance;
+    scroll-margin-top: 5rem;
   }
 
   p {

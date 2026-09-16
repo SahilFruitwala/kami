@@ -185,6 +185,7 @@ function Shelves() {
                 </label>
                 <Input
                   id="shelves-search"
+                  name="shelves-search"
                   type="search"
                   autoComplete="off"
                   value={query}
@@ -220,7 +221,7 @@ function Shelves() {
                       setDetailId(null);
                     }}
                     className={cn(
-                      "inline-flex shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1.5 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                      "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1.5 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
                       tab === t.id
                         ? "bg-hanko font-semibold text-white shadow-sm"
                         : "font-medium text-ink-muted hover:bg-paper-warm hover:text-ink",
@@ -252,7 +253,7 @@ function Shelves() {
                   aria-pressed={status === s.id}
                   onClick={() => setStatus(s.id)}
                   className={cn(
-                    "inline-flex shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1 font-sans text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                    "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1 font-sans text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
                     status === s.id
                       ? "bg-hanko font-semibold text-white shadow-sm"
                       : "bg-surface text-ink-soft shadow-[var(--shadow-border)] hover:bg-paper-warm hover:text-ink",
@@ -281,7 +282,7 @@ function Shelves() {
 
       <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-12">
         {items == null ? (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="kami-sheet overflow-hidden">
                 <Skeleton className="aspect-[2/3] w-full" />
@@ -309,7 +310,7 @@ function Shelves() {
           </div>
         ) : (
           <>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
             {items.map((item) => (
               <ShelfTile
                 key={item.id}
@@ -582,11 +583,12 @@ function AddShelfDialog({
                   <div className="relative flex-1">
                     <Link2 className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-muted" />
                     <Input
+                      name="wishlist-url"
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       placeholder="https://…"
                       type="url"
-                      autoFocus
+                      autoComplete="off"
                       className="pl-9"
                     />
                   </div>
@@ -601,10 +603,11 @@ function AddShelfDialog({
                 <div className="relative">
                   <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-ink-muted" />
                   <Input
+                    name="shelf-lookup"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder={meta.hint}
-                    autoFocus
+                    autoComplete="off"
                     className="pl-9"
                   />
                 </div>

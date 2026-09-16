@@ -40,31 +40,33 @@ export function CaptureForm({
         <label htmlFor="source-url" className="sr-only">
           Article URL
         </label>
-        <div className="kami-sheet flex items-center gap-2 px-3 py-2 focus-within:ring-2 focus-within:ring-hanko/40">
-          <Search className="size-[18px] shrink-0 text-ink-muted" aria-hidden="true" />
-          <Input
-            id="source-url"
-            name="article-url"
-            type="url"
-            inputMode="url"
-            autoCapitalize="off"
-            autoCorrect="off"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="Paste a blog or X URL to bind it into washi…"
-            value={url}
-            onChange={(e) => {
-              onUrlChange(e.target.value);
-              onClearError();
-            }}
-            className="h-10 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-2 focus-visible:ring-hanko/40"
-          />
-          <kbd className="hidden shrink-0 rounded-[0.25rem] bg-paper-warm px-1.5 py-0.5 font-sans text-[11px] text-ink-muted tabular-nums sm:inline-block">
-            ⌘&nbsp;K
-          </kbd>
+        <div className="kami-sheet flex flex-col gap-2 p-2 focus-within:ring-2 focus-within:ring-hanko/40 sm:flex-row sm:items-center sm:px-3">
+          <div className="flex min-w-0 w-full items-center gap-2">
+            <Search className="size-[18px] shrink-0 text-ink-muted" aria-hidden="true" />
+            <Input
+              id="source-url"
+              name="article-url"
+              type="url"
+              inputMode="url"
+              autoCapitalize="off"
+              autoCorrect="off"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="Paste a blog or X URL…"
+              value={url}
+              onChange={(e) => {
+                onUrlChange(e.target.value);
+                onClearError();
+              }}
+              className="h-11 min-w-0 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            />
+            <kbd className="hidden shrink-0 rounded-[0.25rem] bg-paper-warm px-1.5 py-0.5 font-sans text-[11px] text-ink-muted tabular-nums sm:inline-block">
+              ⌘&nbsp;K
+            </kbd>
+          </div>
           <Button
             type="submit"
-            className="h-10 shrink-0 bg-hanko text-white shadow-sm hover:bg-shu active:translate-y-px"
+            className="h-11 w-full shrink-0 bg-hanko text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
             disabled={busy}
           >
             {busy ? (

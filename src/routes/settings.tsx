@@ -92,7 +92,7 @@ function Settings() {
 
 function Card({ id, title, copy, children }: { id: string; title: string; copy: string; children: React.ReactNode }) {
   return (
-    <section id={id} aria-label={title} className="kami-sheet scroll-mt-24 p-6 sm:p-8">
+    <section id={id} aria-label={title} className="kami-sheet scroll-mt-24 p-4 sm:p-8">
       <h3 className="font-display text-xl text-ink">{title}</h3>
       <p className="mt-1 max-w-2xl font-body text-sm leading-relaxed text-ink-muted">{copy}</p>
       <div className="mt-6 flex flex-col gap-6">{children}</div>
@@ -247,7 +247,7 @@ function AppearanceCard() {
 
       <div>
         <FieldLabel>Paper tone</FieldLabel>
-        <div className="mt-2 grid max-w-lg grid-cols-3 gap-2" role="group" aria-label="Paper tone">
+        <div className="mt-2 grid max-w-lg grid-cols-1 gap-2 min-[420px]:grid-cols-3" role="group" aria-label="Paper tone">
           {PAPER_TONES.map((t) => (
             <button
               key={t.id}
@@ -425,7 +425,7 @@ function OrganizeCard() {
           {folders.map((f) => {
             const n = library.filter((row) => row.folderId === f.id).length;
             return (
-              <li key={f.id} className="flex items-center gap-2 rounded-[0.25rem] bg-bg/60 px-3 py-2">
+              <li key={f.id} className="flex flex-wrap items-center gap-2 rounded-[0.25rem] bg-bg/60 px-3 py-2 sm:flex-nowrap">
                 {editingFolder === f.id ? (
                   <>
                     <input
@@ -505,7 +505,7 @@ function OrganizeCard() {
         ) : (
           <ul className="mt-2 space-y-1.5">
             {tags.map((t) => (
-              <li key={t} className="flex items-center gap-2 rounded-[0.25rem] bg-bg/60 px-3 py-2">
+              <li key={t} className="flex flex-wrap items-center gap-2 rounded-[0.25rem] bg-bg/60 px-3 py-2 sm:flex-nowrap">
                 {editingTag === t ? (
                   <>
                     <input
