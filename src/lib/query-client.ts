@@ -45,6 +45,10 @@ export const queryKeys = {
       ] as const,
     detail: (type: ShelfTab, id: string) =>
       [...queryKeys.shelves.all, "detail", type, id] as const,
+    seasons: (itemId: string) =>
+      [...queryKeys.shelves.all, "seasons", itemId] as const,
+    episodes: (itemId: string, season: number) =>
+      [...queryKeys.shelves.all, "episodes", itemId, season] as const,
   },
   lookup: {
     all: ["lookup"] as const,

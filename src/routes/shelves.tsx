@@ -1,8 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Clapperboard, Link2, LoaderCircle, PenLine, Plus, Search, Tv, BookOpen, Gift } from "lucide-react";
+import { toast } from "sonner";
+import {
+  ArrowLeft,
+  Check,
+  Clapperboard,
+  Link2,
+  LoaderCircle,
+  PenLine,
+  Plus,
+  Search,
+  Trash2,
+  Tv,
+  BookOpen,
+  Gift,
+} from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
+import { EpisodeTracker } from "@/components/library/episode-tracker.tsx";
 import { Hanko, KamiEyebrow, WashiTag } from "@/components/kami.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
@@ -12,7 +27,10 @@ import { Textarea } from "@/components/ui/textarea.tsx";
 import {
   useAddShelfItem,
   useBookSearch,
+  useDeleteShelfItem,
   useFindShelfDuplicates,
+  useSetShelfItemStatus,
+  useSetShowWatched,
   useShelfCounts,
   useShelfDetail,
   useShelfItems,
@@ -273,6 +291,8 @@ function Shelves() {
                     <img
                       src={item.imageUrl}
                       alt=""
+                      width={300}
+                      height={450}
                       loading="lazy"
                       className="size-full object-cover"
                     />
@@ -299,6 +319,31 @@ function Shelves() {
                       {item.status === "to_try" ? "To try" : item.status === "done" ? "Done" : "Abandoned"}
                     </WashiTag>
                   </div>
+                  {tab === "tv" && (item.totalEpisodes || item.episodesWatched) ? (
+                    <div className="mt-2 space-y-1">
+                      <p className="font-sans text-[11px] tabular-nums text-ink-muted">
+                        {item.episodesWatched ?? 0}
+                        {item.totalEpisodes ? ` / ${item.totalEpisodes}` : ""} eps
+                        {item.lastEpisode ? ` · Last ${item.lastEpisode}` : ""}
+                      </p>
+                      {item.totalEpisodes && item.totalEpisodes > 0 ? (
+                        <span
+                          className="block h-1 w-full overflow-hidden rounded-full bg-paper-warm"
+                          aria-hidden="true"
+                        >
+                          <span
+                            className="block h-full rounded-full bg-hanko"
+                            style={{
+                              width: `${Math.min(
+                                ((item.episodesWatched ?? 0) / item.totalEpisodes) * 100,
+                                100,
+                              )}%`,
+                            }}
+                          />
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               </button>
             ))}
@@ -307,9 +352,9 @@ function Shelves() {
       </div>
 
       <Dialog open={detailId != null} onOpenChange={(open) => !open && setDetailId(null)}>
-        <DialogContent className="max-h-[85dvh] overflow-y-auto">
+        <DialogContent className="max-h-[85dvh] overflow-y-auto overscroll-contain sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-display">
+            <DialogTitle className="font-display text-balance">
               {detail ? detailTitle(detail) : "Loading…"}
             </DialogTitle>
           </DialogHeader>
@@ -320,7 +365,10 @@ function Shelves() {
               <Skeleton className="h-3 w-full" />
             </div>
           ) : (
-            <ShelfFolio detail={detail} />
+            <ShelfFolio
+              detail={detail}
+              onClose={() => setDetailId(null)}
+            />
           )}
         </DialogContent>
       </Dialog>
@@ -784,18 +832,80 @@ function detailTitle(d: ShelfDetail): string {
   return d.item.title;
 }
 
-function ShelfFolio({ detail }: { detail: ShelfDetail }) {
+function statusLabels(type: ShelfTab) {
+  if (type === "book") return { done: "Read", toTry: "To read", markDone: "Mark read", markTry: "Mark unread" };
+  if (type === "wishlist") return { done: "Got it", toTry: "Wanted", markDone: "Mark got it", markTry: "Mark wanted" };
+  return { done: "Watched", toTry: "To watch", markDone: "Mark watched", markTry: "Mark unwatched" };
+}
+
+function ShelfFolio({
+  detail,
+  onClose,
+}: {
+  detail: ShelfDetail;
+  onClose: () => void;
+}) {
+  const setStatus = useSetShelfItemStatus();
+  const deleteItem = useDeleteShelfItem();
+  const setShowWatched = useSetShowWatched();
   const genres = detail.type === "wishlist" ? [] : detail.genres;
   const overview =
     detail.type === "movie" || detail.type === "tv" || detail.type === "book"
       ? detail.item.overview
       : detail.item.description;
+  const labels = statusLabels(detail.type);
+  const busy = setStatus.isPending || deleteItem.isPending || setShowWatched.isPending;
+  const isDone = detail.item.status === "done";
+
+  async function markDone() {
+    try {
+      if (detail.type === "tv") {
+        await setShowWatched.mutateAsync({ itemId: detail.item.id, watched: true });
+      } else {
+        await setStatus.mutateAsync({ type: detail.type, id: detail.item.id, status: "done" });
+      }
+      toast.success(`Marked “${detail.item.title}” ${labels.done.toLowerCase()}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't update status.");
+    }
+  }
+
+  async function markToTry() {
+    try {
+      if (detail.type === "tv") {
+        await setShowWatched.mutateAsync({ itemId: detail.item.id, watched: false });
+      } else {
+        await setStatus.mutateAsync({ type: detail.type, id: detail.item.id, status: "to_try" });
+      }
+      toast.success(`Moved “${detail.item.title}” back to ${labels.toTry.toLowerCase()}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't update status.");
+    }
+  }
+
+  async function remove() {
+    if (!window.confirm(`Remove “${detail.item.title}” from your shelf?`)) return;
+    try {
+      await deleteItem.mutateAsync({ type: detail.type, id: detail.item.id });
+      toast.success(`Removed “${detail.item.title}”`);
+      onClose();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't delete that item.");
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
         <div className="w-24 shrink-0 overflow-hidden rounded-[0.25rem] bg-paper-warm">
           {detail.item.imageUrl ? (
-            <img src={detail.item.imageUrl} alt="" className="aspect-[2/3] w-full object-cover" />
+            <img
+              src={detail.item.imageUrl}
+              alt=""
+              width={96}
+              height={144}
+              className="aspect-[2/3] w-full object-cover"
+            />
           ) : (
             <div className="flex aspect-[2/3] w-full items-center justify-center font-display text-3xl text-ink-faint">
               {detail.item.title.charAt(0)}
@@ -804,8 +914,12 @@ function ShelfFolio({ detail }: { detail: ShelfDetail }) {
         </div>
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap gap-1.5">
-            <WashiTag tone={detail.item.status === "done" ? "vermilion" : "paper"}>
-              {detail.item.status === "to_try" ? "To try" : detail.item.status === "done" ? "Done" : "Abandoned"}
+            <WashiTag tone={isDone ? "vermilion" : "paper"}>
+              {detail.item.status === "to_try"
+                ? labels.toTry
+                : detail.item.status === "done"
+                  ? labels.done
+                  : "Abandoned"}
             </WashiTag>
             {genres.map((g) => (
               <WashiTag key={g} tone="bamboo">
@@ -823,10 +937,12 @@ function ShelfFolio({ detail }: { detail: ShelfDetail }) {
                   <div className="flex gap-2"><dt>Year</dt><dd className="text-ink">{detail.item.releaseYear}</dd></div>
                 ) : null}
                 <div className="flex gap-2">
-                  <dt>Episodes</dt>
-                  <dd className="text-ink">
+                  <dt>Progress</dt>
+                  <dd className="text-ink tabular-nums">
                     {detail.item.episodesWatched ?? 0}
-                    {detail.item.totalEpisodes ? ` / ${detail.item.totalEpisodes}` : ` ticked (${detail.episodesTicked})`}
+                    {detail.item.totalEpisodes
+                      ? ` / ${detail.item.totalEpisodes}`
+                      : ` ticked (${detail.episodesTicked})`}
                     {detail.item.lastEpisode ? ` · ${detail.item.lastEpisode}` : ""}
                   </dd>
                 </div>
@@ -867,13 +983,53 @@ function ShelfFolio({ detail }: { detail: ShelfDetail }) {
           </dl>
         </div>
       </div>
+
+      <div className="flex flex-wrap gap-2 border-t border-line pt-3">
+        {isDone ? (
+          <Button type="button" variant="secondary" disabled={busy} onClick={() => void markToTry()}>
+            {busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
+            {labels.markTry}
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            disabled={busy}
+            onClick={() => void markDone()}
+            className="bg-hanko text-white hover:bg-shu"
+          >
+            {busy ? (
+              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <Check className="size-4" aria-hidden="true" />
+            )}
+            {labels.markDone}
+          </Button>
+        )}
+        <Button
+          type="button"
+          variant="ghost"
+          disabled={busy}
+          onClick={() => void remove()}
+          className="text-hanko hover:bg-hanko/10 hover:text-shu"
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
+          Remove
+        </Button>
+      </div>
+
       {overview ? (
-        <p className="font-serif text-[15px] leading-relaxed text-ink-soft">{overview}</p>
+        <p className="font-serif text-[15px] leading-relaxed text-ink-soft text-pretty">{overview}</p>
       ) : null}
       {detail.item.notes ? (
         <div className="rounded-[0.25rem] bg-paper-warm p-3">
           <p className="kami-label text-ink-muted">Marginalia</p>
           <p className="mt-1 font-serif text-sm text-ink italic">{detail.item.notes}</p>
+        </div>
+      ) : null}
+
+      {detail.type === "tv" ? (
+        <div className="border-t border-line pt-3">
+          <EpisodeTracker itemId={detail.item.id} />
         </div>
       ) : null}
     </div>

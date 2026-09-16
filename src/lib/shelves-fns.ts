@@ -721,3 +721,120 @@ export const findShelfDuplicates = createServerFn({ method: "GET" })
       )
       .limit(5);
   });
+
+type ShelfTable =
+  | typeof movies
+  | typeof tvShows
+  | typeof books
+  | typeof wishlistItems
+  | typeof restaurants
+  | typeof places;
+
+function tableForType(type: ItemType): ShelfTable {
+  switch (type) {
+    case "movie":
+      return movies;
+    case "tv":
+      return tvShows;
+    case "book":
+      return books;
+    case "wishlist":
+      return wishlistItems;
+    case "restaurant":
+      return restaurants;
+    case "place":
+      return places;
+  }
+}
+
+/** Owner-scoped row lookup — missing and “not yours” both return null. */
+async function findOwnedItem(
+  userId: string,
+  type: ItemType,
+  id: string,
+): Promise<{ id: string; listId: string; title: string; status: "to_try" | "done" | "abandoned" } | null> {
+  const db = await getDb();
+  const table = tableForType(type);
+  const rows = await db
+    .select({
+      id: table.id,
+      listId: table.listId,
+      title: table.title,
+      status: table.status,
+    })
+    .from(table)
+    .innerJoin(lists, eq(table.listId, lists.id))
+    .where(and(eq(lists.ownerId, userId), eq(table.id, id)))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+/** Flip to_try ↔ done ↔ abandoned on any shelf type. */
+export const setShelfItemStatus = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((input: unknown) =>
+    z
+      .object({
+        type: shelfType,
+        id: z.string().min(1).max(200),
+        status: shelfStatus,
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    const item = await findOwnedItem(context.userId, data.type, data.id);
+    if (!item) throw new Error("Item not found");
+
+    const db = await getDb();
+    const table = tableForType(data.type);
+    await db
+      .update(table)
+      .set({
+        status: data.status,
+        completedAt: data.status === "done" ? new Date() : null,
+      })
+      .where(eq(table.id, data.id));
+
+    if (item.status !== data.status) {
+      const action =
+        data.status === "done"
+          ? "completed"
+          : data.status === "abandoned"
+            ? "abandoned"
+            : "reverted";
+      await db.insert(activity).values({
+        id: crypto.randomUUID(),
+        listId: item.listId,
+        userId: context.userId,
+        action,
+        itemTitle: item.title,
+        itemType: data.type,
+      });
+    }
+
+    return { id: data.id, type: data.type, status: data.status };
+  });
+
+/** Remove a shelf item (watched episodes cascade for TV). */
+export const deleteShelfItem = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((input: unknown) =>
+    z.object({ type: shelfType, id: z.string().min(1).max(200) }).parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    const item = await findOwnedItem(context.userId, data.type, data.id);
+    if (!item) return { deleted: false };
+
+    const db = await getDb();
+    const table = tableForType(data.type);
+    await db.delete(table).where(eq(table.id, data.id));
+    await db.insert(activity).values({
+      id: crypto.randomUUID(),
+      listId: item.listId,
+      userId: context.userId,
+      action: "removed",
+      itemTitle: item.title,
+      itemType: data.type,
+    });
+    return { deleted: true };
+  });
