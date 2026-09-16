@@ -132,14 +132,14 @@ export function LandingPage() {
         Skip to content
       </a>
 
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-surface/90 backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-3 px-4 sm:px-6">
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-2 px-[max(1rem,env(safe-area-inset-left))] sm:gap-3 sm:px-6">
           <Link
             to="/"
             className="group inline-flex items-center gap-2.5 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
           >
             <Hanko glyph={KAMI_GLYPH} square className="size-8" title="Kami" />
-            <span className="leading-none">
+            <span className="hidden leading-none min-[360px]:block">
               <span className="block font-display text-base font-semibold tracking-tight group-hover:text-hanko" translate="no">
                 KAMI
               </span>
@@ -162,25 +162,26 @@ export function LandingPage() {
           </nav>
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
-            <Button type="button" variant="ghost" className="h-10 rounded-[0.25rem]" asChild>
+            <Button type="button" variant="ghost" className="hidden h-10 rounded-[0.25rem] sm:inline-flex" asChild>
               <Link to="/login" search={{ mode: undefined }}>
                 Sign In
               </Link>
             </Button>
             <Button
               type="button"
-              className="h-10 rounded-[0.25rem] bg-hanko px-4 text-white shadow-sm hover:bg-shu active:translate-y-px"
+              className="h-10 rounded-[0.25rem] bg-hanko px-3 text-white shadow-sm hover:bg-shu active:translate-y-px sm:px-4"
               asChild
             >
               <Link to="/login" search={{ mode: "sign-up" }}>
-                Begin Sanctuary
+                <span className="sm:hidden">Begin</span>
+                <span className="hidden sm:inline">Begin Sanctuary</span>
               </Link>
             </Button>
           </div>
         </div>
       </header>
 
-      <main id="main" className="pt-16">
+      <main id="main" className="pt-[calc(4rem+env(safe-area-inset-top))]">
         {/* Hero */}
         <section aria-labelledby="hero-heading" id="philosophy" className="relative mx-auto w-full max-w-5xl scroll-mt-24 px-4 pt-10 pb-12 sm:px-6 sm:pt-16">
           <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
@@ -192,7 +193,7 @@ export function LandingPage() {
               </div>
               <h1
                 id="hero-heading"
-                className="mt-4 font-display text-4xl leading-[1.12] font-normal tracking-tight text-balance sm:text-5xl"
+                className="mt-4 font-display text-[2.35rem] leading-[1.08] font-normal tracking-tight text-balance sm:text-5xl"
               >
                 A quiet digital sanctuary for reading, inking, and unhurried thought.
               </h1>

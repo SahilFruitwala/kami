@@ -200,7 +200,7 @@ function ArticleCard({
   return (
     <li
       className={cn(
-        "group kami-sheet relative flex min-h-full flex-col justify-between overflow-hidden p-6 transition-shadow duration-300 hover:shadow-[var(--shadow-border-hover)]",
+        "group kami-sheet relative flex min-h-full flex-col justify-between overflow-hidden p-4 transition-shadow duration-300 hover:shadow-[var(--shadow-border-hover)] sm:p-6",
         selected && "ring-2 ring-hanko/50",
       )}
     >
@@ -220,7 +220,7 @@ function ArticleCard({
               aria-label={`Select ${item.title}`}
               onClick={() => onToggleSelect?.(item.id)}
               className={cn(
-                "flex size-5 shrink-0 items-center justify-center rounded-[0.25rem] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                "flex size-11 shrink-0 items-center justify-center rounded-[0.25rem] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 sm:size-8",
                 selected ? "border-hanko bg-hanko text-white" : "border-faint bg-surface text-transparent",
               )}
             >
@@ -277,7 +277,7 @@ function ArticleCard({
         ) : null}
       </button>
 
-      <div className="-mx-6 -mb-6 flex items-center justify-between gap-2 bg-bg/60 px-6 py-3">
+      <div className="-mx-4 -mb-4 flex items-center justify-between gap-2 bg-bg/60 px-4 py-3 sm:-mx-6 sm:-mb-6 sm:px-6">
         <p className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-ink-muted">
           <Hanko glyph={glyph} square className="size-5 text-[10px]" />
           <span className="truncate">{item.author || item.siteName || "Unknown hand"}</span>
@@ -300,8 +300,8 @@ function ArticleCard({
           variant="ghost"
           size="icon"
           className={cn(
-            "absolute right-2 bottom-14 size-8 text-ink-muted hover:text-hanko",
-            "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100",
+            "absolute right-2 bottom-14 size-11 text-ink-muted hover:text-hanko sm:size-8",
+            "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 focus-visible:opacity-100",
           )}
           aria-label={`Remove ${item.title}`}
           onClick={removeWithUndo}

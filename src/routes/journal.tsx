@@ -229,7 +229,7 @@ function Journal() {
                         disabled={future || !cell.inMonth}
                         onClick={() => selectDate(cell.key)}
                         className={cn(
-                          "relative rounded-[0.25rem] py-1.5 font-sans text-sm transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                          "relative flex aspect-square min-h-9 items-center justify-center rounded-[0.25rem] font-sans text-sm transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
                           !cell.inMonth && "text-ink-faint/40",
                           cell.inMonth && !selected && "text-ink-muted hover:bg-paper-warm",
                           selected && "scale-105 bg-hanko font-bold text-white shadow-sm",
@@ -326,6 +326,9 @@ function Journal() {
                             <img
                               src={item.heroImage}
                               alt=""
+                              width={40}
+                              height={56}
+                              loading="lazy"
                               className="h-14 w-10 rounded-[0.25rem] object-cover shadow-sm"
                             />
                           ) : (
@@ -398,7 +401,7 @@ function Journal() {
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="What thought from your morning reading lingers most deeply in your mind as the light settles?"
                 rows={focusMode ? 24 : 18}
-                className="no-scrollbar min-h-[28rem] resize-none overflow-x-hidden overflow-y-auto border-0 bg-transparent p-4 font-body text-[18px] leading-[1.85] text-ink shadow-none [field-sizing:fixed] placeholder:text-ink-muted/70 focus-visible:ring-0"
+                className="no-scrollbar min-h-[24rem] resize-none overflow-x-hidden overflow-y-auto border-0 bg-transparent px-0 py-2 font-body text-[17px] leading-[1.85] text-ink shadow-none [field-sizing:fixed] placeholder:text-ink-muted/70 focus-visible:ring-0 sm:min-h-[28rem] sm:p-4 sm:text-[18px]"
               />
               <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
                 <p className="kami-label text-ink-faint" role="status">

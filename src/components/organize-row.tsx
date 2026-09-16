@@ -25,14 +25,14 @@ export function OrganizeRow({ item }: { item: LibraryItem }) {
 
   useEffect(() => {
     if (!folderOpen && !addingTag) return;
-    const onDoc = (event: MouseEvent) => {
+    const onDoc = (event: PointerEvent) => {
       if (!boxRef.current?.contains(event.target as Node)) {
         setFolderOpen(false);
         setAddingTag(false);
       }
     };
-    document.addEventListener("mousedown", onDoc);
-    return () => document.removeEventListener("mousedown", onDoc);
+    document.addEventListener("pointerdown", onDoc);
+    return () => document.removeEventListener("pointerdown", onDoc);
   }, [folderOpen, addingTag]);
 
   function createFolder() {
@@ -56,7 +56,7 @@ export function OrganizeRow({ item }: { item: LibraryItem }) {
           aria-haspopup="menu"
           aria-expanded={folderOpen}
           className={cn(
-            "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 shadow-border",
+            "inline-flex min-h-11 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 shadow-border sm:min-h-9",
             folder
               ? "bg-paper-warm text-ink font-semibold"
               : "bg-surface text-ink hover:bg-paper-warm",
@@ -72,12 +72,12 @@ export function OrganizeRow({ item }: { item: LibraryItem }) {
         {item.tags.map((tag) => (
           <span
             key={tag}
-            className="inline-flex h-9 items-center gap-1 rounded-full bg-paper-warm pl-3.5 pr-1.5 text-sm font-medium text-ink shadow-border"
+            className="inline-flex min-h-11 items-center gap-1 rounded-full bg-paper-warm pl-3.5 pr-0.5 text-sm font-medium text-ink shadow-border sm:min-h-9 sm:pr-1.5"
           >
             #{tag}
             <button
               type="button"
-              className="inline-flex size-6 items-center justify-center rounded-full text-ink-muted hover:bg-surface hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30"
+              className="inline-flex size-10 items-center justify-center rounded-full text-ink-muted hover:bg-surface hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 sm:size-7"
               aria-label={`Remove tag ${tag}`}
               onClick={() => {
                 removeTag(item.id, tag);
@@ -108,12 +108,12 @@ export function OrganizeRow({ item }: { item: LibraryItem }) {
               else setAddingTag(false);
             }}
             placeholder="Tag name…"
-            className="h-9 w-28 rounded-full bg-surface border border-line px-3 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/30"
+            className="h-11 w-32 rounded-full bg-surface border border-line px-3 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/30 sm:h-9 sm:w-28"
           />
         ) : (
           <button
             type="button"
-            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-surface px-3 text-sm font-medium text-ink hover:bg-paper-warm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 shadow-border"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-surface px-3 text-sm font-medium text-ink hover:bg-paper-warm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30 shadow-border sm:min-h-9"
             onClick={() => {
               setAddingTag(true);
               setFolderOpen(false);
