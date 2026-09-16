@@ -5,6 +5,7 @@ import { AppGate } from "@/components/app-gate.tsx";
 import { DirectionalTransition } from "@/components/directional-transition.tsx";
 import { ReaderView } from "@/components/reader-view.tsx";
 import { extractArticle } from "@/lib/article-fns.ts";
+import { getArticleContent } from "@/lib/library-fns.ts";
 import {
   articleToItem,
   itemToArticle,
@@ -47,7 +48,8 @@ function Read() {
 
   const article = openItem?.contentHtml ? itemToArticle(openItem) : null;
 
-  // Works saved as link-only have no clean copy yet — fetch it in place.
+  // Lean boot omits bodies — load from DB first; only re-extract when the
+  // row was saved as a link-only stub with no stored HTML.
   useEffect(() => {
     if (!openItem || openItem.contentHtml) return;
     if (fetchedFor.current === openItem.id) return;
@@ -55,6 +57,11 @@ function Read() {
     setFetchError("");
     void (async () => {
       try {
+        const fromDb = await getArticleContent({ data: { id: openItem.id } });
+        if (fromDb?.contentHtml) {
+          upsertItem(fromDb, { sync: false });
+          return;
+        }
         const result = await extractArticle({ data: { url: openItem.url } });
         if (!result.ok) {
           setFetchError(result.error);

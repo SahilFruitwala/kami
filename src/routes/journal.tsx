@@ -106,7 +106,7 @@ function Journal() {
     return () => window.removeEventListener("keydown", onKey);
   }, [focusMode]);
 
-  const words = useMemo(() => countWords(draft), [draft]);
+  const words = countWords(draft);
   const dirty = draft !== (entries[activeDate]?.text ?? "");
   const saveLabel = !online
     ? "Offline — will sync"

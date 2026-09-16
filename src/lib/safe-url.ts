@@ -49,7 +49,6 @@ function parseNumericLabel(part: string): number | null {
     const n = parseInt(p, 10);
     return Number.isSafeInteger(n) ? n : null;
   }
-  if (/^0x[0-9a-f]+$/.test(p)) return parseInt(p, 16);
   return null;
 }
 
@@ -97,6 +96,37 @@ function isObfuscatedPrivateIPv4(host: string): boolean {
   return isPrivateIPv4(octets.join("."));
 }
 
+/** True for loopback / ULA / link-local / unspecified IPv6 literals. */
+function isPrivateIPv6(host: string): boolean {
+  const h = host.toLowerCase();
+  if (h === "::" || h === "::1") return true;
+  if (h.startsWith("fe80:") || h.startsWith("fec0:")) return true;
+  // Unique-local fc00::/7 — only match real IPv6 forms (contain ':'), not
+  // hostnames like `fd.com` / `fcbarcelona.example`.
+  if (h.includes(":") && (h.startsWith("fc") || h.startsWith("fd"))) return true;
+  // IPv4-mapped / IPv4-compatible — treat the embedded v4 as the real target.
+  const v4mapped = h.match(/^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (v4mapped) return isPrivateIPv4(v4mapped[1]);
+  const v4compat = h.match(/^::(\d{1,3}(?:\.\d{1,3}){3})$/);
+  if (v4compat) return isPrivateIPv4(v4compat[1]);
+  // Hex form of IPv4-mapped (::ffff:7f00:1)
+  if (h.startsWith("::ffff:")) return true;
+  return false;
+}
+
+/**
+ * Shared IP-literal denylist used by both the sync URL parser and the
+ * server-side DNS resolution check.
+ */
+export function isBlockedIpLiteral(host: string): boolean {
+  const bare = host.replace(/^\[|\]$/g, "").toLowerCase().replace(/\.$/, "");
+  return (
+    isPrivateIPv4(bare) ||
+    isObfuscatedPrivateIPv4(bare) ||
+    isPrivateIPv6(bare)
+  );
+}
+
 export function assertPublicHttpUrl(raw: string): URL {
   let url: URL;
   try {
@@ -120,16 +150,7 @@ export function assertPublicHttpUrl(raw: string): URL {
   ) {
     throw new Error("That address cannot be fetched.");
   }
-  if (
-    isPrivateIPv4(bare) ||
-    isObfuscatedPrivateIPv4(bare) ||
-    bare.startsWith("fe80:") ||
-    bare.startsWith("fec0:") ||
-    bare.startsWith("fc") ||
-    bare.startsWith("fd") ||
-    bare === "::" ||
-    bare.startsWith("::ffff:")
-  ) {
+  if (isBlockedIpLiteral(bare)) {
     throw new Error("That address cannot be fetched.");
   }
   return url;

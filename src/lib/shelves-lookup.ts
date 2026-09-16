@@ -8,7 +8,6 @@ import {
   hashKeyPart,
   normalizeCacheQuery,
 } from "@/lib/cache.server.ts";
-import { assertPublicHttpUrl } from "@/lib/safe-url";
 
 /**
  * Watchlist lookup providers — Postgres port of `shelf/src/server/lookup.ts`.
@@ -22,7 +21,7 @@ import { assertPublicHttpUrl } from "@/lib/safe-url";
  * - Books: `openlibrary.org/search.json` (limit 8, typed fields). Maps to
  *   `{ author, year, genre (≤3 filtered subjects), overview (first_sentence) }`,
  *   cover from `covers.openlibrary.org`, link to the work page. No key needed.
- * - Wishlist/URL: fetch the pasted link (SSRF-guarded via `assertPublicHttpUrl`
+ * - Wishlist/URL: fetch the pasted link (SSRF-guarded via `assertPublicFetchUrl`
  *   on every redirect hop, browser UA) and read `og:title/og:image/og:description`
  *   with an Amazon DOM fallback (`#productTitle` / `#landingImage`).
  *
@@ -386,13 +385,14 @@ function amazonFallback(html: string): { title?: string; imageUrl?: string } {
   return { title: title ? decodeEntities(title) : undefined, imageUrl };
 }
 
-/** Fetch a URL with per-hop SSRF validation (mirrors extract.server's guard). */
+/** Fetch a URL with per-hop SSRF + DNS validation (mirrors extract.server's guard). */
 async function fetchPreviewHtml(
   rawUrl: string,
 ): Promise<{ html: string; finalUrl: string } | null> {
+  const { assertPublicFetchUrl } = await import("@/lib/safe-url.server");
   let current: string;
   try {
-    current = assertPublicHttpUrl(rawUrl).href;
+    current = (await assertPublicFetchUrl(rawUrl)).href;
   } catch {
     return null;
   }
@@ -412,7 +412,7 @@ async function fetchPreviewHtml(
       await res.arrayBuffer().catch(() => undefined);
       if (!location) return null;
       try {
-        current = assertPublicHttpUrl(new URL(location, current).href).href;
+        current = (await assertPublicFetchUrl(new URL(location, current).href)).href;
       } catch {
         return null;
       }
@@ -420,7 +420,7 @@ async function fetchPreviewHtml(
     }
     if (!res.ok) return null;
     try {
-      current = assertPublicHttpUrl(res.url || current).href;
+      current = (await assertPublicFetchUrl(res.url || current)).href;
     } catch {
       return null;
     }

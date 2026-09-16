@@ -1,5 +1,5 @@
 import { preferReadableImage } from "./image-url.ts";
-import { assertPublicHttpUrl } from "./safe-url.ts";
+import { assertPublicFetchUrl } from "./safe-url.server.ts";
 
 export const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
@@ -18,7 +18,7 @@ function refererFor(url: URL): string {
   if (host.endsWith("substackcdn.com") || host.endsWith("substack.com")) {
     return "https://substack.com/";
   }
-  if (host.endsWith("medium.com") || host.endsWith("medium.com")) {
+  if (host.endsWith("medium.com")) {
     return "https://medium.com/";
   }
   return `${url.protocol}//${url.host}/`;
@@ -31,7 +31,7 @@ export type FetchedImage =
 export async function fetchImageBytes(rawUrl: string): Promise<FetchedImage> {
   let original: URL;
   try {
-    original = assertPublicHttpUrl(rawUrl);
+    original = await assertPublicFetchUrl(rawUrl);
   } catch {
     return { ok: false, error: "invalid image url", status: 400 };
   }
@@ -50,7 +50,7 @@ export async function fetchImageBytes(rawUrl: string): Promise<FetchedImage> {
 async function getImage(href: string, maxRedirects = 5): Promise<FetchedImage> {
   let parsed: URL;
   try {
-    parsed = assertPublicHttpUrl(href);
+    parsed = await assertPublicFetchUrl(href);
   } catch {
     return { ok: false, error: "invalid image url", status: 400 };
   }
@@ -65,7 +65,7 @@ async function getImage(href: string, maxRedirects = 5): Promise<FetchedImage> {
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
         headers: {
           "user-agent": USER_AGENT,
-          accept: "image/jpeg,image/png,image/gif,image/svg+xml,image/*;q=0.4,*/*;q=0.1",
+          accept: "image/jpeg,image/png,image/gif,image/webp,image/*;q=0.4,*/*;q=0.1",
           referer: refererFor(new URL(current)),
         },
       });
@@ -80,7 +80,7 @@ async function getImage(href: string, maxRedirects = 5): Promise<FetchedImage> {
           return { ok: false, error: "invalid image redirect", status: 502 };
         }
         try {
-          current = assertPublicHttpUrl(next).href;
+          current = (await assertPublicFetchUrl(next)).href;
         } catch {
           return { ok: false, error: "invalid image url", status: 400 };
         }
@@ -91,7 +91,7 @@ async function getImage(href: string, maxRedirects = 5): Promise<FetchedImage> {
       }
       res = attempt;
       try {
-        current = assertPublicHttpUrl(res.url || current).href;
+        current = (await assertPublicFetchUrl(res.url || current)).href;
       } catch {
         await res.arrayBuffer().catch(() => undefined);
         return { ok: false, error: "invalid image url", status: 400 };
@@ -106,6 +106,11 @@ async function getImage(href: string, maxRedirects = 5): Promise<FetchedImage> {
     if (mime && !mime.startsWith("image/") && mime !== "application/octet-stream") {
       return { ok: false, error: "not an image", status: 415 };
     }
+    // Never proxy SVG: served from our origin as image/svg+xml it becomes a
+    // same-origin XSS vector if navigated to (scripts run in SVG documents).
+    if (mime === "image/svg+xml" || mime.includes("svg")) {
+      return { ok: false, error: "svg images are not proxied", status: 415 };
+    }
     const bytes = new Uint8Array(await res.arrayBuffer());
     if (bytes.byteLength === 0) {
       return { ok: false, error: "empty image", status: 502 };
@@ -113,7 +118,11 @@ async function getImage(href: string, maxRedirects = 5): Promise<FetchedImage> {
     if (bytes.byteLength > MAX_IMAGE_BYTES) {
       return { ok: false, error: "image too large", status: 413 };
     }
-    return { ok: true, bytes, mime: sniffMime(bytes, mime) };
+    const sniffed = sniffMime(bytes, mime);
+    if (sniffed === "image/svg+xml") {
+      return { ok: false, error: "svg images are not proxied", status: 415 };
+    }
+    return { ok: true, bytes, mime: sniffed };
   } catch {
     return { ok: false, error: "could not fetch image", status: 502 };
   }
@@ -128,6 +137,6 @@ function sniffMime(bytes: Uint8Array, fallback: string): string {
   }
   const head = new TextDecoder().decode(bytes.slice(0, 64)).trimStart();
   if (head.startsWith("<svg") || head.startsWith("<?xml")) return "image/svg+xml";
-  if (fallback.startsWith("image/")) return fallback;
+  if (fallback.startsWith("image/") && fallback !== "image/svg+xml") return fallback;
   return "image/jpeg";
 }

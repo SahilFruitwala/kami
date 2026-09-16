@@ -96,7 +96,11 @@ function asHighlights(value: unknown): Highlight[] {
     .filter((h): h is Highlight => Boolean(h));
 }
 
-function rowToItem(row: typeof articles.$inferSelect): LibraryItem {
+type ArticleListRow = Omit<typeof articles.$inferSelect, "contentHtml"> & {
+  contentHtml?: string;
+};
+
+function rowToItem(row: ArticleListRow, opts?: { includeBody?: boolean }): LibraryItem {
   return {
     id: row.id,
     url: row.url,
@@ -108,7 +112,9 @@ function rowToItem(row: typeof articles.$inferSelect): LibraryItem {
     wordCount: Number(row.wordCount) || 0,
     readingMinutes: Number(row.readingMinutes) || 1,
     excerpt: row.excerpt || "",
-    contentHtml: row.contentHtml || "",
+    // List/boot payloads omit bodies by default — fetch via getArticleContent
+    // when the reader opens a work (keeps bootstrap small; see loadSnapshot).
+    contentHtml: opts?.includeBody ? row.contentHtml || "" : "",
     heroImage: row.heroImage,
     published: row.published,
     savedAt: row.savedAt instanceof Date ? row.savedAt.getTime() : Date.now(),
@@ -120,6 +126,30 @@ function rowToItem(row: typeof articles.$inferSelect): LibraryItem {
     note: row.note || "",
   };
 }
+
+/** Columns needed for library chrome / lists — intentionally excludes `contentHtml`. */
+const articleListColumns = {
+  id: articles.id,
+  userId: articles.userId,
+  url: articles.url,
+  canonicalUrl: articles.canonicalUrl,
+  title: articles.title,
+  author: articles.author,
+  siteName: articles.siteName,
+  source: articles.source,
+  wordCount: articles.wordCount,
+  readingMinutes: articles.readingMinutes,
+  excerpt: articles.excerpt,
+  heroImage: articles.heroImage,
+  published: articles.published,
+  savedAt: articles.savedAt,
+  archived: articles.archived,
+  favorited: articles.favorited,
+  note: articles.note,
+  folderId: articles.folderId,
+  tags: articles.tags,
+  highlights: articles.highlights,
+} as const;
 
 export type LibrarySnapshot = {
   library: LibraryItem[];
@@ -145,13 +175,11 @@ async function ownedFolderId(
 }
 
 async function loadSnapshot(userId: string): Promise<LibrarySnapshot> {
-  // The library boot fetches every row (including full `contentHtml`) on
-  // each navigation remount — the heaviest query in the app. A short
-  // per-user entry absorbs those bursts; every mutation below invalidates
-  // it. Snapshots carrying ~1MB+ of article bodies stay uncached: a giant
-  // Redis value would cost more than the DB round-trip it saves.
+  // Boot ships metadata only (no `contentHtml`). Bodies are fetched on demand
+  // via `getArticleContent` when the reader opens a work — that keeps cold
+  // start and Redis entries small even for large libraries.
   return cached(
-    cacheKey("u", userId, "library", "snapshot"),
+    cacheKey("u", userId, "library", "snapshot-meta"),
     CacheTTL.library,
     async () => {
       const db = await getDb();
@@ -161,13 +189,13 @@ async function loadSnapshot(userId: string): Promise<LibrarySnapshot> {
         .where(eq(folders.userId, userId))
         .orderBy(asc(folders.createdAt));
       const articleRows = await db
-        .select()
+        .select(articleListColumns)
         .from(articles)
         .where(eq(articles.userId, userId))
         .orderBy(desc(articles.savedAt));
       return {
         folders: folderRows.map((f) => ({ id: f.id, name: f.name })),
-        library: articleRows.map(rowToItem),
+        library: articleRows.map((row) => rowToItem(row)),
       };
     },
     { skipCache: (snap) => approxJsonBytes(snap) > MAX_CACHED_SNAPSHOT_BYTES },
@@ -178,6 +206,43 @@ export const getLibrary = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }): Promise<LibrarySnapshot> => {
     return loadSnapshot(context.userId);
+  });
+
+/** Full library including article bodies — used for JSON export only. */
+export const getLibraryForExport = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }): Promise<LibrarySnapshot> => {
+    const db = await getDb();
+    const folderRows = await db
+      .select({ id: folders.id, name: folders.name })
+      .from(folders)
+      .where(eq(folders.userId, context.userId))
+      .orderBy(asc(folders.createdAt));
+    const articleRows = await db
+      .select()
+      .from(articles)
+      .where(eq(articles.userId, context.userId))
+      .orderBy(desc(articles.savedAt));
+    return {
+      folders: folderRows.map((f) => ({ id: f.id, name: f.name })),
+      library: articleRows.map((row) => rowToItem(row, { includeBody: true })),
+    };
+  });
+
+/** Load a single article body owned by the caller (reader on-demand fetch). */
+export const getArticleContent = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .validator((input: unknown) => z.object({ id: z.string().min(1).max(2000) }).parse(input))
+  .handler(async ({ context, data }): Promise<LibraryItem | null> => {
+    const db = await getDb();
+    const rows = await db
+      .select()
+      .from(articles)
+      .where(and(eq(articles.id, data.id), eq(articles.userId, context.userId)))
+      .limit(1);
+    const row = rows[0];
+    if (!row) return null;
+    return rowToItem(row, { includeBody: true });
   });
 
 export const upsertLibraryItem = createServerFn({ method: "POST" })
@@ -245,7 +310,7 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
         .where(and(eq(articles.id, id), eq(articles.userId, context.userId)))
         .limit(1);
       await invalidateUserCache(context.userId);
-      return rowToItem(rows[0]!);
+      return rowToItem(rows[0]!, { includeBody: true });
     }
 
     // `articles.id` is a global primary key, while article uniqueness is
@@ -323,7 +388,7 @@ export const patchLibraryItem = createServerFn({ method: "POST" })
       .limit(1);
     if (!current[0]) return null;
 
-    const next = rowToItem(current[0]);
+    const next = rowToItem(current[0], { includeBody: true });
     if (data.archived !== undefined) next.archived = data.archived;
     if (data.favorited !== undefined) next.favorited = data.favorited;
     if (data.note !== undefined) next.note = data.note.slice(0, 2000);
