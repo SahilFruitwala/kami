@@ -21,9 +21,9 @@ const highlightSchema = z.object({
 });
 
 const libraryItemSchema = z.object({
-  // ids are full URLs (stripped of #fragment) — PG `text` PK has no length
-  // limit, so allow the same 2000 as url/canonicalUrl. A shorter cap here
-  // turned long pasted links into silent save failures.
+  // Extracted articles initially use the full URL as their id. The server may
+  // replace it with a generated id when that global PK is already used by a
+  // different user.
   id: z.string().min(1).max(2000),
   url: z.string().min(1).max(2000),
   canonicalUrl: z.string().min(1).max(2000),
@@ -233,8 +233,19 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
       return rowToItem(rows[0]!);
     }
 
+    // `articles.id` is a global primary key, while article uniqueness is
+    // intentionally per-user. Extractors use the URL as the initial id, so
+    // another user saving the same URL may already own that id. Preserve the
+    // URL id when available; otherwise mint an opaque id for this user's row.
+    const idOwner = await db
+      .select({ id: articles.id })
+      .from(articles)
+      .where(eq(articles.id, data.id))
+      .limit(1);
+    const id = idOwner[0] ? uid() : data.id;
+
     await db.insert(articles).values({
-      id: data.id,
+      id,
       userId: context.userId,
       url: data.url,
       canonicalUrl: data.canonicalUrl,
@@ -256,7 +267,7 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
       tags,
       highlights,
     });
-    return { ...data, title, author, siteName, excerpt, contentHtml, heroImage, note, tags, highlights, folderId };
+    return { ...data, id, title, author, siteName, excerpt, contentHtml, heroImage, note, tags, highlights, folderId };
   });
 
 export const patchLibraryItem = createServerFn({ method: "POST" })
