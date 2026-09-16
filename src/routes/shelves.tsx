@@ -462,9 +462,16 @@ function AddShelfDialog({
   async function save(status: "to_try" | "done") {
     if (!title.trim() || addItem.isPending || findDupes.isPending) return;
     setSaveError(null);
+    // Movies/TV: hard-block duplicates (DB unique on tmdbId / title). Other
+    // shelf types still warn once, then allow "Add anyway".
+    const blockDuplicates = type === "movie" || type === "tv";
     if (duplicates.length === 0) {
       try {
-        const matches = await findDupes.mutateAsync({ type, title });
+        const matches = await findDupes.mutateAsync({
+          type,
+          title,
+          tmdbId: metadata.tmdbId,
+        });
         if (matches.length > 0) {
           setDuplicates(matches.map((m) => ({ ...m, status: String(m.status) })));
           return;
@@ -473,6 +480,8 @@ function AddShelfDialog({
         setSaveError(e instanceof Error ? e.message : "Duplicate check failed.");
         return;
       }
+    } else if (blockDuplicates) {
+      return;
     }
     try {
       const cleaned = Object.fromEntries(Object.entries(metadata).filter(([, v]) => v.trim() !== ""));
@@ -704,7 +713,7 @@ function AddShelfDialog({
 
             {duplicates.length > 0 ? (
               <div className="rounded-[0.25rem] border border-amber-500/40 bg-amber-500/10 px-4 py-3 font-sans text-[14px]">
-                <p className="font-medium text-ink">Looks like this is already on the shelf</p>
+                <p className="font-medium text-ink">Already on your shelf</p>
                 <ul className="mt-1.5 space-y-0.5 text-ink-soft">
                   {duplicates.map((m) => (
                     <li key={m.id}>
@@ -732,7 +741,11 @@ function AddShelfDialog({
                 <ArrowLeft className="size-4" aria-hidden="true" />
                 Back
               </Button>
-              {duplicates.length > 0 ? (
+              {duplicates.length > 0 && (type === "movie" || type === "tv") ? (
+                <Button type="button" onClick={onClose}>
+                  Done
+                </Button>
+              ) : duplicates.length > 0 ? (
                 <Button type="button" disabled={saving || checkingDuplicates} onClick={() => void save("to_try")}>
                   Add anyway
                 </Button>

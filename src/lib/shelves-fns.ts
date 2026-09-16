@@ -478,6 +478,9 @@ function clampShelfItemInput(input: unknown): unknown {
  * (`year`, `overview`, `genre`, `author`, `tmdbId`, `description`, `source`,
  * …) and fans it out into the typed columns + genre junctions, mirroring
  * shelf's `insertConcreteItem`.
+ *
+ * Movies and TV shows are unique per list by TMDB id (when present) or
+ * normalized title — duplicates are rejected instead of inserted again.
  */
 export const addShelfItem = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
@@ -495,115 +498,137 @@ export const addShelfItem = createServerFn({ method: "POST" })
     const imageUrl = safeHttpUrl(data.imageUrl) ?? null;
     const notes = data.notes?.trim() ? data.notes.trim() : null;
     const normalizedTitle = normalizeTitle(title);
+    const tmdbId = optionalInteger(metadata.tmdbId);
     const extraMetadata = Object.fromEntries(
       Object.entries(metadata).filter(([, v]) => v.trim() !== ""),
     );
 
-    if (data.type === "movie") {
-      await db.insert(movies).values({
-        id,
-        listId,
-        title,
+    if (data.type === "movie" || data.type === "tv") {
+      const existing = await findExistingMovieOrTv(db, data.type, listId, {
+        tmdbId,
         normalizedTitle,
-        notes,
-        link,
-        imageUrl,
-        status,
-        extraMetadata,
-        addedBy: context.userId,
-        completedAt,
-        releaseYear: optionalInteger(metadata.year),
-        overview: metadata.overview ?? null,
-        tmdbId: optionalInteger(metadata.tmdbId),
       });
-    } else if (data.type === "tv") {
-      await db.insert(tvShows).values({
-        id,
-        listId,
-        title,
-        normalizedTitle,
-        notes,
-        link,
-        imageUrl,
-        status,
-        extraMetadata,
-        addedBy: context.userId,
-        completedAt,
-        releaseYear: optionalInteger(metadata.year),
-        overview: metadata.overview ?? null,
-        tmdbId: optionalInteger(metadata.tmdbId),
-        episodesWatched: 0,
-      });
-    } else if (data.type === "book") {
-      await db.insert(books).values({
-        id,
-        listId,
-        title,
-        normalizedTitle,
-        notes,
-        link,
-        imageUrl,
-        status,
-        extraMetadata,
-        addedBy: context.userId,
-        completedAt,
-        author: metadata.author ?? null,
-        publishYear: optionalInteger(metadata.year),
-        overview: metadata.overview ?? null,
-      });
-    } else if (data.type === "restaurant") {
-      await db.insert(restaurants).values({
-        id,
-        listId,
-        title,
-        normalizedTitle,
-        notes,
-        link,
-        imageUrl,
-        status,
-        extraMetadata,
-        addedBy: context.userId,
-        completedAt,
-        address: metadata.address ?? null,
-        rating: metadata.rating ?? null,
-        price: metadata.price ?? null,
-        kind: metadata.kind ?? null,
-      });
-    } else if (data.type === "place") {
-      await db.insert(places).values({
-        id,
-        listId,
-        title,
-        normalizedTitle,
-        notes,
-        link,
-        imageUrl,
-        status,
-        extraMetadata,
-        addedBy: context.userId,
-        completedAt,
-        address: metadata.address ?? null,
-        rating: metadata.rating ?? null,
-        price: metadata.price ?? null,
-        kind: metadata.kind ?? null,
-      });
-    } else {
-      await db.insert(wishlistItems).values({
-        id,
-        listId,
-        title,
-        normalizedTitle,
-        notes,
-        link,
-        imageUrl,
-        status,
-        extraMetadata,
-        addedBy: context.userId,
-        completedAt,
-        price: metadata.price ?? null,
-        description: metadata.description ?? null,
-        source: metadata.source ?? null,
-      });
+      if (existing) {
+        throw new Error("Already on your shelf");
+      }
+    }
+
+    try {
+      if (data.type === "movie") {
+        await db.insert(movies).values({
+          id,
+          listId,
+          title,
+          normalizedTitle,
+          notes,
+          link,
+          imageUrl,
+          status,
+          extraMetadata,
+          addedBy: context.userId,
+          completedAt,
+          releaseYear: optionalInteger(metadata.year),
+          overview: metadata.overview ?? null,
+          tmdbId,
+        });
+      } else if (data.type === "tv") {
+        await db.insert(tvShows).values({
+          id,
+          listId,
+          title,
+          normalizedTitle,
+          notes,
+          link,
+          imageUrl,
+          status,
+          extraMetadata,
+          addedBy: context.userId,
+          completedAt,
+          releaseYear: optionalInteger(metadata.year),
+          overview: metadata.overview ?? null,
+          tmdbId,
+          episodesWatched: 0,
+        });
+      } else if (data.type === "book") {
+        await db.insert(books).values({
+          id,
+          listId,
+          title,
+          normalizedTitle,
+          notes,
+          link,
+          imageUrl,
+          status,
+          extraMetadata,
+          addedBy: context.userId,
+          completedAt,
+          author: metadata.author ?? null,
+          publishYear: optionalInteger(metadata.year),
+          overview: metadata.overview ?? null,
+        });
+      } else if (data.type === "restaurant") {
+        await db.insert(restaurants).values({
+          id,
+          listId,
+          title,
+          normalizedTitle,
+          notes,
+          link,
+          imageUrl,
+          status,
+          extraMetadata,
+          addedBy: context.userId,
+          completedAt,
+          address: metadata.address ?? null,
+          rating: metadata.rating ?? null,
+          price: metadata.price ?? null,
+          kind: metadata.kind ?? null,
+        });
+      } else if (data.type === "place") {
+        await db.insert(places).values({
+          id,
+          listId,
+          title,
+          normalizedTitle,
+          notes,
+          link,
+          imageUrl,
+          status,
+          extraMetadata,
+          addedBy: context.userId,
+          completedAt,
+          address: metadata.address ?? null,
+          rating: metadata.rating ?? null,
+          price: metadata.price ?? null,
+          kind: metadata.kind ?? null,
+        });
+      } else {
+        await db.insert(wishlistItems).values({
+          id,
+          listId,
+          title,
+          normalizedTitle,
+          notes,
+          link,
+          imageUrl,
+          status,
+          extraMetadata,
+          addedBy: context.userId,
+          completedAt,
+          price: metadata.price ?? null,
+          description: metadata.description ?? null,
+          source: metadata.source ?? null,
+        });
+      }
+    } catch (err) {
+      // Race: unique indexes on movies/tv may reject a concurrent insert.
+      if (
+        (data.type === "movie" || data.type === "tv") &&
+        isUniqueViolation(err)
+      ) {
+        throw new Error("Already on your shelf");
+      }
+      throw err;
     }
 
     await syncGenres(db, data.type, id, metadata.genre);
@@ -618,11 +643,54 @@ export const addShelfItem = createServerFn({ method: "POST" })
     return { id, listId, type: data.type, status };
   });
 
-/** Title matches already on this shelf — for duplicate warnings at add-time. */
+async function findExistingMovieOrTv(
+  db: Awaited<ReturnType<typeof getDb>>,
+  type: "movie" | "tv",
+  listId: string,
+  keys: { tmdbId: number | null; normalizedTitle: string },
+): Promise<{ id: string; title: string; status: string } | null> {
+  const table = type === "movie" ? movies : tvShows;
+  if (keys.tmdbId != null) {
+    const byTmdb = await db
+      .select({ id: table.id, title: table.title, status: table.status })
+      .from(table)
+      .where(and(eq(table.listId, listId), eq(table.tmdbId, keys.tmdbId)))
+      .limit(1);
+    if (byTmdb[0]) return byTmdb[0];
+  }
+  if (!keys.normalizedTitle) return null;
+  const byTitle = await db
+    .select({ id: table.id, title: table.title, status: table.status })
+    .from(table)
+    .where(and(eq(table.listId, listId), eq(table.normalizedTitle, keys.normalizedTitle)))
+    .limit(1);
+  return byTitle[0] ?? null;
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  const codes = new Set<string>();
+  const messages: string[] = [];
+  let cur: unknown = err;
+  for (let i = 0; i < 4 && cur && typeof cur === "object"; i++) {
+    if ("code" in cur && cur.code != null) codes.add(String(cur.code));
+    if ("message" in cur && cur.message != null) messages.push(String(cur.message));
+    cur = "cause" in cur ? cur.cause : null;
+  }
+  if (codes.has("23505")) return true;
+  return messages.some((m) => /unique|duplicate key/i.test(m));
+}
+
+/** Title / TMDB matches already on this shelf — for duplicate warnings at add-time. */
 export const findShelfDuplicates = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .validator((input: unknown) =>
-    z.object({ type: shelfType, title: z.string().max(300) }).parse(input),
+    z
+      .object({
+        type: shelfType,
+        title: z.string().max(300),
+        tmdbId: z.string().max(32).optional(),
+      })
+      .parse(input),
   )
   .handler(async ({ context, data }) => {
     const title = data.title.trim();
@@ -630,18 +698,15 @@ export const findShelfDuplicates = createServerFn({ method: "GET" })
     const db = await getDb();
     const listId = await getOrCreateDefaultList(context.userId, data.type);
     const normalized = normalizeTitle(title);
-    if (data.type === "movie")
-      return db
-        .select({ id: movies.id, title: movies.title, status: movies.status })
-        .from(movies)
-        .where(and(eq(movies.listId, listId), eq(movies.normalizedTitle, normalized)))
-        .limit(5);
-    if (data.type === "tv")
-      return db
-        .select({ id: tvShows.id, title: tvShows.title, status: tvShows.status })
-        .from(tvShows)
-        .where(and(eq(tvShows.listId, listId), eq(tvShows.normalizedTitle, normalized)))
-        .limit(5);
+    const tmdbId = optionalInteger(data.tmdbId);
+
+    if (data.type === "movie" || data.type === "tv") {
+      const found = await findExistingMovieOrTv(db, data.type, listId, {
+        tmdbId,
+        normalizedTitle: normalized,
+      });
+      return found ? [found] : [];
+    }
     if (data.type === "book")
       return db
         .select({ id: books.id, title: books.title, status: books.status })

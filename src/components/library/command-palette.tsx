@@ -31,6 +31,7 @@ import {
 import {
   useAddShelfItem,
   useBookSearch,
+  useFindShelfDuplicates,
   useLinkPreview,
   useTmdbSearch,
 } from "@/hooks/use-shelf-queries.ts";
@@ -87,6 +88,7 @@ export function CommandPalette({
   const [addingKey, setAddingKey] = useState<string | null>(null);
   const deferredQuery = useDeferredValue(query);
   const addItem = useAddShelfItem();
+  const findDupes = useFindShelfDuplicates();
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -215,12 +217,29 @@ export function CommandPalette({
 
   async function addShelfResult(r: LookupResult, type: ShelfTab) {
     const key = `${type}:${r.title}:${r.link ?? ""}`;
-    if (addingKey || addItem.isPending) return;
+    if (addingKey || addItem.isPending || findDupes.isPending) return;
     setAddingKey(key);
     try {
       const cleaned = Object.fromEntries(
         Object.entries(r.metadata ?? {}).filter(([, v]) => v.trim() !== ""),
       );
+      if (type === "movie" || type === "tv") {
+        const matches = await findDupes.mutateAsync({
+          type,
+          title: r.title,
+          tmdbId: cleaned.tmdbId,
+        });
+        if (matches.length > 0) {
+          toast.message(`“${r.title}” is already on your shelf`, {
+            action: {
+              label: "View shelf",
+              onClick: () => void navigate({ to: "/shelves", search: { tab: type } }),
+            },
+          });
+          close();
+          return;
+        }
+      }
       // Drop oversize image URLs before the server Zod max(2000) — common on
       // product/CDN og:image links and was failing the whole wishlist save.
       const imageUrl = r.imageUrl?.trim();
@@ -240,7 +259,18 @@ export function CommandPalette({
       });
       close();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't save that item.");
+      const message = e instanceof Error ? e.message : "Couldn't save that item.";
+      if (message === "Already on your shelf") {
+        toast.message(`“${r.title}” is already on your shelf`, {
+          action: {
+            label: "View shelf",
+            onClick: () => void navigate({ to: "/shelves", search: { tab: type } }),
+          },
+        });
+        close();
+      } else {
+        toast.error(message);
+      }
     } finally {
       setAddingKey(null);
     }

@@ -99,7 +99,7 @@ export function useAddShelfItem() {
 
 export function useFindShelfDuplicates() {
   return useMutation({
-    mutationFn: (data: { type: ShelfTab; title: string }) =>
+    mutationFn: (data: { type: ShelfTab; title: string; tmdbId?: string }) =>
       findShelfDuplicates({ data }),
   });
 }
