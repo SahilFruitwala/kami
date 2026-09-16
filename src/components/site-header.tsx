@@ -12,6 +12,7 @@ import { KAMI_GLYPH } from "@/components/kami.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Show, SignInButton, SignUpButton, UserButton } from "@/lib/auth/gates";
+import { useCurrentUser } from "@/lib/auth/use-current-user.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
 
@@ -329,11 +330,16 @@ function TodayCard() {
 }
 
 function SignedName() {
+  const user = useCurrentUser();
   return (
     <>
       <Show when="signed-in">
-        <span className="block truncate font-sans text-xs font-semibold text-ink">Sanctuary</span>
-        <span className="block font-sans text-[11px] text-ink-muted">In deep focus</span>
+        <span className="block truncate font-sans text-xs font-semibold text-ink">
+          {user?.displayName ?? "Sanctuary"}
+        </span>
+        <span className="block font-sans text-[11px] text-ink-muted">
+          In deep focus
+        </span>
       </Show>
       <Show when="signed-out">
         <span className="block font-sans text-xs font-semibold text-ink">Guest</span>

@@ -5,6 +5,7 @@ import { DirectionalTransition } from "@/components/directional-transition.tsx";
 import { ToolsDialog } from "@/components/library/library-dialogs.tsx";
 import { CommandPalette } from "@/components/library/command-palette.tsx";
 import { SiteFooter } from "@/components/library/widgets.tsx";
+import { NameOnboarding } from "@/components/name-onboarding.tsx";
 import { SiteHeader, type SitePane } from "@/components/site-header.tsx";
 import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
 import {
@@ -48,6 +49,7 @@ export function AppShell({
             bookmarklet={tools.bookmarklet}
           />
           <CommandPalette onOpenItem={onOpenItem} />
+          <NameOnboarding />
           <OfflineBanner />
         </main>
       </DirectionalTransition>

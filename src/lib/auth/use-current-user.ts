@@ -43,7 +43,11 @@ export function useCurrentUserState(): CurrentUserState {
     user: user
       ? {
           id: user.id,
-          displayName: user.fullName ?? user.username ?? null,
+          displayName:
+            user.fullName?.trim() ||
+            [user.firstName, user.lastName].filter(Boolean).join(" ").trim() ||
+            user.username?.trim() ||
+            null,
           primaryEmail: user.primaryEmailAddress?.emailAddress ?? null,
           profileImageUrl: user.imageUrl ?? null,
           isDevFallback: false,
