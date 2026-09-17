@@ -253,7 +253,7 @@ flowchart LR
   Migrate --> Vercel[Vercel serverless]
 ```
 
-`vercel.json` sets security headers and a CSP that allows Clerk, fonts, and extraction helpers (`r.jina.ai`, fxtwitter/vxtwitter). `/api/img` gets a stricter CSP.
+`vercel.json` sets security headers and a CSP that allows Clerk (including the production Frontend API host `clerk.kami.sahilfruitwala.com`, Clerk CDN, Cloudflare Turnstile, and `*.protect.clerk.com`), fonts, and extraction helpers (`r.jina.ai`, fxtwitter/vxtwitter). `/api/img` gets a stricter CSP.
 
 ---
 
