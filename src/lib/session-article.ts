@@ -40,6 +40,33 @@ export function normalizeSourceUrl(raw: string): string {
   return value;
 }
 
+/**
+ * Split pasted text into distinct URLs for bulk save. Accepts newlines,
+ * commas, semicolons, or whitespace separation; strips bullets/numbering and
+ * wrapping quotes/brackets; normalizes bare domains; dedupes preserving order.
+ */
+export function parseBulkUrls(raw: string): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const tokens = raw
+    .replace(/[<>"]/g, " ")
+    .split(/[\s,;]+/)
+    .map((t) => t.trim().replace(/^[\s]*[-*•\d.)\]]+\s*/, "").replace(/^[([{'"“‘]+|[)\]}'"”‘.,!?]+$/g, "").trim())
+    .filter(Boolean);
+  for (const token of tokens) {
+    // Skip bare words / fragments that can't be URLs.
+    if (!/^(https?:\/\/|\/\/|www\.|[\w-]+(\.[\w-]+)+([/:?#]|$))/i.test(token)) continue;
+    const normalized = normalizeSourceUrl(token);
+    if (!normalized) continue;
+    if (!/^https?:\/\/[\w.-]+\.[a-z]{2,}/i.test(normalized)) continue;
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(normalized);
+  }
+  return out;
+}
+
 export function readDraftUrl(): string {
   try {
     return sessionStorage.getItem(DRAFT_KEY) || "";

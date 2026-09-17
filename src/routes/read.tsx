@@ -17,6 +17,15 @@ type ReadSearch = {
   id?: string;
 };
 
+/**
+ * True for link-only stub bodies: empty, or the "Saved as a link" placeholder
+ * written by `articleFromLinkOnly` in extract.server.ts. Both upgrade to a
+ * clean copy when the reader opens the work.
+ */
+function isStubBody(html: string): boolean {
+  return !html.trim() || html.includes("Saved as a link.");
+}
+
 export const Route = createFileRoute("/read")({
   validateSearch: (search: Record<string, unknown>): ReadSearch => ({
     id: typeof search.id === "string" && search.id.length > 0 ? search.id : undefined,
@@ -48,28 +57,43 @@ function Read() {
 
   const article = openItem?.contentHtml ? itemToArticle(openItem) : null;
 
-  // Lean boot omits bodies — load from DB first; only re-extract when the
-  // row was saved as a link-only stub with no stored HTML.
+  // Lean boot omits bodies — load from DB first; then upgrade link-only stubs
+  // to a clean copy. A stub is an empty body _or_ the "Saved as a link"
+  // placeholder written by articleFromLinkOnly (bulk saves used to store that
+  // placeholder, which blocked the upgrade and left X links unreadable).
+  // When extraction fails for a placeholder row, the stored placeholder stays
+  // on screen so its "Open original" fallback is preserved.
   useEffect(() => {
-    if (!openItem || openItem.contentHtml) return;
+    if (!openItem || !isStubBody(openItem.contentHtml)) return;
     if (fetchedFor.current === openItem.id) return;
     fetchedFor.current = openItem.id;
     setFetchError("");
     void (async () => {
       try {
         const fromDb = await getArticleContent({ data: { id: openItem.id } });
-        if (fromDb?.contentHtml) {
+        if (fromDb?.contentHtml && !isStubBody(fromDb.contentHtml)) {
           upsertItem(fromDb, { sync: false });
           return;
         }
         const result = await extractArticle({ data: { url: openItem.url } });
         if (!result.ok) {
-          setFetchError(result.error);
+          if (!openItem.contentHtml.trim()) setFetchError(result.error);
           return;
         }
-        upsertItem(articleToItem(result.article));
+        // Keep the stub's identity (id/savedAt) for the upgraded row: X
+        // canonical URLs often differ in host (twitter.com vs x.com), and a
+        // fresh id would orphan this open reader (`?id=` would no longer
+        // resolve, including after refresh).
+        const upgraded: LibraryItem = {
+          ...articleToItem(result.article),
+          id: openItem.id,
+          savedAt: openItem.savedAt,
+        };
+        upsertItem(upgraded);
       } catch {
-        setFetchError("Something went wrong while reading that page. Try again.");
+        if (!openItem.contentHtml.trim()) {
+          setFetchError("Something went wrong while reading that page. Try again.");
+        }
       }
     })();
   }, [openItem, upsertItem]);

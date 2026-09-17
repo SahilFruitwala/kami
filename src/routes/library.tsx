@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useEffect, useRef } from "react";
 import { AppShell } from "@/components/app-shell.tsx";
+import { BulkSaveDialog } from "@/components/library/library-dialogs.tsx";
 import { LibraryHome } from "@/components/library/library-home.tsx";
+import { useBulkSave } from "@/hooks/use-bulk-save.ts";
 import { useLibraryFilters } from "@/hooks/use-library-filters.ts";
 import { isLibrarySort } from "@/lib/filter-library.ts";
 import type { LibraryItem } from "@/lib/store.ts";
@@ -38,6 +40,7 @@ function Library() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
   const filters = useLibraryFilters();
+  const bulk = useBulkSave();
   const syncedFromUrl = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -107,6 +110,18 @@ function Library() {
           onSort: filters.setSort,
         }}
         onOpenItem={openItem}
+        onOpenBulk={() => bulk.setOpen(true)}
+      />
+      <BulkSaveDialog
+        open={bulk.open}
+        onOpenChange={bulk.setOpen}
+        draft={bulk.draft}
+        urls={bulk.urls}
+        overflow={bulk.overflow}
+        busy={bulk.busy}
+        progress={bulk.progress}
+        onDraft={bulk.setDraft}
+        onSave={() => void bulk.saveAll()}
       />
     </AppShell>
   );

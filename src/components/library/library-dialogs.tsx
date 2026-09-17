@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { LoaderCircle } from "lucide-react";
+import { Link2, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button.tsx";
 import {
@@ -12,6 +12,7 @@ import {
 import { Input } from "@/components/ui/input.tsx";
 import { importArticle } from "@/lib/article-fns.ts";
 import { articleToItem, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import { MAX_BULK_URLS } from "@/hooks/use-bulk-save.ts";
 
 type PasteDialogProps = {
   open: boolean;
@@ -172,6 +173,122 @@ type TranscribeDialogProps = {
   onOpenChange: (open: boolean) => void;
   onOpenItem?: (item: LibraryItem) => void;
 };
+
+export function BulkSaveDialog({
+  open,
+  onOpenChange,
+  draft,
+  urls,
+  overflow,
+  busy,
+  progress,
+  onDraft,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  draft: string;
+  urls: string[];
+  overflow: boolean;
+  busy: boolean;
+  progress: { done: number; total: number };
+  onDraft: (value: string) => void;
+  onSave: () => void;
+}) {
+  const pct =
+    progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90dvh] w-full max-w-[calc(100dvw-2rem)] overflow-x-hidden overflow-y-auto sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Bulk save links</DialogTitle>
+          <DialogDescription className="break-words">
+            Paste up to {MAX_BULK_URLS} links — one per line, or separated by commas
+            or spaces. Titles are fetched right away; anything that resists
+            finishes loading when you open it.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="min-w-0 space-y-3">
+          <textarea
+            aria-label="Links to save"
+            className="min-h-48 w-full max-w-full rounded-md border border-line bg-surface px-3.5 py-2.5 font-mono text-[13px] leading-relaxed break-all text-ink outline-none placeholder:font-sans placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-ink/20"
+            placeholder={"https://example.com/essay\nhttps://x.com/user/status/123…"}
+            value={draft}
+            onChange={(e) => onDraft(e.target.value)}
+            name="bulk-links"
+            inputMode="url"
+            autoCapitalize="off"
+            autoCorrect="off"
+            autoComplete="off"
+            spellCheck={false}
+          />
+          <p className="font-sans text-xs text-ink-muted" role="status" aria-live="polite">
+            {urls.length === 0 ? (
+              "No links detected yet."
+            ) : (
+              <>
+                {urls.length} {urls.length === 1 ? "link" : "links"} ready
+                {overflow ? ` — only the first ${MAX_BULK_URLS} will save` : ""}
+              </>
+            )}
+          </p>
+          {urls.length > 0 ? (
+            <ul className="max-h-32 min-w-0 space-y-1 overflow-x-hidden overflow-y-auto rounded-md bg-bg/60 p-2" aria-label="Detected links">
+              {urls.slice(0, 8).map((u) => (
+                <li
+                  key={u}
+                  title={u}
+                  className="block w-full min-w-0 truncate font-mono text-[11px] text-ink-muted"
+                >
+                  {u}
+                </li>
+              ))}
+              {urls.length > 8 ? (
+                <li className="font-sans text-[11px] text-ink-muted">
+                  …and {urls.length - 8} more
+                </li>
+              ) : null}
+            </ul>
+          ) : null}
+          <Button type="button" className="w-full" disabled={busy || urls.length === 0} onClick={onSave}>
+            {busy ? (
+              <>
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                Saving {progress.total > 0 ? `${progress.done}/${progress.total}` : urls.length}{" "}
+                {urls.length === 1 ? "link" : "links"}…
+              </>
+            ) : (
+              <>
+                <Link2 className="size-4" aria-hidden="true" />
+                Save {urls.length > 0 ? urls.length : ""} {urls.length === 1 ? "link" : "links"}
+              </>
+            )}
+          </Button>
+          {busy && progress.total > 1 ? (
+            <div role="status" aria-live="polite">
+              <div
+                className="h-1 overflow-hidden rounded-full bg-paper-warm"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={progress.total}
+                aria-valuenow={progress.done}
+                aria-label="Bulk save progress"
+              >
+                <div
+                  className="h-full rounded-full bg-hanko transition-[width]"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <p className="mt-1.5 font-sans text-[11px] text-ink-muted tabular-nums">
+                Fetching titles… {progress.done}/{progress.total}
+              </p>
+            </div>
+          ) : null}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
 
 /** Manual transcription: ink a physical-book excerpt as a vault slip. */
 export function TranscribeDialog({ open, onOpenChange, onOpenItem }: TranscribeDialogProps) {
