@@ -1,0 +1,30 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { describe, it } from "node:test";
+
+const vercel = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
+const csp = vercel.headers
+  .find((entry) => entry.source === "/(.*)")
+  .headers.find((h) => h.key === "Content-Security-Policy").value;
+
+function directive(name) {
+  const match = csp.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${name} `));
+  assert.ok(match, `missing CSP directive ${name}`);
+  return match;
+}
+
+describe("production CSP allows Clerk custom Frontend API", () => {
+  it("includes the Kami Clerk FAPI host in script-src, connect-src, and frame-src", () => {
+    const fapi = "https://clerk.kami.sahilfruitwala.com";
+    for (const name of ["script-src", "connect-src", "frame-src"]) {
+      assert.match(directive(name), new RegExp(fapi.replaceAll(".", "\\.")));
+    }
+  });
+
+  it("allows Clerk bot protection and workers", () => {
+    assert.match(directive("script-src"), /https:\/\/challenges\.cloudflare\.com/);
+    assert.match(directive("script-src"), /https:\/\/\*\.protect\.clerk\.com/);
+    assert.match(directive("connect-src"), /https:\/\/\*\.protect\.clerk\.com:\*/);
+    assert.match(directive("worker-src"), /'self' blob:/);
+  });
+});
