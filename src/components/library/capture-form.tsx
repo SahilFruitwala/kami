@@ -1,6 +1,7 @@
 import {
   ArrowRight,
   ClipboardPaste,
+  Layers,
   Link2,
   LoaderCircle,
   Search,
@@ -17,6 +18,7 @@ type CaptureFormProps = {
   onSave: (url?: string) => void;
   onSaveLinkOnly: () => void;
   onOpenPaste: (seedUrl?: string) => void;
+  onOpenBulk: (seedText?: string) => void;
 };
 
 export function CaptureForm({
@@ -28,6 +30,7 @@ export function CaptureForm({
   onSave,
   onSaveLinkOnly,
   onOpenPaste,
+  onOpenBulk,
 }: CaptureFormProps) {
   return (
     <section aria-label="Capture an article">
@@ -101,13 +104,27 @@ export function CaptureForm({
                 <ClipboardPaste className="size-3.5" aria-hidden="true" />
                 Paste article
               </Button>
+              <Button type="button" variant="secondary" size="sm" onClick={() => onOpenBulk(url)}>
+                <Layers className="size-3.5" aria-hidden="true" />
+                Bulk save
+              </Button>
             </div>
           </div>
         ) : (
-          <p className="mt-2 text-xs font-medium text-ink-muted">
-            Public pages only. Press <kbd className="rounded bg-paper-warm px-1">⌘&nbsp;K</kbd> to
-            search the shelf — paste above to bind a new scroll.
-          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+            <p className="text-xs font-medium text-ink-muted">
+              Public pages only. Press <kbd className="rounded bg-paper-warm px-1">⌘&nbsp;K</kbd> to
+              search the shelf — paste above to bind a new scroll.
+            </p>
+            <button
+              type="button"
+              onClick={() => onOpenBulk(url)}
+              className="inline-flex items-center gap-1 font-sans text-xs font-medium text-hanko hover:underline"
+            >
+              <Layers className="size-3" aria-hidden="true" />
+              Bulk save links
+            </button>
+          </div>
         )}
       </form>
     </section>

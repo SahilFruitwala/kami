@@ -45,9 +45,11 @@ type ShelfFilters = {
 export function LibraryHome({
   filters,
   onOpenItem,
+  onOpenBulk,
 }: {
   filters: ShelfFilters;
   onOpenItem: (item: LibraryItem) => void;
+  onOpenBulk?: () => void;
 }) {
   const deferredQuery = useDeferredValue(filters.query);
   const library = useLibraryStore((s) => s.library);
@@ -216,6 +218,15 @@ export function LibraryHome({
                 <CheckSquare className="size-3.5" aria-hidden="true" />
                 {selectMode ? "Done" : "Select"}
               </button>
+              {onOpenBulk ? (
+                <button
+                  type="button"
+                  onClick={onOpenBulk}
+                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[0.25rem] bg-surface px-3 font-sans text-xs font-medium text-ink-soft shadow-[var(--shadow-border)] transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+                >
+                  Bulk save
+                </button>
+              ) : null}
             </div>
           </div>
 

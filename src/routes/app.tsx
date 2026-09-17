@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell.tsx";
 import { ArticleList } from "@/components/article-list.tsx";
 import { CaptureForm } from "@/components/library/capture-form.tsx";
-import { PasteDialog } from "@/components/library/library-dialogs.tsx";
+import { BulkSaveDialog, PasteDialog } from "@/components/library/library-dialogs.tsx";
 import {
   DeskHero,
   EmptyDeskGuide,
@@ -15,10 +15,12 @@ import {
 } from "@/components/library/widgets.tsx";
 import { KamiEyebrow } from "@/components/kami.tsx";
 import { usePasteImport } from "@/hooks/use-paste-import.ts";
+import { useBulkSave } from "@/hooks/use-bulk-save.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
 import { importArticle } from "@/lib/article-fns.ts";
 import { decodeImportPayload, type BookmarkletPayload } from "@/lib/bookmarklet.ts";
 import {
+  parseBulkUrls,
   readDraftUrl,
   stashImportPayload,
   takeStashedImportPayload,
@@ -82,6 +84,7 @@ function Home() {
   };
   const save = useSaveArticle(openOnSave);
   const paste = usePasteImport(openOnSave);
+  const bulk = useBulkSave();
 
   const hero = useDeskHeroItem();
   const library = useLibraryStore((s) => s.library);
@@ -104,6 +107,21 @@ function Home() {
   function openPaste(seedUrl?: string) {
     if (seedUrl) paste.setPasteUrl(seedUrl);
     paste.setPasteOpen(true);
+  }
+
+  function openBulk(seedText?: string) {
+    if (seedText && !bulk.draft) bulk.setDraft(seedText);
+    bulk.setOpen(true);
+  }
+
+  function saveSingleOrBulk(next?: string) {
+    const raw = next ?? save.url;
+    if (parseBulkUrls(raw).length > 1) {
+      bulk.setDraft(raw);
+      bulk.setOpen(true);
+      return;
+    }
+    void save.save(next, true);
   }
 
   /**
@@ -218,9 +236,10 @@ function Home() {
               error={save.error}
               onUrlChange={save.setUrl}
               onClearError={() => save.setError("")}
-              onSave={(next) => void save.save(next, true)}
+              onSave={saveSingleOrBulk}
               onSaveLinkOnly={() => void save.saveLinkOnly()}
               onOpenPaste={openPaste}
+              onOpenBulk={openBulk}
             />
           </div>
           {save.busy || capturing ? (
@@ -281,6 +300,17 @@ function Home() {
         onBody={paste.setPasteBody}
         onUrl={paste.setPasteUrl}
         onImport={() => void paste.importPasted()}
+      />
+      <BulkSaveDialog
+        open={bulk.open}
+        onOpenChange={bulk.setOpen}
+        draft={bulk.draft}
+        urls={bulk.urls}
+        overflow={bulk.overflow}
+        busy={bulk.busy}
+        progress={bulk.progress}
+        onDraft={bulk.setDraft}
+        onSave={() => void bulk.saveAll()}
       />
     </AppShell>
   );
