@@ -5,21 +5,18 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   Check,
-  Clapperboard,
   Link2,
   LoaderCircle,
   PenLine,
   Plus,
   Search,
   Trash2,
-  Tv,
-  BookOpen,
-  Gift,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { EpisodeTracker } from "@/components/library/episode-tracker.tsx";
 import { WatchWhere } from "@/components/library/watch-where.tsx";
 import { Hanko, KamiEyebrow, WashiTag } from "@/components/kami.tsx";
+import type { SitePane } from "@/components/site-header.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
@@ -56,16 +53,16 @@ export type ShelvesSearch = {
 /** UI filter: `all` means no status predicate on the server. */
 type StatusFilter = "to_try" | "done" | "all";
 
-const TAB_META: {
+const SHELF_META: {
   id: ShelfTab;
+  pane: Extract<SitePane, "movies" | "series" | "books" | "wishlist">;
   label: string;
-  icon: typeof Clapperboard;
-  to: "/shelves/movies" | "/shelves/series" | "/shelves/books" | "/shelves/wishlist";
+  eyebrow: string;
 }[] = [
-  { id: "movie", label: "Movies", icon: Clapperboard, to: "/shelves/movies" },
-  { id: "tv", label: "Series", icon: Tv, to: "/shelves/series" },
-  { id: "book", label: "Books", icon: BookOpen, to: "/shelves/books" },
-  { id: "wishlist", label: "Wishlist", icon: Gift, to: "/shelves/wishlist" },
+  { id: "movie", pane: "movies", label: "Movies", eyebrow: "Movie Shelf" },
+  { id: "tv", pane: "series", label: "Series", eyebrow: "Series Shelf" },
+  { id: "book", pane: "books", label: "Books", eyebrow: "Book Shelf" },
+  { id: "wishlist", pane: "wishlist", label: "Wishlist", eyebrow: "Wish Shelf" },
 ];
 
 const STATUS_META: { id: StatusFilter; label: string }[] = [
@@ -122,7 +119,7 @@ export function ShelvesView({
   const items = itemsQuery.isPending && !itemsQuery.data ? null : (itemsQuery.data ?? []);
   const detail = detailId ? (detailQuery.data ?? null) : null;
   const hasMore = items != null && items.length >= limit;
-  const activeMeta = TAB_META.find((t) => t.id === tab)!;
+  const activeMeta = SHELF_META.find((t) => t.id === tab)!;
 
   // One-way: URL → local state on first paint (deep links).
   useEffect(() => {
@@ -159,19 +156,19 @@ export function ShelvesView({
     setDetailId(null);
   }, [tab, status, deferredQuery]);
 
-  const total = counts ? counts.movie + counts.tv + counts.book + counts.wishlist : null;
+  const shelfCount = counts?.[tab] ?? null;
 
   return (
-    <AppShell active="shelves" onOpenItem={() => undefined}>
+    <AppShell active={activeMeta.pane} onOpenItem={() => undefined}>
       <section className="w-full bg-paper/60 backdrop-blur-sm">
         <div className="mx-auto w-full max-w-7xl px-4 pt-8 pb-6 sm:px-6 lg:px-12">
           <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div>
               <KamiEyebrow>
-                Shelf Ledger
+                {activeMeta.eyebrow}
                 <span className="size-1 rounded-full bg-hanko/40" aria-hidden="true" />
                 <span className="text-bamboo">
-                  {total == null ? "binding…" : `${total} kept`}
+                  {shelfCount == null ? "binding…" : `${shelfCount} kept`}
                 </span>
               </KamiEyebrow>
               <h2 className="mt-2 flex flex-wrap items-center gap-3 font-display text-3xl tracking-tight text-ink">
@@ -206,82 +203,36 @@ export function ShelvesView({
             </Button>
           </div>
 
-          <div className="mt-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-            <nav className="flex items-center gap-1 overflow-x-auto" aria-label="Shelves">
-              {TAB_META.map((t) => {
-                const Icon = t.icon;
-                const n = counts?.[t.id];
-                const active = tab === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    aria-current={active ? "page" : undefined}
-                    onClick={() => {
-                      void navigate({
-                        to: t.to,
-                        search: {
-                          // Use live filter state — URL sync is debounced, so route
-                          // search can lag behind what the user just typed/toggled.
-                          q: query ? query : undefined,
-                          status: status === "to_try" ? undefined : status,
-                        },
-                      });
-                    }}
-                    className={cn(
-                      "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1.5 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
-                      active
-                        ? "bg-hanko font-semibold text-white shadow-sm"
-                        : "font-medium text-ink-muted hover:bg-paper-warm hover:text-ink",
-                    )}
-                  >
-                    <Icon className="size-3.5" aria-hidden="true" />
-                    {t.label}
-                    {n != null ? (
-                      <span
-                        className={cn(
-                          "rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
-                          active ? "bg-white/20 text-white" : "bg-bamboo-wash text-bamboo",
-                        )}
-                      >
-                        {n}
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
-            </nav>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
-              {STATUS_META.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  aria-pressed={status === s.id}
-                  onClick={() => setStatus(s.id)}
+          <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-1">
+            {STATUS_META.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                aria-pressed={status === s.id}
+                onClick={() => setStatus(s.id)}
+                className={cn(
+                  "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1 font-sans text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                  status === s.id
+                    ? "bg-hanko font-semibold text-white shadow-sm"
+                    : "bg-surface text-ink-soft shadow-[var(--shadow-border)] hover:bg-paper-warm hover:text-ink",
+                )}
+              >
+                <span
                   className={cn(
-                    "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1 font-sans text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                    "size-1.5 rounded-full",
                     status === s.id
-                      ? "bg-hanko font-semibold text-white shadow-sm"
-                      : "bg-surface text-ink-soft shadow-[var(--shadow-border)] hover:bg-paper-warm hover:text-ink",
+                      ? "bg-white"
+                      : s.id === "done"
+                        ? "bg-hanko"
+                        : s.id === "to_try"
+                          ? "bg-ok"
+                          : "bg-line",
                   )}
-                >
-                  <span
-                    className={cn(
-                      "size-1.5 rounded-full",
-                      status === s.id
-                        ? "bg-white"
-                        : s.id === "done"
-                          ? "bg-hanko"
-                          : s.id === "to_try"
-                            ? "bg-ok"
-                            : "bg-line",
-                    )}
-                    aria-hidden="true"
-                  />
-                  {s.label}
-                </button>
-              ))}
-            </div>
+                  aria-hidden="true"
+                />
+                {s.label}
+              </button>
+            ))}
           </div>
         </div>
       </section>

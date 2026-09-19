@@ -1,13 +1,16 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Bookmark,
+  BookOpen,
   Clapperboard,
+  Gift,
   House,
   LibraryBig,
   NotebookPen,
   Plus,
   Search,
   Settings as SettingsIcon,
+  Tv,
 } from "lucide-react";
 import { KAMI_GLYPH } from "@/components/kami.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
@@ -22,28 +25,47 @@ export type SitePane =
   | "library"
   | "journal"
   | "vault"
-  | "shelves"
+  | "movies"
+  | "series"
+  | "books"
+  | "wishlist"
   | "settings";
 
 type Pane = {
   id: Exclude<SitePane, "home" | "settings">;
-  to: "/library" | "/journal" | "/vault" | "/shelves/movies";
+  to:
+    | "/library"
+    | "/journal"
+    | "/vault"
+    | "/shelves/movies"
+    | "/shelves/series"
+    | "/shelves/books"
+    | "/shelves/wishlist";
   label: string;
   icon: typeof LibraryBig;
 };
 
-/** Sanctuary panes — mirrors the Stitch Sanctuary sidebar (Stitch: Washi Reader and Journal). */
-const PANES: Pane[] = [
+/** Primary sanctuary panes — mirrors the Stitch Sanctuary sidebar. */
+const SANCTUARY_PANES: Pane[] = [
   { id: "library", to: "/library", label: "Library", icon: LibraryBig },
   { id: "journal", to: "/journal", label: "Journal", icon: NotebookPen },
   { id: "vault", to: "/vault", label: "Vault", icon: Bookmark },
-  { id: "shelves", to: "/shelves/movies", label: "Shelf Ledger", icon: Clapperboard },
 ];
 
+/** Each shelf type is its own first-class page (not nested under Shelf Ledger). */
+const SHELF_PANES: Pane[] = [
+  { id: "movies", to: "/shelves/movies", label: "Movies", icon: Clapperboard },
+  { id: "series", to: "/shelves/series", label: "Series", icon: Tv },
+  { id: "books", to: "/shelves/books", label: "Books", icon: BookOpen },
+  { id: "wishlist", to: "/shelves/wishlist", label: "Wishlist", icon: Gift },
+];
+
+const PANES: Pane[] = [...SANCTUARY_PANES, ...SHELF_PANES];
+
 const MOBILE_PANES = [
-  { id: "home", to: "/app", label: "Home", icon: House },
+  { id: "home" as const, to: "/app" as const, label: "Home", icon: House },
   ...PANES,
-] as const;
+];
 
 /** Time-aware desk atmosphere chip, after the Stitch top bar. Rotates daily so it feels alive. */
 function atmosphere(now = new Date()): string {
@@ -174,7 +196,19 @@ export function SiteHeader({
         <nav aria-label="Sanctuary pages" className="flex-1 overflow-y-auto px-3 pt-6">
           <p className="kami-label px-2 pb-2 text-ink-faint">Sanctuary Panes</p>
           <ul className="space-y-0.5">
-            {PANES.map((pane) => (
+            {SANCTUARY_PANES.map((pane) => (
+              <li key={pane.id}>
+                <PaneLink to={pane.to} active={active === pane.id}>
+                  <pane.icon className="size-4 shrink-0" aria-hidden="true" />
+                  {pane.label}
+                </PaneLink>
+              </li>
+            ))}
+          </ul>
+
+          <p className="kami-label mt-6 px-2 pb-2 text-ink-faint">Shelves</p>
+          <ul className="space-y-0.5">
+            {SHELF_PANES.map((pane) => (
               <li key={pane.id}>
                 <PaneLink to={pane.to} active={active === pane.id}>
                   <pane.icon className="size-4 shrink-0" aria-hidden="true" />
@@ -278,14 +312,14 @@ export function SiteHeader({
         </div>
       </div>
 
-      {/* Mobile bottom tab bar */}
+      {/* Mobile bottom tab bar — scrollable now that shelves are first-class panes */}
       <nav
         aria-label="Sanctuary pages"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
       >
-        <ul className="grid grid-cols-5">
+        <ul className="flex overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {MOBILE_PANES.map((pane) => (
-            <li key={pane.id}>
+            <li key={pane.id} className="min-w-[4.25rem] flex-1">
               <Link
                 to={pane.to}
                 aria-current={active === pane.id ? "page" : undefined}
@@ -295,7 +329,7 @@ export function SiteHeader({
                 )}
               >
                 <pane.icon className="size-4" aria-hidden="true" />
-                {pane.id === "shelves" ? "Shelves" : pane.label}
+                {pane.label}
               </Link>
             </li>
           ))}
