@@ -1,4 +1,4 @@
-import { useDeferredValue, useMemo, useState, ViewTransition } from "react";
+import { useDeferredValue, useMemo, useState, ViewTransition, type ReactNode } from "react";
 import { CheckSquare, Search } from "lucide-react";
 import { toast } from "sonner";
 import { ArticleList } from "@/components/article-list.tsx";
@@ -44,10 +44,13 @@ type ShelfFilters = {
 /** Library shelf: ink search, inbox/archive tabs, filters, and the scroll grid. */
 export function LibraryHome({
   filters,
+  capture,
   onOpenItem,
   onOpenBulk,
 }: {
   filters: ShelfFilters;
+  /** Optional capture form (paste a link without leaving the library). */
+  capture?: ReactNode;
   onOpenItem: (item: LibraryItem) => void;
   onOpenBulk?: () => void;
 }) {
@@ -170,6 +173,8 @@ export function LibraryHome({
               </div>
             </div>
           </div>
+
+          {capture ? <div className="mt-6 max-w-2xl">{capture}</div> : null}
 
           <div className="mt-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <LibraryTabs

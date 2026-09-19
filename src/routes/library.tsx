@@ -1,11 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useEffect, useRef } from "react";
 import { AppShell } from "@/components/app-shell.tsx";
-import { BulkSaveDialog } from "@/components/library/library-dialogs.tsx";
+import { CaptureForm } from "@/components/library/capture-form.tsx";
+import { BulkSaveDialog, PasteDialog } from "@/components/library/library-dialogs.tsx";
 import { LibraryHome } from "@/components/library/library-home.tsx";
 import { useBulkSave } from "@/hooks/use-bulk-save.ts";
 import { useLibraryFilters } from "@/hooks/use-library-filters.ts";
+import { usePasteImport } from "@/hooks/use-paste-import.ts";
+import { useSaveArticle } from "@/hooks/use-save-article.ts";
 import { isLibrarySort } from "@/lib/filter-library.ts";
+import { parseBulkUrls } from "@/lib/session-article.ts";
 import type { LibraryItem } from "@/lib/store.ts";
 
 type LibrarySearch = {
@@ -36,6 +40,16 @@ function LibraryPage() {
   return <Library />;
 }
 
+function goRead(
+  navigate: ReturnType<typeof Route.useNavigate>,
+  id: string,
+) {
+  startTransition(() => {
+    addTransitionType("nav-forward");
+    void navigate({ to: "/read", search: { id } });
+  });
+}
+
 function Library() {
   const navigate = Route.useNavigate();
   const search = Route.useSearch();
@@ -43,6 +57,12 @@ function Library() {
   const bulk = useBulkSave();
   const syncedFromUrl = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openOnSave = (id: string | null) => {
+    if (id) goRead(navigate, id);
+  };
+  const save = useSaveArticle(openOnSave);
+  const paste = usePasteImport(openOnSave);
 
   // One-way: URL → local filter state on first paint (deep links).
   useEffect(() => {
@@ -86,10 +106,27 @@ function Library() {
   function openItem(item: LibraryItem) {
     // Reader loads the stored body on demand (lean library boot omits
     // contentHtml); link-only stubs re-extract inside `/read`.
-    startTransition(() => {
-      addTransitionType("nav-forward");
-      void navigate({ to: "/read", search: { id: item.id } });
-    });
+    goRead(navigate, item.id);
+  }
+
+  function openPaste(seedUrl?: string) {
+    if (seedUrl) paste.setPasteUrl(seedUrl);
+    paste.setPasteOpen(true);
+  }
+
+  function openBulk(seedText?: string) {
+    if (seedText && !bulk.draft) bulk.setDraft(seedText);
+    bulk.setOpen(true);
+  }
+
+  function saveSingleOrBulk(next?: string) {
+    const raw = next ?? save.url;
+    if (parseBulkUrls(raw).length > 1) {
+      bulk.setDraft(raw);
+      bulk.setOpen(true);
+      return;
+    }
+    void save.save(next, true);
   }
 
   return (
@@ -109,8 +146,33 @@ function Library() {
           onFavoritesOnly: filters.setFavoritesOnly,
           onSort: filters.setSort,
         }}
+        capture={
+          <CaptureForm
+            url={save.url}
+            busy={save.busy}
+            error={save.error}
+            onUrlChange={save.setUrl}
+            onClearError={() => save.setError("")}
+            onSave={saveSingleOrBulk}
+            onSaveLinkOnly={() => void save.saveLinkOnly()}
+            onOpenPaste={openPaste}
+            onOpenBulk={openBulk}
+          />
+        }
         onOpenItem={openItem}
         onOpenBulk={() => bulk.setOpen(true)}
+      />
+      <PasteDialog
+        open={paste.pasteOpen}
+        onOpenChange={paste.setPasteOpen}
+        title={paste.pasteTitle}
+        body={paste.pasteBody}
+        url={paste.pasteUrl}
+        busy={paste.busy}
+        onTitle={paste.setPasteTitle}
+        onBody={paste.setPasteBody}
+        onUrl={paste.setPasteUrl}
+        onImport={() => void paste.importPasted()}
       />
       <BulkSaveDialog
         open={bulk.open}

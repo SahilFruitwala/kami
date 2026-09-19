@@ -60,7 +60,7 @@ function HomePage() {
     if (search.import) {
       stashImportPayload(search.import);
       void navigate({
-        search: (prev) => {
+        search: (prev: HomeSearch) => {
           const next = { ...prev };
           delete next.import;
           return next;
@@ -197,7 +197,7 @@ function Home() {
       }
       if (search.import) {
         void navigate({
-          search: (prev) => {
+          search: (prev: HomeSearch) => {
             const next = { ...prev };
             delete next.import;
             return next;

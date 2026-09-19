@@ -466,7 +466,7 @@ export function LandingPage() {
                   Movies, TV shows, books, and a wishlist — TMDB and book search, episode
                   tracking, where-to-watch, and to-try / done states.
                 </p>
-                <Link to="/shelves" className="mt-3 inline-flex items-center gap-1.5 rounded-sm font-sans text-[13px] font-semibold text-hanko hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+                <Link to="/shelves/movies" className="mt-3 inline-flex items-center gap-1.5 rounded-sm font-sans text-[13px] font-semibold text-hanko hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
                   Open Shelves <ArrowRight className="size-3.5" aria-hidden="true" />
                 </Link>
               </div>
@@ -585,7 +585,7 @@ export function LandingPage() {
               <li><Link to="/read" className="hover:text-hanko">Reader</Link></li>
               <li><Link to="/journal" className="hover:text-hanko">Journal</Link></li>
               <li><Link to="/vault" className="hover:text-hanko">Vault</Link></li>
-              <li><Link to="/shelves" className="hover:text-hanko">Shelves</Link></li>
+              <li><Link to="/shelves/movies" className="hover:text-hanko">Shelves</Link></li>
             </ul>
           </nav>
           <nav aria-label="Craft and philosophy">
