@@ -16,9 +16,14 @@ import { Route as LibraryRouteImport } from './routes/library'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ReadRouteImport } from './routes/read'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ShelvesRouteImport } from './routes/shelves'
+import { Route as ShelvesRouteRouteImport } from './routes/shelves/route'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as ApiImgRouteImport } from './routes/api/img'
+import { Route as ShelvesIndexRouteImport } from './routes/shelves/index'
+import { Route as ShelvesBooksRouteImport } from './routes/shelves/books'
+import { Route as ShelvesMoviesRouteImport } from './routes/shelves/movies'
+import { Route as ShelvesSeriesRouteImport } from './routes/shelves/series'
+import { Route as ShelvesWishlistRouteImport } from './routes/shelves/wishlist'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -55,7 +60,7 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ShelvesRoute = ShelvesRouteImport.update({
+const ShelvesRouteRoute = ShelvesRouteRouteImport.update({
   id: '/shelves',
   path: '/shelves',
   getParentRoute: () => rootRouteImport,
@@ -70,18 +75,48 @@ const ApiImgRoute = ApiImgRouteImport.update({
   path: '/api/img',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ShelvesIndexRoute = ShelvesIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ShelvesRouteRoute,
+} as any)
+const ShelvesBooksRoute = ShelvesBooksRouteImport.update({
+  id: '/books',
+  path: '/books',
+  getParentRoute: () => ShelvesRouteRoute,
+} as any)
+const ShelvesMoviesRoute = ShelvesMoviesRouteImport.update({
+  id: '/movies',
+  path: '/movies',
+  getParentRoute: () => ShelvesRouteRoute,
+} as any)
+const ShelvesSeriesRoute = ShelvesSeriesRouteImport.update({
+  id: '/series',
+  path: '/series',
+  getParentRoute: () => ShelvesRouteRoute,
+} as any)
+const ShelvesWishlistRoute = ShelvesWishlistRouteImport.update({
+  id: '/wishlist',
+  path: '/wishlist',
+  getParentRoute: () => ShelvesRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/shelves': typeof ShelvesRouteRouteWithChildren
   '/app': typeof AppRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
-  '/shelves': typeof ShelvesRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
+  '/shelves/books': typeof ShelvesBooksRoute
+  '/shelves/movies': typeof ShelvesMoviesRoute
+  '/shelves/series': typeof ShelvesSeriesRoute
+  '/shelves/wishlist': typeof ShelvesWishlistRoute
+  '/shelves/': typeof ShelvesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -91,36 +126,50 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
-  '/shelves': typeof ShelvesRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
+  '/shelves/books': typeof ShelvesBooksRoute
+  '/shelves/movies': typeof ShelvesMoviesRoute
+  '/shelves/series': typeof ShelvesSeriesRoute
+  '/shelves/wishlist': typeof ShelvesWishlistRoute
+  '/shelves': typeof ShelvesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/shelves': typeof ShelvesRouteRouteWithChildren
   '/app': typeof AppRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
   '/login': typeof LoginRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
-  '/shelves': typeof ShelvesRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
+  '/shelves/books': typeof ShelvesBooksRoute
+  '/shelves/movies': typeof ShelvesMoviesRoute
+  '/shelves/series': typeof ShelvesSeriesRoute
+  '/shelves/wishlist': typeof ShelvesWishlistRoute
+  '/shelves/': typeof ShelvesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/shelves'
     | '/app'
     | '/journal'
     | '/library'
     | '/login'
     | '/read'
     | '/settings'
-    | '/shelves'
     | '/vault'
     | '/api/img'
+    | '/shelves/books'
+    | '/shelves/movies'
+    | '/shelves/series'
+    | '/shelves/wishlist'
+    | '/shelves/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -130,32 +179,41 @@ export interface FileRouteTypes {
     | '/login'
     | '/read'
     | '/settings'
-    | '/shelves'
     | '/vault'
     | '/api/img'
+    | '/shelves/books'
+    | '/shelves/movies'
+    | '/shelves/series'
+    | '/shelves/wishlist'
+    | '/shelves'
   id:
     | '__root__'
     | '/'
+    | '/shelves'
     | '/app'
     | '/journal'
     | '/library'
     | '/login'
     | '/read'
     | '/settings'
-    | '/shelves'
     | '/vault'
     | '/api/img'
+    | '/shelves/books'
+    | '/shelves/movies'
+    | '/shelves/series'
+    | '/shelves/wishlist'
+    | '/shelves/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ShelvesRouteRoute: typeof ShelvesRouteRouteWithChildren
   AppRoute: typeof AppRoute
   JournalRoute: typeof JournalRoute
   LibraryRoute: typeof LibraryRoute
   LoginRoute: typeof LoginRoute
   ReadRoute: typeof ReadRoute
   SettingsRoute: typeof SettingsRoute
-  ShelvesRoute: typeof ShelvesRoute
   VaultRoute: typeof VaultRoute
   ApiImgRoute: typeof ApiImgRoute
 }
@@ -215,7 +273,7 @@ declare module '@tanstack/react-router' {
       id: '/shelves'
       path: '/shelves'
       fullPath: '/shelves'
-      preLoaderRoute: typeof ShelvesRouteImport
+      preLoaderRoute: typeof ShelvesRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/vault': {
@@ -232,18 +290,73 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiImgRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/shelves/': {
+      id: '/shelves/'
+      path: '/'
+      fullPath: '/shelves/'
+      preLoaderRoute: typeof ShelvesIndexRouteImport
+      parentRoute: typeof ShelvesRouteRoute
+    }
+    '/shelves/books': {
+      id: '/shelves/books'
+      path: '/books'
+      fullPath: '/shelves/books'
+      preLoaderRoute: typeof ShelvesBooksRouteImport
+      parentRoute: typeof ShelvesRouteRoute
+    }
+    '/shelves/movies': {
+      id: '/shelves/movies'
+      path: '/movies'
+      fullPath: '/shelves/movies'
+      preLoaderRoute: typeof ShelvesMoviesRouteImport
+      parentRoute: typeof ShelvesRouteRoute
+    }
+    '/shelves/series': {
+      id: '/shelves/series'
+      path: '/series'
+      fullPath: '/shelves/series'
+      preLoaderRoute: typeof ShelvesSeriesRouteImport
+      parentRoute: typeof ShelvesRouteRoute
+    }
+    '/shelves/wishlist': {
+      id: '/shelves/wishlist'
+      path: '/wishlist'
+      fullPath: '/shelves/wishlist'
+      preLoaderRoute: typeof ShelvesWishlistRouteImport
+      parentRoute: typeof ShelvesRouteRoute
+    }
   }
 }
 
+interface ShelvesRouteRouteChildren {
+  ShelvesBooksRoute: typeof ShelvesBooksRoute
+  ShelvesMoviesRoute: typeof ShelvesMoviesRoute
+  ShelvesSeriesRoute: typeof ShelvesSeriesRoute
+  ShelvesWishlistRoute: typeof ShelvesWishlistRoute
+  ShelvesIndexRoute: typeof ShelvesIndexRoute
+}
+
+const ShelvesRouteRouteChildren: ShelvesRouteRouteChildren = {
+  ShelvesBooksRoute: ShelvesBooksRoute,
+  ShelvesMoviesRoute: ShelvesMoviesRoute,
+  ShelvesSeriesRoute: ShelvesSeriesRoute,
+  ShelvesWishlistRoute: ShelvesWishlistRoute,
+  ShelvesIndexRoute: ShelvesIndexRoute,
+}
+
+const ShelvesRouteRouteWithChildren = ShelvesRouteRoute._addFileChildren(
+  ShelvesRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ShelvesRouteRoute: ShelvesRouteRouteWithChildren,
   AppRoute: AppRoute,
   JournalRoute: JournalRoute,
   LibraryRoute: LibraryRoute,
   LoginRoute: LoginRoute,
   ReadRoute: ReadRoute,
   SettingsRoute: SettingsRoute,
-  ShelvesRoute: ShelvesRoute,
   VaultRoute: VaultRoute,
   ApiImgRoute: ApiImgRoute,
 }

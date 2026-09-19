@@ -27,7 +27,7 @@ export type SitePane =
 
 type Pane = {
   id: Exclude<SitePane, "home" | "settings">;
-  to: "/library" | "/journal" | "/vault" | "/shelves";
+  to: "/library" | "/journal" | "/vault" | "/shelves/movies";
   label: string;
   icon: typeof LibraryBig;
 };
@@ -37,7 +37,7 @@ const PANES: Pane[] = [
   { id: "library", to: "/library", label: "Library", icon: LibraryBig },
   { id: "journal", to: "/journal", label: "Journal", icon: NotebookPen },
   { id: "vault", to: "/vault", label: "Vault", icon: Bookmark },
-  { id: "shelves", to: "/shelves", label: "Shelf Ledger", icon: Clapperboard },
+  { id: "shelves", to: "/shelves/movies", label: "Shelf Ledger", icon: Clapperboard },
 ];
 
 const MOBILE_PANES = [

@@ -38,7 +38,7 @@ import {
 import { articleToItem, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
 import { extractArticle, saveLinkArticle } from "@/lib/article-fns.ts";
 import { persistArticleItem } from "@/lib/library-remote.ts";
-import type { ShelfTab } from "@/lib/shelves-fns.ts";
+import { shelfPath, type ShelfTab } from "@/lib/shelves-fns.ts";
 import type { LookupResult } from "@/lib/shelves-lookup.ts";
 
 type AddPage = "home" | ShelfTab;
@@ -142,9 +142,16 @@ export function CommandPalette({
     setOpen(false);
   }
 
-  function go(to: "/" | "/library" | "/journal" | "/shelves" | "/vault" | "/settings") {
+  function go(
+    to: "/" | "/library" | "/journal" | "/shelves/movies" | "/vault" | "/settings",
+  ) {
     close();
     void navigate({ to });
+  }
+
+  function goShelf(type: ShelfTab) {
+    close();
+    void navigate({ to: shelfPath(type) });
   }
 
   function openWork(item: LibraryItem) {
@@ -233,7 +240,7 @@ export function CommandPalette({
           toast.message(`“${r.title}” is already on your shelf`, {
             action: {
               label: "View shelf",
-              onClick: () => void navigate({ to: "/shelves", search: { tab: type } }),
+              onClick: () => goShelf(type),
             },
           });
           close();
@@ -254,7 +261,7 @@ export function CommandPalette({
       toast.success(`Added “${r.title}”`, {
         action: {
           label: "View shelf",
-          onClick: () => void navigate({ to: "/shelves", search: { tab: type } }),
+          onClick: () => goShelf(type),
         },
       });
       close();
@@ -264,7 +271,7 @@ export function CommandPalette({
         toast.message(`“${r.title}” is already on your shelf`, {
           action: {
             label: "View shelf",
-            onClick: () => void navigate({ to: "/shelves", search: { tab: type } }),
+            onClick: () => goShelf(type),
           },
         });
         close();
@@ -424,7 +431,10 @@ export function CommandPalette({
                 Journal
                 <CommandShortcut>G J</CommandShortcut>
               </CommandItem>
-              <CommandItem value="go shelves movies tv books wishlist" onSelect={() => go("/shelves")}>
+              <CommandItem
+                value="go shelves movies tv books wishlist"
+                onSelect={() => go("/shelves/movies")}
+              >
                 <Clapperboard aria-hidden="true" />
                 Shelves
                 <CommandShortcut>G M</CommandShortcut>
