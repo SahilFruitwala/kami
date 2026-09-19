@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useDeferredValue, useEffect, useRef, useState, type MouseEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -40,7 +40,7 @@ import {
 } from "@/hooks/use-shelf-queries.ts";
 import { queryKeys } from "@/lib/query-client.ts";
 import {
-  SHELF_TABS,
+  shelfPath,
   type ShelfCard,
   type ShelfDetail,
   type ShelfTab,
@@ -48,8 +48,7 @@ import {
 import { fetchLinkPreview, type LookupResult } from "@/lib/shelves-lookup.ts";
 import { cn } from "@/lib/utils.ts";
 
-type ShelvesSearch = {
-  tab?: string;
+export type ShelvesSearch = {
   q?: string;
   status?: string;
 };
@@ -57,11 +56,16 @@ type ShelvesSearch = {
 /** UI filter: `all` means no status predicate on the server. */
 type StatusFilter = "to_try" | "done" | "all";
 
-const TAB_META: { id: ShelfTab; label: string; icon: typeof Clapperboard }[] = [
-  { id: "movie", label: "Movies", icon: Clapperboard },
-  { id: "tv", label: "TV Shows", icon: Tv },
-  { id: "book", label: "Books", icon: BookOpen },
-  { id: "wishlist", label: "Wishlist", icon: Gift },
+const TAB_META: {
+  id: ShelfTab;
+  label: string;
+  icon: typeof Clapperboard;
+  to: "/shelves/movies" | "/shelves/series" | "/shelves/books" | "/shelves/wishlist";
+}[] = [
+  { id: "movie", label: "Movies", icon: Clapperboard, to: "/shelves/movies" },
+  { id: "tv", label: "Series", icon: Tv, to: "/shelves/series" },
+  { id: "book", label: "Books", icon: BookOpen, to: "/shelves/books" },
+  { id: "wishlist", label: "Wishlist", icon: Gift, to: "/shelves/wishlist" },
 ];
 
 const STATUS_META: { id: StatusFilter; label: string }[] = [
@@ -69,10 +73,6 @@ const STATUS_META: { id: StatusFilter; label: string }[] = [
   { id: "done", label: "Done" },
   { id: "all", label: "All" },
 ];
-
-function isShelfTab(v: unknown): v is ShelfTab {
-  return typeof v === "string" && (SHELF_TABS as readonly string[]).includes(v);
-}
 
 function parseStatusFilter(v: unknown): StatusFilter {
   if (v === "done" || v === "all") return v;
@@ -83,23 +83,23 @@ function statusToApi(status: StatusFilter): "to_try" | "done" | undefined {
   return status === "all" ? undefined : status;
 }
 
-export const Route = createFileRoute("/shelves")({
-  validateSearch: (search: Record<string, unknown>): ShelvesSearch => ({
-    tab: typeof search.tab === "string" && search.tab.length > 0 ? search.tab : undefined,
+export function validateShelvesSearch(search: Record<string, unknown>): ShelvesSearch {
+  return {
     q: typeof search.q === "string" && search.q.length > 0 ? search.q : undefined,
-    status: typeof search.status === "string" && search.status.length > 0 ? search.status : undefined,
-  }),
-  component: ShelvesPage,
-});
-
-function ShelvesPage() {
-  return <Shelves />;
+    status:
+      typeof search.status === "string" && search.status.length > 0 ? search.status : undefined,
+  };
 }
 
-function Shelves() {
-  const navigate = Route.useNavigate();
-  const search = Route.useSearch();
-  const [tab, setTab] = useState<ShelfTab>(() => (isShelfTab(search.tab) ? search.tab : "movie"));
+/** One shelf type per route — movies, series, books, or wishlist. */
+export function ShelvesView({
+  tab,
+  search,
+}: {
+  tab: ShelfTab;
+  search: ShelvesSearch;
+}) {
+  const navigate = useNavigate();
   const [query, setQuery] = useState(() => search.q ?? "");
   const [status, setStatus] = useState<StatusFilter>(() => parseStatusFilter(search.status));
   const [limit, setLimit] = useState(SHELF_PAGE_SIZE);
@@ -122,12 +122,12 @@ function Shelves() {
   const items = itemsQuery.isPending && !itemsQuery.data ? null : (itemsQuery.data ?? []);
   const detail = detailId ? (detailQuery.data ?? null) : null;
   const hasMore = items != null && items.length >= limit;
+  const activeMeta = TAB_META.find((t) => t.id === tab)!;
 
   // One-way: URL → local state on first paint (deep links).
   useEffect(() => {
     if (syncedFromUrl.current) return;
     syncedFromUrl.current = true;
-    if (isShelfTab(search.tab)) setTab(search.tab);
     if (typeof search.q === "string") setQuery(search.q);
     setStatus(parseStatusFilter(search.status));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -139,10 +139,10 @@ function Shelves() {
     if (pushTimer.current) clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(() => {
       void navigate({
+        to: shelfPath(tab),
         search: {
-          tab: tab === "movie" ? undefined : tab,
           q: query ? query : undefined,
-          // Default filter is to_try — omit from the URL like the movie tab.
+          // Default filter is to_try — omit from the URL.
           status: status === "to_try" ? undefined : status,
         },
         replace: true,
@@ -153,9 +153,10 @@ function Shelves() {
     };
   }, [tab, query, status, navigate]);
 
-  // Reset pagination when the list criteria change.
+  // Reset pagination / detail when the shelf type or list criteria change.
   useEffect(() => {
     setLimit(SHELF_PAGE_SIZE);
+    setDetailId(null);
   }, [tab, status, deferredQuery]);
 
   const total = counts ? counts.movie + counts.tv + counts.book + counts.wishlist : null;
@@ -174,14 +175,14 @@ function Shelves() {
                 </span>
               </KamiEyebrow>
               <h2 className="mt-2 flex flex-wrap items-center gap-3 font-display text-3xl tracking-tight text-ink">
-                Shelves
+                {activeMeta.label}
               </h2>
             </div>
             <div className="relative w-full md:w-80">
               <div className="kami-sheet flex items-center px-3 py-2.5 focus-within:ring-2 focus-within:ring-hanko/40">
                 <Search className="mr-2 size-[18px] shrink-0 text-ink-muted" aria-hidden="true" />
                 <label htmlFor="shelves-search" className="sr-only">
-                  Search shelves
+                  Search {activeMeta.label.toLowerCase()}
                 </label>
                 <Input
                   id="shelves-search"
@@ -206,23 +207,30 @@ function Shelves() {
           </div>
 
           <div className="mt-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-            <div className="flex items-center gap-1 overflow-x-auto" role="tablist" aria-label="Shelves">
+            <nav className="flex items-center gap-1 overflow-x-auto" aria-label="Shelves">
               {TAB_META.map((t) => {
                 const Icon = t.icon;
                 const n = counts?.[t.id];
+                const active = tab === t.id;
                 return (
                   <button
                     key={t.id}
                     type="button"
-                    role="tab"
-                    aria-selected={tab === t.id}
+                    aria-current={active ? "page" : undefined}
                     onClick={() => {
-                      setTab(t.id);
-                      setDetailId(null);
+                      void navigate({
+                        to: t.to,
+                        search: {
+                          // Use live filter state — URL sync is debounced, so route
+                          // search can lag behind what the user just typed/toggled.
+                          q: query ? query : undefined,
+                          status: status === "to_try" ? undefined : status,
+                        },
+                      });
                     }}
                     className={cn(
                       "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1.5 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
-                      tab === t.id
+                      active
                         ? "bg-hanko font-semibold text-white shadow-sm"
                         : "font-medium text-ink-muted hover:bg-paper-warm hover:text-ink",
                     )}
@@ -233,9 +241,7 @@ function Shelves() {
                       <span
                         className={cn(
                           "rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
-                          tab === t.id
-                            ? "bg-white/20 text-white"
-                            : "bg-bamboo-wash text-bamboo",
+                          active ? "bg-white/20 text-white" : "bg-bamboo-wash text-bamboo",
                         )}
                       >
                         {n}
@@ -244,7 +250,7 @@ function Shelves() {
                   </button>
                 );
               })}
-            </div>
+            </nav>
             <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
               {STATUS_META.map((s) => (
                 <button
@@ -310,32 +316,32 @@ function Shelves() {
           </div>
         ) : (
           <>
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-            {items.map((item) => (
-              <ShelfTile
-                key={item.id}
-                item={item}
-                tab={tab}
-                onOpen={() => setDetailId(item.id)}
-              />
-            ))}
-          </div>
-          {hasMore ? (
-            <div className="mt-8 flex justify-center">
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={itemsQuery.isFetching}
-                onClick={() => setLimit((n) => n + SHELF_PAGE_SIZE)}
-              >
-                {itemsQuery.isFetching ? (
-                  <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                ) : null}
-                Show more
-              </Button>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+              {items.map((item) => (
+                <ShelfTile
+                  key={item.id}
+                  item={item}
+                  tab={tab}
+                  onOpen={() => setDetailId(item.id)}
+                />
+              ))}
             </div>
-          ) : null}
-        </>
+            {hasMore ? (
+              <div className="mt-8 flex justify-center">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  disabled={itemsQuery.isFetching}
+                  onClick={() => setLimit((n) => n + SHELF_PAGE_SIZE)}
+                >
+                  {itemsQuery.isFetching ? (
+                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                  ) : null}
+                  Show more
+                </Button>
+              </div>
+            ) : null}
+          </>
         )}
       </div>
 
@@ -353,10 +359,7 @@ function Shelves() {
               <Skeleton className="h-3 w-full" />
             </div>
           ) : (
-            <ShelfFolio
-              detail={detail}
-              onClose={() => setDetailId(null)}
-            />
+            <ShelfFolio detail={detail} onClose={() => setDetailId(null)} />
           )}
         </DialogContent>
       </Dialog>
@@ -364,6 +367,7 @@ function Shelves() {
       <AddShelfDialog
         open={addOpen}
         initialTab={tab}
+        lockType
         onClose={() => setAddOpen(false)}
         onAdded={() => setAddOpen(false)}
       />
@@ -379,19 +383,20 @@ const ADD_TYPE_META: { id: ShelfTab; label: string; hint: string }[] = [
 ];
 
 /**
- * Add-to-shelf flow, ported from shelf's `AddItemDialog`:
- * pick a type → find it (TMDB / Open Library / link preview) → confirm details.
- * Lookup metadata (year, genre, author, overview, tmdbId, …) is stored alongside
- * the item by `addShelfItem`, which fans it out into the typed shelf tables.
+ * Add-to-shelf flow: pick a type → find it (TMDB / Open Library / link preview)
+ * → confirm details. Lookup metadata is stored by `addShelfItem`.
  */
-function AddShelfDialog({
+export function AddShelfDialog({
   open,
   initialTab,
+  lockType = false,
   onClose,
   onAdded,
 }: {
   open: boolean;
   initialTab: ShelfTab;
+  /** When true, hide the type tabs (used on per-type shelf pages). */
+  lockType?: boolean;
   onClose: () => void;
   onAdded: () => void;
 }) {
@@ -431,7 +436,7 @@ function AddShelfDialog({
       reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, initialTab]);
 
   function reset() {
     setQuery("");
@@ -552,23 +557,27 @@ function AddShelfDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex items-center gap-1 overflow-x-auto" role="tablist" aria-label="Item type">
-          {ADD_TYPE_META.map((t) => (
-            <button
-              key={t.id}
-              type="button"
-              role="tab"
-              aria-selected={type === t.id}
-              onClick={() => switchType(t.id)}
-              className={cn(
-                "shrink-0 rounded-[0.25rem] px-3 py-1.5 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
-                type === t.id ? "bg-paper-warm font-semibold text-ink" : "font-medium text-ink-muted hover:text-ink",
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+        {!lockType ? (
+          <div className="flex items-center gap-1 overflow-x-auto" role="tablist" aria-label="Item type">
+            {ADD_TYPE_META.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                role="tab"
+                aria-selected={type === t.id}
+                onClick={() => switchType(t.id)}
+                className={cn(
+                  "shrink-0 rounded-[0.25rem] px-3 py-1.5 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                  type === t.id
+                    ? "bg-paper-warm font-semibold text-ink"
+                    : "font-medium text-ink-muted hover:text-ink",
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         {!showForm ? (
           <div className="space-y-4">
@@ -675,10 +684,19 @@ function AddShelfDialog({
           </div>
         ) : (
           <div className="space-y-4">
-            {(imageUrl || metadata.author || metadata.year || metadata.genre || metadata.overview || metadata.description) && (
+            {(imageUrl ||
+              metadata.author ||
+              metadata.year ||
+              metadata.genre ||
+              metadata.overview ||
+              metadata.description) && (
               <div className="flex gap-3">
                 {imageUrl ? (
-                  <img src={imageUrl} alt="" className="h-28 w-20 shrink-0 rounded-lg border border-line object-cover" />
+                  <img
+                    src={imageUrl}
+                    alt=""
+                    className="h-28 w-20 shrink-0 rounded-lg border border-line object-cover"
+                  />
                 ) : null}
                 <div className="min-w-0 space-y-1">
                   {(metadata.year || metadata.genre || metadata.author) && (
@@ -720,33 +738,31 @@ function AddShelfDialog({
                 placeholder="Who recommended it, why it's on the list…"
               />
             </div>
+            <div className="space-y-1.5">
+              <label htmlFor="shelf-add-link" className="font-sans text-xs font-semibold text-ink">
+                Link (optional)
+              </label>
+              <Input
+                id="shelf-add-link"
+                value={link}
+                onChange={(e) => setLink(e.target.value)}
+                type="url"
+                placeholder="https://…"
+              />
+            </div>
             {manual ? (
-              <>
-                <div className="space-y-1.5">
-                  <label htmlFor="shelf-add-link" className="font-sans text-xs font-semibold text-ink">
-                    Link (optional)
-                  </label>
-                  <Input
-                    id="shelf-add-link"
-                    value={link}
-                    onChange={(e) => setLink(e.target.value)}
-                    type="url"
-                    placeholder="https://…"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label htmlFor="shelf-add-image" className="font-sans text-xs font-semibold text-ink">
-                    Image URL (optional)
-                  </label>
-                  <Input
-                    id="shelf-add-image"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    type="url"
-                    placeholder="https://…"
-                  />
-                </div>
-              </>
+              <div className="space-y-1.5">
+                <label htmlFor="shelf-add-image" className="font-sans text-xs font-semibold text-ink">
+                  Image URL (optional)
+                </label>
+                <Input
+                  id="shelf-add-image"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  type="url"
+                  placeholder="https://…"
+                />
+              </div>
             ) : null}
 
             {duplicates.length > 0 ? (
@@ -784,7 +800,11 @@ function AddShelfDialog({
                   Done
                 </Button>
               ) : duplicates.length > 0 ? (
-                <Button type="button" disabled={saving || checkingDuplicates} onClick={() => void save("to_try")}>
+                <Button
+                  type="button"
+                  disabled={saving || checkingDuplicates}
+                  onClick={() => void save("to_try")}
+                >
                   Add anyway
                 </Button>
               ) : (
@@ -823,9 +843,16 @@ function detailTitle(d: ShelfDetail): string {
 }
 
 function statusLabels(type: ShelfTab) {
-  if (type === "book") return { done: "Read", toTry: "To read", markDone: "Mark read", markTry: "Mark unread" };
-  if (type === "wishlist") return { done: "Got it", toTry: "Wanted", markDone: "Mark got it", markTry: "Mark wanted" };
-  return { done: "Watched", toTry: "To watch", markDone: "Mark watched", markTry: "Mark unwatched" };
+  if (type === "book")
+    return { done: "Read", toTry: "To read", markDone: "Mark read", markTry: "Mark unread" };
+  if (type === "wishlist")
+    return { done: "Got it", toTry: "Wanted", markDone: "Mark got it", markTry: "Mark wanted" };
+  return {
+    done: "Watched",
+    toTry: "To watch",
+    markDone: "Mark watched",
+    markTry: "Mark unwatched",
+  };
 }
 
 function ShelfTile({
@@ -1046,12 +1073,18 @@ function ShelfFolio({
           ) : null}
           <dl className="space-y-1 font-sans text-xs text-ink-muted">
             {detail.type === "movie" && detail.item.releaseYear ? (
-              <div className="flex gap-2"><dt>Year</dt><dd className="text-ink">{detail.item.releaseYear}</dd></div>
+              <div className="flex gap-2">
+                <dt>Year</dt>
+                <dd className="text-ink">{detail.item.releaseYear}</dd>
+              </div>
             ) : null}
             {detail.type === "tv" ? (
               <>
                 {detail.item.releaseYear ? (
-                  <div className="flex gap-2"><dt>Year</dt><dd className="text-ink">{detail.item.releaseYear}</dd></div>
+                  <div className="flex gap-2">
+                    <dt>Year</dt>
+                    <dd className="text-ink">{detail.item.releaseYear}</dd>
+                  </div>
                 ) : null}
                 <div className="flex gap-2">
                   <dt>Progress</dt>
@@ -1068,20 +1101,32 @@ function ShelfFolio({
             {detail.type === "book" ? (
               <>
                 {detail.item.author ? (
-                  <div className="flex gap-2"><dt>Author</dt><dd className="text-ink">{detail.item.author}</dd></div>
+                  <div className="flex gap-2">
+                    <dt>Author</dt>
+                    <dd className="text-ink">{detail.item.author}</dd>
+                  </div>
                 ) : null}
                 {detail.item.publishYear ? (
-                  <div className="flex gap-2"><dt>Published</dt><dd className="text-ink">{detail.item.publishYear}</dd></div>
+                  <div className="flex gap-2">
+                    <dt>Published</dt>
+                    <dd className="text-ink">{detail.item.publishYear}</dd>
+                  </div>
                 ) : null}
               </>
             ) : null}
             {detail.type === "wishlist" ? (
               <>
                 {detail.item.price ? (
-                  <div className="flex gap-2"><dt>Price</dt><dd className="text-ink">{detail.item.price}</dd></div>
+                  <div className="flex gap-2">
+                    <dt>Price</dt>
+                    <dd className="text-ink">{detail.item.price}</dd>
+                  </div>
                 ) : null}
                 {detail.item.source ? (
-                  <div className="flex gap-2"><dt>Source</dt><dd className="text-ink">{detail.item.source}</dd></div>
+                  <div className="flex gap-2">
+                    <dt>Source</dt>
+                    <dd className="text-ink">{detail.item.source}</dd>
+                  </div>
                 ) : null}
               </>
             ) : null}
