@@ -25,9 +25,10 @@ const CommandPalette = lazy(() =>
 /**
  * Shared sanctuary shell: skip link, Sanctuary sidebar + utility bar,
  * footer, capture-tools dialog, command palette, and the offline/sync
- * banner. Used by Home, Library, Shelves, Journal, Vault, and Settings so
- * chrome stays identical everywhere. Layout mirrors the Stitch Sanctuary
- * design: fixed left sidebar on desktop, bottom tab bar on mobile.
+ * banner. Used by Home, Library, Journal, Vault, Movies, Series, Books,
+ * Wishlist, and Settings so chrome stays identical everywhere. Layout
+ * mirrors the Stitch Sanctuary design: fixed left sidebar on desktop,
+ * bottom tab bar on mobile.
  */
 export function AppShell({
   active,
