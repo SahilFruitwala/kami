@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useDeferredValue, useEffect, useRef, useState, type MouseEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -56,11 +56,16 @@ export type ShelvesSearch = {
 /** UI filter: `all` means no status predicate on the server. */
 type StatusFilter = "to_try" | "done" | "all";
 
-const TAB_META: { id: ShelfTab; label: string; icon: typeof Clapperboard }[] = [
-  { id: "movie", label: "Movies", icon: Clapperboard },
-  { id: "tv", label: "Series", icon: Tv },
-  { id: "book", label: "Books", icon: BookOpen },
-  { id: "wishlist", label: "Wishlist", icon: Gift },
+const TAB_META: {
+  id: ShelfTab;
+  label: string;
+  icon: typeof Clapperboard;
+  to: "/shelves/movies" | "/shelves/series" | "/shelves/books" | "/shelves/wishlist";
+}[] = [
+  { id: "movie", label: "Movies", icon: Clapperboard, to: "/shelves/movies" },
+  { id: "tv", label: "Series", icon: Tv, to: "/shelves/series" },
+  { id: "book", label: "Books", icon: BookOpen, to: "/shelves/books" },
+  { id: "wishlist", label: "Wishlist", icon: Gift, to: "/shelves/wishlist" },
 ];
 
 const STATUS_META: { id: StatusFilter; label: string }[] = [
@@ -208,14 +213,21 @@ export function ShelvesView({
                 const n = counts?.[t.id];
                 const active = tab === t.id;
                 return (
-                  <Link
+                  <button
                     key={t.id}
-                    to={shelfPath(t.id)}
-                    search={{
-                      q: search.q,
-                      status: search.status,
-                    }}
+                    type="button"
                     aria-current={active ? "page" : undefined}
+                    onClick={() => {
+                      void navigate({
+                        to: t.to,
+                        search: {
+                          // Use live filter state — URL sync is debounced, so route
+                          // search can lag behind what the user just typed/toggled.
+                          q: query ? query : undefined,
+                          status: status === "to_try" ? undefined : status,
+                        },
+                      });
+                    }}
                     className={cn(
                       "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1.5 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
                       active
@@ -235,7 +247,7 @@ export function ShelvesView({
                         {n}
                       </span>
                     ) : null}
-                  </Link>
+                  </button>
                 );
               })}
             </nav>

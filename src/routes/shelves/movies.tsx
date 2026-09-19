@@ -11,5 +11,5 @@ export const Route = createFileRoute("/shelves/movies")({
 
 function MoviesShelfPage() {
   const search = Route.useSearch();
-  return <ShelvesView tab="movie" search={search} />;
+  return <ShelvesView key="movie" tab="movie" search={search} />;
 }

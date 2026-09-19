@@ -11,5 +11,5 @@ export const Route = createFileRoute("/shelves/wishlist")({
 
 function WishlistShelfPage() {
   const search = Route.useSearch();
-  return <ShelvesView tab="wishlist" search={search} />;
+  return <ShelvesView key="wishlist" tab="wishlist" search={search} />;
 }
