@@ -111,7 +111,7 @@ Reuse existing patterns: `kami-desk`, paper/ink CSS variables, `Button` from `ui
 1. SQL table + Drizzle table (copy the `shelfBase()` pattern in `schema.ts`).
 2. Extend `ITEM_TYPES` / `LIST_TYPES`.
 3. Wire `tableForType` / `addShelfItem` (and related switches) in `shelves-fns.ts`.
-4. Add a tab in `/shelves` (`SHELF_TABS` / `TAB_META`).
+4. Add a route under `/shelves/<type>` (`SHELF_TABS` / `SHELF_PATHS`) and a sidebar pane in `site-header.tsx`.
 5. Optional: lookup ServerFn in `shelves-lookup.ts`, query keys + hooks.
 6. Invalidate React Query caches on mutate.
 

@@ -143,7 +143,16 @@ export function CommandPalette({
   }
 
   function go(
-    to: "/" | "/library" | "/journal" | "/shelves/movies" | "/vault" | "/settings",
+    to:
+      | "/"
+      | "/library"
+      | "/journal"
+      | "/vault"
+      | "/settings"
+      | "/shelves/movies"
+      | "/shelves/series"
+      | "/shelves/books"
+      | "/shelves/wishlist",
   ) {
     close();
     void navigate({ to });
@@ -431,13 +440,25 @@ export function CommandPalette({
                 Journal
                 <CommandShortcut>G J</CommandShortcut>
               </CommandItem>
-              <CommandItem
-                value="go shelves movies tv books wishlist"
-                onSelect={() => go("/shelves/movies")}
-              >
+              <CommandItem value="go movies shelf" onSelect={() => go("/shelves/movies")}>
                 <Clapperboard aria-hidden="true" />
-                Shelves
+                Movies
                 <CommandShortcut>G M</CommandShortcut>
+              </CommandItem>
+              <CommandItem value="go series tv shelf" onSelect={() => go("/shelves/series")}>
+                <Tv aria-hidden="true" />
+                Series
+                <CommandShortcut>G T</CommandShortcut>
+              </CommandItem>
+              <CommandItem value="go books shelf" onSelect={() => go("/shelves/books")}>
+                <BookOpen aria-hidden="true" />
+                Books
+                <CommandShortcut>G B</CommandShortcut>
+              </CommandItem>
+              <CommandItem value="go wishlist shelf" onSelect={() => go("/shelves/wishlist")}>
+                <Gift aria-hidden="true" />
+                Wishlist
+                <CommandShortcut>G W</CommandShortcut>
               </CommandItem>
               <CommandItem value="go vault highlights" onSelect={() => go("/vault")}>
                 <Vault aria-hidden="true" />
