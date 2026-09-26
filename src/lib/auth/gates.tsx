@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { useCurrentUserState } from "./use-current-user";
 
 /** Where `RedirectToSignIn` sends signed-out visitors. */
-export const SIGN_IN_PATH = "/login";
+/** TanStack route id for the Clerk catch-all (`src/routes/login.$.tsx`). */
+export const SIGN_IN_PATH = "/login/$";
 
 /** Render children only when a Clerk user is signed in. */
 export function SignedIn({ children }: { children: ReactNode }) {
