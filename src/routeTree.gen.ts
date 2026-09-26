@@ -13,17 +13,18 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as LibraryRouteImport } from './routes/library'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as ReadRouteImport } from './routes/read'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ShelvesRouteRouteImport } from './routes/shelves/route'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as ApiImgRouteImport } from './routes/api/img'
+import { Route as LoginSplatRouteImport } from './routes/login.$'
 import { Route as ShelvesIndexRouteImport } from './routes/shelves/index'
 import { Route as ShelvesBooksRouteImport } from './routes/shelves/books'
 import { Route as ShelvesMoviesRouteImport } from './routes/shelves/movies'
 import { Route as ShelvesSeriesRouteImport } from './routes/shelves/series'
 import { Route as ShelvesWishlistRouteImport } from './routes/shelves/wishlist'
+import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -43,11 +44,6 @@ const JournalRoute = JournalRouteImport.update({
 const LibraryRoute = LibraryRouteImport.update({
   id: '/library',
   path: '/library',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReadRoute = ReadRouteImport.update({
@@ -75,6 +71,11 @@ const ApiImgRoute = ApiImgRouteImport.update({
   path: '/api/img',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginSplatRoute = LoginSplatRouteImport.update({
+  id: '/login/$',
+  path: '/login/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ShelvesIndexRoute = ShelvesIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -100,6 +101,11 @@ const ShelvesWishlistRoute = ShelvesWishlistRouteImport.update({
   path: '/wishlist',
   getParentRoute: () => ShelvesRouteRoute,
 } as any)
+const SignUpSplatRoute = SignUpSplatRouteImport.update({
+  id: '/sign-up/$',
+  path: '/sign-up/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -107,15 +113,16 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
-  '/login': typeof LoginRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
+  '/login/$': typeof LoginSplatRoute
   '/shelves/books': typeof ShelvesBooksRoute
   '/shelves/movies': typeof ShelvesMoviesRoute
   '/shelves/series': typeof ShelvesSeriesRoute
   '/shelves/wishlist': typeof ShelvesWishlistRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/shelves/': typeof ShelvesIndexRoute
 }
 export interface FileRoutesByTo {
@@ -123,15 +130,16 @@ export interface FileRoutesByTo {
   '/app': typeof AppRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
-  '/login': typeof LoginRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
+  '/login/$': typeof LoginSplatRoute
   '/shelves/books': typeof ShelvesBooksRoute
   '/shelves/movies': typeof ShelvesMoviesRoute
   '/shelves/series': typeof ShelvesSeriesRoute
   '/shelves/wishlist': typeof ShelvesWishlistRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/shelves': typeof ShelvesIndexRoute
 }
 export interface FileRoutesById {
@@ -141,15 +149,16 @@ export interface FileRoutesById {
   '/app': typeof AppRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
-  '/login': typeof LoginRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
+  '/login/$': typeof LoginSplatRoute
   '/shelves/books': typeof ShelvesBooksRoute
   '/shelves/movies': typeof ShelvesMoviesRoute
   '/shelves/series': typeof ShelvesSeriesRoute
   '/shelves/wishlist': typeof ShelvesWishlistRoute
+  '/sign-up/$': typeof SignUpSplatRoute
   '/shelves/': typeof ShelvesIndexRoute
 }
 export interface FileRouteTypes {
@@ -160,15 +169,16 @@ export interface FileRouteTypes {
     | '/app'
     | '/journal'
     | '/library'
-    | '/login'
     | '/read'
     | '/settings'
     | '/vault'
     | '/api/img'
+    | '/login/$'
     | '/shelves/books'
     | '/shelves/movies'
     | '/shelves/series'
     | '/shelves/wishlist'
+    | '/sign-up/$'
     | '/shelves/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -176,15 +186,16 @@ export interface FileRouteTypes {
     | '/app'
     | '/journal'
     | '/library'
-    | '/login'
     | '/read'
     | '/settings'
     | '/vault'
     | '/api/img'
+    | '/login/$'
     | '/shelves/books'
     | '/shelves/movies'
     | '/shelves/series'
     | '/shelves/wishlist'
+    | '/sign-up/$'
     | '/shelves'
   id:
     | '__root__'
@@ -193,15 +204,16 @@ export interface FileRouteTypes {
     | '/app'
     | '/journal'
     | '/library'
-    | '/login'
     | '/read'
     | '/settings'
     | '/vault'
     | '/api/img'
+    | '/login/$'
     | '/shelves/books'
     | '/shelves/movies'
     | '/shelves/series'
     | '/shelves/wishlist'
+    | '/sign-up/$'
     | '/shelves/'
   fileRoutesById: FileRoutesById
 }
@@ -211,11 +223,12 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRoute
   JournalRoute: typeof JournalRoute
   LibraryRoute: typeof LibraryRoute
-  LoginRoute: typeof LoginRoute
   ReadRoute: typeof ReadRoute
   SettingsRoute: typeof SettingsRoute
   VaultRoute: typeof VaultRoute
   ApiImgRoute: typeof ApiImgRoute
+  LoginSplatRoute: typeof LoginSplatRoute
+  SignUpSplatRoute: typeof SignUpSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -246,13 +259,6 @@ declare module '@tanstack/react-router' {
       path: '/library'
       fullPath: '/library'
       preLoaderRoute: typeof LibraryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/read': {
@@ -290,6 +296,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiImgRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login/$': {
+      id: '/login/$'
+      path: '/login/$'
+      fullPath: '/login/$'
+      preLoaderRoute: typeof LoginSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/shelves/': {
       id: '/shelves/'
       path: '/'
@@ -325,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShelvesWishlistRouteImport
       parentRoute: typeof ShelvesRouteRoute
     }
+    '/sign-up/$': {
+      id: '/sign-up/$'
+      path: '/sign-up/$'
+      fullPath: '/sign-up/$'
+      preLoaderRoute: typeof SignUpSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -354,11 +374,12 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRoute,
   JournalRoute: JournalRoute,
   LibraryRoute: LibraryRoute,
-  LoginRoute: LoginRoute,
   ReadRoute: ReadRoute,
   SettingsRoute: SettingsRoute,
   VaultRoute: VaultRoute,
   ApiImgRoute: ApiImgRoute,
+  LoginSplatRoute: LoginSplatRoute,
+  SignUpSplatRoute: SignUpSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

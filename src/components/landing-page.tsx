@@ -163,7 +163,7 @@ export function LandingPage() {
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
             <Button type="button" variant="ghost" className="hidden h-10 rounded-[0.25rem] sm:inline-flex" asChild>
-              <Link to="/login" search={{ mode: undefined }}>
+              <Link to="/login/$">
                 Sign In
               </Link>
             </Button>
@@ -172,7 +172,7 @@ export function LandingPage() {
               className="h-10 rounded-[0.25rem] bg-hanko px-3 text-white shadow-sm hover:bg-shu active:translate-y-px sm:px-4"
               asChild
             >
-              <Link to="/login" search={{ mode: "sign-up" }}>
+              <Link to="/sign-up/$">
                 <span className="sm:hidden">Begin</span>
                 <span className="hidden sm:inline">Begin Sanctuary</span>
               </Link>
@@ -208,7 +208,7 @@ export function LandingPage() {
                   className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
                   asChild
                 >
-                  <Link to="/login" search={{ mode: "sign-up" }}>
+                  <Link to="/sign-up/$">
                     Enter the Sanctuary
                     <ArrowRight className="size-4" aria-hidden="true" />
                   </Link>
@@ -358,7 +358,7 @@ export function LandingPage() {
                 className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
                 asChild
               >
-                <Link to="/login" search={{ mode: "sign-up" }}>
+                <Link to="/sign-up/$">
                   Try It Now — It’s Free
                 </Link>
               </Button>
@@ -369,7 +369,7 @@ export function LandingPage() {
                 className="h-11 w-full rounded-[0.25rem] sm:w-auto"
                 asChild
               >
-                <Link to="/login" search={{ mode: undefined }}>I Already Have an Account</Link>
+                <Link to="/login/$">I Already Have an Account</Link>
               </Button>
             </div>
           </div>
@@ -547,7 +547,7 @@ export function LandingPage() {
                 className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
                 asChild
               >
-                <Link to="/login" search={{ mode: "sign-up" }}>
+                <Link to="/sign-up/$">
                   Begin Sanctuary
                 </Link>
               </Button>
@@ -558,7 +558,7 @@ export function LandingPage() {
                 className="h-11 w-full rounded-[0.25rem] border-line bg-surface text-ink-accent hover:bg-paper-warm sm:w-auto"
                 asChild
               >
-                <Link to="/login" search={{ mode: undefined }}>
+                <Link to="/login/$">
                   Sign In
                 </Link>
               </Button>
@@ -600,7 +600,7 @@ export function LandingPage() {
             <p className="kami-label text-ink-soft">Colophon</p>
             <ul className="mt-3 space-y-2">
               <li><a href="#faq" className="hover:text-hanko">FAQ</a></li>
-              <li><Link to="/login" search={{ mode: undefined }} className="hover:text-hanko">Sign In</Link></li>
+              <li><Link to="/login/$" className="hover:text-hanko">Sign In</Link></li>
               <li><span aria-hidden="true">In Praise of Shadows · Tanizaki</span></li>
             </ul>
           </nav>
