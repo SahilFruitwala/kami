@@ -3,9 +3,10 @@ import { Redis } from "@upstash/redis";
 /**
  * Optional Upstash Redis cache for hot server reads + external lookups.
  *
- * - Enabled only when `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`
- *   are set; otherwise every helper is a transparent no-op (local dev,
- *   PGLite preview, CI keep working with zero config).
+ * - Enabled when either `UPSTASH_REDIS_REST_URL` +
+ *   `UPSTASH_REDIS_REST_TOKEN` or the legacy `UPSTASH_URL` +
+ *   `UPSTASH_TOKEN` pair are set; otherwise every helper is a transparent
+ *   no-op (local dev, PGLite preview, CI keep working with zero config).
  * - All values are JSON. TTLs are short for user data (stale reads are
  *   bounded) and long for third-party lookups (TMDB / Open Library /
  *   link previews barely change).
@@ -19,8 +20,10 @@ let client: Redis | null | undefined;
 
 function getClient(): Redis | null {
   if (client !== undefined) return client;
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  // Prefer Upstash's official REST names, but accept the shorter names used
+  // by existing Vercel projects too.
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.UPSTASH_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.UPSTASH_TOKEN;
   if (!url || !token) {
     client = null;
     return client;
