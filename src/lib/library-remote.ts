@@ -1,4 +1,5 @@
 import {
+  LIBRARY_BOOT_LIMIT,
   addLibraryFolder,
   getLibrary,
   importLibrarySnapshot,
@@ -8,6 +9,7 @@ import {
   renameLibraryFolder,
   upsertLibraryItem,
   wipeLibrary,
+  type LibraryCursor,
   type LibrarySnapshot,
 } from "@/lib/library-fns";
 import {
@@ -90,10 +92,12 @@ if (typeof window !== "undefined") {
 }
 
 export function hydrateLibrary(snapshot: LibrarySnapshot) {
-  useLibraryStore.setState({
-    library: snapshot.library,
-    folders: snapshot.folders,
-  });
+  useLibraryStore.getState().setLibrarySnapshot(
+    snapshot.library,
+    snapshot.folders,
+    snapshot.library.length,
+    true,
+  );
 }
 
 function readLegacySnapshot(): LibrarySnapshot | null {
@@ -137,12 +141,23 @@ export function isLibraryBootstrapped(userId: string): boolean {
 
 /** Load the signed-in user's library; one-time import from old localStorage if empty.
  *
- * Guarded per user: every page mounts its own AppGate, so without this each
- * navigation would refetch + replace the store — wiping an item that was just
- * saved optimistically a moment before its server round-trip lands.
+ * Boot is paged: the first page (100 newest) unblocks first paint, then the
+ * remaining pages stream in in the background. Guarded per user: every page
+ * mounts its own AppGate, so without this each navigation would refetch +
+ * replace the store — wiping an item that was just saved optimistically a
+ * moment before its server round-trip lands.
  */
 let bootedUserId: string | null = null;
 let bootInflight: Promise<void> | null = null;
+/** Cursor for the next background/on-demand page; null once the end is reached. */
+let nextPageCursor: LibraryCursor | null | undefined;
+let fillInflight: Promise<void> | null = null;
+/**
+ * Bumped on every boot and on sign-out. Background/on-demand page appends
+ * verify it hasn't changed, so a late page can never repopulate the store
+ * after sign-out or an account switch.
+ */
+let bootSeq = 0;
 
 export async function bootstrapLibraryFromServer(userId: string): Promise<void> {
   if (bootedUserId === userId) return;
@@ -151,31 +166,91 @@ export async function bootstrapLibraryFromServer(userId: string): Promise<void> 
     return;
   }
   bootInflight = (async () => {
+    bootSeq += 1;
     setLibraryRemoteEnabled(true);
-    let snapshot = await getLibrary();
+    const page = await getLibrary({ data: { limit: LIBRARY_BOOT_LIMIT } });
 
-    if (
-      snapshot.library.length === 0 &&
-      snapshot.folders.length === 0 &&
-      !wasLegacyMigrated()
-    ) {
+    if ((page.total ?? 0) === 0 && page.folders.length === 0 && !wasLegacyMigrated()) {
       const legacy = readLegacySnapshot();
       if (legacy && (legacy.library.length > 0 || legacy.folders.length > 0)) {
-        snapshot = await importLibrarySnapshot({ data: legacy });
+        const snapshot = await importLibrarySnapshot({ data: legacy });
         markLegacyMigrated();
-      } else {
-        markLegacyMigrated();
+        hydrateLibrary(snapshot);
+        nextPageCursor = null;
+        bootedUserId = userId;
+        return;
       }
+      markLegacyMigrated();
     }
 
-    hydrateLibrary(snapshot);
+    const complete = page.nextCursor == null;
+    useLibraryStore
+      .getState()
+      .setLibrarySnapshot(page.library, page.folders, page.total, complete);
+    nextPageCursor = page.nextCursor;
     bootedUserId = userId;
+    // Stream the rest without blocking first paint; failures surface via the
+    // Load-more affordance (the cursor is preserved).
+    if (page.nextCursor) void fillRemainingLibrary(userId).catch(() => undefined);
   })();
   try {
     await bootInflight;
   } finally {
     bootInflight = null;
   }
+}
+
+/** Sequentially fetch every remaining page in the background. */
+async function fillRemainingLibrary(userId: string): Promise<void> {
+  if (fillInflight) {
+    await fillInflight;
+    return;
+  }
+  fillInflight = (async () => {
+    const seq = bootSeq;
+    while (nextPageCursor) {
+      // Signed out or switched account mid-fill — stop; the new boot restarts.
+      if (bootedUserId !== userId || seq !== bootSeq) return;
+      const page = await getLibrary({
+        data: { limit: LIBRARY_BOOT_LIMIT, cursor: nextPageCursor },
+      });
+      if (seq !== bootSeq) return;
+      useLibraryStore
+        .getState()
+        .appendLibraryItems(page.library, page.nextCursor == null);
+      nextPageCursor = page.nextCursor;
+    }
+  })();
+  try {
+    await fillInflight;
+  } catch (err) {
+    console.error("[library] background fill failed:", err);
+    throw err;
+  } finally {
+    fillInflight = null;
+  }
+}
+
+/**
+ * On-demand next page (powers the "Load more" button and recovers a failed
+ * background fill). Returns true when further pages may exist.
+ */
+export async function loadMoreLibrary(): Promise<boolean> {
+  const state = useLibraryStore.getState();
+  if (state.libraryComplete) return false;
+  const seq = bootSeq;
+  let cursor = nextPageCursor;
+  if (cursor === undefined) {
+    const last = state.library[state.library.length - 1];
+    cursor = last ? { savedAt: last.savedAt, id: last.id } : null;
+  }
+  const page = await getLibrary({
+    data: cursor ? { limit: LIBRARY_BOOT_LIMIT, cursor } : { limit: LIBRARY_BOOT_LIMIT },
+  });
+  if (seq !== bootSeq) return false;
+  useLibraryStore.getState().appendLibraryItems(page.library, page.nextCursor == null);
+  nextPageCursor = page.nextCursor;
+  return page.nextCursor != null;
 }
 
 export function syncUpsertItem(item: LibraryItem) {
@@ -267,10 +342,25 @@ export function syncRemoveFolder(id: string) {
  *  Explicit user action — not queued; throws when unreachable. */
 export async function wipeLibraryAccount(): Promise<void> {
   await wipeLibrary();
-  useLibraryStore.setState({ library: [], folders: [], openId: null });
+  nextPageCursor = null;
+  useLibraryStore.setState({
+    library: [],
+    folders: [],
+    openId: null,
+    libraryTotal: 0,
+    libraryComplete: true,
+  });
 }
 
 export function clearLibraryLocal() {
   bootedUserId = null;
-  useLibraryStore.setState({ library: [], folders: [], openId: null });
+  nextPageCursor = undefined;
+  bootSeq += 1;
+  useLibraryStore.setState({
+    library: [],
+    folders: [],
+    openId: null,
+    libraryTotal: null,
+    libraryComplete: false,
+  });
 }

@@ -9,25 +9,17 @@ import { user } from "@/lib/schema";
  * Never trust a client-supplied user id — only `auth()` from Clerk.
  */
 
-/** True when a real database is configured server-side. */
-const databaseConfigured = Boolean(process.env.DATABASE_URL?.trim());
-
-/**
- * True when sign-in is on. Clerk may use env keys or keyless/dev credentials;
+/** True when sign-in is on. Clerk may use env keys or keyless/dev credentials;
  * either way we resolve the user via `auth()` rather than a shared dev id.
  */
 export const authConfigured = process.env.VITE_AUTH_ENABLED !== "false";
 
-if (databaseConfigured && !authConfigured) {
+if (!authConfigured) {
   console.error(
-    "[auth] DATABASE_URL is set but auth is disabled (VITE_AUTH_ENABLED=false) " +
-      "— requireUserId() will reject every request (fail closed) rather than " +
-      "share one dev user on a real database.",
+    "[auth] Auth is disabled (VITE_AUTH_ENABLED=false) " +
+      "— requireUserId() will reject every request (fail closed).",
   );
 }
-
-/** Dev fallback user id, used only when auth is disabled (VITE_AUTH_ENABLED=false). */
-export const DEV_USER_ID = "dev-user";
 
 /**
  * Thrown by `requireUserId` when the caller has no valid session. Carries
@@ -47,11 +39,27 @@ export type VerifiedUser = { id: string; email: string | null };
 /**
  * Ensure a local `user` row exists for FK'd library tables.
  * Clerk owns identity; we mirror the id so articles/folders can reference it.
+ *
+ * Cost note: `auth()` above is cheap — `clerkMiddleware()` in `src/start.ts`
+ * already verified the session for this request, so the SDK resolves from
+ * request scope. The expensive parts were the `SELECT user` on *every*
+ * server-function call plus a Clerk API fetch (`users.getUser`) on a miss.
+ * `verifiedUserIds` memoizes ids already confirmed in this isolate, so the
+ * steady state is zero extra DB round-trips per call.
  */
+const verifiedUserIds = new Set<string>();
+
 async function ensureLocalUser(userId: string): Promise<void> {
+  if (verifiedUserIds.has(userId)) return;
+
   const db = await getDb();
   const existing = await db.select({ id: user.id }).from(user).where(eq(user.id, userId)).limit(1);
-  if (existing.length > 0) return;
+  if (existing.length > 0) {
+    // Bound the set so a long-lived isolate can't grow it without limit.
+    if (verifiedUserIds.size > 10_000) verifiedUserIds.clear();
+    verifiedUserIds.add(userId);
+    return;
+  }
 
   let name = "User";
   let email = `${userId}@users.clerk`;
@@ -82,6 +90,10 @@ async function ensureLocalUser(userId: string): Promise<void> {
       updatedAt: now,
     })
     .onConflictDoNothing();
+  // A concurrent first-boot for the same user may have won the insert race —
+  // either way the row exists now.
+  if (verifiedUserIds.size > 10_000) verifiedUserIds.clear();
+  verifiedUserIds.add(userId);
 }
 
 /**
@@ -101,13 +113,10 @@ export async function getSessionUser(): Promise<VerifiedUser | null> {
  */
 export async function requireUserId(): Promise<string> {
   if (!authConfigured) {
-    if (databaseConfigured) {
-      throw new Error(
-        "Auth is disabled (VITE_AUTH_ENABLED=false) but DATABASE_URL is set — " +
-          "refusing to fall back to the shared dev user against a real database.",
-      );
-    }
-    return DEV_USER_ID;
+    throw new Error(
+      "Auth is disabled (VITE_AUTH_ENABLED=false) — " +
+        "refusing to serve requests without sign-in.",
+    );
   }
   const session = await auth();
   if (!session.userId) throw new UnauthorizedError();

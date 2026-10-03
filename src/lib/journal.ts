@@ -12,16 +12,10 @@ export type JournalEntry = {
 
 type JournalState = {
   entries: Record<string, JournalEntry>;
-  setEntry: (date: string, text: string, opts?: { sync?: boolean }) => void;
+  setEntry: (date: string, text: string) => void;
   replaceEntries: (entries: Record<string, JournalEntry>) => void;
   clearAll: () => void;
 };
-
-function remoteSync(run: (m: typeof import("./journal-remote.ts")) => void) {
-  void import("./journal-remote.ts")
-    .then(run)
-    .catch((err) => console.error("[journal]", err));
-}
 
 function dayKey(d: Date): string {
   const y = d.getFullYear();
@@ -161,13 +155,14 @@ export function isDateKey(value: string): boolean {
 }
 
 /**
- * Daily journal (Nisshi) — local cache with server sync via journal-remote.
+ * Daily journal (Nisshi) — paused: local-only store, no server sync.
+ * The `journalEntries` table stays in the DB; nothing reads/writes it.
  */
 export const useJournalStore = create<JournalState>()(
   persist(
     (set) => ({
       entries: {},
-      setEntry: (date, text, opts) => {
+      setEntry: (date, text) => {
         const nextText = text.slice(0, JOURNAL_TEXT_MAX);
         const updatedAt = Date.now();
         set((state) => ({
@@ -176,9 +171,6 @@ export const useJournalStore = create<JournalState>()(
             [date]: { date, text: nextText, updatedAt },
           },
         }));
-        if (opts?.sync !== false) {
-          remoteSync((m) => m.syncUpsertEntry(date, nextText, updatedAt));
-        }
       },
       replaceEntries: (entries) => set({ entries }),
       clearAll: () => set({ entries: {} }),

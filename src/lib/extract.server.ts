@@ -5,17 +5,12 @@ import { pickImageSrc, preferReadableImage } from "./image-url.ts";
 import { absoluteUrl, assertPublicHttpUrl } from "./safe-url.ts";
 import { assertPublicFetchUrl } from "./safe-url.server.ts";
 import { decodeBasicEntities, xmlEscape } from "./xml.ts";
-import {
-  isBareXArticleLink,
-  xArticleBlocksToHtml,
-  type FxXArticle,
-} from "./x-article.ts";
+import { isBareXArticleLink, xArticleBlocksToHtml, type FxXArticle } from "./x-article.ts";
 
 const FETCH_TIMEOUT_MS = 12_000;
 const MAX_HTML_BYTES = 2_000_000;
 const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
-
 
 async function fetchText(
   url: string,
@@ -70,10 +65,10 @@ async function fetchText(
     }
     const contentType = res.headers.get("content-type") ?? "";
     const buf = new Uint8Array(await res.arrayBuffer());
-  if (buf.byteLength > MAX_HTML_BYTES) {
-    throw new Error("That page is too large to convert.");
-  }
-  const text = new TextDecoder("utf-8").decode(buf);
+    if (buf.byteLength > MAX_HTML_BYTES) {
+      throw new Error("That page is too large to convert.");
+    }
+    const text = new TextDecoder("utf-8").decode(buf);
     return { text, finalUrl: current, contentType };
   }
   throw new Error("That page redirected too many times.");
@@ -95,7 +90,9 @@ function classify(url: URL): UrlKind {
   if (isX) {
     const status = url.pathname.match(/\/status\/(\d+)/);
     if (status?.[1]) return { kind: "x-status", id: status[1], url };
-    const article = url.pathname.match(/\/(?:i\/)?(?:[^/]+\/)?article\/(\d+)/) || url.pathname.match(/\/article\/(\d+)/);
+    const article =
+      url.pathname.match(/\/(?:i\/)?(?:[^/]+\/)?article\/(\d+)/) ||
+      url.pathname.match(/\/article\/(\d+)/);
     if (article?.[1]) return { kind: "x-article", id: article[1], url };
   }
   return { kind: "web", url };
@@ -247,10 +244,7 @@ function sanitizeHtml(html: string, baseUrl: string): string {
 
 function tweetTextToHtml(text: string, baseUrl: string): string {
   const escaped = xmlEscape(text);
-  const linked = escaped.replace(
-    /(https?:\/\/[^\s<]+)/g,
-    (url) => `<a href="${url}">${url}</a>`,
-  );
+  const linked = escaped.replace(/(https?:\/\/[^\s<]+)/g, (url) => `<a href="${url}">${url}</a>`);
   const withHandles = linked.replace(
     /(^|[\s])@([A-Za-z0-9_]+)/g,
     `$1<a href="https://x.com/$2">@$2</a>`,
@@ -362,7 +356,15 @@ async function extractTweet(id: string, sourceUrl: string): Promise<Article | nu
   for (const endpoint of endpoints) {
     try {
       const { text } = await fetchText(endpoint, "application/json");
-      const json = JSON.parse(text) as { tweet?: FxTweet; text?: string; user_name?: string; user_screen_name?: string; date?: string; media_extended?: { type?: string; url?: string }[]; tweetURL?: string };
+      const json = JSON.parse(text) as {
+        tweet?: FxTweet;
+        text?: string;
+        user_name?: string;
+        user_screen_name?: string;
+        date?: string;
+        media_extended?: { type?: string; url?: string }[];
+        tweetURL?: string;
+      };
       if (json.tweet) {
         const article = tweetToArticle(json.tweet, sourceUrl);
         if (article) return article;
@@ -393,7 +395,9 @@ async function extractTweet(id: string, sourceUrl: string): Promise<Article | nu
     const json = JSON.parse(text) as { html?: string; author_name?: string; author_url?: string };
     if (json.html) {
       const { document } = parseHTML(`<div id="root">${json.html}</div>`);
-      const plain = (document.getElementById("root")?.textContent ?? "").replace(/\s+/g, " ").trim();
+      const plain = (document.getElementById("root")?.textContent ?? "")
+        .replace(/\s+/g, " ")
+        .trim();
       if (plain) {
         const contentHtml = tweetTextToHtml(plain, sourceUrl);
         const words = countWords(plain);
@@ -423,16 +427,18 @@ function metaContent(document: Document, selectors: string[]): string {
   for (const selector of selectors) {
     const el = document.querySelector(selector);
     const content =
-      el?.getAttribute("content") ||
-      el?.getAttribute("href") ||
-      el?.textContent ||
-      "";
+      el?.getAttribute("content") || el?.getAttribute("href") || el?.textContent || "";
     if (content.trim()) return content.trim();
   }
   return "";
 }
 
-function extractJsonLd(document: Document): { title?: string; author?: string; date?: string; image?: string } {
+function extractJsonLd(document: Document): {
+  title?: string;
+  author?: string;
+  date?: string;
+  image?: string;
+} {
   const scripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
   for (const script of scripts) {
     try {
@@ -447,7 +453,10 @@ function extractJsonLd(document: Document): { title?: string; author?: string; d
           typeof author === "string"
             ? author
             : Array.isArray(author)
-              ? author.map((a) => a?.name).filter(Boolean).join(", ")
+              ? author
+                .map((a) => a?.name)
+                .filter(Boolean)
+                .join(", ")
               : author?.name;
         const image = typeof node.image === "string" ? node.image : node.image?.url;
         return {
@@ -496,7 +505,11 @@ function buildArticle(params: {
   };
 }
 
-function readabilityFromHtml(html: string, pageUrl: string, source: Article["source"]): Article | null {
+function readabilityFromHtml(
+  html: string,
+  pageUrl: string,
+  source: Article["source"],
+): Article | null {
   const { document } = parseHTML(html);
   const base = document.createElement("base");
   base.setAttribute("href", pageUrl);
@@ -508,9 +521,7 @@ function readabilityFromHtml(html: string, pageUrl: string, source: Article["sou
     'meta[name="twitter:title"]',
     "title",
   ]);
-  const ogSite = metaContent(document as unknown as Document, [
-    'meta[property="og:site_name"]',
-  ]);
+  const ogSite = metaContent(document as unknown as Document, ['meta[property="og:site_name"]']);
   const ogAuthor = metaContent(document as unknown as Document, [
     'meta[name="author"]',
     'meta[property="article:author"]',
@@ -525,7 +536,12 @@ function readabilityFromHtml(html: string, pageUrl: string, source: Article["sou
     'meta[name="twitter:image"]',
   ]);
 
-  let parsed: { title?: string | null; byline?: string | null; content?: string | null; excerpt?: string | null } | null = null;
+  let parsed: {
+    title?: string | null;
+    byline?: string | null;
+    content?: string | null;
+    excerpt?: string | null;
+  } | null = null;
   try {
     parsed = new Readability(document as never, {
       charThreshold: 80,
@@ -548,8 +564,7 @@ function readabilityFromHtml(html: string, pageUrl: string, source: Article["sou
     siteName: ogSite,
     published,
     contentHtml:
-      contentHtml ||
-      (title ? `<p>${xmlEscape(textFromHtml(html).slice(0, 4000))}</p>` : ""),
+      contentHtml || (title ? `<p>${xmlEscape(textFromHtml(html).slice(0, 4000))}</p>` : ""),
     source,
     heroImage: hero ? absoluteUrl(hero, pageUrl) : null,
   });
@@ -584,9 +599,7 @@ function markdownToHtml(md: string): string {
       .replace(/\*([^*]+)\*/g, "<em>$1</em>")
       .replace(/@@INLINECODE(\d+)@@/g, (_, i: string) => codeSpans[Number(i)] ?? "");
     // Restore any code spans whose <code> tags got entity-escaped.
-    return formatted
-      .replace(/&lt;code&gt;/g, "<code>")
-      .replace(/&lt;\/code&gt;/g, "</code>");
+    return formatted.replace(/&lt;code&gt;/g, "<code>").replace(/&lt;\/code&gt;/g, "</code>");
   };
 
   let inFence = false;
@@ -680,10 +693,19 @@ function markdownToHtml(md: string): string {
           while (out.length < colCount) out.push("");
           return out;
         };
-        const thead = `<thead><tr>${normalize(headerCells).map((c) => `<th>${inline(c)}</th>`).join("")}</tr></thead>`;
+        const thead = `<thead><tr>${normalize(headerCells)
+          .map((c) => `<th>${inline(c)}</th>`)
+          .join("")}</tr></thead>`;
         const tbody =
           bodyRows.length > 0
-            ? `<tbody>${bodyRows.map((row) => `<tr>${normalize(row).map((c) => `<td>${inline(c)}</td>`).join("")}</tr>`).join("")}</tbody>`
+            ? `<tbody>${bodyRows
+              .map(
+                (row) =>
+                  `<tr>${normalize(row)
+                    .map((c) => `<td>${inline(c)}</td>`)
+                    .join("")}</tr>`,
+              )
+              .join("")}</tbody>`
             : "";
         out.push(`<table>${thead}${tbody}</table>`);
         li = cursor - 1;

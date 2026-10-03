@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -70,7 +70,10 @@ export const articles = pgTable(
     highlights: jsonb("highlights").$type<unknown[]>().notNull().default([]),
   },
   (t) => [
-    index("articles_user_id_idx").on(t.userId),
+    // Covers the boot/listing query (WHERE user_id ORDER BY saved_at DESC,
+    // id DESC). Leftmost column also serves plain user_id filters, replacing
+    // the old articles_user_id_idx (dropped in 0006_library_paging.sql).
+    index("articles_user_saved_idx").on(t.userId, desc(t.savedAt), desc(t.id)),
     index("articles_user_archived_idx").on(t.userId, t.archived),
     uniqueIndex("articles_user_canonical_uidx").on(t.userId, t.canonicalUrl),
   ],

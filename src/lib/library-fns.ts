@@ -8,6 +8,7 @@ import {
   CacheTTL,
   cacheKey,
   cached,
+  hashKeyPart,
   invalidateUserCache,
 } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db";
@@ -157,6 +158,22 @@ export type LibrarySnapshot = {
   folders: Folder[];
 };
 
+/** Keyset cursor into the `saved_at DESC, id DESC` library ordering. */
+export type LibraryCursor = { savedAt: number; id: string };
+
+export type LibraryPage = {
+  library: LibraryItem[];
+  /** Full folder list on the first page; empty on follow-ups. */
+  folders: Folder[];
+  /** Null when the end of the library is reached. */
+  nextCursor: LibraryCursor | null;
+  /** Total article count — computed on the first page only. */
+  total: number | null;
+};
+
+/** Rows per boot page: enough for an instant first paint, small to serialize. */
+export const LIBRARY_BOOT_LIMIT = 100;
+
 /**
  * Sanitize article HTML before persistence. Extract/import paths already
  * sanitize, but `upsertLibraryItem` accepts client-supplied bodies — never
@@ -208,7 +225,7 @@ async function loadSnapshot(userId: string): Promise<LibrarySnapshot> {
         .select(articleListColumns)
         .from(articles)
         .where(eq(articles.userId, userId))
-        .orderBy(desc(articles.savedAt));
+        .orderBy(desc(articles.savedAt), desc(articles.id));
       return {
         folders: folderRows.map((f) => ({ id: f.id, name: f.name })),
         library: articleRows.map((row) => rowToItem(row)),
@@ -220,9 +237,102 @@ async function loadSnapshot(userId: string): Promise<LibrarySnapshot> {
 
 export const getLibrary = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
-  .handler(async ({ context }): Promise<LibrarySnapshot> => {
-    return loadSnapshot(context.userId);
+  .validator((input: unknown) =>
+    z
+      .object({
+        limit: z.number().int().min(1).max(200).optional(),
+        cursor: z
+          .object({
+            savedAt: z.number().int().nonnegative(),
+            id: z.string().min(1).max(2000),
+          })
+          .optional(),
+      })
+      .parse(input ?? {}),
+  )
+  .handler(async ({ context, data }): Promise<LibraryPage> => {
+    // No limit: legacy full snapshot (kept for compat; boot uses pages).
+    if (data.limit == null) {
+      const snap = await loadSnapshot(context.userId);
+      return {
+        library: snap.library,
+        folders: snap.folders,
+        nextCursor: null,
+        total: snap.library.length,
+      };
+    }
+    return loadLibraryPage(context.userId, { limit: data.limit, cursor: data.cursor });
   });
+
+/**
+ * Keyset-paginated library read: `WHERE user_id` + tuple cursor on
+ * `(saved_at, id)` with a matching composite index
+ * (`articles_user_saved_idx`, see 0006_library_paging.sql), so every page is
+ * an index range scan — no full-library sort/serialize on boot.
+ */
+async function loadLibraryPage(
+  userId: string,
+  opts: { limit: number; cursor?: LibraryCursor },
+): Promise<LibraryPage> {
+  const { limit, cursor } = opts;
+  const firstPage = !cursor;
+  return cached(
+    cacheKey(
+      "u",
+      userId,
+      "library",
+      "page",
+      String(limit),
+      cursor ? `${cursor.savedAt}:${hashKeyPart(cursor.id)}` : "first",
+    ),
+    CacheTTL.library,
+    async (): Promise<LibraryPage> => {
+      const db = await getDb();
+      const conds = [eq(articles.userId, userId)];
+      if (cursor) {
+        conds.push(
+          sql`(${articles.savedAt}, ${articles.id}) < (${new Date(cursor.savedAt)}, ${cursor.id})`,
+        );
+      }
+      const [folderRows, articleRows, totalRows] = await Promise.all([
+        firstPage
+          ? db
+              .select({ id: folders.id, name: folders.name })
+              .from(folders)
+              .where(eq(folders.userId, userId))
+              .orderBy(asc(folders.createdAt))
+          : Promise.resolve([] as { id: string; name: string }[]),
+        db
+          .select(articleListColumns)
+          .from(articles)
+          .where(and(...conds))
+          .orderBy(desc(articles.savedAt), desc(articles.id))
+          .limit(limit + 1),
+        firstPage
+          ? db
+              .select({ value: count() })
+              .from(articles)
+              .where(eq(articles.userId, userId))
+          : Promise.resolve([{ value: 0 }]),
+      ]);
+      const pageRows = articleRows.slice(0, limit);
+      const last = pageRows[pageRows.length - 1];
+      return {
+        folders: folderRows.map((f) => ({ id: f.id, name: f.name })),
+        library: pageRows.map((row) => rowToItem(row)),
+        nextCursor:
+          articleRows.length > limit && last
+            ? {
+                savedAt: last.savedAt instanceof Date ? last.savedAt.getTime() : Date.now(),
+                id: last.id,
+              }
+            : null,
+        total: firstPage ? Number(totalRows[0]?.value ?? 0) : null,
+      };
+    },
+    { skipCache: (page) => approxJsonBytes(page) > MAX_CACHED_SNAPSHOT_BYTES },
+  );
+}
 
 /** Full library including article bodies — used for JSON export only. */
 export const getLibraryForExport = createServerFn({ method: "GET" })
