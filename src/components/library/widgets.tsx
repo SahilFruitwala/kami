@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Link } from "@tanstack/react-router";
-import { BookOpen, Clock3, Highlighter, PenLine } from "lucide-react";
+import { BookOpen, Highlighter, PenLine } from "lucide-react";
 import { Hanko, KAMI_GLYPH, RhythmBars, WashiTag } from "@/components/kami.tsx";
 import type { LibraryItem } from "@/lib/store.ts";
 import { useLibraryStore } from "@/lib/store.ts";
@@ -172,9 +172,6 @@ export function ReadingRhythmCard() {
           <span className="size-2 rounded-full bg-ok" aria-hidden="true" />
           Reading Rhythm
         </p>
-        <span className="rounded-[0.25rem] bg-bamboo-wash px-2 py-0.5 font-sans text-[11px] font-semibold text-bamboo">
-          {library.length} bound
-        </span>
       </div>
       <div className="rounded-[0.25rem] bg-bg/70 p-4">
         <RhythmBars
@@ -296,7 +293,6 @@ export function FoldersCard() {
 }
 
 export function SiteFooter() {
-  const { inbox, vaultCount } = useDeskStats();
   return (
     <footer className="w-full bg-paper py-12">
       <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:px-6 md:flex-row lg:px-12">
@@ -319,16 +315,6 @@ export function SiteFooter() {
           >
             Settings
           </Link>
-          <span className="flex items-center gap-1.5 font-sans text-xs text-ink-muted">
-            <Clock3 className="size-3.5" aria-hidden="true" />
-            {inbox} on the desk
-          </span>
-          {vaultCount > 0 ? (
-            <span className="flex items-center gap-1.5 font-sans text-xs text-ink-muted">
-              <Highlighter className="size-3.5" aria-hidden="true" />
-              {vaultCount} inked
-            </span>
-          ) : null}
         </div>
       </div>
     </footer>

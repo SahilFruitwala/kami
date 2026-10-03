@@ -62,9 +62,6 @@ export function LibraryHome({
   const removeItem = useLibraryStore((s) => s.removeItem);
 
   const counts = countByArchive(library);
-  // Headline totals come from the server count so they stay correct while
-  // boot pages stream in; tab splits are computed from loaded rows.
-  const boundTotal = libraryTotal ?? counts.inbox + counts.archived;
 
   const baseVisible = filterLibraryItems(library, {
     tab: filters.tab,
@@ -142,16 +139,9 @@ export function LibraryHome({
         <div className="mx-auto w-full max-w-7xl px-4 pt-8 pb-6 sm:px-6 lg:px-12">
           <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
             <div>
-              <KamiEyebrow>
-                Bunko Desk
-                <span className="size-1 rounded-full bg-hanko/40" aria-hidden="true" />
-                <span className="text-bamboo">Vol. {boundTotal} bound</span>
-              </KamiEyebrow>
+              <KamiEyebrow>Bunko Desk</KamiEyebrow>
               <h2 className="mt-2 flex flex-wrap items-center gap-3 font-display text-3xl tracking-tight text-ink">
                 Library
-                <span className="rounded-full bg-bamboo-wash px-2 py-0.5 font-sans text-[11px] font-medium text-bamboo">
-                  {boundTotal} Works Bound
-                </span>
               </h2>
             </div>
             <div className="relative w-full md:w-80">

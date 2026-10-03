@@ -15,7 +15,6 @@ import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Show, SignInButton, SignUpButton, UserButton } from "@/lib/auth/gates";
 import { useCurrentUser } from "@/lib/auth/use-current-user.ts";
-import { useLibraryStore } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
 
 export type SitePane =
@@ -205,8 +204,7 @@ export function SiteHeader({
         </nav>
 
         <div className="border-t border-line px-5 py-4">
-          <TodayCard />
-          <div className="mt-3 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <UserButton />
             <div className="min-w-0 flex-1 leading-tight">
               <SignedName />
@@ -347,20 +345,6 @@ function PaneLink({
     >
       {children}
     </Link>
-  );
-}
-
-/** Today's practice, after the Stitch sidebar mini-card. */
-function TodayCard() {
-  const library = useLibraryStore((s) => s.library);
-  const passages = library.reduce((n, row) => n + (row.highlights?.length ?? 0), 0);
-  return (
-    <div className="rounded-[0.25rem] bg-paper-warm px-3 py-2">
-      <p className="font-sans text-[11px] font-medium text-ink-soft">
-        {library.length} {library.length === 1 ? "work" : "works"} bound
-      </p>
-      <p className="font-sans text-[11px] text-ink-muted">{passages} passages inked</p>
-    </div>
   );
 }
 
