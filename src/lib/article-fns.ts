@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
+import { rateLimited } from "@/lib/rate-limit-middleware.ts";
 import type { ExtractResult } from "./article-types.ts";
 
 const urlInput = z.object({
@@ -26,7 +27,7 @@ const importInput = z
 // Extraction performs server-side fetches (SSRF/egress surface) and is only
 // used behind AppGate — require a signed-in user like every other mutation.
 export const extractArticle = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
+  .middleware([rateLimited("extract")])
   .validator((input: unknown) => urlInput.parse(input))
   .handler(async ({ data }): Promise<ExtractResult> => {
     const { extractArticleFromUrl } = await import("./extract.server.ts");
@@ -34,7 +35,7 @@ export const extractArticle = createServerFn({ method: "POST" })
   });
 
 export const importArticle = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
+  .middleware([rateLimited("extract")])
   .validator((input: unknown) => importInput.parse(input))
   .handler(async ({ data }): Promise<ExtractResult> => {
     const { articleFromManualImport } = await import("./extract.server.ts");

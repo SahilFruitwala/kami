@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { authMiddleware } from "@/lib/auth/middleware";
+import { rateLimited } from "@/lib/rate-limit-middleware.ts";
 import {
   CacheTTL,
   cacheKey,
@@ -90,7 +90,7 @@ type TmdbResult = {
 };
 
 export const searchTmdb = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
+  .middleware([rateLimited("lookup")])
   .validator((input: unknown) =>
     z.object({ query: z.string().max(200), kind: z.enum(["movie", "tv"]) }).parse(input),
   )
@@ -209,7 +209,7 @@ function dedupeProviders(lists: TmdbProvider[][]): WatchProvider[] {
 
 /** Live streaming / rent availability for a TMDB movie or TV title. */
 export const fetchWatchProviders = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
+  .middleware([rateLimited("lookup")])
   .validator((input: unknown) =>
     z
       .object({
@@ -297,7 +297,7 @@ function bookGenres(subjects: string[] | undefined): string | undefined {
 }
 
 export const searchBooks = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
+  .middleware([rateLimited("lookup")])
   .validator((input: unknown) => z.string().max(200).parse(input))
   .handler(async ({ data: query }): Promise<LookupResult[]> => {
     const q = query.trim();
@@ -431,7 +431,7 @@ async function fetchPreviewHtml(
 }
 
 export const fetchLinkPreview = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
+  .middleware([rateLimited("lookup")])
   .validator((input: unknown) => z.string().max(2000).parse(input))
   .handler(async ({ data: rawUrl }): Promise<LookupResult | null> => {
     // Fetching + parsing a full page costs seconds; og metadata barely

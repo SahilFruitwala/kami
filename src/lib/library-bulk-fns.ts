@@ -95,6 +95,12 @@ export const bulkSaveLinks = createServerFn({ method: "POST" })
       }
     }
 
+    // Each URL costs one extraction against the user's budget.
+    if (pending.length > 0) {
+      const { enforceRateLimit } = await import("./rate-limit.server.ts");
+      await enforceRateLimit(context.userId, "extract", pending.length);
+    }
+
     // Phase 2 — extract clean copies with bounded concurrency. Past the
     // overall deadline, remaining URLs keep null (stub fallback below).
     const found: Array<Article | null> = new Array(pending.length).fill(null);
