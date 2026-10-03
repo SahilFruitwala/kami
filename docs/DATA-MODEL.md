@@ -2,7 +2,7 @@
 
 Schema lives in two places that must stay in sync:
 
-1. **SQL** — `migrations/NNNN_*.sql` (applied at deploy / PGLite boot)
+1. **SQL** — `migrations/NNNN_*.sql` (applied via `pnpm db:migrate`)
 2. **Drizzle** — `src/lib/schema.ts` (TypeScript types + query builder)
 
 Column names in Postgres are **snake_case**. Drizzle fields are **camelCase** mapped via column name strings.
@@ -148,11 +148,8 @@ Movie/TV uniqueness (partial indexes):
 ```mermaid
 flowchart TD
   A[Write migrations/0006_thing.sql] --> B[Update src/lib/schema.ts]
-  B --> C{Backend}
-  C -->|DATABASE_URL set| D["pnpm db:migrate<br/>scripts/migrate.mjs"]
-  C -->|no URL / local PGLite| E[Auto-apply on getDb / Vite plugin]
+  B --> D["pnpm db:migrate<br/>scripts/migrate.mjs"]
   D --> F[_migrations row inserted]
-  E --> F
 ```
 
 Rules:

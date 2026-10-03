@@ -4,28 +4,29 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* MATRIX QUIET — terminal structure, burnt-orange accent on warm charcoal */
-  --color-bg: #0e0d0b;
-  --color-paper: #151312;
-  --color-paper-warm: #1a1714;
-  --color-surface: #1d1a16;
-  --color-ink: #e3dcd3;
-  --color-ink-soft: #b3a89c;
-  --color-ink-muted: #857a6d;
-  --color-faint: #3a342c;
-  --color-line: #2e2922;
-  --color-ink-accent: #d08a5e;
-  --color-danger: #c96a55;
-  --color-ok: #8aa483;
+  /* MATRIX QUIET — terminal structure, burnt-orange accent on warm charcoal.
+     Light is the default; .dark overrides below. */
+  --color-bg: #f4efe6;
+  --color-paper: #faf6ee;
+  --color-paper-warm: #ece3d2;
+  --color-surface: #fffdf8;
+  --color-ink: #201b14;
+  --color-ink-soft: #5b5248;
+  --color-ink-muted: #8a7f72;
+  --color-faint: #c9bda9;
+  --color-line: #e0d5c0;
+  --color-ink-accent: #9c4a30;
+  --color-danger: #a6331b;
+  --color-ok: #546250;
 
   /* Burnt-orange signal — deep terracotta fill, soft apricot text accent */
   --color-hanko: #9c4a30;
   --color-shu: #b25a3a;
-  --color-shu-tint: rgba(208, 138, 94, 0.1);
-  --color-bamboo: #7d8a6f;
-  --color-bamboo-wash: rgba(125, 138, 111, 0.1);
-  --color-aizome: #d08a5e;
-  --color-sumi: #e3dcd3;
+  --color-shu-tint: rgba(156, 74, 48, 0.1);
+  --color-bamboo: #5f6f57;
+  --color-bamboo-wash: rgba(84, 98, 80, 0.12);
+  --color-aizome: #9c4a30;
+  --color-sumi: #201b14;
 
   --font-sans: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
   --font-display: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
@@ -56,12 +57,12 @@
     -moz-osx-font-smoothing: grayscale;
     -webkit-tap-highlight-color: rgba(208, 138, 94, 0.2);
     touch-action: manipulation;
-    color-scheme: dark;
+    color-scheme: light;
     @apply font-sans;
   }
 
   :root {
-    color-scheme: dark;
+    color-scheme: light;
   }
 
   .dark {
@@ -108,7 +109,7 @@
   }
 
   body {
-    background-color: #0e0d0b;
+    background-color: var(--color-bg);
     color: var(--color-ink);
     font-family: var(--font-sans);
     overflow-x: hidden;
@@ -141,39 +142,39 @@
   --duration-exit: 80ms;
   --duration-enter: 100ms;
   --duration-move: 100ms;
-  /* shadcn tokens — quiet matrix, burnt-orange accent. */
-  --background: #0e0d0b;
-  --foreground: #e3dcd3;
-  --card: #1d1a16;
-  --card-foreground: #e3dcd3;
-  --popover: #1d1a16;
-  --popover-foreground: #e3dcd3;
+  /* shadcn tokens — quiet matrix light, burnt-orange accent. */
+  --background: #faf6ee;
+  --foreground: #201b14;
+  --card: #fffdf8;
+  --card-foreground: #201b14;
+  --popover: #fffdf8;
+  --popover-foreground: #201b14;
   --primary: #9c4a30;
-  --primary-foreground: #f5ebe2;
-  --secondary: #1a1714;
-  --secondary-foreground: #b3a89c;
-  --muted: #1a1714;
-  --muted-foreground: #857a6d;
-  --accent: #1a1714;
-  --accent-foreground: #d08a5e;
-  --destructive: #c96a55;
-  --border: #2e2922;
-  --input: #2e2922;
-  --ring: #d08a5e;
-  --chart-1: #d08a5e;
-  --chart-2: #7d8a6f;
-  --chart-3: #857a6d;
-  --chart-4: #3a342c;
-  --chart-5: #2e2922;
+  --primary-foreground: #f7ece2;
+  --secondary: #ece3d2;
+  --secondary-foreground: #201b14;
+  --muted: #ece3d2;
+  --muted-foreground: #8a7f72;
+  --accent: #ece3d2;
+  --accent-foreground: #9c4a30;
+  --destructive: #a6331b;
+  --border: #e0d5c0;
+  --input: #e0d5c0;
+  --ring: #9c4a30;
+  --chart-1: #9c4a30;
+  --chart-2: #5f6f57;
+  --chart-3: #8a7f72;
+  --chart-4: #c9bda9;
+  --chart-5: #e0d5c0;
   --radius: 2px;
-  --sidebar: #0e0d0b;
-  --sidebar-foreground: #e3dcd3;
+  --sidebar: #faf6ee;
+  --sidebar-foreground: #201b14;
   --sidebar-primary: #9c4a30;
-  --sidebar-primary-foreground: #f5ebe2;
-  --sidebar-accent: #1a1714;
-  --sidebar-accent-foreground: #d08a5e;
-  --sidebar-border: #2e2922;
-  --sidebar-ring: #d08a5e;
+  --sidebar-primary-foreground: #f7ece2;
+  --sidebar-accent: #ece3d2;
+  --sidebar-accent-foreground: #9c4a30;
+  --sidebar-border: #e0d5c0;
+  --sidebar-ring: #9c4a30;
 }
 
 @keyframes fade {
@@ -379,7 +380,7 @@
   height: auto;
   border-radius: 2px;
   margin: 0.6em 0;
-  outline: 1px solid #2e2922;
+  outline: 1px solid var(--color-line);
   outline-offset: -1px;
 }
 
@@ -457,7 +458,7 @@
   border-radius: 2px;
   border-spacing: 0;
   border-collapse: collapse;
-  background: #151312;
+  background: var(--color-surface);
   font-family: var(--font-sans);
   font-size: 0.85em;
   line-height: 1.45;
@@ -480,7 +481,7 @@
 .reader-body thead th {
   font-weight: 600;
   white-space: nowrap;
-  background: rgba(208, 138, 94, 0.08);
+  background: var(--color-shu-tint);
   border-bottom: 1px solid var(--color-line);
 }
 
@@ -491,7 +492,7 @@
 
 .article-body tbody tr:nth-child(even) td,
 .reader-body tbody tr:nth-child(even) td {
-  background: rgba(208, 138, 94, 0.03);
+  background: var(--color-shu-tint);
 }
 
 .article-body tbody tr:last-child td,
@@ -527,7 +528,7 @@
   padding: 0.9em 1em;
   border: 1px solid var(--color-line);
   border-radius: 2px;
-  background: #151312;
+  background: var(--color-surface);
   overflow-x: auto;
   line-height: 1.55;
   tab-size: 2;
@@ -559,7 +560,7 @@
   padding: 0.15em 0.35em;
   border: 1px solid var(--color-line);
   border-radius: 2px;
-  background: rgba(208, 138, 94, 0.08);
+  background: var(--color-shu-tint);
   overflow-wrap: break-word;
   word-break: break-word;
 }
@@ -589,8 +590,8 @@
 .reader-body mark[data-color="vermilion"],
 .reader-body mark[data-color="bamboo"],
 .reader-body mark[data-color="sumi"] {
-  background: rgba(208, 138, 94, 0.2);
-  color: #f0e8de;
+  background: rgba(156, 74, 48, 0.22);
+  color: inherit;
   padding: 0;
   margin: 0;
   border: 0;
@@ -620,7 +621,10 @@
 .hl-quote[data-hl="rose"],
 .hl-quote[data-hl="vermilion"],
 .hl-quote[data-hl="bamboo"],
-.hl-quote[data-hl="sumi"],
+.hl-quote[data-hl="sumi"] {
+  background: rgba(156, 74, 48, 0.12);
+  color: var(--color-ink);
+}
 .dark .hl-quote[data-hl="amber"],
 .dark .hl-quote[data-hl="lemon"],
 .dark .hl-quote[data-hl="mint"],
@@ -648,28 +652,33 @@
 
 .screen-scroll {
   scrollbar-width: thin;
-  scrollbar-color: #2e2922 transparent;
+  scrollbar-color: var(--color-faint) transparent;
 }
 
 /* ——— Quiet matrix material — flat, square, subtle grid ——— */
 .kami-sheet {
-  background: #1d1a16;
-  border: 1px solid #2e2922;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
   border-radius: 2px;
   box-shadow: none;
 }
 .kami-sheet-raised {
-  background: #1d1a16;
-  border: 1px solid #3a342c;
+  background: var(--color-surface);
+  border: 1px solid var(--color-faint);
   border-radius: 2px;
   box-shadow: none;
 }
 .kami-desk {
-  background: #0e0d0b;
+  background: var(--color-bg);
+  background-image:
+    linear-gradient(rgba(156, 74, 48, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(156, 74, 48, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+.dark .kami-desk {
   background-image:
     linear-gradient(rgba(208, 138, 94, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(208, 138, 94, 0.035) 1px, transparent 1px);
-  background-size: 28px 28px;
 }
 .kami-grain::before {
   content: "";
@@ -693,15 +702,63 @@
 }
 .kami-hanko {
   background: #9c4a30;
-  color: #f5ebe2;
+  color: #f7ece2;
   box-shadow: none;
 }
 .dark .kami-hanko {
   color: #f5ebe2;
 }
 .kami-washi-tag {
-  border: 1px solid #3a342c;
-  background: rgba(208, 138, 94, 0.08);
+  border: 1px solid var(--color-faint);
+  background: var(--color-shu-tint);
+}
+/* ——— Poster skin: unifies clashing artwork with one warm overlay ——— */
+.poster-frame {
+  position: relative;
+  background: var(--color-paper-warm);
+  isolation: isolate;
+}
+.dark .poster-frame {
+  background: #1a1714;
+}
+.poster-frame img {
+  filter: saturate(0.92) contrast(1.02);
+}
+.dark .poster-frame img {
+  filter: saturate(0.92) contrast(1.02) brightness(0.96);
+}
+.poster-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 253, 248, 0.07) 0%,
+      transparent 28%,
+      transparent 60%,
+      rgba(32, 27, 20, 0.4) 100%
+    ),
+    rgba(156, 74, 48, 0.05);
+  box-shadow:
+    inset 0 0 0 1px rgba(32, 27, 20, 0.16),
+    inset 0 0 28px rgba(32, 27, 20, 0.12);
+}
+.dark .poster-frame::after {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(227, 220, 211, 0.05) 0%,
+      transparent 28%,
+      transparent 60%,
+      rgba(14, 13, 11, 0.55) 100%
+    ),
+    rgba(156, 74, 48, 0.07);
+  box-shadow:
+    inset 0 0 0 1px rgba(227, 220, 211, 0.1),
+    inset 0 0 28px rgba(0, 0, 0, 0.35);
 }
 .kami-label {
   font-family: var(--font-sans);

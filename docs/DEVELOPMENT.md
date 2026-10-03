@@ -6,8 +6,8 @@ Local setup, environment variables, and day-to-day commands.
 
 - **Node.js 22+** (ESM project, `"type": "module"`)
 - **pnpm** recommended (`pnpm-lock.yaml` is committed); npm works
-- **Docker** for local Postgres (optional — PGLite works without it)
-- **Clerk** account for auth (or disable auth for throwaway local work)
+- **Docker** for local Postgres (required — `DATABASE_URL` must be set)
+- **Clerk** account for auth (required)
 
 ---
 
@@ -21,7 +21,7 @@ cp .env.example .env
 
 Edit `.env`:
 
-1. Set Clerk keys from [dashboard.clerk.com](https://dashboard.clerk.com/) **or** set `VITE_AUTH_ENABLED=false`.
+1. Set Clerk keys from [dashboard.clerk.com](https://dashboard.clerk.com/).
 2. Prefer Docker DB:
 
 ```bash
@@ -37,9 +37,10 @@ Default Docker URL (already in `.env.example`):
 DATABASE_URL=postgresql://quarto:quarto@127.0.0.1:5432/quarto
 ```
 
-### Zero-config mode
+### Database
 
-Omit `DATABASE_URL` entirely. The app boots **PGLite**, applies the same SQL migrations in-process, and stores data in memory for that process. Useful for UI spikes; data does not survive restarts the way Docker Postgres does.
+`DATABASE_URL` is required. Local dev uses Docker Postgres; there is no
+embedded fallback.
 
 ---
 
@@ -47,8 +48,8 @@ Omit `DATABASE_URL` entirely. The app boots **PGLite**, applies the same SQL mig
 
 | Variable | Required | Purpose |
 |----------|----------|---------|
-| `DATABASE_URL` | Prod: yes | Postgres connection string. Empty/whitespace = PGLite |
-| `VITE_AUTH_ENABLED` | no | `"false"` disables Clerk (local only; fail-closed with real DB) |
+| `DATABASE_URL` | Prod: yes | Postgres connection string (required) |
+| `VITE_AUTH_ENABLED` | no | `"false"` disables Clerk (fail-closed — every request is rejected) |
 | `VITE_CLERK_PUBLISHABLE_KEY` | when auth on | Clerk publishable key |
 | `CLERK_SECRET_KEY` | when auth on | Clerk secret (server only) |
 | `TMDB_API_TOKEN` | for movie/TV search | TMDB Bearer token; without it search returns empty |
@@ -66,7 +67,7 @@ Env loading: `scripts/with-app-env.mjs` and `scripts/load-dotenv.mjs` load `.env
 | Command | Description |
 |---------|-------------|
 | `pnpm dev` | Dev server on **0.0.0.0:8080** (`strictPort`) |
-| `pnpm build` | Vite production build + copy PGLite assets + migrate |
+| `pnpm build` | Vite production build + migrate |
 | `pnpm preview` | Preview build (port **8081**) |
 | `pnpm db:up` / `db:down` / `db:logs` | Docker Compose Postgres lifecycle |
 | `pnpm db:migrate` | Apply pending `migrations/*.sql` |
@@ -90,12 +91,12 @@ src/
     *.server.ts    # Server-only (do not import from client)
     auth/          # Clerk provider, gates, middleware
     schema.ts      # Drizzle tables
-    db.ts          # getDb() — Neon/pg or PGLite
+    db.ts          # getDb() — Postgres via pg pool
     store.ts       # Zustand library
     journal.ts     # Zustand journal
   styles.css       # Tailwind + Kami design tokens
 migrations/        # Ordered SQL
-scripts/           # migrate, env, pglite copy, import-shelves
+scripts/           # migrate, env, import-shelves
 ```
 
 ---
