@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { AppGate } from "@/components/app-gate.tsx";
+import { AppGate, LibraryGate } from "@/components/app-gate.tsx";
 import { DirectionalTransition } from "@/components/directional-transition.tsx";
 import { ToolsDialog } from "@/components/library/library-dialogs.tsx";
 import { SiteFooter } from "@/components/library/widgets.tsx";
@@ -34,10 +34,18 @@ export function AppShell({
   active,
   onOpenItem,
   children,
+  requireLibrary,
 }: {
   active: SitePane;
   onOpenItem: (item: LibraryItem) => void;
   children: React.ReactNode;
+  /**
+   * Opt in to blocking `children` on the library boot (Library, Vault).
+   * Home / Shelves / Settings omit it so first paint never waits on
+   * `getLibrary` — chrome (header/footer/⌘K) always renders immediately and
+   * the store fills in underneath.
+   */
+  requireLibrary?: boolean;
 }) {
   const tools = useCaptureTools();
 
@@ -47,7 +55,9 @@ export function AppShell({
         <main id="main" className="kami-desk relative flex min-h-dvh flex-col overflow-x-hidden [touch-action:manipulation]">
           <a href="#main" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-ink focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper">Skip to content</a>
           <SiteHeader active={active} onOpenTools={() => tools.setToolsOpen(true)} />
-          <div className="flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pl-60 lg:pb-0">{children}</div>
+          <div className="flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pl-60 lg:pb-0">
+            {requireLibrary ? <LibraryGate>{children}</LibraryGate> : children}
+          </div>
           <div className="pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pl-60 lg:pb-0">
             <SiteFooter />
           </div>

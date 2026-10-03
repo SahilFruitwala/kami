@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { AppGate } from "@/components/app-gate.tsx";
+import { AppGate, LibraryGate } from "@/components/app-gate.tsx";
 import { DirectionalTransition } from "@/components/directional-transition.tsx";
 import { ReaderView } from "@/components/reader-view.tsx";
 import { extractArticle } from "@/lib/article-fns.ts";
@@ -36,9 +36,11 @@ export const Route = createFileRoute("/read")({
 function ReadPage() {
   return (
     <AppGate>
-      <DirectionalTransition>
-        <Read />
-      </DirectionalTransition>
+      <LibraryGate>
+        <DirectionalTransition>
+          <Read />
+        </DirectionalTransition>
+      </LibraryGate>
     </AppGate>
   );
 }

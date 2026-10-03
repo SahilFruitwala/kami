@@ -49,8 +49,8 @@ function HomePage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
 
-  // Runs outside AppGate so `?import=` survives the signed-out landing page
-  // and the library-loading skeleton (both render instead of <Home />).
+  // Runs outside AppGate so `?import=` survives the signed-out landing page.
+  // Home never gates on the library boot, so this stash always runs.
   useEffect(() => {
     if (search.import) {
       stashImportPayload(search.import);

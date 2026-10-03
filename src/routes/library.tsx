@@ -130,7 +130,7 @@ function Library() {
   }
 
   return (
-    <AppShell active="library" onOpenItem={openItem}>
+    <AppShell active="library" onOpenItem={openItem} requireLibrary>
       <LibraryHome
         filters={{
           tab: filters.tab,
