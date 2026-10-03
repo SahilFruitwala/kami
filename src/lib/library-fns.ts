@@ -18,12 +18,15 @@ import { normalizeTag, uid } from "@/lib/store";
 import {
   articleListColumns,
   clampLibraryItemInput,
+  highlightOpSchema,
   highlightSchema,
   libraryItemSchema,
   ownedFolderId,
   rowToItem,
   sanitizeStoredHtml,
+  tagOpSchema,
 } from "@/lib/library-rows.server.ts";
+import { applyHighlightOps, applyTagOps } from "@/lib/item-ops.ts";
 
 export type LibrarySnapshot = {
   library: LibraryItem[];
@@ -194,33 +197,29 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
     const savedAt = new Date(data.savedAt);
     const folderId = await ownedFolderId(db, context.userId, data.folderId);
 
-    const existing = await db
-      .select({ id: articles.id })
-      .from(articles)
-      .where(
-        and(
-          eq(articles.userId, context.userId),
-          or(
-            eq(articles.id, data.id),
-            eq(articles.canonicalUrl, data.canonicalUrl),
-            eq(articles.url, data.url),
-          ),
-        ),
-      )
-      .limit(1);
+    const findExisting = async () =>
+      (
+        await db
+          .select({ id: articles.id, contentHtml: articles.contentHtml })
+          .from(articles)
+          .where(
+            and(
+              eq(articles.userId, context.userId),
+              or(
+                eq(articles.id, data.id),
+                eq(articles.canonicalUrl, data.canonicalUrl),
+                eq(articles.url, data.url),
+              ),
+            ),
+          )
+          .limit(1)
+      )[0];
 
-    if (existing[0]) {
-      const id = existing[0].id;
+    const updateExisting = async (row: { id: string; contentHtml: string }) => {
       // Lean client snapshots omit bodies (`contentHtml: ""`). Never clobber a
       // stored article body with an empty upsert from metadata-only sync.
-      const prior = await db
-        .select({ contentHtml: articles.contentHtml })
-        .from(articles)
-        .where(and(eq(articles.id, id), eq(articles.userId, context.userId)))
-        .limit(1);
-      const bodyHtml =
-        contentHtml.trim() || prior[0]?.contentHtml || "";
-      await db
+      const bodyHtml = contentHtml.trim() || row.contentHtml || "";
+      const [updated] = await db
         .update(articles)
         .set({
           url: data.url,
@@ -242,50 +241,61 @@ export const upsertLibraryItem = createServerFn({ method: "POST" })
           tags,
           highlights,
         })
-        .where(and(eq(articles.id, id), eq(articles.userId, context.userId)));
-      const rows = await db
-        .select()
-        .from(articles)
-        .where(and(eq(articles.id, id), eq(articles.userId, context.userId)))
-        .limit(1);
+        .where(and(eq(articles.id, row.id), eq(articles.userId, context.userId)))
+        .returning();
       await invalidateUserCache(context.userId);
-      return rowToItem(rows[0]!, { includeBody: true });
-    }
+      return rowToItem(updated!, { includeBody: true });
+    };
+
+    const existing = await findExisting();
+    if (existing) return updateExisting(existing);
 
     // `articles.id` is a global primary key, while article uniqueness is
     // intentionally per-user. Extractors use the URL as the initial id, so
     // another user saving the same URL may already own that id. Preserve the
     // URL id when available; otherwise mint an opaque id for this user's row.
-    const idOwner = await db
-      .select({ id: articles.id })
-      .from(articles)
-      .where(eq(articles.id, data.id))
-      .limit(1);
-    const id = idOwner[0] ? uid() : data.id;
+    //
+    // The insert is conflict-tolerant: a concurrent save of the same work
+    // (double-click, two tabs) loses the race on the (user, canonical_url)
+    // unique index and falls back to updating the winner's row instead of
+    // surfacing a unique-violation error.
+    let id = data.id;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const inserted = await db
+        .insert(articles)
+        .values({
+          id,
+          userId: context.userId,
+          url: data.url,
+          canonicalUrl: data.canonicalUrl,
+          title,
+          author,
+          siteName,
+          source: data.source,
+          wordCount: data.wordCount,
+          readingMinutes: data.readingMinutes,
+          excerpt,
+          contentHtml,
+          heroImage,
+          published: data.published,
+          savedAt,
+          archived: data.archived,
+          favorited: data.favorited,
+          note,
+          folderId,
+          tags,
+          highlights,
+        })
+        .onConflictDoNothing()
+        .returning({ id: articles.id });
+      if (inserted[0]) break;
+      const raced = await findExisting();
+      if (raced) return updateExisting(raced);
+      // Conflict was on the global id (another user owns it) — mint a new one.
+      id = uid();
+      if (attempt === 2) throw new Error("Could not save this work. Please try again.");
+    }
 
-    await db.insert(articles).values({
-      id,
-      userId: context.userId,
-      url: data.url,
-      canonicalUrl: data.canonicalUrl,
-      title,
-      author,
-      siteName,
-      source: data.source,
-      wordCount: data.wordCount,
-      readingMinutes: data.readingMinutes,
-      excerpt,
-      contentHtml,
-      heroImage,
-      published: data.published,
-      savedAt,
-      archived: data.archived,
-      favorited: data.favorited,
-      note,
-      folderId,
-      tags,
-      highlights,
-    });
     await invalidateUserCache(context.userId);
     return {
       ...data,
@@ -313,44 +323,61 @@ export const patchLibraryItem = createServerFn({ method: "POST" })
         favorited: z.boolean().optional(),
         note: z.string().max(2000).optional(),
         folderId: z.string().max(200).nullable().optional(),
+        /** Full replacement — prefer `tagOps` so concurrent edits merge. */
         tags: z.array(z.string().max(28)).max(12).optional(),
+        /** Full replacement — prefer `highlightOps` so concurrent edits merge. */
         highlights: z.array(highlightSchema).max(80).optional(),
+        tagOps: z.array(tagOpSchema).max(50).optional(),
+        highlightOps: z.array(highlightOpSchema).max(50).optional(),
       })
       .parse(input),
   )
   .handler(async ({ context, data }): Promise<LibraryItem | null> => {
     const db = await getDb();
-    const current = await db
-      .select()
-      .from(articles)
-      .where(and(eq(articles.id, data.id), eq(articles.userId, context.userId)))
-      .limit(1);
-    if (!current[0]) return null;
+    const folderId =
+      data.folderId !== undefined
+        ? await ownedFolderId(db, context.userId, data.folderId)
+        : undefined;
 
-    const next = rowToItem(current[0], { includeBody: true });
-    if (data.archived !== undefined) next.archived = data.archived;
-    if (data.favorited !== undefined) next.favorited = data.favorited;
-    if (data.note !== undefined) next.note = data.note.slice(0, 2000);
-    if (data.folderId !== undefined) {
-      next.folderId = await ownedFolderId(db, context.userId, data.folderId);
-    }
-    if (data.tags !== undefined) {
-      next.tags = data.tags.map(normalizeTag).filter(Boolean).slice(0, 12);
-    }
-    if (data.highlights !== undefined) next.highlights = data.highlights.slice(0, 80);
+    // Read-modify-write under a row lock: two concurrent patches to the same
+    // work serialize, so ops always apply to the latest tags/highlights.
+    const next = await db.transaction(async (tx) => {
+      const [current] = await tx
+        .select()
+        .from(articles)
+        .where(and(eq(articles.id, data.id), eq(articles.userId, context.userId)))
+        .limit(1)
+        .for("update");
+      if (!current) return null;
 
-    await db
-      .update(articles)
-      .set({
-        archived: next.archived,
-        favorited: next.favorited,
-        note: next.note,
-        folderId: next.folderId,
-        tags: next.tags,
-        highlights: next.highlights,
-      })
-      .where(and(eq(articles.id, data.id), eq(articles.userId, context.userId)));
-    await invalidateUserCache(context.userId);
+      const item = rowToItem(current, { includeBody: true });
+      if (data.archived !== undefined) item.archived = data.archived;
+      if (data.favorited !== undefined) item.favorited = data.favorited;
+      if (data.note !== undefined) item.note = data.note.slice(0, 2000);
+      if (folderId !== undefined) item.folderId = folderId;
+      if (data.tags !== undefined) {
+        item.tags = data.tags.map(normalizeTag).filter(Boolean).slice(0, 12);
+      }
+      if (data.tagOps?.length) item.tags = applyTagOps(item.tags, data.tagOps);
+      if (data.highlights !== undefined) item.highlights = data.highlights.slice(0, 80);
+      if (data.highlightOps?.length) {
+        item.highlights = applyHighlightOps(item.highlights, data.highlightOps);
+      }
+
+      await tx
+        .update(articles)
+        .set({
+          archived: item.archived,
+          favorited: item.favorited,
+          note: item.note,
+          folderId: item.folderId,
+          tags: item.tags,
+          highlights: item.highlights,
+        })
+        .where(and(eq(articles.id, data.id), eq(articles.userId, context.userId)));
+      return item;
+    });
+    if (next) await invalidateUserCache(context.userId);
     return next;
   });
 

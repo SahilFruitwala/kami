@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Article, ArticleSource } from "./article-types.ts";
 import { isPaperTone, type PaperTone } from "./paper-tones.ts";
+import { applyTagOps } from "./item-ops.ts";
 
 function remoteSync(run: (m: typeof import("./library-remote.ts")) => void) {
   void import("./library-remote.ts")
@@ -343,28 +344,27 @@ export const useLibraryStore = create<LibraryState>()(
       addTag: (itemId, tag) => {
         const next = normalizeTag(tag);
         if (!next) return;
-        let tags: string[] | undefined;
+        let changed = false;
         set((state) => ({
           library: mapItem(state.library, itemId, (row) => {
-            if (row.tags.some((t) => t.toLowerCase() === next.toLowerCase())) {
-              tags = row.tags;
-              return row;
-            }
-            tags = [...row.tags, next].slice(0, 12);
+            const tags = applyTagOps(row.tags, [{ op: "add", tag: next }]);
+            if (tags.length === row.tags.length) return row;
+            changed = true;
             return { ...row, tags };
           }),
         }));
-        if (tags) remoteSync((m) => m.syncPatchItem(itemId, { tags }));
+        if (changed) {
+          remoteSync((m) => m.syncPatchItem(itemId, { tagOps: [{ op: "add", tag: next }] }));
+        }
       },
       removeTag: (itemId, tag) => {
-        let tags: string[] | undefined;
         set((state) => ({
-          library: mapItem(state.library, itemId, (row) => {
-            tags = row.tags.filter((t) => t.toLowerCase() !== tag.toLowerCase());
-            return { ...row, tags };
-          }),
+          library: mapItem(state.library, itemId, (row) => ({
+            ...row,
+            tags: applyTagOps(row.tags, [{ op: "remove", tag }]),
+          })),
         }));
-        if (tags) remoteSync((m) => m.syncPatchItem(itemId, { tags }));
+        remoteSync((m) => m.syncPatchItem(itemId, { tagOps: [{ op: "remove", tag }] }));
       },
       renameTagEverywhere: (oldTag, newTag) => {
         const next = normalizeTag(newTag);
@@ -384,7 +384,11 @@ export const useLibraryStore = create<LibraryState>()(
             return { ...row, tags };
           }),
         }));
-        for (const t of touched) remoteSync((m) => m.syncPatchItem(t.id, { tags: t.tags }));
+        for (const t of touched) {
+          remoteSync((m) =>
+            m.syncPatchItem(t.id, { tagOps: [{ op: "rename", from: oldTag, to: next }] }),
+          );
+        }
         return affected;
       },
       removeTagEverywhere: (tag) => {
@@ -400,7 +404,9 @@ export const useLibraryStore = create<LibraryState>()(
             return { ...row, tags };
           }),
         }));
-        for (const t of touched) remoteSync((m) => m.syncPatchItem(t.id, { tags: t.tags }));
+        for (const t of touched) {
+          remoteSync((m) => m.syncPatchItem(t.id, { tagOps: [{ op: "remove", tag }] }));
+        }
         return affected;
       },
       mergeItems: (keepId, dropId) => {
@@ -464,7 +470,9 @@ export const useLibraryStore = create<LibraryState>()(
           }),
           highlightColor: picked,
         }));
-        if (highlights) remoteSync((m) => m.syncPatchItem(itemId, { highlights }));
+        if (highlights) {
+          remoteSync((m) => m.syncPatchItem(itemId, { highlightOps: [{ op: "add", highlight }] }));
+        }
         return highlight;
       },
       removeHighlight: (itemId, highlightId) => {
@@ -475,7 +483,11 @@ export const useLibraryStore = create<LibraryState>()(
             return { ...row, highlights };
           }),
         }));
-        if (highlights) remoteSync((m) => m.syncPatchItem(itemId, { highlights }));
+        if (highlights) {
+          remoteSync((m) =>
+            m.syncPatchItem(itemId, { highlightOps: [{ op: "remove", id: highlightId }] }),
+          );
+        }
       },
       setHighlightColorById: (itemId, highlightId, color) => {
         if (!isHighlightColor(color)) return;
@@ -489,7 +501,11 @@ export const useLibraryStore = create<LibraryState>()(
           }),
           highlightColor: color,
         }));
-        if (highlights) remoteSync((m) => m.syncPatchItem(itemId, { highlights }));
+        if (highlights) {
+          remoteSync((m) =>
+            m.syncPatchItem(itemId, { highlightOps: [{ op: "update", id: highlightId, color }] }),
+          );
+        }
       },
       setHighlightNote: (itemId, highlightId, note) => {
         let highlights: Highlight[] | undefined;
@@ -501,7 +517,13 @@ export const useLibraryStore = create<LibraryState>()(
             return { ...row, highlights };
           }),
         }));
-        if (highlights) remoteSync((m) => m.syncPatchItem(itemId, { highlights }));
+        if (highlights) {
+          remoteSync((m) =>
+            m.syncPatchItem(itemId, {
+              highlightOps: [{ op: "update", id: highlightId, note: note.slice(0, 280) }],
+            }),
+          );
+        }
       },
       setFavorited: (itemId, favorited) => {
         set((state) => ({ library: mapItem(state.library, itemId, (row) => ({ ...row, favorited })) }));

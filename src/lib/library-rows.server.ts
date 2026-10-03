@@ -29,6 +29,28 @@ export const highlightSchema = z.object({
   color: z.enum(highlightColorIds).default("vermilion"),
 });
 
+const tagSchema = z
+  .string()
+  .max(28)
+  .transform(normalizeTag);
+
+export const tagOpSchema = z.discriminatedUnion("op", [
+  z.object({ op: z.literal("add"), tag: tagSchema }),
+  z.object({ op: z.literal("remove"), tag: tagSchema }),
+  z.object({ op: z.literal("rename"), from: tagSchema, to: tagSchema }),
+]);
+
+export const highlightOpSchema = z.discriminatedUnion("op", [
+  z.object({ op: z.literal("add"), highlight: highlightSchema }),
+  z.object({ op: z.literal("remove"), id: z.string().min(1).max(200) }),
+  z.object({
+    op: z.literal("update"),
+    id: z.string().min(1).max(200),
+    color: z.enum(highlightColorIds).optional(),
+    note: z.string().max(280).optional(),
+  }),
+]);
+
 export const libraryItemSchema = z.object({
   // Extracted articles initially use the full URL as their id. The server may
   // replace it with a generated id when that global PK is already used by a
