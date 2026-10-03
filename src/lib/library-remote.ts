@@ -14,6 +14,7 @@ import {
   renameLibraryFolder,
   wipeLibrary,
 } from "@/lib/library-folder-fns";
+import type { HighlightOp, TagOp } from "@/lib/item-ops";
 import {
   useLibraryStore,
   type Folder,
@@ -321,8 +322,8 @@ export function syncPatchItem(
     favorited?: boolean;
     note?: string;
     folderId?: string | null;
-    tags?: string[];
-    highlights?: LibraryItem["highlights"];
+    tagOps?: TagOp[];
+    highlightOps?: HighlightOp[];
   },
 ) {
   sync("update", () => patchLibraryItem({ data: { id, ...patch } }));
