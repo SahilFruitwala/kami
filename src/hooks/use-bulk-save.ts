@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { bulkSaveLinks } from "@/lib/library-fns.ts";
+import { bulkSaveLinks } from "@/lib/library-bulk-fns.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { parseBulkUrls } from "@/lib/session-article.ts";
 

@@ -2,6 +2,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
+import { rateLimited } from "@/lib/rate-limit-middleware.ts";
 import { CacheTTL, cacheKey, cached, invalidateUserCache } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db";
 import { listMembers, tvShows, watchedEpisodes } from "@/lib/schema";
@@ -135,7 +136,7 @@ async function syncShowProgress(itemId: string) {
 }
 
 export const getShowSeasons = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
+  .middleware([rateLimited("lookup")])
   .validator((input: unknown) => z.object({ itemId: z.string().min(1).max(200) }).parse(input))
   .handler(async ({ context, data }) => {
     // Seasons mix shared TMDB structure with per-user ticks — cache the
@@ -193,7 +194,7 @@ export const getShowSeasons = createServerFn({ method: "GET" })
   });
 
 export const getSeasonEpisodes = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
+  .middleware([rateLimited("lookup")])
   .validator((input: unknown) =>
     z
       .object({
@@ -340,7 +341,7 @@ export const setSeasonWatched = createServerFn({ method: "POST" })
 
 /** Mark every TMDB episode watched, or clear all ticks. Also sets show status. */
 export const setShowWatched = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
+  .middleware([rateLimited("lookup")])
   .validator((input: unknown) =>
     z.object({ itemId: z.string().min(1).max(200), watched: z.boolean() }).parse(input),
   )

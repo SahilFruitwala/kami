@@ -37,7 +37,7 @@ import {
 import { articleToItem, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
 import { extractArticle, saveLinkArticle } from "@/lib/article-fns.ts";
 import { persistArticleItem } from "@/lib/library-remote.ts";
-import { shelfPath, type ShelfTab } from "@/lib/shelves-fns.ts";
+import { shelfPath, type ShelfTab } from "@/lib/shelves.ts";
 import type { LookupResult } from "@/lib/shelves-lookup.ts";
 
 type AddPage = "home" | ShelfTab;

@@ -4,10 +4,6 @@ export type BookmarkletPayload = {
   html: string;
 };
 
-export function encodeImportPayload(payload: BookmarkletPayload): string {
-  return btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
-}
-
 export function decodeImportPayload(raw: string): BookmarkletPayload | null {
   try {
     const json = decodeURIComponent(escape(atob(raw)));

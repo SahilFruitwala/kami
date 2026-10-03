@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { AppGate, LibraryGate } from "@/components/app-gate.tsx";
 import { DirectionalTransition } from "@/components/directional-transition.tsx";
 import { ToolsDialog } from "@/components/library/library-dialogs.tsx";
-import { SiteFooter } from "@/components/library/widgets.tsx";
+import { SiteFooter } from "@/components/library/site-footer.tsx";
 import { NameOnboarding } from "@/components/name-onboarding.tsx";
 import { SiteHeader, type SitePane } from "@/components/site-header.tsx";
 import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
