@@ -21,8 +21,11 @@ export const wipeLibrary = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .handler(async ({ context }): Promise<{ ok: true }> => {
     const db = await getDb();
-    await db.delete(articles).where(eq(articles.userId, context.userId));
-    await db.delete(folders).where(eq(folders.userId, context.userId));
+    // One transaction: a failure part-way never leaves a half-wiped account.
+    await db.transaction(async (tx) => {
+      await tx.delete(articles).where(eq(articles.userId, context.userId));
+      await tx.delete(folders).where(eq(folders.userId, context.userId));
+    });
     await invalidateUserCache(context.userId);
     return { ok: true };
   });
@@ -110,13 +113,15 @@ export const removeLibraryFolder = createServerFn({ method: "POST" })
   .validator((input: unknown) => z.object({ id: z.string().min(1).max(200) }).parse(input))
   .handler(async ({ context, data }): Promise<{ ok: true }> => {
     const db = await getDb();
-    await db
-      .update(articles)
-      .set({ folderId: null })
-      .where(and(eq(articles.userId, context.userId), eq(articles.folderId, data.id)));
-    await db
-      .delete(folders)
-      .where(and(eq(folders.id, data.id), eq(folders.userId, context.userId)));
+    await db.transaction(async (tx) => {
+      await tx
+        .update(articles)
+        .set({ folderId: null })
+        .where(and(eq(articles.userId, context.userId), eq(articles.folderId, data.id)));
+      await tx
+        .delete(folders)
+        .where(and(eq(folders.id, data.id), eq(folders.userId, context.userId)));
+    });
     await invalidateUserCache(context.userId);
     return { ok: true };
   });
@@ -155,69 +160,97 @@ export const importLibrarySnapshot = createServerFn({ method: "POST" })
       return loadSnapshot(context.userId);
     }
 
-    for (const folder of data.folders.slice(0, 24)) {
-      // Remap ids already taken by another tenant so we never link to (or
-      // silently collide with) a foreign folder row.
-      const taken = await db
-        .select({ id: folders.id, userId: folders.userId })
-        .from(folders)
-        .where(eq(folders.id, folder.id))
-        .limit(1);
-      let folderId = folder.id;
-      if (taken[0] && taken[0].userId !== context.userId) {
-        folderId = uid();
-        for (const item of data.library) {
-          if (item.folderId === folder.id) item.folderId = folderId;
-        }
-      }
-      await db
-        .insert(folders)
-        .values({
-          id: folderId,
-          userId: context.userId,
-          name: folder.name.trim().slice(0, 32),
-        })
-        .onConflictDoNothing({ target: folders.id });
-    }
-
-    const ownedFolderIds = new Set(
-      (
-        await db.select({ id: folders.id }).from(folders).where(eq(folders.userId, context.userId))
-      ).map((f) => f.id),
+    // Sanitize outside the transaction so it doesn't hold a connection.
+    const items = data.library.slice(0, 200);
+    const bodies = await Promise.all(
+      items.map((item) => sanitizeStoredHtml(item.contentHtml, item.canonicalUrl || item.url)),
     );
 
-    for (const item of data.library.slice(0, 200)) {
-      const tags = item.tags.map(normalizeTag).filter(Boolean).slice(0, 12);
-      const highlights = item.highlights.slice(0, 80);
-      const folderId = item.folderId && ownedFolderIds.has(item.folderId) ? item.folderId : null;
-      const contentHtml = await sanitizeStoredHtml(item.contentHtml, item.canonicalUrl || item.url);
-      await db
-        .insert(articles)
-        .values({
-          id: item.id,
-          userId: context.userId,
-          url: item.url,
-          canonicalUrl: item.canonicalUrl,
-          title: item.title,
-          author: item.author,
-          siteName: item.siteName,
-          source: item.source,
-          wordCount: item.wordCount,
-          readingMinutes: item.readingMinutes,
-          excerpt: item.excerpt,
-          contentHtml,
-          heroImage: item.heroImage,
-          published: item.published,
-          savedAt: new Date(item.savedAt),
-          archived: item.archived,
-          favorited: item.favorited,
-          note: item.note,
-          folderId,
-          tags,
-          highlights,
-        })
-        .onConflictDoNothing({ target: articles.id });
-    }
+    await db.transaction(async (tx) => {
+      for (const folder of data.folders.slice(0, 24)) {
+        // Remap ids already taken by another tenant so we never link to (or
+        // silently collide with) a foreign folder row.
+        const taken = await tx
+          .select({ id: folders.id, userId: folders.userId })
+          .from(folders)
+          .where(eq(folders.id, folder.id))
+          .limit(1);
+        let folderId = folder.id;
+        if (taken[0] && taken[0].userId !== context.userId) {
+          folderId = uid();
+          for (const item of data.library) {
+            if (item.folderId === folder.id) item.folderId = folderId;
+          }
+        }
+        await tx
+          .insert(folders)
+          .values({
+            id: folderId,
+            userId: context.userId,
+            name: folder.name.trim().slice(0, 32),
+          })
+          .onConflictDoNothing({ target: folders.id });
+      }
+
+      const ownedFolderIds = new Set(
+        (
+          await tx
+            .select({ id: folders.id })
+            .from(folders)
+            .where(eq(folders.userId, context.userId))
+        ).map((f) => f.id),
+      );
+
+      for (const [index, item] of items.entries()) {
+        const tags = item.tags.map(normalizeTag).filter(Boolean).slice(0, 12);
+        const highlights = item.highlights.slice(0, 80);
+        const folderId = item.folderId && ownedFolderIds.has(item.folderId) ? item.folderId : null;
+        const contentHtml = bodies[index]!;
+        // An id owned by another user gets one retry with a fresh id; a
+        // duplicate canonical URL within the import is skipped.
+        for (const id of [item.id, uid()]) {
+          const inserted = await tx
+            .insert(articles)
+            .values({
+              id,
+              userId: context.userId,
+              url: item.url,
+              canonicalUrl: item.canonicalUrl,
+              title: item.title,
+              author: item.author,
+              siteName: item.siteName,
+              source: item.source,
+              wordCount: item.wordCount,
+              readingMinutes: item.readingMinutes,
+              excerpt: item.excerpt,
+              contentHtml,
+              heroImage: item.heroImage,
+              published: item.published,
+              savedAt: new Date(item.savedAt),
+              archived: item.archived,
+              favorited: item.favorited,
+              note: item.note,
+              folderId,
+              tags,
+              highlights,
+            })
+            .onConflictDoNothing()
+            .returning({ id: articles.id });
+          if (inserted[0]) break;
+          const dup = await tx
+            .select({ id: articles.id })
+            .from(articles)
+            .where(
+              and(
+                eq(articles.userId, context.userId),
+                eq(articles.canonicalUrl, item.canonicalUrl),
+              ),
+            )
+            .limit(1);
+          if (dup[0]) break;
+        }
+      }
+    });
 
     await invalidateUserCache(context.userId);
     return loadSnapshot(context.userId);

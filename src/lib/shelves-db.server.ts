@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
 import {
@@ -69,22 +69,38 @@ export async function getOrCreateDefaultList(userId: string, type: ItemType): Pr
     .limit(1);
   if (existing[0]) return existing[0].id;
 
-  const listId = crypto.randomUUID();
-  await db.insert(lists).values({
-    id: listId,
-    name: DEFAULT_LIST_NAMES[type],
-    type,
-    ownerId: userId,
-    isDefault: true,
+  // Create under a per-(user, type) advisory lock so two concurrent first adds
+  // can't create two default lists, and the list + owner membership commit
+  // together.
+  return db.transaction(async (tx) => {
+    await tx.execute(
+      sql`select pg_advisory_xact_lock(hashtext(${`default-list:${userId}:${type}`}))`,
+    );
+    const raced = await tx
+      .select({ id: lists.id })
+      .from(lists)
+      .where(and(eq(lists.ownerId, userId), eq(lists.type, type), eq(lists.isDefault, true)))
+      .limit(1);
+    if (raced[0]) return raced[0].id;
+    const listId = crypto.randomUUID();
+    await tx.insert(lists).values({
+      id: listId,
+      name: DEFAULT_LIST_NAMES[type],
+      type,
+      ownerId: userId,
+      isDefault: true,
+    });
+    await tx.insert(listMembers).values({ id: crypto.randomUUID(), listId, userId, role: "owner" });
+    return listId;
   });
-  await db.insert(listMembers).values({ id: crypto.randomUUID(), listId, userId, role: "owner" });
-  return listId;
 }
 
 export type AppDb = Awaited<ReturnType<typeof getDb>>;
+/** A database handle or an open transaction on it. */
+export type DbOrTx = AppDb | Parameters<Parameters<AppDb["transaction"]>[0]>[0];
 
 export async function syncGenres(
-  db: AppDb,
+  db: DbOrTx,
   type: ItemType,
   itemId: string,
   genreValue: string | undefined,

@@ -114,77 +114,103 @@ export const bulkSaveLinks = createServerFn({ method: "POST" })
       Array.from({ length: Math.min(BULK_EXTRACT_CONCURRENCY, pending.length) }, () => worker()),
     );
 
-    // Phase 3 — insert rows sequentially.
-    for (let slot = 0; slot < pending.length; slot += 1) {
-      const job = pending[slot]!;
-      const article: Article = found[slot] ?? {
-        url: job.href,
-        canonicalUrl: job.href,
-        title: job.host,
-        author: "",
-        siteName: job.host,
-        published: null,
-        excerpt: "",
-        contentHtml: "",
-        wordCount: 0,
-        readingMinutes: 1,
-        source: "blog",
-        heroImage: null,
-      };
-      // Mirror the single-upsert clamp so extractor output always fits the row.
-      const item = articleToItem(
-        {
-          url: article.url,
-          canonicalUrl: article.canonicalUrl,
-          title: article.title.trim().slice(0, 500) || job.host,
-          author: article.author.slice(0, 300),
-          siteName: article.siteName.slice(0, 200),
-          published: article.published ? article.published.slice(0, 100) : null,
-          excerpt: article.excerpt.slice(0, 4000),
-          contentHtml: article.contentHtml.slice(0, 1_500_000),
-          wordCount: article.wordCount,
-          readingMinutes: article.readingMinutes,
-          source: article.source,
-          heroImage:
-            article.heroImage && article.heroImage.length <= 2000 ? article.heroImage : null,
-        },
-        { savedAt: now - job.index },
-      );
-      const idOwner = await db
-        .select({ id: articles.id })
-        .from(articles)
-        .where(eq(articles.id, item.id))
-        .limit(1);
-      const id = idOwner[0] ? uid() : item.id;
-      const row: LibraryItem = { ...item, id };
-      await db.insert(articles).values({
-        id,
-        userId: context.userId,
-        url: row.url,
-        canonicalUrl: row.canonicalUrl,
-        title: row.title,
-        author: row.author,
-        siteName: row.siteName,
-        source: row.source,
-        wordCount: row.wordCount,
-        readingMinutes: row.readingMinutes,
-        excerpt: row.excerpt,
-        contentHtml: row.contentHtml,
-        heroImage: row.heroImage,
-        published: row.published,
-        savedAt: new Date(row.savedAt),
-        archived: false,
-        favorited: false,
-        note: "",
-        folderId: null,
-        tags: [],
-        highlights: [],
-      });
-      // Strip bodies from the response — the client row hydrates the body from
-      // the DB when the work is opened, keeping bulk payloads small.
-      saved.push({ ...row, contentHtml: "" });
+    // Phase 3 — insert rows sequentially. Invalidate in `finally` so rows
+    // committed before an unexpected error still show up on next read.
+    try {
+      for (let slot = 0; slot < pending.length; slot += 1) {
+        const job = pending[slot]!;
+        const article: Article = found[slot] ?? {
+          url: job.href,
+          canonicalUrl: job.href,
+          title: job.host,
+          author: "",
+          siteName: job.host,
+          published: null,
+          excerpt: "",
+          contentHtml: "",
+          wordCount: 0,
+          readingMinutes: 1,
+          source: "blog",
+          heroImage: null,
+        };
+        // Mirror the single-upsert clamp so extractor output always fits the row.
+        const item = articleToItem(
+          {
+            url: article.url,
+            canonicalUrl: article.canonicalUrl,
+            title: article.title.trim().slice(0, 500) || job.host,
+            author: article.author.slice(0, 300),
+            siteName: article.siteName.slice(0, 200),
+            published: article.published ? article.published.slice(0, 100) : null,
+            excerpt: article.excerpt.slice(0, 4000),
+            contentHtml: article.contentHtml.slice(0, 1_500_000),
+            wordCount: article.wordCount,
+            readingMinutes: article.readingMinutes,
+            source: article.source,
+            heroImage:
+              article.heroImage && article.heroImage.length <= 2000 ? article.heroImage : null,
+          },
+          { savedAt: now - job.index },
+        );
+        // Conflict-tolerant: a URL whose canonical form was already saved (or
+        // that two inputs resolved to) is skipped instead of aborting the batch
+        // with a unique violation after earlier rows were committed. An id owned
+        // by another user gets a fresh id and one retry.
+        let row: LibraryItem | null = null;
+        for (const id of [item.id, uid()]) {
+          const inserted = await db
+            .insert(articles)
+            .values({
+              id,
+              userId: context.userId,
+              url: item.url,
+              canonicalUrl: item.canonicalUrl,
+              title: item.title,
+              author: item.author,
+              siteName: item.siteName,
+              source: item.source,
+              wordCount: item.wordCount,
+              readingMinutes: item.readingMinutes,
+              excerpt: item.excerpt,
+              contentHtml: item.contentHtml,
+              heroImage: item.heroImage,
+              published: item.published,
+              savedAt: new Date(item.savedAt),
+              archived: false,
+              favorited: false,
+              note: "",
+              folderId: null,
+              tags: [],
+              highlights: [],
+            })
+            .onConflictDoNothing()
+            .returning({ id: articles.id });
+          if (inserted[0]) {
+            row = { ...item, id };
+            break;
+          }
+          const dup = await db
+            .select({ id: articles.id })
+            .from(articles)
+            .where(
+              and(
+                eq(articles.userId, context.userId),
+                or(eq(articles.canonicalUrl, item.canonicalUrl), eq(articles.url, item.url)),
+              ),
+            )
+            .limit(1);
+          if (dup[0]) break;
+        }
+        if (!row) {
+          skipped.push(job.raw);
+          continue;
+        }
+        // Strip bodies from the response — the client row hydrates the body from
+        // the DB when the work is opened, keeping bulk payloads small.
+        saved.push({ ...row, contentHtml: "" });
+      }
+    } finally {
+      if (saved.length > 0) await invalidateUserCache(context.userId);
     }
-
-    if (saved.length > 0) await invalidateUserCache(context.userId);
     return { saved, skipped, errors };
   });

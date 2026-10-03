@@ -62,113 +62,126 @@ export const addShelfItem = createServerFn({ method: "POST" })
       }
     }
 
+    // Item row, genre links and the activity entry commit together.
     try {
-      if (data.type === "movie") {
-        await db.insert(movies).values({
-          id,
+      await db.transaction(async (tx) => {
+        if (data.type === "movie") {
+          await tx.insert(movies).values({
+            id,
+            listId,
+            title,
+            normalizedTitle,
+            notes,
+            link,
+            imageUrl,
+            status,
+            extraMetadata,
+            addedBy: context.userId,
+            completedAt,
+            releaseYear: optionalInteger(metadata.year),
+            overview: metadata.overview ?? null,
+            tmdbId,
+          });
+        } else if (data.type === "tv") {
+          await tx.insert(tvShows).values({
+            id,
+            listId,
+            title,
+            normalizedTitle,
+            notes,
+            link,
+            imageUrl,
+            status,
+            extraMetadata,
+            addedBy: context.userId,
+            completedAt,
+            releaseYear: optionalInteger(metadata.year),
+            overview: metadata.overview ?? null,
+            tmdbId,
+            episodesWatched: 0,
+          });
+        } else if (data.type === "book") {
+          await tx.insert(books).values({
+            id,
+            listId,
+            title,
+            normalizedTitle,
+            notes,
+            link,
+            imageUrl,
+            status,
+            extraMetadata,
+            addedBy: context.userId,
+            completedAt,
+            author: metadata.author ?? null,
+            publishYear: optionalInteger(metadata.year),
+            overview: metadata.overview ?? null,
+          });
+        } else if (data.type === "restaurant") {
+          await tx.insert(restaurants).values({
+            id,
+            listId,
+            title,
+            normalizedTitle,
+            notes,
+            link,
+            imageUrl,
+            status,
+            extraMetadata,
+            addedBy: context.userId,
+            completedAt,
+            address: metadata.address ?? null,
+            rating: metadata.rating ?? null,
+            price: metadata.price ?? null,
+            kind: metadata.kind ?? null,
+          });
+        } else if (data.type === "place") {
+          await tx.insert(places).values({
+            id,
+            listId,
+            title,
+            normalizedTitle,
+            notes,
+            link,
+            imageUrl,
+            status,
+            extraMetadata,
+            addedBy: context.userId,
+            completedAt,
+            address: metadata.address ?? null,
+            rating: metadata.rating ?? null,
+            price: metadata.price ?? null,
+            kind: metadata.kind ?? null,
+          });
+        } else {
+          await tx.insert(wishlistItems).values({
+            id,
+            listId,
+            title,
+            normalizedTitle,
+            notes,
+            link,
+            imageUrl,
+            status,
+            extraMetadata,
+            addedBy: context.userId,
+            completedAt,
+            price: metadata.price ?? null,
+            description: metadata.description ?? null,
+            source: metadata.source ?? null,
+          });
+        }
+
+        await syncGenres(tx, data.type, id, metadata.genre);
+        await tx.insert(activity).values({
+          id: crypto.randomUUID(),
           listId,
-          title,
-          normalizedTitle,
-          notes,
-          link,
-          imageUrl,
-          status,
-          extraMetadata,
-          addedBy: context.userId,
-          completedAt,
-          releaseYear: optionalInteger(metadata.year),
-          overview: metadata.overview ?? null,
-          tmdbId,
+          userId: context.userId,
+          action: status === "done" ? "completed" : "added",
+          itemTitle: title,
+          itemType: data.type,
         });
-      } else if (data.type === "tv") {
-        await db.insert(tvShows).values({
-          id,
-          listId,
-          title,
-          normalizedTitle,
-          notes,
-          link,
-          imageUrl,
-          status,
-          extraMetadata,
-          addedBy: context.userId,
-          completedAt,
-          releaseYear: optionalInteger(metadata.year),
-          overview: metadata.overview ?? null,
-          tmdbId,
-          episodesWatched: 0,
-        });
-      } else if (data.type === "book") {
-        await db.insert(books).values({
-          id,
-          listId,
-          title,
-          normalizedTitle,
-          notes,
-          link,
-          imageUrl,
-          status,
-          extraMetadata,
-          addedBy: context.userId,
-          completedAt,
-          author: metadata.author ?? null,
-          publishYear: optionalInteger(metadata.year),
-          overview: metadata.overview ?? null,
-        });
-      } else if (data.type === "restaurant") {
-        await db.insert(restaurants).values({
-          id,
-          listId,
-          title,
-          normalizedTitle,
-          notes,
-          link,
-          imageUrl,
-          status,
-          extraMetadata,
-          addedBy: context.userId,
-          completedAt,
-          address: metadata.address ?? null,
-          rating: metadata.rating ?? null,
-          price: metadata.price ?? null,
-          kind: metadata.kind ?? null,
-        });
-      } else if (data.type === "place") {
-        await db.insert(places).values({
-          id,
-          listId,
-          title,
-          normalizedTitle,
-          notes,
-          link,
-          imageUrl,
-          status,
-          extraMetadata,
-          addedBy: context.userId,
-          completedAt,
-          address: metadata.address ?? null,
-          rating: metadata.rating ?? null,
-          price: metadata.price ?? null,
-          kind: metadata.kind ?? null,
-        });
-      } else {
-        await db.insert(wishlistItems).values({
-          id,
-          listId,
-          title,
-          normalizedTitle,
-          notes,
-          link,
-          imageUrl,
-          status,
-          extraMetadata,
-          addedBy: context.userId,
-          completedAt,
-          price: metadata.price ?? null,
-          description: metadata.description ?? null,
-          source: metadata.source ?? null,
-        });
-      }
+      });
     } catch (err) {
       // Race: unique indexes on movies/tv may reject a concurrent insert.
       if ((data.type === "movie" || data.type === "tv") && isUniqueViolation(err)) {
@@ -177,15 +190,6 @@ export const addShelfItem = createServerFn({ method: "POST" })
       throw err;
     }
 
-    await syncGenres(db, data.type, id, metadata.genre);
-    await db.insert(activity).values({
-      id: crypto.randomUUID(),
-      listId,
-      userId: context.userId,
-      action: status === "done" ? "completed" : "added",
-      itemTitle: title,
-      itemType: data.type,
-    });
     await invalidateUserCache(context.userId);
     return { id, listId, type: data.type, status };
   });
@@ -289,14 +293,16 @@ export const deleteShelfItem = createServerFn({ method: "POST" })
 
     const db = await getDb();
     const table = tableForType(data.type);
-    await db.delete(table).where(eq(table.id, data.id));
-    await db.insert(activity).values({
-      id: crypto.randomUUID(),
-      listId: item.listId,
-      userId: context.userId,
-      action: "removed",
-      itemTitle: item.title,
-      itemType: data.type,
+    await db.transaction(async (tx) => {
+      await tx.delete(table).where(eq(table.id, data.id));
+      await tx.insert(activity).values({
+        id: crypto.randomUUID(),
+        listId: item.listId,
+        userId: context.userId,
+        action: "removed",
+        itemTitle: item.title,
+        itemType: data.type,
+      });
     });
     await invalidateUserCache(context.userId);
     return { deleted: true };
