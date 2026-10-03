@@ -28,3 +28,11 @@ describe("production CSP allows Clerk custom Frontend API", () => {
     assert.match(directive("worker-src"), /'self' blob:/);
   });
 });
+
+describe("production CSP stays minimal", () => {
+  it("does not allow hosts only the server talks to", () => {
+    for (const host of ["r.jina.ai", "fxtwitter.com", "vxtwitter.com", "publish.twitter.com", "fonts.googleapis.com"]) {
+      assert.ok(!csp.includes(host), `CSP should not list ${host}`);
+    }
+  });
+});
