@@ -22,6 +22,8 @@ import { useReaderProgress, useSelectionMenu } from "@/hooks/use-reader-selectio
 import { useReaderTts } from "@/hooks/use-reader-tts.ts";
 import { TONES } from "@/lib/paper-tones.ts";
 import { cn } from "@/lib/utils.ts";
+import { FocusWave } from "@/components/reader/focus-wave.tsx";
+import { MarginaliaHighlights } from "@/components/reader/marginalia-highlights.tsx";
 
 export function ReaderView({
   item,
@@ -698,113 +700,5 @@ export function ReaderView({
         </div>
       )}
     </div>
-  );
-}
-
-/** Decorative attention wave with the reading position dotted on the curve.
- *  Everything is inset from the viewBox edges so nothing clips. */
-function FocusWave({ percent }: { percent: number }) {
-  const clamped = Math.min(100, Math.max(0, percent));
-  // Piecewise-linear sampling of the wave's key points for the dot position.
-  const keys: Array<[number, number]> = [
-    [6, 27],
-    [34, 15],
-    [62, 20],
-    [80, 9],
-    [94, 14],
-  ];
-  const x = 6 + (clamped / 100) * 88;
-  let y = keys[keys.length - 1]![1];
-  for (let i = 1; i < keys.length; i++) {
-    const [x0, y0] = keys[i - 1]!;
-    const [x1, y1] = keys[i]!;
-    if (x <= x1) {
-      const t = (x - x0) / (x1 - x0);
-      y = y0 + t * (y1 - y0);
-      break;
-    }
-  }
-  return (
-    <svg
-      viewBox="0 0 100 36"
-      className="h-12 w-full overflow-visible text-ok/60"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <path
-        d="M6,27 Q20,24 34,15 T62,20 T80,9 T94,14"
-        fill="none"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="2"
-        vectorEffect="non-scaling-stroke"
-      />
-      <circle cx={x} cy={y} r="3.5" className="fill-hanko" />
-    </svg>
-  );
-}
-
-function MarginaliaHighlights({
-  item,
-  onNote,
-  onRemove,
-  onExport,
-}: {
-  item: LibraryItem;
-  onNote: (highlightId: string, note: string) => void;
-  onRemove: (highlightId: string) => void;
-  onExport: () => void;
-}) {
-  if (item.highlights.length === 0) {
-    return (
-      <p className="mt-12 font-body text-sm italic opacity-60">
-        Select a passage to highlight it — inked slips gather in the Highlight Vault.
-      </p>
-    );
-  }
-  return (
-    <section id="inked-passages" className="mt-14 scroll-mt-32" aria-label="Highlights">
-      <div className="flex items-center gap-4 opacity-40">
-        <span className="h-px w-12 bg-current" aria-hidden="true" />
-        <span className="font-display text-sm tracking-widest uppercase">End</span>
-        <span className="h-px w-12 bg-current" aria-hidden="true" />
-      </div>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-display text-xl">Inked Passages</h2>
-        <button
-          type="button"
-          onClick={onExport}
-          className="flex items-center gap-1.5 rounded-[0.25rem] bg-hanko px-3 py-1.5 font-sans text-xs font-medium text-white shadow-sm transition-colors hover:bg-shu active:translate-y-px"
-        >
-          <PenLine className="size-3.5" aria-hidden="true" />
-          Copy reading
-        </button>
-      </div>
-      <ul className="mt-4 space-y-4">
-        {item.highlights.map((highlight) => (
-          <li key={highlight.id} className="rounded-[0.25rem] bg-ink/5 p-4 shadow-sm">
-            <p className="hl-quote rounded-sm px-1.5 py-0.5 font-body text-base leading-normal italic" data-hl={highlight.color}>
-              {highlight.text}
-            </p>
-            <label className="mt-2 block">
-              <span className="sr-only">Note for highlight</span>
-              <input
-                value={highlight.note}
-                onChange={(e) => onNote(highlight.id, e.target.value)}
-                placeholder="Add a marginalia note…"
-                className="h-10 w-full rounded-[0.25rem] border border-line bg-surface px-3 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-hanko/30"
-              />
-            </label>
-            <button
-              type="button"
-              className="mt-2 text-xs text-ink-muted underline underline-offset-2 hover:text-hanko"
-              onClick={() => onRemove(highlight.id)}
-            >
-              Remove
-            </button>
-          </li>
-        ))}
-      </ul>
-    </section>
   );
 }
