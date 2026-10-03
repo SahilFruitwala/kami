@@ -1,113 +1,98 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  /* Kami (light) — washi paper, sumi ink, vermilion hanko */
-  --color-bg: #f9f2ed;
-  --color-paper: #fff8f3;
-  --color-paper-warm: #f3ede7;
-  --color-surface: #fffdf9;
-  --color-ink: #1d1b18;
-  --color-ink-soft: #58413c;
-  --color-ink-muted: #8c716b;
-  --color-faint: #c9b8b0;
-  --color-line: #e7e0d5;
-  --color-ink-accent: #2d3b48;
-  --color-danger: #a6331b;
-  --color-ok: #546250;
+  /* MATRIX QUIET — terminal structure, burnt-orange accent on warm charcoal */
+  --color-bg: #0e0d0b;
+  --color-paper: #151312;
+  --color-paper-warm: #1a1714;
+  --color-surface: #1d1a16;
+  --color-ink: #e3dcd3;
+  --color-ink-soft: #b3a89c;
+  --color-ink-muted: #857a6d;
+  --color-faint: #3a342c;
+  --color-line: #2e2922;
+  --color-ink-accent: #d08a5e;
+  --color-danger: #c96a55;
+  --color-ok: #8aa483;
 
-  /* Kami signature pigments */
-  --color-hanko: #a6331b;
-  --color-shu: #c84b31;
-  --color-shu-tint: #fbeFEB;
-  --color-bamboo: #546250;
-  --color-bamboo-wash: #eef2ec;
-  --color-aizome: #2d3b48;
-  --color-sumi: #1c1a17;
+  /* Burnt-orange signal — deep terracotta fill, soft apricot text accent */
+  --color-hanko: #9c4a30;
+  --color-shu: #b25a3a;
+  --color-shu-tint: rgba(208, 138, 94, 0.1);
+  --color-bamboo: #7d8a6f;
+  --color-bamboo-wash: rgba(125, 138, 111, 0.1);
+  --color-aizome: #d08a5e;
+  --color-sumi: #e3dcd3;
 
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Newsreader", "Hiragino Mincho ProN", "Yu Mincho", "Iowan Old Style", Georgia, serif;
-  --font-body: "Literata", Georgia, serif;
+  --font-sans: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --font-display: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --font-body: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 
-  --radius-xs: 0.25rem;
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
-  --radius-2xl: 2rem;
+  --radius-xs: 2px;
+  --radius-sm: 2px;
+  --radius-md: 2px;
+  --radius-lg: 2px;
+  --radius-xl: 2px;
+  --radius-2xl: 2px;
 
-  --shadow-border:
-    0 2px 8px -2px rgba(45, 37, 28, 0.05),
-    0 1px 3px 0 rgba(45, 37, 28, 0.04);
-  --shadow-border-hover:
-    0 12px 24px -6px rgba(45, 37, 28, 0.09),
-    0 4px 12px -2px rgba(45, 37, 28, 0.04);
-  --shadow-raised:
-    0 12px 32px -8px rgba(45, 37, 28, 0.08),
-    0 4px 12px -2px rgba(45, 37, 28, 0.04);
-  --shadow-device:
-    0px 0px 0px 1px rgba(28, 25, 22, 0.2),
-    0px 18px 40px -18px rgba(28, 25, 22, 0.45);
+  --shadow-border: none;
+  --shadow-border-hover: none;
+  --shadow-raised: none;
+  --shadow-device: none;
 
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --motion-quick: 150ms;
-  --motion-fast: 250ms;
-  --motion-slow: 400ms;
+  --ease-out: linear;
+  --ease-smooth-out: linear;
+  --motion-quick: 0ms;
+  --motion-fast: 80ms;
+  --motion-slow: 120ms;
 }
 
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    -webkit-tap-highlight-color: color-mix(in oklab, var(--color-hanko) 18%, transparent);
+    -webkit-tap-highlight-color: rgba(208, 138, 94, 0.2);
+    touch-action: manipulation;
+    color-scheme: dark;
     @apply font-sans;
   }
 
   :root {
-    color-scheme: light;
+    color-scheme: dark;
   }
 
   .dark {
     color-scheme: dark;
 
-    /* Sumi & Washi Dark — charcoal pulp, parchment wash, cinnabar glow */
-    --color-bg: #161514;
-    --color-paper: #1c1b1a;
-    --color-paper-warm: #211f1e;
-    --color-surface: #252320;
-    --color-ink: #eae4dc;
-    --color-ink-soft: #c8c2b8;
-    --color-ink-muted: #8a847c;
-    --color-faint: #5c564f;
-    --color-line: #3a3631;
-    --color-ink-accent: #d4a373;
-    --color-danger: #e05a3e;
-    --color-ok: #768a72;
+    /* Same quiet tokens — no alternate-theme cost */
+    --color-bg: #0e0d0b;
+    --color-paper: #151312;
+    --color-paper-warm: #1a1714;
+    --color-surface: #1d1a16;
+    --color-ink: #e3dcd3;
+    --color-ink-soft: #b3a89c;
+    --color-ink-muted: #857a6d;
+    --color-faint: #3a342c;
+    --color-line: #2e2922;
+    --color-ink-accent: #d08a5e;
+    --color-danger: #c96a55;
+    --color-ok: #8aa483;
 
-    --color-hanko: #e05a3e;
-    --color-shu: #e05a3e;
-    --color-shu-tint: rgba(224, 90, 62, 0.12);
-    --color-bamboo: #768a72;
-    --color-bamboo-wash: rgba(212, 163, 115, 0.12);
-    --color-aizome: #d4a373;
-    --color-sumi: #eae4dc;
+    --color-hanko: #9c4a30;
+    --color-shu: #b25a3a;
+    --color-shu-tint: rgba(208, 138, 94, 0.1);
+    --color-bamboo: #7d8a6f;
+    --color-bamboo-wash: rgba(125, 138, 111, 0.1);
+    --color-aizome: #d08a5e;
+    --color-sumi: #e3dcd3;
 
-    --shadow-border:
-      0 2px 10px -2px rgba(10, 9, 8, 0.5),
-      0 1px 4px 0 rgba(10, 9, 8, 0.35);
-    --shadow-border-hover:
-      0 16px 36px -8px rgba(10, 9, 8, 0.7),
-      0 4px 14px -2px rgba(10, 9, 8, 0.4);
-    --shadow-raised:
-      0 16px 36px -8px rgba(10, 9, 8, 0.7),
-      0 4px 14px -2px rgba(10, 9, 8, 0.4);
-    --shadow-device:
-      0px 0px 0px 1px rgba(236, 228, 212, 0.18),
-      0px 18px 40px -18px rgba(0, 0, 0, 0.7);
+    --shadow-border: none;
+    --shadow-border-hover: none;
+    --shadow-raised: none;
+    --shadow-device: none;
   }
 
   .dark .article-body img,
@@ -123,10 +108,11 @@
   }
 
   body {
-    background-color: var(--color-bg);
+    background-color: #0e0d0b;
     color: var(--color-ink);
     font-family: var(--font-sans);
     overflow-x: hidden;
+    overscroll-behavior-y: none;
     @apply bg-background text-foreground;
   }
 
@@ -150,129 +136,113 @@
   }
 }
 
-/* View Transition recipes (vercel-react-view-transitions) */
+/* View Transition — minimal + fast: opacity only, no blur/slide */
 :root {
-  --duration-exit: 150ms;
-  --duration-enter: 210ms;
-  --duration-move: 400ms;
-  /* shadcn tokens — mapped onto the Kami palette so both systems share one
-     source of truth (washi paper, sumi ink, vermilion hanko). */
-  --background: #fff8f3;
-  --foreground: #1d1b18;
-  --card: #fffdf9;
-  --card-foreground: #1d1b18;
-  --popover: #fffdf9;
-  --popover-foreground: #1d1b18;
-  --primary: #1d1b18;
-  --primary-foreground: #fff8f3;
-  --secondary: #f3ede7;
-  --secondary-foreground: #1d1b18;
-  --muted: #f3ede7;
-  --muted-foreground: #8c716b;
-  --accent: #f3ede7;
-  --accent-foreground: #1d1b18;
-  --destructive: #a6331b;
-  --border: #e7e0d5;
-  --input: #e7e0d5;
-  --ring: #a6331b;
-  --chart-1: #546250;
-  --chart-2: #2d3b48;
-  --chart-3: #a6331b;
-  --chart-4: #8c716b;
-  --chart-5: #c9b8b0;
-  --radius: 0.25rem;
-  --sidebar: #fff8f3;
-  --sidebar-foreground: #1d1b18;
-  --sidebar-primary: #1d1b18;
-  --sidebar-primary-foreground: #fff8f3;
-  --sidebar-accent: #f3ede7;
-  --sidebar-accent-foreground: #1d1b18;
-  --sidebar-border: #e7e0d5;
-  --sidebar-ring: #a6331b;
+  --duration-exit: 80ms;
+  --duration-enter: 100ms;
+  --duration-move: 100ms;
+  /* shadcn tokens — quiet matrix, burnt-orange accent. */
+  --background: #0e0d0b;
+  --foreground: #e3dcd3;
+  --card: #1d1a16;
+  --card-foreground: #e3dcd3;
+  --popover: #1d1a16;
+  --popover-foreground: #e3dcd3;
+  --primary: #9c4a30;
+  --primary-foreground: #f5ebe2;
+  --secondary: #1a1714;
+  --secondary-foreground: #b3a89c;
+  --muted: #1a1714;
+  --muted-foreground: #857a6d;
+  --accent: #1a1714;
+  --accent-foreground: #d08a5e;
+  --destructive: #c96a55;
+  --border: #2e2922;
+  --input: #2e2922;
+  --ring: #d08a5e;
+  --chart-1: #d08a5e;
+  --chart-2: #7d8a6f;
+  --chart-3: #857a6d;
+  --chart-4: #3a342c;
+  --chart-5: #2e2922;
+  --radius: 2px;
+  --sidebar: #0e0d0b;
+  --sidebar-foreground: #e3dcd3;
+  --sidebar-primary: #9c4a30;
+  --sidebar-primary-foreground: #f5ebe2;
+  --sidebar-accent: #1a1714;
+  --sidebar-accent-foreground: #d08a5e;
+  --sidebar-border: #2e2922;
+  --sidebar-ring: #d08a5e;
 }
 
 @keyframes fade {
   from {
-    filter: blur(3px);
     opacity: 0;
   }
   to {
-    filter: blur(0);
     opacity: 1;
   }
 }
 
 @keyframes slide {
   from {
-    translate: var(--slide-offset);
+    opacity: 0;
   }
   to {
-    translate: 0;
+    opacity: 1;
   }
 }
 
 @keyframes slide-y {
   from {
-    transform: translateY(var(--slide-y-offset, 10px));
+    opacity: 0;
   }
   to {
-    transform: translateY(0);
+    opacity: 1;
   }
 }
 
 ::view-transition-old(.fade-out) {
-  animation: var(--duration-exit) ease-in fade reverse;
+  animation: var(--duration-exit) linear fade reverse;
 }
 ::view-transition-new(.fade-in) {
-  animation: var(--duration-enter) ease-out var(--duration-exit) both fade;
+  animation: var(--duration-enter) linear both fade;
 }
 
 ::view-transition-old(.slide-down) {
-  animation:
-    var(--duration-exit) ease-out both fade reverse,
-    var(--duration-exit) ease-out both slide-y reverse;
+  animation: var(--duration-exit) linear both fade reverse;
 }
 ::view-transition-new(.slide-up) {
-  animation:
-    var(--duration-enter) ease-in var(--duration-exit) both fade,
-    var(--duration-move) ease-in both slide-y;
+  animation: var(--duration-enter) linear both fade;
 }
 
 ::view-transition-old(.nav-forward) {
-  --slide-offset: -60px;
-  animation:
-    var(--duration-exit) ease-in both fade reverse,
-    var(--duration-move) ease-in-out both slide reverse;
+  animation: var(--duration-exit) linear both fade reverse;
 }
 ::view-transition-new(.nav-forward) {
-  --slide-offset: 60px;
-  animation:
-    var(--duration-enter) ease-out var(--duration-exit) both fade,
-    var(--duration-move) ease-in-out both slide;
+  animation: var(--duration-enter) linear both fade;
 }
 
 ::view-transition-old(.nav-back) {
-  --slide-offset: 60px;
-  animation:
-    var(--duration-exit) ease-in both fade reverse,
-    var(--duration-move) ease-in-out both slide reverse;
+  animation: var(--duration-exit) linear both fade reverse;
 }
 ::view-transition-new(.nav-back) {
-  --slide-offset: -60px;
-  animation:
-    var(--duration-enter) ease-out var(--duration-exit) both fade,
-    var(--duration-move) ease-in-out both slide;
+  animation: var(--duration-enter) linear both fade;
 }
 
 ::view-transition-group(.morph) {
   animation-duration: var(--duration-move);
 }
 ::view-transition-image-pair(.morph) {
-  animation-name: via-blur;
+  animation: none;
 }
 @keyframes via-blur {
-  30% {
-    filter: blur(3px);
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }
 
@@ -336,31 +306,19 @@
   line-height: 1.8;
 }
 
-/* Dokusho editorial drop cap on the opening paragraph */
+/* Minimal terminal drop cap — no float layout cost, single color */
 .reader-body > p:first-of-type::first-letter {
-  float: left;
   font-family: var(--font-display);
-  font-size: 3.2em;
-  line-height: 0.9;
-  padding-right: 0.12em;
-  padding-top: 0.05em;
+  font-weight: 700;
   color: var(--color-hanko);
 }
 
-.reader-body[data-font="literata"] {
-  --reader-font: "Literata", Georgia, serif;
-}
-.reader-body[data-font="source-serif"] {
-  --reader-font: Georgia, "Iowan Old Style", serif;
-}
-.reader-body[data-font="atkinson"] {
-  --reader-font: "Atkinson Hyperlegible", ui-sans-serif, system-ui, sans-serif;
-}
-.reader-body[data-font="figtree"] {
-  --reader-font: ui-sans-serif, system-ui, sans-serif;
-}
+.reader-body[data-font="literata"],
+.reader-body[data-font="source-serif"],
+.reader-body[data-font="atkinson"],
+.reader-body[data-font="figtree"],
 .reader-body[data-font="newsreader"] {
-  --reader-font: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --reader-font: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .article-body p,
@@ -419,14 +377,14 @@
 .reader-body img {
   max-width: 100%;
   height: auto;
-  border-radius: 0.4rem;
+  border-radius: 2px;
   margin: 0.6em 0;
-  outline: 1px solid rgba(28, 25, 22, 0.08);
+  outline: 1px solid #2e2922;
   outline-offset: -1px;
 }
 
 .reader-body img {
-  border-radius: 0.5rem;
+  border-radius: 2px;
   margin: 1em 0;
 }
 
@@ -496,10 +454,10 @@
   overflow-x: auto;
   margin: 0 0 1.2em;
   border: 1px solid var(--color-line);
-  border-radius: 0.5rem;
+  border-radius: 2px;
   border-spacing: 0;
   border-collapse: collapse;
-  background: var(--color-surface);
+  background: #151312;
   font-family: var(--font-sans);
   font-size: 0.85em;
   line-height: 1.45;
@@ -522,18 +480,18 @@
 .reader-body thead th {
   font-weight: 600;
   white-space: nowrap;
-  background: color-mix(in oklab, var(--color-ink) 5%, var(--color-paper-warm));
+  background: rgba(208, 138, 94, 0.08);
   border-bottom: 1px solid var(--color-line);
 }
 
 .dark .article-body thead th,
 .dark .reader-body thead th {
-  background: color-mix(in oklab, var(--color-ink) 8%, #000 40%);
+  background: rgba(208, 138, 94, 0.08);
 }
 
 .article-body tbody tr:nth-child(even) td,
 .reader-body tbody tr:nth-child(even) td {
-  background: color-mix(in oklab, var(--color-ink) 2.5%, transparent);
+  background: rgba(208, 138, 94, 0.03);
 }
 
 .article-body tbody tr:last-child td,
@@ -568,8 +526,8 @@
   margin: 0 0 1.1em;
   padding: 0.9em 1em;
   border: 1px solid var(--color-line);
-  border-radius: 0.5rem;
-  background: color-mix(in oklab, var(--color-ink) 5%, var(--color-paper-warm));
+  border-radius: 2px;
+  background: #151312;
   overflow-x: auto;
   line-height: 1.55;
   tab-size: 2;
@@ -578,7 +536,7 @@
 
 .dark .article-body pre,
 .dark .reader-body pre {
-  background: color-mix(in oklab, var(--color-ink) 8%, #000 40%);
+  background: #151312;
 }
 
 .article-body pre code,
@@ -593,22 +551,22 @@
   white-space: inherit;
 }
 
-/* Inline code (not inside <pre>) — pill/chip so it's visibly distinct. */
+/* Inline code — flat muted chip. */
 .article-body :not(pre) > code,
 .reader-body :not(pre) > code {
-  font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.85em;
   padding: 0.15em 0.35em;
   border: 1px solid var(--color-line);
-  border-radius: 0.35rem;
-  background: color-mix(in oklab, var(--color-ink) 6%, var(--color-paper-warm));
+  border-radius: 2px;
+  background: rgba(208, 138, 94, 0.08);
   overflow-wrap: break-word;
   word-break: break-word;
 }
 
 .dark .article-body :not(pre) > code,
 .dark .reader-body :not(pre) > code {
-  background: color-mix(in oklab, var(--color-ink) 10%, #000 45%);
+  background: rgba(208, 138, 94, 0.08);
 }
 
 .article-body hr,
@@ -622,143 +580,61 @@
   margin: 1.6em 0;
 }
 
-.reader-body mark {
-  background: color-mix(in oklab, #e8c97a 70%, transparent);
-  color: inherit;
+.reader-body mark,
+.reader-body mark[data-color="amber"],
+.reader-body mark[data-color="lemon"],
+.reader-body mark[data-color="mint"],
+.reader-body mark[data-color="sky"],
+.reader-body mark[data-color="rose"],
+.reader-body mark[data-color="vermilion"],
+.reader-body mark[data-color="bamboo"],
+.reader-body mark[data-color="sumi"] {
+  background: rgba(208, 138, 94, 0.2);
+  color: #f0e8de;
   padding: 0;
   margin: 0;
   border: 0;
   border-radius: 0;
-  box-decoration-break: clone;
-  -webkit-box-decoration-break: clone;
   cursor: pointer;
 }
 
-.reader-body mark[data-color="amber"] {
-  background: color-mix(in oklab, #e8c97a 70%, transparent);
-}
-.reader-body mark[data-color="lemon"] {
-  background: color-mix(in oklab, #f0e07a 78%, transparent);
-}
-.reader-body mark[data-color="mint"] {
-  background: color-mix(in oklab, #a8d5b5 72%, transparent);
-}
-.reader-body mark[data-color="sky"] {
-  background: color-mix(in oklab, #a8c8e8 72%, transparent);
-}
-.reader-body mark[data-color="rose"] {
-  background: color-mix(in oklab, #e8b4c0 72%, transparent);
-}
-
-/* Ink colors — Dokusho toolbar (Vermilion / Bamboo / Sumi). */
-.reader-body mark[data-color="vermilion"] {
-  background: color-mix(in oklab, #c84b31 42%, transparent);
-}
-.reader-body mark[data-color="bamboo"] {
-  background: color-mix(in oklab, #6e7d6a 45%, transparent);
-}
-.reader-body mark[data-color="sumi"] {
-  background: color-mix(in oklab, var(--color-ink) 22%, transparent);
-}
-
-/* Dark mode: deeper, saturated washes paired with light text so the
-   highlight stays readable (pastel + light text is ~1.3:1 contrast). */
-.dark .reader-body mark {
-  color: #ece4d4;
-}
-.dark .reader-body mark[data-color="amber"] {
-  background: color-mix(in oklab, #7a5c14 70%, transparent);
-}
-.dark .reader-body mark[data-color="lemon"] {
-  background: color-mix(in oklab, #6b5a10 78%, transparent);
-}
-.dark .reader-body mark[data-color="mint"] {
-  background: color-mix(in oklab, #2f6b4a 72%, transparent);
-}
-.dark .reader-body mark[data-color="sky"] {
-  background: color-mix(in oklab, #2c5a80 72%, transparent);
-}
-.dark .reader-body mark[data-color="rose"] {
-  background: color-mix(in oklab, #8a3d4d 72%, transparent);
-}
-.dark .reader-body mark[data-color="vermilion"] {
-  background: color-mix(in oklab, #e05a3e 55%, transparent);
-}
-.dark .reader-body mark[data-color="bamboo"] {
-  background: color-mix(in oklab, #768a72 50%, transparent);
-}
+/* Dark mode = same muted wash. */
+.dark .reader-body mark,
+.dark .reader-body mark[data-color="amber"],
+.dark .reader-body mark[data-color="lemon"],
+.dark .reader-body mark[data-color="mint"],
+.dark .reader-body mark[data-color="sky"],
+.dark .reader-body mark[data-color="rose"],
+.dark .reader-body mark[data-color="vermilion"],
+.dark .reader-body mark[data-color="bamboo"],
 .dark .reader-body mark[data-color="sumi"] {
-  background: color-mix(in oklab, #eae4dc 24%, transparent);
+  background: rgba(208, 138, 94, 0.2);
+  color: #f0e8de;
 }
 
-/* Highlights list quotes mirror the in-article mark colors per theme. */
-.hl-quote[data-hl="amber"] {
-  background: color-mix(in oklab, #e8c97a 55%, transparent);
-  color: #1c1916;
-}
-.hl-quote[data-hl="lemon"] {
-  background: color-mix(in oklab, #f0e07a 55%, transparent);
-  color: #1c1916;
-}
-.hl-quote[data-hl="mint"] {
-  background: color-mix(in oklab, #a8d5b5 55%, transparent);
-  color: #1c1916;
-}
-.hl-quote[data-hl="sky"] {
-  background: color-mix(in oklab, #a8c8e8 55%, transparent);
-  color: #1c1916;
-}
-.hl-quote[data-hl="rose"] {
-  background: color-mix(in oklab, #e8b4c0 55%, transparent);
-  color: #1c1916;
-}
-.hl-quote[data-hl="vermilion"] {
-  background: color-mix(in oklab, #c84b31 30%, transparent);
-  color: #1c1916;
-}
-.hl-quote[data-hl="bamboo"] {
-  background: color-mix(in oklab, #6e7d6a 32%, transparent);
-  color: #1c1916;
-}
-.hl-quote[data-hl="sumi"] {
-  background: color-mix(in oklab, #1d1b18 12%, transparent);
-  color: #1c1916;
-}
-.dark .hl-quote[data-hl="amber"] {
-  background: color-mix(in oklab, #7a5c14 60%, transparent);
-  color: #ece4d4;
-}
-.dark .hl-quote[data-hl="lemon"] {
-  background: color-mix(in oklab, #6b5a10 60%, transparent);
-  color: #ece4d4;
-}
-.dark .hl-quote[data-hl="mint"] {
-  background: color-mix(in oklab, #2f6b4a 60%, transparent);
-  color: #ece4d4;
-}
-.dark .hl-quote[data-hl="sky"] {
-  background: color-mix(in oklab, #2c5a80 60%, transparent);
-  color: #ece4d4;
-}
-.dark .hl-quote[data-hl="rose"] {
-  background: color-mix(in oklab, #8a3d4d 60%, transparent);
-  color: #ece4d4;
-}
-.dark .hl-quote[data-hl="vermilion"] {
-  background: color-mix(in oklab, #e05a3e 42%, transparent);
-  color: #ece4d4;
-}
-.dark .hl-quote[data-hl="bamboo"] {
-  background: color-mix(in oklab, #768a72 42%, transparent);
-  color: #ece4d4;
-}
+/* Highlights list quotes — muted wash. */
+.hl-quote[data-hl="amber"],
+.hl-quote[data-hl="lemon"],
+.hl-quote[data-hl="mint"],
+.hl-quote[data-hl="sky"],
+.hl-quote[data-hl="rose"],
+.hl-quote[data-hl="vermilion"],
+.hl-quote[data-hl="bamboo"],
+.hl-quote[data-hl="sumi"],
+.dark .hl-quote[data-hl="amber"],
+.dark .hl-quote[data-hl="lemon"],
+.dark .hl-quote[data-hl="mint"],
+.dark .hl-quote[data-hl="sky"],
+.dark .hl-quote[data-hl="rose"],
+.dark .hl-quote[data-hl="vermilion"],
+.dark .hl-quote[data-hl="bamboo"],
 .dark .hl-quote[data-hl="sumi"] {
-  background: color-mix(in oklab, #eae4dc 16%, transparent);
-  color: #ece4d4;
+  background: rgba(208, 138, 94, 0.11);
+  color: #e3dcd3;
 }
 
 ::highlight(spoken) {
-  background-color: color-mix(in oklab, var(--color-ink) 16%, transparent);
+  background-color: rgba(208, 138, 94, 0.22);
   color: inherit;
 }
 
@@ -766,32 +642,34 @@
   position: fixed;
   z-index: 15;
   pointer-events: none;
-  border-radius: 0.15rem;
-  background: color-mix(in oklab, var(--color-ink) 16%, transparent);
+  border-radius: 2px;
+  background: rgba(208, 138, 94, 0.18);
 }
 
 .screen-scroll {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-faint) transparent;
+  scrollbar-color: #2e2922 transparent;
 }
 
-/* ——— Kami washi material language ——— */
+/* ——— Quiet matrix material — flat, square, subtle grid ——— */
 .kami-sheet {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 0.25rem;
-  box-shadow: var(--shadow-border);
+  background: #1d1a16;
+  border: 1px solid #2e2922;
+  border-radius: 2px;
+  box-shadow: none;
 }
 .kami-sheet-raised {
-  background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 0.25rem;
-  box-shadow: var(--shadow-raised);
+  background: #1d1a16;
+  border: 1px solid #3a342c;
+  border-radius: 2px;
+  box-shadow: none;
 }
 .kami-desk {
-  background:
-    radial-gradient(1200px 320px at 50% -80px, color-mix(in oklab, var(--color-shu) 6%, transparent), transparent),
-    var(--color-bg);
+  background: #0e0d0b;
+  background-image:
+    linear-gradient(rgba(208, 138, 94, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(208, 138, 94, 0.035) 1px, transparent 1px);
+  background-size: 28px 28px;
 }
 .kami-grain::before {
   content: "";
@@ -799,25 +677,31 @@
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  opacity: 0.5;
-  background-image: radial-gradient(color-mix(in oklab, var(--color-ink) 5%, transparent) 1px, transparent 1px);
-  background-size: 22px 22px;
-  mask-image: linear-gradient(180deg, black, transparent 70%);
+  opacity: 0.35;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 3px,
+    rgba(0, 0, 0, 0.12) 3px 4px
+  );
 }
 .dark .kami-grain::before {
-  background-image: radial-gradient(rgba(234, 228, 220, 0.05) 1px, transparent 1px);
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0 3px,
+    rgba(0, 0, 0, 0.12) 3px 4px
+  );
 }
 .kami-hanko {
-  background: var(--color-hanko);
-  color: #fffdf9;
-  box-shadow: 0 0 16px -4px rgba(224, 90, 62, 0.25);
+  background: #9c4a30;
+  color: #f5ebe2;
+  box-shadow: none;
 }
 .dark .kami-hanko {
-  color: #eae4dc;
+  color: #f5ebe2;
 }
 .kami-washi-tag {
-  border: 1px dashed color-mix(in oklab, var(--color-hanko) 30%, transparent);
-  background: var(--color-shu-tint);
+  border: 1px solid #3a342c;
+  background: rgba(208, 138, 94, 0.08);
 }
 .kami-label {
   font-family: var(--font-sans);
@@ -851,7 +735,7 @@
 
 @theme inline {
   --font-heading: var(--font-sans);
-  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -893,35 +777,35 @@
 }
 
 .dark {
-  --background: #1c1b1a;
-  --foreground: #eae4dc;
-  --card: #252320;
-  --card-foreground: #eae4dc;
-  --popover: #252320;
-  --popover-foreground: #eae4dc;
-  --primary: #eae4dc;
-  --primary-foreground: #1c1b1a;
-  --secondary: #211f1e;
-  --secondary-foreground: #eae4dc;
-  --muted: #211f1e;
-  --muted-foreground: #8a847c;
-  --accent: #211f1e;
-  --accent-foreground: #eae4dc;
-  --destructive: #e05a3e;
-  --border: #3a3631;
-  --input: #3a3631;
-  --ring: #e05a3e;
-  --chart-1: #768a72;
-  --chart-2: #d4a373;
-  --chart-3: #e05a3e;
-  --chart-4: #8a847c;
-  --chart-5: #5c564f;
-  --sidebar: #1c1b1a;
-  --sidebar-foreground: #eae4dc;
-  --sidebar-primary: #e05a3e;
-  --sidebar-primary-foreground: #eae4dc;
-  --sidebar-accent: #211f1e;
-  --sidebar-accent-foreground: #eae4dc;
-  --sidebar-border: #3a3631;
-  --sidebar-ring: #e05a3e;
+  --background: #151312;
+  --foreground: #e3dcd3;
+  --card: #1d1a16;
+  --card-foreground: #e3dcd3;
+  --popover: #1d1a16;
+  --popover-foreground: #e3dcd3;
+  --primary: #9c4a30;
+  --primary-foreground: #f5ebe2;
+  --secondary: #1a1714;
+  --secondary-foreground: #e3dcd3;
+  --muted: #1a1714;
+  --muted-foreground: #857a6d;
+  --accent: #1a1714;
+  --accent-foreground: #e3dcd3;
+  --destructive: #c96a55;
+  --border: #2e2922;
+  --input: #2e2922;
+  --ring: #d08a5e;
+  --chart-1: #d08a5e;
+  --chart-2: #7d8a6f;
+  --chart-3: #c96a55;
+  --chart-4: #857a6d;
+  --chart-5: #3a342c;
+  --sidebar: #151312;
+  --sidebar-foreground: #e3dcd3;
+  --sidebar-primary: #9c4a30;
+  --sidebar-primary-foreground: #f5ebe2;
+  --sidebar-accent: #1a1714;
+  --sidebar-accent-foreground: #e3dcd3;
+  --sidebar-border: #2e2922;
+  --sidebar-ring: #d08a5e;
 }

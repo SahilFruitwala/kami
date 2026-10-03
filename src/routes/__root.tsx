@@ -29,8 +29,8 @@ export const Route = createRootRoute({
         content:
           "KAMI is a quiet read-later app for blogs and X articles — save a link, read a clean distraction-free page, highlight, tag, and find it in seconds.",
       },
-      { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#F3EEE4" },
-      { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#161310" },
+      { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#0e0d0b" },
+      { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#0e0d0b" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: APP_NAME },
       { property: "og:title", content: "KAMI — Save Anything Worth Reading" },
@@ -52,16 +52,6 @@ export const Route = createRootRoute({
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
       { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      {
-        rel: "preconnect",
-        href: "https://fonts.gstatic.com",
-        crossOrigin: "anonymous",
-      },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,500;0,7..72,600;1,7..72,400&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap",
-      },
       { rel: "stylesheet", href: appCss },
     ],
   }),

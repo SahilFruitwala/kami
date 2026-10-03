@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import {
   Bookmark,
   BookOpen,
@@ -6,7 +6,6 @@ import {
   Gift,
   House,
   LibraryBig,
-  Plus,
   Search,
   Settings as SettingsIcon,
   Tv,
@@ -30,8 +29,9 @@ export type SitePane =
   | "settings";
 
 type Pane = {
-  id: Exclude<SitePane, "home" | "settings">;
+  id: Exclude<SitePane, "settings">;
   to:
+    | "/app"
     | "/library"
     | "/vault"
     | "/shelves/movies"
@@ -42,8 +42,9 @@ type Pane = {
   icon: typeof LibraryBig;
 };
 
-/** Primary sanctuary panes — mirrors the Stitch Sanctuary sidebar. */
+/** Primary sanctuary panes — Home first, then library + vault. */
 const SANCTUARY_PANES: Pane[] = [
+  { id: "home", to: "/app", label: "Home", icon: House },
   { id: "library", to: "/library", label: "Library", icon: LibraryBig },
   { id: "vault", to: "/vault", label: "Vault", icon: Bookmark },
 ];
@@ -151,7 +152,6 @@ export function SiteHeader({
   active: SitePane;
   onOpenTools?: () => void;
 }) {
-  const navigate = useNavigate();
   return (
     <>
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-line bg-paper lg:flex">
@@ -176,17 +176,6 @@ export function SiteHeader({
               </span>
             </span>
           </Link>
-        </div>
-
-        <div className="px-5 pt-5">
-          <Button
-            type="button"
-            className="h-11 w-full gap-2 bg-hanko font-sans text-sm font-semibold text-white hover:bg-shu"
-            onClick={() => void navigate({ to: "/app" })}
-          >
-            <Plus className="size-4" aria-hidden="true" />
-            Clip Article
-          </Button>
         </div>
 
         <nav aria-label="Sanctuary pages" className="flex-1 overflow-y-auto px-3 pt-6">
