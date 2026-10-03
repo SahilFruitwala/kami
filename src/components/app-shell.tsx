@@ -48,17 +48,41 @@ export function AppShell({
   requireLibrary?: boolean;
 }) {
   const tools = useCaptureTools();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.localStorage.getItem("kami-sidebar-collapsed") === "1",
+  );
+
+  function toggleSidebar() {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem("kami-sidebar-collapsed", next ? "1" : "0");
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }
+
+  const contentPad = sidebarCollapsed ? "lg:pl-0" : "lg:pl-60";
 
   return (
     <AppGate>
       <DirectionalTransition>
         <main id="main" className="kami-desk relative flex min-h-dvh flex-col overflow-x-hidden [touch-action:manipulation]">
           <a href="#main" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-ink focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper">Skip to content</a>
-          <SiteHeader active={active} onOpenTools={() => tools.setToolsOpen(true)} />
-          <div className="flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pl-60 lg:pb-0">
+          <SiteHeader
+            active={active}
+            onOpenTools={() => tools.setToolsOpen(true)}
+            sidebarCollapsed={sidebarCollapsed}
+            onToggleSidebar={toggleSidebar}
+          />
+          <div className={`flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0 ${contentPad} transition-[padding-left] duration-200 motion-reduce:transition-none`}>
             {requireLibrary ? <LibraryGate>{children}</LibraryGate> : children}
           </div>
-          <div className="pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pl-60 lg:pb-0">
+          <div className={`pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0 ${contentPad} transition-[padding-left] duration-200 motion-reduce:transition-none`}>
             <SiteFooter />
           </div>
           <ToolsDialog
@@ -133,7 +157,7 @@ function OfflineBanner() {
           type="button"
           onClick={() => void retry()}
           disabled={flushing}
-          className="shrink-0 rounded-full bg-paper px-3 py-1 font-sans text-xs font-semibold text-ink disabled:opacity-60"
+          className="shrink-0 rounded-full bg-paper px-3 py-1 font-sans text-xs font-semibold text-ink transition-colors hover:bg-paper-warm disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-paper/70"
         >
           {flushing ? "Syncing…" : "Retry"}
         </button>

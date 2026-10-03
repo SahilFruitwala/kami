@@ -143,7 +143,7 @@ export function CommandPalette({
 
   function go(
     to:
-      | "/"
+      | "/app"
       | "/library"
       | "/vault"
       | "/settings"
@@ -423,7 +423,7 @@ export function CommandPalette({
             </CommandGroup>
             <CommandSeparator />
             <CommandGroup heading="Go to">
-              <CommandItem value="go home" onSelect={() => go("/")}>
+              <CommandItem value="go home" onSelect={() => go("/app")}>
                 <House aria-hidden="true" />
                 Home
                 <CommandShortcut>G H</CommandShortcut>

@@ -6,6 +6,8 @@ import {
   Gift,
   House,
   LibraryBig,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
   Settings as SettingsIcon,
   Tv,
@@ -147,17 +149,28 @@ function openPalette() {
 export function SiteHeader({
   active,
   onOpenTools: _onOpenTools,
+  sidebarCollapsed = false,
+  onToggleSidebar,
 }: {
   active: SitePane;
   onOpenTools?: () => void;
+  sidebarCollapsed?: boolean;
+  onToggleSidebar?: () => void;
 }) {
+  const topBarPad = sidebarCollapsed ? "lg:pl-0" : "lg:pl-60";
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-line bg-paper lg:flex">
+      <aside
+        id="sanctuary-sidebar"
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 hidden w-60 flex-col border-r border-line bg-paper",
+          sidebarCollapsed ? "lg:hidden" : "lg:flex",
+        )}
+      >
         <div className="flex items-center gap-2.5 px-5 pt-5">
           <Link
             to="/app"
-            className="flex items-center gap-2.5 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
             aria-label="Kami home"
           >
             <span
@@ -175,6 +188,19 @@ export function SiteHeader({
               </span>
             </span>
           </Link>
+          {onToggleSidebar ? (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              aria-label="Hide sidebar"
+              aria-expanded={!sidebarCollapsed}
+              aria-controls="sanctuary-sidebar"
+              title="Hide sidebar"
+              className="shrink-0 rounded-[0.25rem] p-2 text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            >
+              <PanelLeftClose className="size-4" aria-hidden="true" />
+            </button>
+          ) : null}
         </div>
 
         <nav aria-label="Sanctuary pages" className="flex-1 overflow-y-auto px-3 pt-6">
@@ -224,8 +250,21 @@ export function SiteHeader({
       </aside>
 
       {/* Slim utility top bar (desktop) */}
-      <div className="sticky top-0 z-30 hidden border-b border-line bg-paper/90 backdrop-blur-xl lg:block lg:pl-60">
+      <div className={cn("sticky top-0 z-30 hidden border-b border-line bg-paper/90 backdrop-blur-xl lg:block", topBarPad)}>
         <div className="flex h-14 items-center gap-3 px-6">
+          {sidebarCollapsed && onToggleSidebar ? (
+            <button
+              type="button"
+              onClick={onToggleSidebar}
+              aria-label="Show sidebar"
+              aria-expanded={false}
+              aria-controls="sanctuary-sidebar"
+              title="Show sidebar"
+              className="shrink-0 rounded-[0.25rem] p-2 text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            >
+              <PanelLeftOpen className="size-4" aria-hidden="true" />
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={openPalette}
@@ -259,7 +298,7 @@ export function SiteHeader({
       {/* Mobile top row */}
       <div className="sticky top-0 z-40 border-b border-line bg-paper/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl lg:hidden">
         <div className="flex h-14 items-center justify-between gap-3 px-[max(1rem,env(safe-area-inset-left))]">
-          <Link to="/app" className="flex items-center gap-2" aria-label="Kami home">
+          <Link to="/app" className="flex items-center gap-2 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40" aria-label="Kami home">
             <span
               className="kami-hanko flex size-7 items-center justify-center rounded-[0.25rem] font-display text-xs font-bold leading-none"
               lang="ja"
