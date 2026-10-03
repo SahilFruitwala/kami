@@ -111,10 +111,10 @@ export function CaptureForm({
             </div>
           </div>
         ) : (
-          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
+          <div className="mt-2 flex justify-center flex-wrap items-center gap-x-3 gap-y-1">
             <p className="text-xs font-medium text-ink-muted">
               Public pages only. Press <kbd className="rounded bg-paper-warm px-1">⌘&nbsp;K</kbd> to
-              search the shelf — paste above to bind a new scroll.
+              search the shelf — bind a new scroll.
             </p>
             <button
               type="button"

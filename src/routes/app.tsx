@@ -3,6 +3,11 @@ import { addTransitionType, startTransition, useEffect, useRef, useState } from 
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell.tsx";
 import { CaptureForm } from "@/components/library/capture-form.tsx";
+import {
+  HomeCaptureTabs,
+  ShelfQuickCapture,
+  type HomeCaptureType,
+} from "@/components/library/home-shelves.tsx";
 import { BulkSaveDialog, PasteDialog } from "@/components/library/library-dialogs.tsx";
 import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useBulkSave } from "@/hooks/use-bulk-save.ts";
@@ -77,6 +82,7 @@ function Home() {
   const bulk = useBulkSave();
 
   const [capturing, setCapturing] = useState(false);
+  const [captureType, setCaptureType] = useState<HomeCaptureType>("article");
 
   function openItem(item: LibraryItem) {
     goRead(navigate, item.id);
@@ -195,24 +201,31 @@ function Home() {
 
   return (
     <AppShell active="home" onOpenItem={openItem}>
-      <div className="mx-auto flex min-h-[70dvh] w-full max-w-2xl flex-col items-center justify-center px-4 py-10 sm:px-6">
+      <div className="mx-auto flex min-h-[70dvh] w-full max-w-3xl flex-col items-center justify-center px-4 py-10 sm:px-6">
         <p className="font-display text-5xl tracking-tight text-ink" translate="no">
           Kami
         </p>
         <div className="mt-8 w-full">
-          <CaptureForm
-            url={save.url}
-            busy={save.busy}
-            error={save.error}
-            onUrlChange={save.setUrl}
-            onClearError={() => save.setError("")}
-            onSave={saveSingleOrBulk}
-            onSaveLinkOnly={() => void save.saveLinkOnly()}
-            onOpenPaste={openPaste}
-            onOpenBulk={openBulk}
-          />
+          <HomeCaptureTabs value={captureType} onChange={setCaptureType} />
+          <div className="mt-3">
+            {captureType === "article" ? (
+              <CaptureForm
+                url={save.url}
+                busy={save.busy}
+                error={save.error}
+                onUrlChange={save.setUrl}
+                onClearError={() => save.setError("")}
+                onSave={saveSingleOrBulk}
+                onSaveLinkOnly={() => void save.saveLinkOnly()}
+                onOpenPaste={openPaste}
+                onOpenBulk={openBulk}
+              />
+            ) : (
+              <ShelfQuickCapture key={captureType} type={captureType} />
+            )}
+          </div>
         </div>
-        {save.busy || capturing ? (
+        {captureType === "article" && (save.busy || capturing) ? (
           <p className="mt-3 text-sm text-ink-muted" role="status" aria-live="polite">
             {capturing ? "Importing captured page…" : "Saving a clean copy…"}
           </p>
