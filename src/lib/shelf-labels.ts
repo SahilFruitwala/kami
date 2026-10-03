@@ -1,4 +1,4 @@
-import type { ShelfTab } from "@/lib/shelves-fns.ts";
+import type { ShelfTab } from "@/lib/shelves.ts";
 
 /** Status wording per shelf type ("Watched" vs "Read" vs "Got it"). */
 export function statusLabels(type: ShelfTab) {

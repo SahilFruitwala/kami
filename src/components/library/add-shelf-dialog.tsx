@@ -13,7 +13,7 @@ import {
   useTmdbSearch,
 } from "@/hooks/use-shelf-queries.ts";
 import { queryKeys } from "@/lib/query-client.ts";
-import { type ShelfTab } from "@/lib/shelves-fns.ts";
+import { type ShelfTab } from "@/lib/shelves.ts";
 import { fetchLinkPreview, type LookupResult } from "@/lib/shelves-lookup.ts";
 import { cn } from "@/lib/utils.ts";
 

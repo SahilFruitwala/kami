@@ -1,5 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
-import type { ShelfTab } from "@/lib/shelves-fns";
+import type { ShelfTab } from "@/lib/shelves.ts";
 
 /**
  * Shared React Query client. Shelves lists/lookups are the primary consumers;

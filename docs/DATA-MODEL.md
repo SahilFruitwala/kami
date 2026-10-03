@@ -177,6 +177,6 @@ Rules:
 | Library CRUD | `src/lib/library-fns.ts` |
 | Article extract/save | `src/lib/article-fns.ts` |
 | Journal CRUD | `src/lib/journal-fns.ts` |
-| Shelves CRUD | `src/lib/shelves-fns.ts` |
+| Shelves CRUD | `src/lib/shelves-fns.ts` (reads), `shelves-write-fns.ts` (writes), `shelves-db.server.ts` (helpers), `shelves.ts` (client-safe types) |
 | Lookups | `src/lib/shelves-lookup.ts`, `shelves-episodes.ts` |
 | DB client | `src/lib/db.ts` |

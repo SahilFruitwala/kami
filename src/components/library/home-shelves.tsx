@@ -17,7 +17,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { useAddShelfItem, useBookSearch, useTmdbSearch } from "@/hooks/use-shelf-queries.ts";
 import { queryKeys } from "@/lib/query-client.ts";
-import { shelfPath, type ShelfTab } from "@/lib/shelves-fns.ts";
+import { shelfPath, type ShelfTab } from "@/lib/shelves.ts";
 import { fetchLinkPreview, type LookupResult } from "@/lib/shelves-lookup.ts";
 import { cn } from "@/lib/utils.ts";
 

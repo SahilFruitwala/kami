@@ -9,7 +9,7 @@ import {
   useSetShelfItemStatus,
   useSetShowWatched,
 } from "@/hooks/use-shelf-queries.ts";
-import { type ShelfDetail } from "@/lib/shelves-fns.ts";
+import { type ShelfDetail } from "@/lib/shelves.ts";
 import { statusLabels } from "@/lib/shelf-labels.ts";
 
 export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: () => void }) {
