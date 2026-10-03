@@ -3,7 +3,7 @@ import { toast } from "sonner";
 import { Check, LoaderCircle } from "lucide-react";
 import { Hanko } from "@/components/kami.tsx";
 import { useSetShelfItemStatus, useSetShowWatched } from "@/hooks/use-shelf-queries.ts";
-import { type ShelfCard, type ShelfTab } from "@/lib/shelves-fns.ts";
+import { type ShelfCard, type ShelfTab } from "@/lib/shelves.ts";
 import { cn } from "@/lib/utils.ts";
 import { statusLabels } from "@/lib/shelf-labels.ts";
 

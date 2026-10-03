@@ -14,7 +14,7 @@ import {
   useShelfDetail,
   useShelfItems,
 } from "@/hooks/use-shelf-queries.ts";
-import { shelfPath, type ShelfDetail, type ShelfTab } from "@/lib/shelves-fns.ts";
+import { shelfPath, type ShelfDetail, type ShelfTab } from "@/lib/shelves.ts";
 import { cn } from "@/lib/utils.ts";
 import { AddShelfDialog } from "@/components/library/add-shelf-dialog.tsx";
 import { ShelfFolio } from "@/components/library/shelf-folio.tsx";
