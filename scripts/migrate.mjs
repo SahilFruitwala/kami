@@ -2,7 +2,8 @@
 /**
  * Deploy-time database migrator (node-postgres, `pg`).
  *
- * Runs during `npm run build` — on every Vercel deploy — applying pending files
+ * Runs during `npm run build` — on Production Vercel deploys (Preview builds
+ * skip unless MIGRATE_ON_BUILD=1) — applying pending files
  * in ../migrations to DATABASE_URL. Each file is applied in one transaction and
  * recorded in a `_migrations` table, so it runs once and is safe to re-run.
  *
@@ -17,10 +18,20 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import pg from "pg";
 import { loadDotenv } from "./load-dotenv.mjs";
-import { pendingMigrations } from "./migration-plan.mjs";
+import { pendingMigrations, shouldMigrateOnBuild } from "./migration-plan.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 loadDotenv(root);
+
+// `pnpm build` passes --build: skip on Vercel Preview builds (see
+// shouldMigrateOnBuild) so unmerged branches never migrate a shared database.
+if (process.argv.includes("--build") && !shouldMigrateOnBuild(process.env)) {
+  console.log(
+    `[migrate] skipped for VERCEL_ENV=${process.env.VERCEL_ENV} build ` +
+      "(set MIGRATE_ON_BUILD=1 to force).",
+  );
+  process.exit(0);
+}
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 if (!databaseUrl) {
