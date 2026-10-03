@@ -8,57 +8,29 @@ import {
 } from "@/lib/library-remote";
 
 /**
- * Session + library bootstrap shell shared by every app page.
- * Sends signed-out visitors to login, renders a loading state while the
- * library syncs, and shows children once the page can render real data.
+ * Session gate shared by every app page. Auth-only: sends signed-out visitors
+ * to login and renders children as soon as the session resolves. The library
+ * boots in the background (fire-and-forget) so pages that don't need it —
+ * e.g. Home capture — never block on `getLibrary`. Pages that DO need the
+ * library opt in via <LibraryGate>.
  */
 export function AppGate({ children }: { children: React.ReactNode }) {
   const { user, isPending } = useCurrentUserState();
   const userId = user?.id;
-  // Track which userId a successful bootstrap completed for. Every pane
-  // remounts AppGate; defaulting ready to false flashed the full-screen
-  // "Loading your library…" shell after ⌘K save → /read even when the
-  // library was already in memory for this user.
-  const [readyForUser, setReadyForUser] = useState<string | null>(null);
-  const [libraryError, setLibraryError] = useState<string | null>(null);
 
-  const libraryReady =
-    Boolean(userId && isLibraryBootstrapped(userId)) ||
-    Boolean(userId && readyForUser === userId);
-
+  // Kick off the library boot without blocking first paint. Pages behind
+  // <LibraryGate> await it locally; everyone else renders immediately and
+  // picks up store rows when they land. `bootstrapLibraryFromServer` is
+  // guarded per-user + dedupes inflight calls, so this is safe to fire from
+  // every remount.
   useEffect(() => {
     if (isPending) return;
     if (!userId) {
       clearLibraryLocal();
-      setReadyForUser(null);
-      setLibraryError(null);
       return;
     }
-
-    let cancelled = false;
-    // Already synced for this user (e.g. navigating between panes remounts
-    // the gate) — skip the network round-trip.
-    if (isLibraryBootstrapped(userId)) {
-      setReadyForUser(userId);
-      setLibraryError(null);
-      return;
-    }
-    setLibraryError(null);
-
-    void bootstrapAppData(userId)
-      .then(() => {
-        if (!cancelled) setReadyForUser(userId);
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        const message =
-          error instanceof Error ? error.message : "Could not load your library.";
-        setLibraryError(message);
-      });
-
-    return () => {
-      cancelled = true;
-    };
+    if (isLibraryBootstrapped(userId)) return;
+    void bootstrapLibraryFromServer(userId).catch(() => undefined);
   }, [userId, isPending]);
 
   if (isPending) {
@@ -69,6 +41,52 @@ export function AppGate({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login/$" />;
   }
 
+  return <>{children}</>;
+}
+
+/**
+ * Opt-in data gate for pages that read `useLibraryStore().library`:
+ * Library, Vault, Reader. Shows the full-screen "Loading your library…"
+ * skeleton only there — Home / Shelves / Settings render without waiting.
+ */
+export function LibraryGate({ children }: { children: React.ReactNode }) {
+  const { user } = useCurrentUserState();
+  const userId = user?.id;
+  // Per-mount ready flag (see AppGate history): remounts must not flash the
+  // skeleton when the store is already booted for this user.
+  const [readyForUser, setReadyForUser] = useState<string | null>(null);
+  const [libraryError, setLibraryError] = useState<string | null>(null);
+
+  const libraryReady =
+    Boolean(userId && isLibraryBootstrapped(userId)) ||
+    Boolean(userId && readyForUser === userId);
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    if (isLibraryBootstrapped(userId)) {
+      setReadyForUser(userId);
+      setLibraryError(null);
+      return;
+    }
+    setLibraryError(null);
+    void bootstrapLibraryFromServer(userId)
+      .then(() => {
+        if (!cancelled) setReadyForUser(userId);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        const message =
+          error instanceof Error ? error.message : "Could not load your library.";
+        setLibraryError(message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  if (!userId) return <>{children}</>;
+
   if (libraryError) {
     return (
       <GateLoading
@@ -78,7 +96,7 @@ export function AppGate({ children }: { children: React.ReactNode }) {
           setLibraryError(null);
           setReadyForUser(null);
           if (!userId) return;
-          void bootstrapAppData(userId)
+          void bootstrapLibraryFromServer(userId)
             .then(() => setReadyForUser(userId))
             .catch((error: unknown) => {
               const message =
@@ -97,12 +115,6 @@ export function AppGate({ children }: { children: React.ReactNode }) {
   }
 
   return <>{children}</>;
-}
-
-async function bootstrapAppData(userId: string): Promise<void> {
-  // Journal is paused — boot only needs the library snapshot.
-  if (isLibraryBootstrapped(userId)) return;
-  await bootstrapLibraryFromServer(userId);
 }
 
 function GateLoading({
