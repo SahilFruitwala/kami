@@ -6,16 +6,14 @@ import {
   setShowWatched,
   toggleEpisode,
 } from "@/lib/shelves-episodes";
+import { getShelfCounts, getShelfItem, listShelfItems } from "@/lib/shelves-fns";
 import {
   addShelfItem,
   deleteShelfItem,
   findShelfDuplicates,
-  getShelfCounts,
-  getShelfItem,
-  listShelfItems,
   setShelfItemStatus,
-  type ShelfTab,
-} from "@/lib/shelves-fns";
+} from "@/lib/shelves-write-fns";
+import type { ShelfTab } from "@/lib/shelves";
 import { fetchLinkPreview, searchBooks, searchTmdb } from "@/lib/shelves-lookup";
 import { invalidateShelves, queryKeys } from "@/lib/query-client";
 

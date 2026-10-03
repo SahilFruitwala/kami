@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { shelfPath, shelfTabFromParam } from "@/lib/shelves-fns.ts";
+import { shelfPath, shelfTabFromParam } from "@/lib/shelves.ts";
 
 type LegacySearch = {
   tab?: string;

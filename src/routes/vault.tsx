@@ -4,7 +4,7 @@ import { AppShell } from "@/components/app-shell.tsx";
 import { TranscribeDialog } from "@/components/library/library-dialogs.tsx";
 import { VaultView } from "@/components/library/vault-view.tsx";
 import { KamiEyebrow } from "@/components/kami.tsx";
-import { useDeskStats } from "@/components/library/widgets.tsx";
+import { useDeskStats } from "@/hooks/use-desk-stats.ts";
 import type { LibraryItem } from "@/lib/store.ts";
 
 type VaultSearch = {

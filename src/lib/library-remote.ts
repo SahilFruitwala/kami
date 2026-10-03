@@ -1,17 +1,20 @@
 import {
   LIBRARY_BOOT_LIMIT,
-  addLibraryFolder,
   getLibrary,
-  importLibrarySnapshot,
   patchLibraryItem,
-  removeLibraryFolder,
   removeLibraryItem,
-  renameLibraryFolder,
   upsertLibraryItem,
-  wipeLibrary,
   type LibraryCursor,
   type LibrarySnapshot,
 } from "@/lib/library-fns";
+import {
+  addLibraryFolder,
+  importLibrarySnapshot,
+  removeLibraryFolder,
+  renameLibraryFolder,
+  wipeLibrary,
+} from "@/lib/library-folder-fns";
+import type { HighlightOp, TagOp } from "@/lib/item-ops";
 import {
   useLibraryStore,
   type Folder,
@@ -319,8 +322,8 @@ export function syncPatchItem(
     favorited?: boolean;
     note?: string;
     folderId?: string | null;
-    tags?: string[];
-    highlights?: LibraryItem["highlights"];
+    tagOps?: TagOp[];
+    highlightOps?: HighlightOp[];
   },
 ) {
   sync("update", () => patchLibraryItem({ data: { id, ...patch } }));

@@ -9,8 +9,13 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { test } from "node:test";
-import { isMigrationFile, migrationName, pendingMigrations } from "./migration-plan.mjs";
+import { describe, it, test } from "node:test";
+import {
+  isMigrationFile,
+  migrationName,
+  pendingMigrations,
+  shouldMigrateOnBuild,
+} from "./migration-plan.mjs";
 import { projectRoot } from "./with-app-env.mjs";
 
 const AUTH_MIGRATION = "0001_auth.sql";
@@ -88,4 +93,18 @@ test("the copy check reads both files and catches an edit", () => {
   writeFileSync(join(root, "migrations", AUTH_MIGRATION), "create table t (x int);\n");
   const drifted = authSchemaCopy(root);
   assert.notEqual(drifted.copy, drifted.source);
+});
+
+describe("shouldMigrateOnBuild", () => {
+  it("migrates on production and non-Vercel builds only", () => {
+    assert.equal(shouldMigrateOnBuild({ VERCEL_ENV: "production" }), true);
+    assert.equal(shouldMigrateOnBuild({ VERCEL_ENV: "preview" }), false);
+    assert.equal(shouldMigrateOnBuild({ VERCEL_ENV: "development" }), false);
+    assert.equal(shouldMigrateOnBuild({}), true);
+  });
+
+  it("honors the MIGRATE_ON_BUILD override", () => {
+    assert.equal(shouldMigrateOnBuild({ VERCEL_ENV: "preview", MIGRATE_ON_BUILD: "1" }), true);
+    assert.equal(shouldMigrateOnBuild({ VERCEL_ENV: "production", MIGRATE_ON_BUILD: "0" }), false);
+  });
 });

@@ -7,6 +7,7 @@ export const Route = createFileRoute("/api/img")({
       GET: async ({ request }) => {
         // Image proxy is an authenticated SSRF/egress surface: only serve it
         // to signed-in users (or to anyone when auth is disabled for local dev).
+        let userId = "local-dev";
         if (process.env.VITE_AUTH_ENABLED !== "false") {
           try {
             const { auth } = await import("@clerk/tanstack-react-start/server");
@@ -14,6 +15,7 @@ export const Route = createFileRoute("/api/img")({
             if (!session.userId) {
               return new Response("unauthorized", { status: 401 });
             }
+            userId = session.userId;
           } catch {
             return new Response("unauthorized", { status: 401 });
           }
@@ -29,6 +31,19 @@ export const Route = createFileRoute("/api/img")({
               ? err.status
               : 403;
           return new Response("forbidden", { status });
+        }
+        try {
+          const { enforceRateLimit } = await import("@/lib/rate-limit.server.ts");
+          await enforceRateLimit(userId, "image");
+        } catch (err) {
+          const retry =
+            err && typeof err === "object" && "retryAfterSeconds" in err
+              ? String(err.retryAfterSeconds)
+              : "60";
+          return new Response("too many requests", {
+            status: 429,
+            headers: { "retry-after": retry },
+          });
         }
         const raw = new URL(request.url).searchParams.get("u");
         if (!raw) {

@@ -1,5 +1,5 @@
 import type { Folder, Highlight, LibraryItem } from "./store.ts";
-import { articleIdFromUrl, normalizeTag, uid } from "./store.ts";
+import { articleIdFromUrl } from "./store.ts";
 
 /** Shared import/export helpers: library JSON, OPML, vault CSV, duplicates. */
 
@@ -152,35 +152,4 @@ export function findDuplicateGroups(library: LibraryItem[]): LibraryItem[][] {
     byKey.set(key, list);
   }
   return [...byKey.values()].filter((g) => g.length > 1);
-}
-
-/** Merge `drop` into `keep`: union tags/highlights, keep earliest save,
- *  prefer whichever copy has article content. */
-export function mergePair(keep: LibraryItem, drop: LibraryItem): LibraryItem {
-  const tags = [...keep.tags];
-  for (const t of drop.tags) {
-    const clean = normalizeTag(t);
-    if (clean && !tags.some((x) => x.toLowerCase() === clean.toLowerCase())) tags.push(clean);
-  }
-  const seen = new Set(keep.highlights.map((h) => h.text));
-  const highlights = [...keep.highlights];
-  for (const h of drop.highlights) {
-    if (!seen.has(h.text)) {
-      seen.add(h.text);
-      highlights.push({ ...h, id: h.id || uid() });
-    }
-  }
-  highlights.sort((a, b) => b.createdAt - a.createdAt);
-  return {
-    ...keep,
-    tags: tags.slice(0, 12),
-    highlights: highlights.slice(0, 80),
-    savedAt: Math.min(keep.savedAt, drop.savedAt),
-    contentHtml: keep.contentHtml || drop.contentHtml,
-    excerpt: keep.excerpt || drop.excerpt,
-    heroImage: keep.heroImage ?? drop.heroImage,
-    favorited: keep.favorited || drop.favorited,
-    note: keep.note || drop.note,
-    folderId: keep.folderId ?? drop.folderId,
-  };
 }
