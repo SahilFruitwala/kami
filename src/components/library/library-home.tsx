@@ -163,7 +163,7 @@ export function LibraryHome({
                   placeholder="Search washi, authors, or concepts…"
                   className="h-auto flex-1 border-0 bg-transparent p-0 shadow-none focus-visible:ring-2 focus-visible:ring-hanko/40"
                 />
-                <kbd className="hidden shrink-0 rounded-[0.25rem] bg-paper-warm px-1.5 py-0.5 font-sans text-[11px] text-ink-muted tabular-nums sm:inline-block">
+                <kbd className="hidden shrink-0 rounded-lg bg-paper-warm px-1.5 py-0.5 font-sans text-[11px] text-ink-muted tabular-nums sm:inline-block">
                   ⌘&nbsp;K
                 </kbd>
               </div>
@@ -197,7 +197,7 @@ export function LibraryHome({
                 id="library-sort"
                 value={filters.sort}
                 onChange={(e) => filters.onSort(e.target.value as LibrarySort)}
-                className="h-8 shrink-0 rounded-[0.25rem] bg-surface px-2 font-sans text-xs font-medium text-ink-soft shadow-[var(--shadow-border)] outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+                className="h-8 shrink-0 rounded-lg bg-surface px-2 font-sans text-xs font-medium text-ink-soft shadow-[var(--shadow-border)] outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
               >
                 {SORT_LABELS.map((o) => (
                   <option key={o.id} value={o.id}>
@@ -210,7 +210,7 @@ export function LibraryHome({
                 onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}
                 aria-pressed={selectMode}
                 className={cn(
-                  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 font-sans text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                  "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg px-3 font-sans text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
                   selectMode
                     ? "bg-hanko font-semibold text-white shadow-sm"
                     : "bg-surface text-ink-soft shadow-[var(--shadow-border)] hover:text-ink",
@@ -223,7 +223,7 @@ export function LibraryHome({
                 <button
                   type="button"
                   onClick={onOpenBulk}
-                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-[0.25rem] bg-surface px-3 font-sans text-xs font-medium text-ink-soft shadow-[var(--shadow-border)] transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+                  className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-lg bg-surface px-3 font-sans text-xs font-medium text-ink-soft shadow-[var(--shadow-border)] transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
                 >
                   Bulk save
                 </button>
@@ -267,7 +267,7 @@ export function LibraryHome({
               type="button"
               disabled={selectedIds.length === 0}
               onClick={() => bulkArchive(filters.tab !== "archive")}
-              className="rounded-[0.25rem] bg-paper-warm px-3 py-1.5 font-sans text-xs font-medium text-ink disabled:opacity-40 hover:bg-line"
+              className="rounded-lg bg-paper-warm px-3 py-1.5 font-sans text-xs font-medium text-ink disabled:opacity-40 hover:bg-line"
             >
               {filters.tab === "archive" ? "Move to inbox" : "Archive"}
             </button>
@@ -275,7 +275,7 @@ export function LibraryHome({
               type="button"
               disabled={selectedIds.length === 0}
               onClick={bulkFavorite}
-              className="rounded-[0.25rem] bg-paper-warm px-3 py-1.5 font-sans text-xs font-medium text-ink disabled:opacity-40 hover:bg-line"
+              className="rounded-lg bg-paper-warm px-3 py-1.5 font-sans text-xs font-medium text-ink disabled:opacity-40 hover:bg-line"
             >
               Favorite
             </button>
@@ -290,7 +290,7 @@ export function LibraryHome({
                 if (e.target.value !== "") bulkFolder(e.target.value === "none" ? null : e.target.value);
                 e.target.value = "";
               }}
-              className="h-8 rounded-[0.25rem] bg-paper-warm px-2 font-sans text-xs font-medium text-ink disabled:opacity-40"
+              className="h-8 rounded-lg bg-paper-warm px-2 font-sans text-xs font-medium text-ink disabled:opacity-40"
             >
               <option value="" disabled>
                 File into…
@@ -306,14 +306,14 @@ export function LibraryHome({
               type="button"
               disabled={selectedIds.length === 0}
               onClick={bulkDelete}
-              className="rounded-[0.25rem] bg-danger/10 px-3 py-1.5 font-sans text-xs font-medium text-danger disabled:opacity-40 hover:bg-danger/20"
+              className="rounded-lg bg-danger/10 px-3 py-1.5 font-sans text-xs font-medium text-danger disabled:opacity-40 hover:bg-danger/20"
             >
               Delete
             </button>
             <button
               type="button"
               onClick={exitSelect}
-              className="ml-auto rounded-[0.25rem] px-3 py-1.5 font-sans text-xs text-ink-muted underline underline-offset-2 hover:text-ink"
+              className="ml-auto rounded-lg px-3 py-1.5 font-sans text-xs text-ink-muted underline underline-offset-2 hover:text-ink"
             >
               Clear
             </button>
@@ -385,7 +385,7 @@ function LoadMoreFooter({
         type="button"
         onClick={() => void handleLoadMore()}
         disabled={loading}
-        className="rounded-[0.25rem] bg-surface px-4 py-2 font-sans text-xs font-medium text-ink-soft shadow-[var(--shadow-border)] transition-colors hover:text-ink disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+        className="rounded-lg bg-surface px-4 py-2 font-sans text-xs font-medium text-ink-soft shadow-[var(--shadow-border)] transition-colors hover:text-ink disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
       >
         {loading ? "Loading…" : failed ? "Try again" : "Load more"}
       </button>
@@ -411,8 +411,8 @@ function StatusChip({
       aria-pressed={active}
       className={
         active
-          ? "inline-flex items-center gap-1.5 rounded-[0.25rem] bg-paper-warm px-3 py-1 font-sans text-xs font-semibold text-ink"
-          : "inline-flex items-center gap-1.5 rounded-[0.25rem] bg-surface px-3 py-1 font-sans text-xs text-ink-soft transition-colors hover:bg-paper-warm"
+          ? "inline-flex items-center gap-1.5 rounded-lg bg-paper-warm px-3 py-1 font-sans text-xs font-semibold text-ink"
+          : "inline-flex items-center gap-1.5 rounded-lg bg-surface px-3 py-1 font-sans text-xs text-ink-soft transition-colors hover:bg-paper-warm"
       }
     >
       <span className={`size-1.5 rounded-full ${dot}`} aria-hidden="true" />

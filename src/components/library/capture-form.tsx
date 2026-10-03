@@ -63,7 +63,7 @@ export function CaptureForm({
               }}
               className="h-11 min-w-0 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-2 focus-visible:ring-hanko/40"
             />
-            <kbd className="hidden shrink-0 rounded-[0.25rem] bg-paper-warm px-1.5 py-0.5 font-sans text-[11px] text-ink-muted tabular-nums sm:inline-block">
+            <kbd className="hidden shrink-0 rounded-lg bg-paper-warm px-1.5 py-0.5 font-sans text-[11px] text-ink-muted tabular-nums sm:inline-block">
               ⌘&nbsp;K
             </kbd>
           </div>

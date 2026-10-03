@@ -16,6 +16,9 @@ const PUBLIC_HOST =
 const SITE_URL = `https://${String(PUBLIC_HOST).replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
 const OG_IMAGE = `${SITE_URL}/og.webp`;
 
+const READER_FONTS_CSS =
+  "https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=Literata:opsz,wght@7..72,400;7..72,600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&family=Atkinson+Hyperlegible:wght@400;700&family=Figtree:wght@400;600&family=Noto+Serif+JP:wght@700&display=swap";
+
 const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem('quarto-theme');var t=s==='light'||s==='dark'?s:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');if(t==='dark')document.documentElement.classList.add('dark');document.documentElement.style.colorScheme=t;}catch(e){}})();`;
 
 export const Route = createRootRoute({
@@ -36,8 +39,8 @@ export const Route = createRootRoute({
         content:
           "KAMI is a quiet read-later app for blogs and X articles — save a link, read a clean distraction-free page, highlight, tag, and find it in seconds.",
       },
-      { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#faf6ee" },
-      { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#151312" },
+      { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#fbfbfd" },
+      { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#0b0b0c" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: APP_NAME },
       { property: "og:url", content: SITE_URL },
@@ -68,6 +71,10 @@ export const Route = createRootRoute({
       { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16x16.png" },
       { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
       { rel: "manifest", href: "/site.webmanifest" },
+      { rel: "preconnect", href: "https://fonts.googleapis.com" },
+      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
+      // Reader typefaces (Dokusho) + the 紙 seal face. UI text uses the system font.
+      { rel: "stylesheet", href: READER_FONTS_CSS },
       { rel: "stylesheet", href: appCss },
     ],
   }),

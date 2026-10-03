@@ -12,9 +12,9 @@ function remoteSync(run: (m: typeof import("./library-remote.ts")) => void) {
 
 /** Ink colors for highlights — Dokusho toolbar (Vermilion / Bamboo / Sumi). */
 export const HIGHLIGHT_COLORS = [
-  { id: "vermilion", label: "Vermilion", swatch: "#c84b31" },
-  { id: "bamboo", label: "Bamboo", swatch: "#6e7d6a" },
-  { id: "sumi", label: "Sumi", swatch: "#43403a" },
+  { id: "vermilion", label: "Vermilion", swatch: "#e2401c" },
+  { id: "bamboo", label: "Bamboo", swatch: "#5c7a4e" },
+  { id: "sumi", label: "Sumi", swatch: "#3a3836" },
 ] as const;
 
 export type HighlightColorId = (typeof HIGHLIGHT_COLORS)[number]["id"];
@@ -114,9 +114,9 @@ export function articleToItem(article: Article, extras: Partial<LibraryItem> = {
 export const READER_FONTS = [
   { id: "newsreader", label: "Newsreader", family: '"Newsreader", "Iowan Old Style", Georgia, serif' },
   { id: "literata", label: "Literata", family: '"Literata", Georgia, serif' },
-  { id: "source-serif", label: "Source Serif", family: 'Georgia, "Iowan Old Style", serif' },
+  { id: "source-serif", label: "Source Serif", family: '"Source Serif 4", Georgia, "Iowan Old Style", serif' },
   { id: "atkinson", label: "Atkinson", family: '"Atkinson Hyperlegible", ui-sans-serif, sans-serif' },
-  { id: "figtree", label: "Figtree", family: 'ui-sans-serif, system-ui, sans-serif' },
+  { id: "figtree", label: "Figtree", family: '"Figtree", ui-sans-serif, system-ui, sans-serif' },
 ] as const;
 
 export type ReaderFontId = (typeof READER_FONTS)[number]["id"];

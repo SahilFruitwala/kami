@@ -53,7 +53,7 @@ function Settings() {
                 ["#data", "Data"],
                 ["#help", "Help"],
               ].map(([href, label]) => (
-                <a key={href} href={href} className="rounded-[0.25rem] bg-surface px-3 py-1.5 text-ink-soft shadow-[var(--shadow-border)] transition-colors hover:bg-paper-warm hover:text-ink">
+                <a key={href} href={href} className="rounded-lg bg-surface px-3 py-1.5 text-ink-soft shadow-[var(--shadow-border)] transition-colors hover:bg-paper-warm hover:text-ink">
                   {label}
                 </a>
               ))}

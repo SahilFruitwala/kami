@@ -30,9 +30,9 @@ function WatchWhereSkeleton() {
   return (
     <div className="mt-2 flex flex-wrap items-center gap-1.5" aria-busy="true" aria-label="Finding where to watch">
       <Skeleton className="h-4 w-20" />
-      <Skeleton className="size-7 rounded-[0.25rem]" />
-      <Skeleton className="size-7 rounded-[0.25rem]" />
-      <Skeleton className="size-7 rounded-[0.25rem]" />
+      <Skeleton className="size-7 rounded-lg" />
+      <Skeleton className="size-7 rounded-lg" />
+      <Skeleton className="size-7 rounded-lg" />
     </div>
   );
 }
@@ -101,9 +101,9 @@ export function WatchWhere({
               src={p.logo}
               alt=""
               loading="lazy"
-              className="size-7 rounded-[0.25rem] border border-line object-cover transition-transform group-hover/logo:scale-110"
+              className="size-7 rounded-lg border border-line object-cover transition-transform group-hover/logo:scale-110"
             />
-            <span className="pointer-events-none absolute -top-7 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-[0.25rem] border border-line bg-paper px-2 py-0.5 text-[11px] font-medium text-ink opacity-0 shadow-sm transition-opacity group-hover/logo:opacity-100">
+            <span className="pointer-events-none absolute -top-7 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-line bg-paper px-2 py-0.5 text-[11px] font-medium text-ink opacity-0 shadow-sm transition-opacity group-hover/logo:opacity-100">
               {p.name}
             </span>
           </a>
@@ -113,7 +113,7 @@ export function WatchWhere({
             href={providerLink}
             target="_blank"
             rel="noreferrer"
-            className="rounded-[0.25rem] border border-line bg-paper-warm px-2.5 py-0.5 font-medium text-ink-soft transition-colors hover:border-ink-faint hover:text-ink"
+            className="rounded-lg border border-line bg-paper-warm px-2.5 py-0.5 font-medium text-ink-soft transition-colors hover:border-ink-faint hover:text-ink"
           >
             {p.name}
           </a>
@@ -124,7 +124,7 @@ export function WatchWhere({
           href={providerLink}
           target="_blank"
           rel="noreferrer"
-          className="rounded-[0.25rem] px-1.5 py-0.5 text-ink-faint hover:text-ink"
+          className="rounded-lg px-1.5 py-0.5 text-ink-faint hover:text-ink"
         >
           +{extra} more
         </a>

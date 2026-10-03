@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { SignIn } from "@clerk/tanstack-react-start";
-import { BookMarked } from "lucide-react";
+import { KAMI_GLYPH } from "@/components/kami.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
@@ -37,8 +37,8 @@ function LoginPage() {
       <div className="relative mx-auto flex w-full max-w-md flex-col px-4 py-10 sm:px-6">
         <div className="mb-10 flex items-center justify-between">
           <Link to="/" className="inline-flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30">
-            <span className="flex size-8 items-center justify-center rounded-md bg-ink text-paper">
-              <BookMarked className="size-4" aria-hidden="true" />
+            <span className="kami-hanko flex size-8 items-center justify-center rounded-lg text-sm font-bold" lang="ja" aria-hidden="true">
+              {KAMI_GLYPH}
             </span>
             <span className="text-sm font-semibold tracking-tight" translate="no">KAMI</span>
           </Link>

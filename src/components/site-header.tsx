@@ -162,11 +162,11 @@ export function SiteHeader({
         <div className="flex items-center gap-2.5 px-5 pt-5">
           <Link
             to="/app"
-            className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
             aria-label="Kami home"
           >
             <span
-              className="kami-hanko flex size-8 items-center justify-center rounded-[0.25rem] font-display text-sm font-bold leading-none"
+              className="kami-hanko flex size-8 items-center justify-center rounded-lg font-display text-sm font-bold leading-none"
               lang="ja"
             >
               {KAMI_GLYPH}
@@ -188,7 +188,7 @@ export function SiteHeader({
               aria-expanded={!sidebarCollapsed}
               aria-controls="sanctuary-sidebar"
               title="Hide sidebar"
-              className="shrink-0 rounded-[0.25rem] p-2 text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+              className="shrink-0 rounded-lg p-2 text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
             >
               <PanelLeftClose className="size-4" aria-hidden="true" />
             </button>
@@ -231,7 +231,7 @@ export function SiteHeader({
               to="/settings"
               aria-label="Settings"
               className={cn(
-                "rounded-[0.25rem] p-2 text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                "rounded-lg p-2 text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
                 active === "settings" && "text-ink",
               )}
             >
@@ -252,7 +252,7 @@ export function SiteHeader({
               aria-expanded={false}
               aria-controls="sanctuary-sidebar"
               title="Show sidebar"
-              className="shrink-0 rounded-[0.25rem] p-2 text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+              className="shrink-0 rounded-lg p-2 text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
             >
               <PanelLeftOpen className="size-4" aria-hidden="true" />
             </button>
@@ -279,9 +279,9 @@ export function SiteHeader({
       {/* Mobile top row */}
       <div className="sticky top-0 z-40 border-b border-line bg-paper/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl lg:hidden">
         <div className="flex h-14 items-center justify-between gap-3 px-[max(1rem,env(safe-area-inset-left))]">
-          <Link to="/app" className="flex items-center gap-2 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40" aria-label="Kami home">
+          <Link to="/app" className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40" aria-label="Kami home">
             <span
-              className="kami-hanko flex size-7 items-center justify-center rounded-[0.25rem] font-display text-xs font-bold leading-none"
+              className="kami-hanko flex size-7 items-center justify-center rounded-lg font-display text-xs font-bold leading-none"
               lang="ja"
             >
               {KAMI_GLYPH}
@@ -296,7 +296,7 @@ export function SiteHeader({
               to="/settings"
               aria-label="Settings"
               className={cn(
-                "flex size-11 items-center justify-center rounded-[0.25rem] text-ink-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                "flex size-11 items-center justify-center rounded-lg text-ink-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
                 active === "settings" && "text-hanko",
               )}
             >
@@ -351,7 +351,7 @@ function PaneLink({
       to={to}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-2 rounded-[0.25rem] px-2 py-2 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+        "flex items-center gap-2 rounded-lg px-2 py-2 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
         active ? "bg-paper-warm font-semibold text-ink" : "font-medium text-ink-muted hover:text-ink",
       )}
     >

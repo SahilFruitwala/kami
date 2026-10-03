@@ -180,7 +180,7 @@ export function VaultView({
         <button
           type="button"
           onClick={onExitVault}
-          className="mt-2 rounded-[0.25rem] bg-hanko px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-sm hover:bg-shu"
+          className="mt-2 rounded-lg bg-hanko px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-sm hover:bg-shu"
         >
           Return to the Desk
         </button>
@@ -364,7 +364,7 @@ export function VaultView({
                   setAuthor(null);
                   setLocalQuery("");
                 }}
-                className="mt-3 rounded-[0.25rem] bg-hanko px-4 py-2 font-sans text-xs font-semibold text-white shadow-sm hover:bg-shu"
+                className="mt-3 rounded-lg bg-hanko px-4 py-2 font-sans text-xs font-semibold text-white shadow-sm hover:bg-shu"
               >
                 Clear Filters
               </button>

@@ -80,7 +80,7 @@ function SeasonEpisodes({
               onClick={() => toggle.mutate({ season: e.season, number: e.number })}
               disabled={toggle.isPending}
               aria-pressed={e.watched}
-              className="flex w-full items-center gap-2.5 rounded-[0.25rem] py-1.5 pr-2 text-left hover:bg-paper-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 disabled:opacity-60"
+              className="flex w-full items-center gap-2.5 rounded-lg py-1.5 pr-2 text-left hover:bg-paper-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 disabled:opacity-60"
             >
               <span
                 className={cn(

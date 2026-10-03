@@ -65,7 +65,7 @@ export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: 
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
-        <div className="poster-frame relative w-24 shrink-0 overflow-hidden rounded-[0.25rem] bg-paper-warm">
+        <div className="poster-frame relative w-24 shrink-0 overflow-hidden rounded-lg bg-paper-warm">
           {detail.item.imageUrl ? (
             <img
               src={detail.item.imageUrl}
@@ -213,7 +213,7 @@ export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: 
         </p>
       ) : null}
       {detail.item.notes ? (
-        <div className="rounded-[0.25rem] bg-paper-warm p-3">
+        <div className="rounded-lg bg-paper-warm p-3">
           <p className="kami-label text-ink-muted">Marginalia</p>
           <p className="mt-1 font-serif text-sm text-ink italic">{detail.item.notes}</p>
         </div>

@@ -49,7 +49,7 @@ function TabButton({
       aria-pressed={active}
       onClick={onClick}
       className={cn(
-        "rounded-[0.25rem] px-4 py-2 font-sans text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+        "rounded-lg px-4 py-2 font-sans text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
         active
           ? "bg-hanko font-semibold text-white shadow-sm"
           : "text-ink-soft hover:bg-paper-warm hover:text-ink",

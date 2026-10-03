@@ -7,7 +7,7 @@ export function SiteFooter() {
       <div className="mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-4 px-4 sm:px-6 md:flex-row lg:px-12">
         <div className="flex items-center gap-3">
           <span
-            className="kami-hanko flex size-7 items-center justify-center rounded-[0.25rem] font-display text-sm font-bold leading-none"
+            className="kami-hanko flex size-7 items-center justify-center rounded-lg font-display text-sm font-bold leading-none"
             lang="ja"
             aria-hidden="true"
           >

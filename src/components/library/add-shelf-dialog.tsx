@@ -214,7 +214,7 @@ export function AddShelfDialog({
                 aria-selected={type === t.id}
                 onClick={() => switchType(t.id)}
                 className={cn(
-                  "shrink-0 rounded-[0.25rem] px-3 py-1.5 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                  "shrink-0 rounded-lg px-3 py-1.5 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
                   type === t.id
                     ? "bg-paper-warm font-semibold text-ink"
                     : "font-medium text-ink-muted hover:text-ink",
@@ -281,7 +281,7 @@ export function AddShelfDialog({
                         <button
                           type="button"
                           onClick={() => pick(r)}
-                          className="flex w-full items-center gap-3 rounded-[0.25rem] p-2 text-left hover:bg-paper-warm"
+                          className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-paper-warm"
                         >
                           {r.imageUrl ? (
                             <img
@@ -418,7 +418,7 @@ export function AddShelfDialog({
             ) : null}
 
             {duplicates.length > 0 ? (
-              <div className="rounded-[0.25rem] border border-amber-500/40 bg-amber-500/10 px-4 py-3 font-sans text-[14px]">
+              <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 font-sans text-[14px]">
                 <p className="font-medium text-ink">Already on your shelf</p>
                 <ul className="mt-1.5 space-y-0.5 text-ink-soft">
                   {duplicates.map((m) => (

@@ -20,7 +20,7 @@ export function MiniButton({ children, onClick, danger }: { children: React.Reac
       type="button"
       onClick={onClick}
       className={cn(
-        "shrink-0 rounded-[0.25rem] px-2.5 py-1 font-sans text-xs font-medium transition-colors",
+        "shrink-0 rounded-lg px-2.5 py-1 font-sans text-xs font-medium transition-colors",
         danger ? "text-danger hover:bg-danger/10" : "bg-paper-warm text-ink hover:bg-line",
       )}
     >
@@ -34,7 +34,7 @@ export function ExportButton({ children, onClick }: { children: React.ReactNode;
     <button
       type="button"
       onClick={onClick}
-      className="rounded-[0.25rem] bg-hanko px-4 py-2 font-sans text-xs font-semibold text-white shadow-sm hover:bg-shu"
+      className="rounded-lg bg-hanko px-4 py-2 font-sans text-xs font-semibold text-white shadow-sm hover:bg-shu"
     >
       {children}
     </button>

@@ -127,7 +127,7 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex min-h-11 items-center gap-1.5 rounded-[0.25rem] px-3 font-sans text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 sm:min-h-8",
+        "inline-flex min-h-11 items-center gap-1.5 rounded-lg px-3 font-sans text-xs font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 sm:min-h-8",
         active
           ? "bg-hanko font-semibold text-white shadow-sm"
           : "bg-paper-warm text-ink-soft hover:bg-line hover:text-ink",

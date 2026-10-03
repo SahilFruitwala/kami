@@ -61,7 +61,7 @@ export function HomeCaptureTabs({
           aria-selected={value === t.id}
           onClick={() => onChange(t.id)}
           className={cn(
-            "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1 font-sans text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+            "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1 font-sans text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
             value === t.id
               ? "bg-hanko font-semibold text-white shadow-sm"
               : "bg-surface font-medium text-ink-soft shadow-[var(--shadow-border)] hover:bg-paper-warm hover:text-ink",
