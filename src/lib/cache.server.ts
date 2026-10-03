@@ -6,7 +6,7 @@ import { Redis } from "@upstash/redis";
  * - Enabled when either `UPSTASH_REDIS_REST_URL` +
  *   `UPSTASH_REDIS_REST_TOKEN` or the legacy `UPSTASH_URL` +
  *   `UPSTASH_TOKEN` pair are set; otherwise every helper is a transparent
- *   no-op (local dev, PGLite preview, CI keep working with zero config).
+ *   no-op (local dev and CI keep working with zero cache config).
  * - All values are JSON. TTLs are short for user data (stale reads are
  *   bounded) and long for third-party lookups (TMDB / Open Library /
  *   link previews barely change).

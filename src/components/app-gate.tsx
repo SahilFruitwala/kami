@@ -2,11 +2,6 @@ import { useEffect, useState } from "react";
 import { Navigate } from "@tanstack/react-router";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import {
-  bootstrapJournalFromServer,
-  clearJournalLocal,
-  isJournalBootstrapped,
-} from "@/lib/journal-remote";
-import {
   bootstrapLibraryFromServer,
   clearLibraryLocal,
   isLibraryBootstrapped,
@@ -28,15 +23,13 @@ export function AppGate({ children }: { children: React.ReactNode }) {
   const [libraryError, setLibraryError] = useState<string | null>(null);
 
   const libraryReady =
-    Boolean(
-      userId && isLibraryBootstrapped(userId) && isJournalBootstrapped(userId),
-    ) || Boolean(userId && readyForUser === userId);
+    Boolean(userId && isLibraryBootstrapped(userId)) ||
+    Boolean(userId && readyForUser === userId);
 
   useEffect(() => {
     if (isPending) return;
     if (!userId) {
       clearLibraryLocal();
-      clearJournalLocal();
       setReadyForUser(null);
       setLibraryError(null);
       return;
@@ -45,7 +38,7 @@ export function AppGate({ children }: { children: React.ReactNode }) {
     let cancelled = false;
     // Already synced for this user (e.g. navigating between panes remounts
     // the gate) — skip the network round-trip.
-    if (isLibraryBootstrapped(userId) && isJournalBootstrapped(userId)) {
+    if (isLibraryBootstrapped(userId)) {
       setReadyForUser(userId);
       setLibraryError(null);
       return;
@@ -107,14 +100,9 @@ export function AppGate({ children }: { children: React.ReactNode }) {
 }
 
 async function bootstrapAppData(userId: string): Promise<void> {
-  await Promise.all([
-    isLibraryBootstrapped(userId)
-      ? Promise.resolve()
-      : bootstrapLibraryFromServer(userId),
-    isJournalBootstrapped(userId)
-      ? Promise.resolve()
-      : bootstrapJournalFromServer(userId),
-  ]);
+  // Journal is paused — boot only needs the library snapshot.
+  if (isLibraryBootstrapped(userId)) return;
+  await bootstrapLibraryFromServer(userId);
 }
 
 function GateLoading({

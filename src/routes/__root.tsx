@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { createRootRoute, HeadContent, Navigate, Outlet, Scripts } from "@tanstack/react-router";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "@/lib/auth/provider";
@@ -11,6 +12,12 @@ const APP_NAME = "KAMI";
 const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem('quarto-theme');var t=s==='light'||s==='dark'?s:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');if(t==='dark')document.documentElement.classList.add('dark');document.documentElement.style.colorScheme=t;}catch(e){}})();`;
 
 export const Route = createRootRoute({
+  // Must stay `true`: children can only opt to *more* restrictive SSR,
+  // so a `false` here would force the landing page (`/`) client-only too.
+  // App routes opt out via `defaultSsr: false` in src/start.ts.
+  ssr: true,
+  shellComponent: RootShell,
+  component: RootComponent,
   notFoundComponent: () => <Navigate to="/" />,
   head: () => ({
     meta: [
@@ -58,23 +65,32 @@ export const Route = createRootRoute({
       { rel: "stylesheet", href: appCss },
     ],
   }),
-  component: () => (
+});
+
+function RootShell({ children }: { children: ReactNode }) {
+  return (
     <html lang="en" className="antialiased" suppressHydrationWarning>
       <head>
         <HeadContent />
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
       </head>
       <body className="min-h-dvh bg-paper text-ink">
-        <QueryClientProvider client={getAppQueryClient()}>
-          <AuthProvider>
-            <ThemeShell />
-          </AuthProvider>
-        </QueryClientProvider>
+        {children}
         <Scripts />
       </body>
     </html>
-  ),
-});
+  );
+}
+
+function RootComponent() {
+  return (
+    <QueryClientProvider client={getAppQueryClient()}>
+      <AuthProvider>
+        <ThemeShell />
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
 function ThemeShell() {
   const { theme } = useTheme();

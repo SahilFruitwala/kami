@@ -274,7 +274,7 @@ export function ReaderView({
     ];
     try {
       await navigator.clipboard.writeText(lines.join("\n"));
-      toast.success("Reading exported — paste it into your journal");
+      toast.success("Reading copied to clipboard");
     } catch {
       toast.error("Export failed — copy the passages manually and try again");
     }
@@ -777,7 +777,7 @@ function MarginaliaHighlights({
           className="flex items-center gap-1.5 rounded-[0.25rem] bg-hanko px-3 py-1.5 font-sans text-xs font-medium text-white shadow-sm transition-colors hover:bg-shu active:translate-y-px"
         >
           <PenLine className="size-3.5" aria-hidden="true" />
-          Export to Journal
+          Copy reading
         </button>
       </div>
       <ul className="mt-4 space-y-4">

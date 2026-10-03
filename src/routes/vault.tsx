@@ -57,7 +57,7 @@ function Vault() {
           </h2>
           <p className="mt-2 max-w-xl font-body text-sm leading-relaxed text-ink-soft">
             Highlights pressed onto washi slips — filter by theme or voice,
-            cite them into your journal, or export the whole vault.
+            copy them out, or export the whole vault.
           </p>
         </div>
       </section>

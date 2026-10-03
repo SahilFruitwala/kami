@@ -6,7 +6,6 @@ import {
   Gift,
   House,
   LibraryBig,
-  NotebookPen,
   Plus,
   Search,
   Settings as SettingsIcon,
@@ -23,7 +22,6 @@ import { cn } from "@/lib/utils.ts";
 export type SitePane =
   | "home"
   | "library"
-  | "journal"
   | "vault"
   | "movies"
   | "series"
@@ -35,7 +33,6 @@ type Pane = {
   id: Exclude<SitePane, "home" | "settings">;
   to:
     | "/library"
-    | "/journal"
     | "/vault"
     | "/shelves/movies"
     | "/shelves/series"
@@ -48,7 +45,6 @@ type Pane = {
 /** Primary sanctuary panes — mirrors the Stitch Sanctuary sidebar. */
 const SANCTUARY_PANES: Pane[] = [
   { id: "library", to: "/library", label: "Library", icon: LibraryBig },
-  { id: "journal", to: "/journal", label: "Journal", icon: NotebookPen },
   { id: "vault", to: "/vault", label: "Vault", icon: Bookmark },
 ];
 

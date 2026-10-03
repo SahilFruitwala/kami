@@ -11,7 +11,6 @@ import {
   LibraryBig,
   Link2,
   LoaderCircle,
-  NotebookPen,
   Plus,
   Settings,
   Tv,
@@ -146,7 +145,6 @@ export function CommandPalette({
     to:
       | "/"
       | "/library"
-      | "/journal"
       | "/vault"
       | "/settings"
       | "/shelves/movies"
@@ -434,11 +432,6 @@ export function CommandPalette({
                 <LibraryBig aria-hidden="true" />
                 Library
                 <CommandShortcut>G L</CommandShortcut>
-              </CommandItem>
-              <CommandItem value="go journal" onSelect={() => go("/journal")}>
-                <NotebookPen aria-hidden="true" />
-                Journal
-                <CommandShortcut>G J</CommandShortcut>
               </CommandItem>
               <CommandItem value="go movies shelf" onSelect={() => go("/shelves/movies")}>
                 <Clapperboard aria-hidden="true" />

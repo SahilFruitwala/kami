@@ -146,6 +146,13 @@ export type LibraryState = {
   library: LibraryItem[];
   folders: Folder[];
   openId: string | null;
+  /**
+   * Server-side article count from the first boot page (null until booted).
+   * Headline counts use this so they stay correct while pages stream in.
+   */
+  libraryTotal: number | null;
+  /** True once every boot page has been appended (or the library fit in one). */
+  libraryComplete: boolean;
   readerFontSize: number;
   readerFont: ReaderFontId;
   highlightColor: HighlightColorId;
@@ -161,8 +168,7 @@ export type LibraryState = {
   progressById: Record<string, number>;
   resumeEnabled: boolean;
   setProgress: (id: string, progress: number) => void;
-  upsertItem: (item: LibraryItem, opts?: { sync?: boolean }) => void;
-  archiveItem: (id: string, archived: boolean) => void;
+  upsertItem: (item: LibraryItem, opts?: { sync?: boolean }) => void;  archiveItem: (id: string, archived: boolean) => void;
   removeItem: (id: string) => void;
   setOpenId: (id: string | null) => void;
   setReaderFontSize: (size: number) => void;
@@ -189,6 +195,15 @@ export type LibraryState = {
   setItemNote: (itemId: string, note: string) => void;
   setResumeEnabled: (enabled: boolean) => void;
   clearLibrary: () => void;
+  /** Replace the whole library (boot page 1 or a full snapshot). */
+  setLibrarySnapshot: (
+    library: LibraryItem[],
+    folders: Folder[],
+    total: number | null,
+    complete: boolean,
+  ) => void;
+  /** Append a follow-up boot page, deduping by id against loaded rows. */
+  appendLibraryItems: (items: LibraryItem[], complete: boolean) => void;
 };
 
 type Persisted = {
@@ -295,6 +310,8 @@ export const useLibraryStore = create<LibraryState>()(
       library: [],
       folders: [],
       openId: null,
+      libraryTotal: null,
+      libraryComplete: false,
       readerFontSize: DEFAULT_READER_FONT_SIZE,
       readerFont: "literata",
       highlightColor: "vermilion",
@@ -559,6 +576,17 @@ export const useLibraryStore = create<LibraryState>()(
       },
       setResumeEnabled: (enabled) => set({ resumeEnabled: enabled }),
       clearLibrary: () => set({ library: [], openId: null }),
+      setLibrarySnapshot: (library, folders, total, complete) =>
+        set({ library, folders, libraryTotal: total, libraryComplete: complete }),
+      appendLibraryItems: (items, complete) =>
+        set((state) => {
+          const seen = new Set(state.library.map((row) => row.id));
+          const fresh = items.filter((row) => !seen.has(row.id));
+          if (fresh.length === 0) {
+            return state.libraryComplete === complete ? state : { libraryComplete: complete };
+          }
+          return { library: [...state.library, ...fresh], libraryComplete: complete };
+        }),
     }),
     {
       name: "quarto-library",
@@ -582,6 +610,8 @@ export const useLibraryStore = create<LibraryState>()(
           library: [],
           folders: [],
           openId: raw.openId ?? null,
+          libraryTotal: null,
+          libraryComplete: false,
           readerFontSize: migrateFontSize(raw),
           readerFont: isReaderFont(raw.readerFont) ? raw.readerFont : "newsreader",
           highlightColor: isHighlightColor(raw.highlightColor) ? raw.highlightColor : "vermilion",

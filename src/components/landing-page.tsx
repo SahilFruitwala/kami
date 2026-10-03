@@ -110,7 +110,7 @@ const FAQS = [
   },
   {
     q: "Do I need an account? Does it work offline?",
-    a: "Yes, your library, journal, highlights, and shelves sync to your account. Saves persist locally first, so a dropped connection keeps working and syncs when you're back online.",
+    a: "Yes, your library, highlights, and shelves sync to your account. Saves persist locally first, so a dropped connection keeps working and syncs when you're back online.",
   },
   {
     q: "Can I get my data out?",
@@ -440,9 +440,9 @@ export function LandingPage() {
                   and your active reading desk beside the entry — what moved you, what
                   needs to rest overnight.
                 </p>
-                <Link to="/journal" className="mt-3 inline-flex items-center gap-1.5 rounded-sm font-sans text-[13px] font-semibold text-hanko hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
-                  Open Nisshi <ArrowRight className="size-3.5" aria-hidden="true" />
-                </Link>
+                <p className="kami-label mt-2 text-ink-faint">
+                  Paused for now — existing entries stay saved.
+                </p>
               </div>
               <div className="kami-sheet p-6">
                 <p className="kami-label flex items-center gap-2 text-ink-muted">
@@ -583,7 +583,6 @@ export function LandingPage() {
             <ul className="mt-3 space-y-2">
               <li><Link to="/library" className="hover:text-hanko">Library</Link></li>
               <li><Link to="/read" className="hover:text-hanko">Reader</Link></li>
-              <li><Link to="/journal" className="hover:text-hanko">Journal</Link></li>
               <li><Link to="/vault" className="hover:text-hanko">Vault</Link></li>
               <li><Link to="/shelves/movies" className="hover:text-hanko">Shelves</Link></li>
             </ul>

@@ -14,6 +14,7 @@ import {
   type LibrarySort,
   type LibraryTab,
 } from "@/lib/filter-library.ts";
+import { loadMoreLibrary } from "@/lib/library-remote.ts";
 import type { LibraryItem } from "@/lib/store.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
@@ -56,9 +57,14 @@ export function LibraryHome({
 }) {
   const deferredQuery = useDeferredValue(filters.query);
   const library = useLibraryStore((s) => s.library);
+  const libraryTotal = useLibraryStore((s) => s.libraryTotal);
+  const libraryComplete = useLibraryStore((s) => s.libraryComplete);
   const removeItem = useLibraryStore((s) => s.removeItem);
 
   const counts = countByArchive(library);
+  // Headline totals come from the server count so they stay correct while
+  // boot pages stream in; tab splits are computed from loaded rows.
+  const boundTotal = libraryTotal ?? counts.inbox + counts.archived;
 
   const baseVisible = filterLibraryItems(library, {
     tab: filters.tab,
@@ -139,12 +145,12 @@ export function LibraryHome({
               <KamiEyebrow>
                 Bunko Desk
                 <span className="size-1 rounded-full bg-hanko/40" aria-hidden="true" />
-                <span className="text-bamboo">Vol. {counts.inbox + counts.archived} bound</span>
+                <span className="text-bamboo">Vol. {boundTotal} bound</span>
               </KamiEyebrow>
               <h2 className="mt-2 flex flex-wrap items-center gap-3 font-display text-3xl tracking-tight text-ink">
                 Library
                 <span className="rounded-full bg-bamboo-wash px-2 py-0.5 font-sans text-[11px] font-medium text-bamboo">
-                  {counts.inbox + counts.archived} Works Bound
+                  {boundTotal} Works Bound
                 </span>
               </h2>
             </div>
@@ -342,8 +348,58 @@ export function LibraryHome({
             />
           </div>
         </ViewTransition>
+        {!libraryComplete ? (
+          <LoadMoreFooter
+            loaded={library.length}
+            total={libraryTotal}
+            visibleCount={visible.length}
+          />
+        ) : null}
       </div>
     </>
+  );
+}
+
+function LoadMoreFooter({
+  loaded,
+  total,
+  visibleCount,
+}: {
+  loaded: number;
+  total: number | null;
+  visibleCount: number;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  async function handleLoadMore() {
+    if (loading) return;
+    setLoading(true);
+    setFailed(false);
+    try {
+      await loadMoreLibrary();
+    } catch {
+      setFailed(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-6 flex flex-col items-center gap-2 text-center">
+      <p className="font-sans text-xs text-ink-muted" role="status">
+        Showing {visibleCount} of {total ?? loaded} works
+        {loading ? " — loading more…" : " — older works are still arriving"}
+      </p>
+      <button
+        type="button"
+        onClick={() => void handleLoadMore()}
+        disabled={loading}
+        className="rounded-[0.25rem] bg-surface px-4 py-2 font-sans text-xs font-medium text-ink-soft shadow-[var(--shadow-border)] transition-colors hover:text-ink disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+      >
+        {loading ? "Loading…" : failed ? "Try again" : "Load more"}
+      </button>
+    </div>
   );
 }
 

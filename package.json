@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "node scripts/with-app-env.mjs vite dev --host 0.0.0.0 --port 8080",
-    "build": "node scripts/with-app-env.mjs vite build && node scripts/copy-pglite-assets.mjs && npm run db:migrate",
+    "build": "node scripts/with-app-env.mjs vite build && npm run db:migrate",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f db",
@@ -23,7 +23,6 @@
   "dependencies": {
     "@base-ui/react": "^1.8.0",
     "@clerk/tanstack-react-start": "^1.5.13",
-    "@electric-sql/pglite": "^0.5.4",
     "@mozilla/readability": "^0.6.0",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/vite": "^4.3.0",

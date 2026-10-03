@@ -1,19 +1,9 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { addTransitionType, startTransition, useEffect, useMemo, useRef, useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { addTransitionType, startTransition, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell.tsx";
-import { ArticleList } from "@/components/article-list.tsx";
 import { CaptureForm } from "@/components/library/capture-form.tsx";
 import { BulkSaveDialog, PasteDialog } from "@/components/library/library-dialogs.tsx";
-import {
-  DeskHero,
-  EmptyDeskGuide,
-  FoldersCard,
-  ReadingRhythmCard,
-  RecentPassagesCard,
-  useDeskHeroItem,
-} from "@/components/library/widgets.tsx";
-import { KamiEyebrow } from "@/components/kami.tsx";
 import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useBulkSave } from "@/hooks/use-bulk-save.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
@@ -26,7 +16,7 @@ import {
   takeStashedImportPayload,
 } from "@/lib/session-article.ts";
 import { persistArticleItem } from "@/lib/library-remote.ts";
-import { articleToItem, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import { articleToItem, type LibraryItem } from "@/lib/store.ts";
 
 type HomeSearch = {
   import?: string;
@@ -85,18 +75,6 @@ function Home() {
   const save = useSaveArticle(openOnSave);
   const paste = usePasteImport(openOnSave);
   const bulk = useBulkSave();
-
-  const hero = useDeskHeroItem();
-  const library = useLibraryStore((s) => s.library);
-  const removeItem = useLibraryStore((s) => s.removeItem);
-  const fresh = useMemo(
-    () =>
-      [...library]
-        .filter((row) => !row.archived)
-        .sort((a, b) => b.savedAt - a.savedAt)
-        .slice(0, 4),
-    [library],
-  );
 
   const [capturing, setCapturing] = useState(false);
 
@@ -217,76 +195,28 @@ function Home() {
 
   return (
     <AppShell active="home" onOpenItem={openItem}>
-      <section className="w-full bg-paper/60 backdrop-blur-sm">
-        <div className="mx-auto w-full max-w-7xl px-4 pt-10 pb-8 sm:px-6 lg:px-12">
-          <KamiEyebrow>
-            Kami Sanctuary
-          </KamiEyebrow>
-          <h1 className="mt-2 font-display text-4xl tracking-tight text-ink sm:text-5xl">
-            Your quiet reading list.
-          </h1>
-          <p className="mt-3 max-w-xl font-body text-base leading-relaxed text-ink-soft">
-            Paste a link to bind it into washi. Read distraction-free, ink what
-            resonates, and find it all in the vault.
+      <div className="mx-auto flex min-h-[70dvh] w-full max-w-2xl flex-col items-center justify-center px-4 py-10 sm:px-6">
+        <p className="font-display text-5xl tracking-tight text-ink" translate="no">
+          Kami
+        </p>
+        <div className="mt-8 w-full">
+          <CaptureForm
+            url={save.url}
+            busy={save.busy}
+            error={save.error}
+            onUrlChange={save.setUrl}
+            onClearError={() => save.setError("")}
+            onSave={saveSingleOrBulk}
+            onSaveLinkOnly={() => void save.saveLinkOnly()}
+            onOpenPaste={openPaste}
+            onOpenBulk={openBulk}
+          />
+        </div>
+        {save.busy || capturing ? (
+          <p className="mt-3 text-sm text-ink-muted" role="status" aria-live="polite">
+            {capturing ? "Importing captured page…" : "Saving a clean copy…"}
           </p>
-          <div className="mt-6 max-w-2xl">
-            <CaptureForm
-              url={save.url}
-              busy={save.busy}
-              error={save.error}
-              onUrlChange={save.setUrl}
-              onClearError={() => save.setError("")}
-              onSave={saveSingleOrBulk}
-              onSaveLinkOnly={() => void save.saveLinkOnly()}
-              onOpenPaste={openPaste}
-              onOpenBulk={openBulk}
-            />
-          </div>
-          {save.busy || capturing ? (
-            <p className="mt-3 text-sm text-ink-muted" role="status" aria-live="polite">
-              {capturing ? "Importing captured page…" : "Saving a clean copy…"}
-            </p>
-          ) : null}
-        </div>
-      </section>
-
-      <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-12">
-        {library.length === 0 ? (
-          <EmptyDeskGuide />
-        ) : hero ? (
-          <DeskHero item={hero} onOpen={openItem} />
         ) : null}
-
-        <div className="mt-10 grid grid-cols-1 items-start gap-8 xl:grid-cols-12">
-          <div className="xl:col-span-8">
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="flex items-baseline gap-2">
-                <span className="font-display text-xl text-ink">Fresh on the Desk</span>
-                <span className="font-sans text-xs text-ink-muted">/ Latest bindings</span>
-              </p>
-              <Link
-                to="/library"
-                className="shrink-0 font-sans text-xs font-medium text-hanko hover:underline"
-              >
-                Browse Library →
-              </Link>
-            </div>
-            <div className="mt-6">
-              <ArticleList
-                items={fresh}
-                emptyTitle="Your desk is empty"
-                emptyCopy="Paste a URL above to save a blog or X article for later."
-                onOpen={openItem}
-                onRemove={removeItem}
-              />
-            </div>
-          </div>
-          <aside className="flex flex-col gap-6 xl:col-span-4">
-            <ReadingRhythmCard />
-            <RecentPassagesCard onOpenItem={openItem} hero={hero} />
-            <FoldersCard />
-          </aside>
-        </div>
       </div>
 
       <PasteDialog
