@@ -1,8 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-  ShelvesView,
-  validateShelvesSearch,
-} from "@/components/library/shelves-view.tsx";
+import { ShelvesView } from "@/components/library/shelves-view.tsx";
+import { validateShelvesSearch } from "@/lib/shelves-search.ts";
 
 export const Route = createFileRoute("/shelves/wishlist")({
   validateSearch: validateShelvesSearch,
