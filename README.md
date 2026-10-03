@@ -9,9 +9,9 @@ Save articles and X posts into a calm reader, organize with tags and folders, tr
 ## Quick start
 
 ```bash
-# Prerequisites: Node 22+, pnpm (or npm), Docker (optional but recommended)
+# Prerequisites: Node 22+, pnpm (or npm), Docker (required for local Postgres), Clerk keys
 cp .env.example .env
-# Fill in Clerk keys (or set VITE_AUTH_ENABLED=false for local-only)
+# Fill in Clerk keys
 
 pnpm install          # or: npm install
 pnpm db:up            # starts Postgres 16 via docker compose
@@ -19,7 +19,7 @@ pnpm db:migrate       # applies migrations/*.sql
 pnpm dev              # http://0.0.0.0:8080
 ```
 
-Without `DATABASE_URL`, the app falls back to **PGLite** (Postgres in WASM) — fine for quick UI work, not for lasting data.
+`DATABASE_URL` is required (local Docker Postgres or hosted Postgres/Neon).
 
 | Script | What it does |
 |--------|----------------|
@@ -39,8 +39,8 @@ Without `DATABASE_URL`, the app falls back to **PGLite** (Postgres in WASM) — 
 | [`src/components/`](src/components/) | UI — library, reader, shelves widgets, Kami brand primitives, shadcn `ui/` |
 | [`src/lib/`](src/lib/) | ServerFns (`*-fns.ts`), client sync (`*-remote.ts`), schema, auth, extract, cache |
 | [`src/hooks/`](src/hooks/) | React hooks (capture, TTS, shelf queries, filters) |
-| [`migrations/`](migrations/) | Hand-written SQL applied at deploy / PGLite boot |
-| [`scripts/`](scripts/) | Env loader, migrator, PGLite asset copy, shelf import |
+| [`migrations/`](migrations/) | Hand-written SQL applied via `pnpm db:migrate` |
+| [`scripts/`](scripts/) | Env loader, migrator, shelf import |
 | [`docs/`](docs/) | Architecture, data model, development, contributing |
 
 ---
@@ -64,7 +64,7 @@ Without `DATABASE_URL`, the app falls back to **PGLite** (Postgres in WASM) — 
 ## Stack (short)
 
 - **React 19** + **TanStack Start / Router / Query** + **Vite 8**
-- **Clerk** auth · **Drizzle** + **Postgres** (or PGLite) · optional **Upstash Redis**
+- **Clerk** auth · **Drizzle** + **Postgres** · optional **Upstash Redis**
 - **Tailwind 4** + shadcn-style UI · **Zustand** for library/journal · **Zod** validators
 - Deploy target: **Vercel** (Nitro `vercel` preset)
 

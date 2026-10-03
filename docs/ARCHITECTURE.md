@@ -10,7 +10,7 @@ Browser (React + Zustand + React Query)
         ▼
 TanStack Start handlers  ──authMiddleware──►  context.userId
         │
-        ├─ Drizzle → Postgres (DATABASE_URL) or PGLite
+        ├─ Drizzle → Postgres (DATABASE_URL)
         ├─ extract.server.ts → Readability / Jina / X APIs
         └─ cache.server.ts → Upstash Redis (optional)
 ```
@@ -39,7 +39,6 @@ flowchart TB
 
   subgraph Data
     PG[(Postgres / Neon)]
-    PGL[(PGLite WASM)]
     Redis[(Upstash Redis)]
   end
 
@@ -55,7 +54,6 @@ flowchart TB
   UI --> RQ
   UI --> CSRF --> ClerkMW --> SFNs
   SFNs --> PG
-  SFNs --> PGL
   SFNs --> Redis
   SFNs --> Extract
   Extract --> Jina
@@ -141,7 +139,7 @@ Rules that must not be broken:
 
 1. **Never trust a client-supplied user id** — only `context.userId` from Clerk.
 2. Scope every read/write with that id (or list ownership / membership for shelves).
-3. `VITE_AUTH_ENABLED=false` is for local PGLite only; with a real `DATABASE_URL`, auth-off is fail-closed.
+3. `VITE_AUTH_ENABLED=false` is fail-closed — every request is rejected. Use Clerk for local dev.
 4. Global middleware in `src/start.ts`: CSRF for serverFns + `clerkMiddleware()`.
 5. Per-function: `authMiddleware` from `src/lib/auth/middleware.ts`.
 
@@ -213,7 +211,7 @@ Extraction lives in `src/lib/extract.server.ts`. Public URL checks and redirect 
 - Oversized library snapshots skip cache
 - Lookups (TMDB, books, previews) use longer TTLs
 
-Locally (no Redis): every query hits Postgres/PGLite — expected.
+Locally (no Redis): every query hits Postgres — expected.
 
 ---
 
@@ -251,8 +249,7 @@ flowchart LR
   Dev["pnpm dev<br/>with-app-env → Vite :8080"] --> Code
   Code --> Build["pnpm build"]
   Build --> Vite[vite build + Nitro vercel]
-  Vite --> Assets[copy-pglite-assets]
-  Assets --> Migrate[db:migrate against DATABASE_URL]
+  Vite --> Migrate[db:migrate against DATABASE_URL]
   Migrate --> Vercel[Vercel serverless]
 ```
 

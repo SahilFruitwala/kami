@@ -87,8 +87,7 @@ For shelves, prefer React Query hooks in `src/hooks/use-shelf-queries.ts` and ke
 3. Apply:
 
 ```bash
-pnpm db:migrate          # Postgres
-# or restart `pnpm dev`  # PGLite auto-migrates
+pnpm db:migrate          # Postgres (required)
 ```
 
 4. Update any ServerFns / types that assume the old shape.

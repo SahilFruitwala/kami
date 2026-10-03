@@ -852,7 +852,7 @@ function ShelfTile({
         onClick={onOpen}
         className="flex min-w-0 flex-1 flex-col text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 focus-visible:ring-inset"
       >
-        <div className="relative aspect-[2/3] w-full overflow-hidden bg-paper-warm">
+        <div className="poster-frame relative aspect-[2/3] w-full overflow-hidden bg-paper-warm">
           {item.imageUrl ? (
             <img
               src={item.imageUrl}
@@ -868,7 +868,7 @@ function ShelfTile({
             </div>
           )}
           {isDone ? (
-            <span className="absolute top-2 right-2">
+            <span className="absolute top-2 right-2 z-[2]">
               <Hanko glyph="✓" title={labels.done} />
             </span>
           ) : null}
@@ -993,7 +993,7 @@ function ShelfFolio({
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
-        <div className="w-24 shrink-0 overflow-hidden rounded-[0.25rem] bg-paper-warm">
+        <div className="poster-frame relative w-24 shrink-0 overflow-hidden rounded-[0.25rem] bg-paper-warm">
           {detail.item.imageUrl ? (
             <img
               src={detail.item.imageUrl}
