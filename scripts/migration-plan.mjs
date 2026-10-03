@@ -44,3 +44,21 @@ export function pendingMigrations(paths, applied) {
     .sort((a, b) => a.name.localeCompare(b.name))
     .filter(({ name }) => !done.has(name));
 }
+
+/**
+ * Whether `pnpm build` should apply migrations. Vercel builds Preview
+ * deployments (every pushed branch) with the same command as Production; if
+ * they share a DATABASE_URL, an unmerged branch's migration would hit the
+ * production database. So build-time migration runs only for Production
+ * Vercel builds and non-Vercel builds. `MIGRATE_ON_BUILD=1` forces it (e.g.
+ * previews with their own Neon branch); `MIGRATE_ON_BUILD=0` disables it.
+ * @param {Record<string, string | undefined>} env
+ * @returns {boolean}
+ */
+export function shouldMigrateOnBuild(env) {
+  const flag = env.MIGRATE_ON_BUILD?.trim();
+  if (flag === "1" || flag === "true") return true;
+  if (flag === "0" || flag === "false") return false;
+  if (env.VERCEL_ENV) return env.VERCEL_ENV === "production";
+  return true;
+}

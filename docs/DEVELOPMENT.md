@@ -67,7 +67,7 @@ Env loading: `scripts/with-app-env.mjs` and `scripts/load-dotenv.mjs` load `.env
 | Command | Description |
 |---------|-------------|
 | `pnpm dev` | Dev server on **0.0.0.0:8080** (`strictPort`) |
-| `pnpm build` | Vite production build + migrate |
+| `pnpm build` | Vite production build + migrate (skipped on Vercel Preview builds unless `MIGRATE_ON_BUILD=1`) |
 | `pnpm preview` | Preview build (port **8081**) |
 | `pnpm db:up` / `db:down` / `db:logs` | Docker Compose Postgres lifecycle |
 | `pnpm db:migrate` | Apply pending `migrations/*.sql` |
@@ -135,7 +135,7 @@ pnpm db:up && pnpm db:migrate
 ## Deployment notes
 
 - Target: **Vercel** via Nitro `vercel` preset (see `vite.config.ts`).
-- Build runs migrations when `DATABASE_URL` is set — keep SQL forward-compatible.
+- Build runs migrations on Production (and non-Vercel) builds; Vercel Preview builds skip them unless `MIGRATE_ON_BUILD=1` — keep SQL forward-compatible.
 - Production expects Neon (or similar) + Clerk; Upstash recommended.
 - CSP / headers: `vercel.json` — update when adding new third-party script/connect origins. Production Clerk JS is served from `https://clerk.kami.sahilfruitwala.com` (custom Frontend API), which `https://*.clerk.com` does not cover.
 
