@@ -8,7 +8,6 @@ import {
   LibraryBig,
   PanelLeftClose,
   PanelLeftOpen,
-  Search,
   Settings as SettingsIcon,
   Tv,
 } from "lucide-react";
@@ -135,13 +134,6 @@ function atmosphere(now = new Date()): string {
   ]);
 }
 
-/** Synthetic ⌘K — the palette owns its open state and listens globally. */
-function openPalette() {
-  document.dispatchEvent(
-    new KeyboardEvent("keydown", { key: "k", metaKey: true, ctrlKey: true, bubbles: true }),
-  );
-}
-
 /**
  * Sanctuary chrome: fixed left sidebar on desktop (Stitch Sanctuary layout),
  * slim utility top bar, and a bottom tab bar on mobile.
@@ -265,17 +257,6 @@ export function SiteHeader({
               <PanelLeftOpen className="size-4" aria-hidden="true" />
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={openPalette}
-            className="kami-sheet flex h-9 w-full max-w-md items-center gap-2 px-3 font-sans text-sm text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
-          >
-            <Search className="size-4 shrink-0" aria-hidden="true" />
-            <span className="flex-1 truncate text-left">Search washi, authors, or concepts…</span>
-            <kbd className="shrink-0 rounded-[0.25rem] bg-paper-warm px-1.5 py-0.5 text-[11px] tabular-nums">
-              ⌘&nbsp;K
-            </kbd>
-          </button>
           <div className="ml-auto flex items-center gap-1 sm:gap-2">
             <span className="kami-label mr-1 hidden text-ink-muted xl:block">{atmosphere()}</span>
             <ThemeToggle />
@@ -310,14 +291,6 @@ export function SiteHeader({
             </span>
           </Link>
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={openPalette}
-              aria-label="Search"
-              className="rounded-[0.25rem] p-2.5 text-ink-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
-            >
-              <Search className="size-4" aria-hidden="true" />
-            </button>
             <ThemeToggle />
             <Link
               to="/settings"
