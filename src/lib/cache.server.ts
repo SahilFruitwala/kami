@@ -64,11 +64,40 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
   }
 }
 
+/** Key of the set that indexes one user's cached keys. */
+function userIndexKey(userId: string): string {
+  return cacheKey("idx", "u", userId);
+}
+
+/** `quarto:v1:u:<userId>:...` → userId, else null (shared/global keys). */
+function userIdOfKey(key: string): string | null {
+  const prefix = `${NAMESPACE}:u:`;
+  if (!key.startsWith(prefix)) return null;
+  const end = key.indexOf(":", prefix.length);
+  return end > prefix.length ? key.slice(prefix.length, end) : null;
+}
+
+/** Index lifetime: comfortably longer than any per-user value TTL. */
+const USER_INDEX_TTL_SECONDS = 24 * 3600;
+
 export async function cacheSet(key: string, value: unknown, ttlSeconds: number): Promise<void> {
   const redis = getClient();
   if (!redis) return;
   try {
-    await redis.set(key, value, { ex: ttlSeconds });
+    const userId = userIdOfKey(key);
+    if (!userId) {
+      await redis.set(key, value, { ex: ttlSeconds });
+      return;
+    }
+    // Record per-user keys in a set so invalidation can delete exactly this
+    // user's entries without scanning the whole keyspace.
+    const index = userIndexKey(userId);
+    await redis
+      .pipeline()
+      .set(key, value, { ex: ttlSeconds })
+      .sadd(index, key)
+      .expire(index, USER_INDEX_TTL_SECONDS)
+      .exec();
   } catch (err) {
     console.warn("[cache] set failed:", err);
   }
@@ -94,28 +123,25 @@ export async function cached<T>(
   return fresh;
 }
 
-/** Delete every key under a prefix (e.g. a user's shelf lists). */
-export async function cacheDelPrefix(prefix: string): Promise<void> {
+/**
+ * Drop all cached reads for one user after any of their writes.
+ *
+ * Cost is O(that user's cached keys): one SMEMBERS on the user's index set
+ * plus one DEL. (The previous SCAN MATCH walked the entire Redis keyspace —
+ * every user's entries and all long-lived TMDB / link-preview lookups — on
+ * every write, and its unterminated prefix also matched other user ids that
+ * merely started with this one.)
+ */
+export async function invalidateUserCache(userId: string): Promise<void> {
   const redis = getClient();
   if (!redis) return;
   try {
-    let cursor = 0;
-    do {
-      const [next, keys] = await redis.scan(cursor, {
-        match: `${prefix}*`,
-        count: 100,
-      });
-      cursor = Number(next);
-      if (keys.length > 0) await redis.del(...keys);
-    } while (cursor !== 0);
+    const index = userIndexKey(userId);
+    const keys = await redis.smembers(index);
+    await redis.del(index, ...keys);
   } catch (err) {
-    console.warn("[cache] delPrefix failed:", err);
+    console.warn("[cache] invalidate failed:", err);
   }
-}
-
-/** Drop all cached reads for one user after any of their writes. */
-export async function invalidateUserCache(userId: string): Promise<void> {
-  await cacheDelPrefix(cacheKey("u", userId));
 }
 
 // ---------- TTL policy (seconds) ----------
