@@ -115,7 +115,7 @@ function rowToItem(row: ArticleListRow, opts?: { includeBody?: boolean }): Libra
     readingMinutes: Number(row.readingMinutes) || 1,
     excerpt: row.excerpt || "",
     // List/boot payloads omit bodies by default — fetch via getArticleContent
-    // when the reader opens a work (keeps bootstrap small; see loadSnapshot).
+    // when the reader opens a work (keeps bootstrap small; see loadLibraryPage).
     contentHtml: opts?.includeBody ? row.contentHtml || "" : "",
     heroImage: row.heroImage,
     published: row.published,
@@ -240,7 +240,7 @@ export const getLibrary = createServerFn({ method: "GET" })
   .validator((input: unknown) =>
     z
       .object({
-        limit: z.number().int().min(1).max(200).optional(),
+        limit: z.number().int().min(1).max(200).default(LIBRARY_BOOT_LIMIT),
         cursor: z
           .object({
             savedAt: z.number().int().nonnegative(),
@@ -251,16 +251,6 @@ export const getLibrary = createServerFn({ method: "GET" })
       .parse(input ?? {}),
   )
   .handler(async ({ context, data }): Promise<LibraryPage> => {
-    // No limit: legacy full snapshot (kept for compat; boot uses pages).
-    if (data.limit == null) {
-      const snap = await loadSnapshot(context.userId);
-      return {
-        library: snap.library,
-        folders: snap.folders,
-        nextCursor: null,
-        total: snap.library.length,
-      };
-    }
     return loadLibraryPage(context.userId, { limit: data.limit, cursor: data.cursor });
   });
 
