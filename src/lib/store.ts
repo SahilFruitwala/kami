@@ -18,24 +18,6 @@ export const HIGHLIGHT_COLORS = [
 
 export type HighlightColorId = (typeof HIGHLIGHT_COLORS)[number]["id"];
 
-/** Pastel ids from the old highlighter — remapped so saved highlights keep an ink. */
-const LEGACY_INK_MAP: Record<string, HighlightColorId> = {
-  amber: "vermilion",
-  lemon: "vermilion",
-  mint: "bamboo",
-  sky: "bamboo",
-  rose: "vermilion",
-};
-
-export function resolveInkColor(value: unknown): HighlightColorId {
-  if (typeof value === "string") {
-    if (HIGHLIGHT_COLORS.some((c) => c.id === value)) return value as HighlightColorId;
-    const legacy = LEGACY_INK_MAP[value];
-    if (legacy) return legacy;
-  }
-  return "vermilion";
-}
-
 export type Highlight = {
   id: string;
   text: string;
@@ -239,48 +221,6 @@ function migrateFontSize(raw: Persisted): number {
   if (typeof raw.readerFontSize === "number") return clampFontSize(raw.readerFontSize);
   if (raw.readerSize === "lg") return 3;
   return DEFAULT_READER_FONT_SIZE;
-}
-
-function migrateItem(row: Persisted["library"] extends (infer T)[] | undefined ? T : never): LibraryItem | null {
-  if (!row?.url && !row?.id) return null;
-  const url = row.url || row.id || "";
-  const words = typeof row.wordCount === "number" ? row.wordCount : 0;
-  const tags = Array.isArray(row.tags)
-    ? row.tags.map((tag) => normalizeTag(String(tag))).filter(Boolean)
-    : [];
-  const highlights = Array.isArray(row.highlights)
-    ? row.highlights
-        .filter((h) => h && typeof h.text === "string" && h.text.trim())
-        .map((h) => ({
-          id: typeof h.id === "string" ? h.id : uid(),
-          text: String(h.text).trim().slice(0, 800),
-          note: typeof h.note === "string" ? h.note.slice(0, 280) : "",
-          createdAt: typeof h.createdAt === "number" ? h.createdAt : Date.now(),
-          color: resolveInkColor(h.color),
-        }))
-    : [];
-  return {
-    id: row.id || articleIdFromUrl(url),
-    url,
-    canonicalUrl: row.canonicalUrl || url,
-    title: row.title || "Untitled",
-    author: row.author || "",
-    siteName: row.siteName || "",
-    source: row.source === "x" ? "x" : "blog",
-    wordCount: words,
-    readingMinutes: row.readingMinutes || Math.max(1, Math.round(words / 200) || 1),
-    excerpt: row.excerpt || "",
-    contentHtml: row.contentHtml || "",
-    heroImage: row.heroImage ?? null,
-    published: row.published ?? null,
-    savedAt: row.savedAt || row.preparedAt || Date.now(),
-    archived: Boolean(row.archived),
-    tags,
-    folderId: row.folderId || null,
-    highlights,
-    favorited: Boolean(row.favorited),
-    note: typeof row.note === "string" ? row.note.slice(0, 2000) : "",
-  };
 }
 
 function trimLibrary(items: LibraryItem[], max = 200): LibraryItem[] {

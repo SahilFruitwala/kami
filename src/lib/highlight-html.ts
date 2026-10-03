@@ -89,11 +89,3 @@ export function applyHighlights(html: string, highlights: Highlight[]): string {
   }
   return root.innerHTML;
 }
-
-export function htmlToPlainText(html: string): string {
-  if (typeof DOMParser === "undefined") {
-    return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-  }
-  const doc = new DOMParser().parseFromString(`<div>${html}</div>`, "text/html");
-  return (doc.body.textContent || "").replace(/\s+/g, " ").trim();
-}

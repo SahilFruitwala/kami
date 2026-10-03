@@ -386,7 +386,6 @@ export function AddShelfDialog({
       setType(initialTab);
       reset();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, initialTab]);
 
   function reset() {

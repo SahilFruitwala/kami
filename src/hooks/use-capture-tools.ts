@@ -6,7 +6,7 @@ export function useCaptureTools() {
   const [toolsOpen, setToolsOpen] = useState(false);
   // Compute lazily so the value is ready on first paint (no empty flash).
   // Library/Vault previously copied "" if the dialog was opened before useEffect ran.
-  const [bookmarklet, setBookmarklet] = useState(() => {
+  const [bookmarklet] = useState(() => {
     if (typeof window === "undefined") return "";
     try {
       return buildBookmarklet(window.location.origin);
