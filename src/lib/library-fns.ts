@@ -181,7 +181,7 @@ export const LIBRARY_BOOT_LIMIT = 100;
  */
 async function sanitizeStoredHtml(html: string, baseUrl: string): Promise<string> {
   if (!html.trim()) return "";
-  const { sanitizeHtml } = await import("./extract.server.ts");
+  const { sanitizeHtml } = await import("./sanitize-html.server.ts");
   try {
     return sanitizeHtml(html, baseUrl).slice(0, 1_500_000);
   } catch {
