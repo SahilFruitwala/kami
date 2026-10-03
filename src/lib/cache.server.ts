@@ -32,11 +32,6 @@ function getClient(): Redis | null {
   return client;
 }
 
-/** True when Upstash credentials are configured. */
-export function isCacheEnabled(): boolean {
-  return getClient() !== null;
-}
-
 /** Build a namespaced key: `quarto:v1:<part>:<part>...` */
 export function cacheKey(...parts: string[]): string {
   return [NAMESPACE, ...parts].join(":");
@@ -97,16 +92,6 @@ export async function cached<T>(
     await cacheSet(key, fresh, ttlSeconds);
   }
   return fresh;
-}
-
-export async function cacheDel(...keys: string[]): Promise<void> {
-  const redis = getClient();
-  if (!redis || keys.length === 0) return;
-  try {
-    await redis.del(...keys);
-  } catch (err) {
-    console.warn("[cache] del failed:", err);
-  }
 }
 
 /** Delete every key under a prefix (e.g. a user's shelf lists). */

@@ -97,17 +97,6 @@ async function ensureLocalUser(userId: string): Promise<void> {
 }
 
 /**
- * Resolve the signed-in user from Clerk, or `null` when nobody is signed in /
- * auth isn't configured.
- */
-export async function getSessionUser(): Promise<VerifiedUser | null> {
-  if (!authConfigured) return null;
-  const session = await auth();
-  if (!session.userId) return null;
-  return { id: session.userId, email: null };
-}
-
-/**
  * Resolve the current user id for a server function, or throw when unauthorized.
  * Prefer `authMiddleware` (`./middleware`), which calls this for you.
  */

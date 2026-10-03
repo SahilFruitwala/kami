@@ -143,7 +143,7 @@ Rules that must not be broken:
 4. Global middleware in `src/start.ts`: CSRF for serverFns + `clerkMiddleware()`.
 5. Per-function: `authMiddleware` from `src/lib/auth/middleware.ts`.
 
-UI gates: `AppGate`, `SignedIn` / `SignedOut`, `/login`. Image proxy `/api/img` also checks Clerk when auth is enabled.
+UI gates: `AppGate`, Clerk `Show`, `/login`. Image proxy `/api/img` also checks Clerk when auth is enabled.
 
 ---
 
