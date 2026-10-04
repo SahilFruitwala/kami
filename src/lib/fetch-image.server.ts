@@ -5,7 +5,8 @@ export const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 export const FETCH_TIMEOUT_MS = 12_000;
-const MAX_IMAGE_BYTES = 1_200_000;
+// Vercel caps function responses at 4.5MB; stay under it.
+const MAX_IMAGE_BYTES = 4_000_000;
 
 function refererFor(url: URL): string {
   const host = url.hostname;
@@ -38,6 +39,10 @@ export async function fetchImageBytes(rawUrl: string): Promise<FetchedImage> {
 
   const upgraded = preferReadableImage(original.href);
   const candidates = upgraded === original.href ? [original.href] : [upgraded, original.href];
+  // Oversized Substack CDN images: retry at a smaller width and a lower quality.
+  if (original.hostname.endsWith("substackcdn.com")) {
+    candidates.push(original.href.replace(/w_\d+/, "w_900").replace("q_auto:good", "q_auto:eco"));
+  }
 
   let last: FetchedImage = { ok: false, error: "could not fetch image", status: 502 };
   for (const href of candidates) {

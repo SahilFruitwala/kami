@@ -26,7 +26,7 @@ export function HelpCard() {
         <div className="rounded-[0.25rem] bg-bg/60 p-4">
           <p className="font-sans text-sm font-semibold text-ink">Capture troubleshooting</p>
           <ul className="mt-1 list-disc space-y-1 pl-5 font-body text-sm text-ink-muted">
-            <li>Bot wall? Use the bookmarklet on desktop or Paste article anywhere.</li>
+            <li>Bot wall or login? Use the bookmarklet or Save to KAMI extension on desktop, Share → KAMI on Android, or Paste article anywhere.</li>
             <li>Truncated import? Try a smaller article section.</li>
           </ul>
         </div>

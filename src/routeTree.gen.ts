@@ -11,10 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
+import { Route as CaptureRouteImport } from './routes/capture'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as ReadRouteImport } from './routes/read'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ShareRouteImport } from './routes/share'
 import { Route as ShelvesRouteRouteImport } from './routes/shelves/route'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as ApiImgRouteImport } from './routes/api/img'
@@ -36,6 +38,11 @@ const AppRoute = AppRouteImport.update({
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CaptureRoute = CaptureRouteImport.update({
+  id: '/capture',
+  path: '/capture',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const JournalRoute = JournalRouteImport.update({
   id: '/journal',
   path: '/journal',
@@ -54,6 +61,11 @@ const ReadRoute = ReadRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShareRoute = ShareRouteImport.update({
+  id: '/share',
+  path: '/share',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShelvesRouteRoute = ShelvesRouteRouteImport.update({
@@ -111,10 +123,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/shelves': typeof ShelvesRouteRouteWithChildren
   '/app': typeof AppRoute
+  '/capture': typeof CaptureRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
+  '/share': typeof ShareRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
   '/login/$': typeof LoginSplatRoute
@@ -128,10 +142,12 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
+  '/capture': typeof CaptureRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
+  '/share': typeof ShareRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
   '/login/$': typeof LoginSplatRoute
@@ -147,10 +163,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/shelves': typeof ShelvesRouteRouteWithChildren
   '/app': typeof AppRoute
+  '/capture': typeof CaptureRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
+  '/share': typeof ShareRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
   '/login/$': typeof LoginSplatRoute
@@ -167,10 +185,12 @@ export interface FileRouteTypes {
     | '/'
     | '/shelves'
     | '/app'
+    | '/capture'
     | '/journal'
     | '/library'
     | '/read'
     | '/settings'
+    | '/share'
     | '/vault'
     | '/api/img'
     | '/login/$'
@@ -184,10 +204,12 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/app'
+    | '/capture'
     | '/journal'
     | '/library'
     | '/read'
     | '/settings'
+    | '/share'
     | '/vault'
     | '/api/img'
     | '/login/$'
@@ -202,10 +224,12 @@ export interface FileRouteTypes {
     | '/'
     | '/shelves'
     | '/app'
+    | '/capture'
     | '/journal'
     | '/library'
     | '/read'
     | '/settings'
+    | '/share'
     | '/vault'
     | '/api/img'
     | '/login/$'
@@ -221,10 +245,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   ShelvesRouteRoute: typeof ShelvesRouteRouteWithChildren
   AppRoute: typeof AppRoute
+  CaptureRoute: typeof CaptureRoute
   JournalRoute: typeof JournalRoute
   LibraryRoute: typeof LibraryRoute
   ReadRoute: typeof ReadRoute
   SettingsRoute: typeof SettingsRoute
+  ShareRoute: typeof ShareRoute
   VaultRoute: typeof VaultRoute
   ApiImgRoute: typeof ApiImgRoute
   LoginSplatRoute: typeof LoginSplatRoute
@@ -245,6 +271,13 @@ declare module '@tanstack/react-router' {
       path: '/app'
       fullPath: '/app'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/capture': {
+      id: '/capture'
+      path: '/capture'
+      fullPath: '/capture'
+      preLoaderRoute: typeof CaptureRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/journal': {
@@ -273,6 +306,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/share': {
+      id: '/share'
+      path: '/share'
+      fullPath: '/share'
+      preLoaderRoute: typeof ShareRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shelves': {
@@ -372,10 +412,12 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ShelvesRouteRoute: ShelvesRouteRouteWithChildren,
   AppRoute: AppRoute,
+  CaptureRoute: CaptureRoute,
   JournalRoute: JournalRoute,
   LibraryRoute: LibraryRoute,
   ReadRoute: ReadRoute,
   SettingsRoute: SettingsRoute,
+  ShareRoute: ShareRoute,
   VaultRoute: VaultRoute,
   ApiImgRoute: ApiImgRoute,
   LoginSplatRoute: LoginSplatRoute,
