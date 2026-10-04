@@ -109,10 +109,26 @@ export function pickImageSrc(el: Element, baseUrl: string): string | null {
   return preferReadableImage(scored[0].url);
 }
 
-export function previewImageSrc(original: string): string {
-  if (!original || original.startsWith("data:") || original.startsWith("/api/img")) {
-    return original;
+/**
+ * Articles saved before the srcset-comma fix hold Substack URLs chopped at a
+ * comma and resolved against the post URL (".../p/fl_progressive:steep/https%3A…").
+ * The real image URL survives, percent-encoded, in the tail — recover it.
+ */
+export function repairMangledImageUrl(url: string): string {
+  const m = /^https?:\/\/[^/]+\/p\/[^/]*\/(https?%3A%2F%2F.+)$/i.exec(url);
+  if (!m) return url;
+  try {
+    return decodeURIComponent(m[1]);
+  } catch {
+    return url;
   }
+}
+
+export function previewImageSrc(raw: string): string {
+  if (!raw || raw.startsWith("data:") || raw.startsWith("/api/img")) {
+    return raw;
+  }
+  const original = repairMangledImageUrl(raw);
   return `/api/img?u=${encodeURIComponent(original)}`;
 }
 
