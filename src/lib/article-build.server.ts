@@ -37,6 +37,8 @@ export function buildArticle(params: {
   contentHtml: string;
   source: Article["source"];
   heroImage: string | null;
+  /** Author-written summary (e.g. a Substack subtitle); defaults to the opening text. */
+  excerpt?: string;
 }): Article | null {
   const contentHtml = sanitizeHtml(params.contentHtml, params.canonicalUrl);
   const plain = textFromHtml(contentHtml);
@@ -50,7 +52,7 @@ export function buildArticle(params: {
     author: params.author.trim(),
     siteName: params.siteName.trim() || new URL(params.canonicalUrl).hostname.replace(/^www\./, ""),
     published: params.published,
-    excerpt: excerptOf(plain),
+    excerpt: params.excerpt?.trim() ? excerptOf(params.excerpt.trim()) : excerptOf(plain),
     contentHtml,
     wordCount: words,
     readingMinutes: Math.max(1, Math.round(words / 200)),

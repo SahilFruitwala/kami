@@ -19,6 +19,8 @@ const importInput = z
     title: z.string().trim().min(1).max(300),
     contentHtml: z.string().max(1_500_000).optional(),
     contentText: z.string().max(500_000).optional(),
+    /** Whole page captured in the browser — run full extraction, not just sanitize. */
+    capture: z.boolean().optional(),
   })
   .refine((data) => Boolean(data.contentHtml?.trim() || data.contentText?.trim()), {
     message: "Paste article HTML or plain text.",
@@ -38,8 +40,16 @@ export const importArticle = createServerFn({ method: "POST" })
   .middleware([rateLimited("extract")])
   .validator((input: unknown) => importInput.parse(input))
   .handler(async ({ data }): Promise<ExtractResult> => {
-    const { articleFromManualImport } = await import("./extract.server.ts");
+    const { articleFromCapturedPage, articleFromManualImport } = await import("./extract.server.ts");
     try {
+      if (data.capture && data.contentHtml?.trim()) {
+        const article = articleFromCapturedPage({
+          url: data.url?.trim() || undefined,
+          title: data.title,
+          html: data.contentHtml,
+        });
+        return { ok: true, article };
+      }
       const article = articleFromManualImport({
         url: data.url?.trim() || undefined,
         title: data.title,

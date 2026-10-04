@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell.tsx";
@@ -13,25 +13,30 @@ import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useBulkSave } from "@/hooks/use-bulk-save.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
 import { importArticle } from "@/lib/article-fns.ts";
-import { decodeImportPayload, type BookmarkletPayload } from "@/lib/bookmarklet.ts";
+import type { BookmarkletPayload } from "@/lib/bookmarklet.ts";
 import {
   parseBulkUrls,
   readDraftUrl,
-  stashImportPayload,
-  takeStashedImportPayload,
+  takeStashedCapturePayload,
+  writeDraftUrl,
 } from "@/lib/session-article.ts";
 import { persistArticleItem } from "@/lib/library-remote.ts";
 import { articleToItem, type LibraryItem } from "@/lib/store.ts";
 
 type HomeSearch = {
-  import?: string;
+  /** URL handed over by the share sheet (`/share`) — saved on arrival. */
+  save?: string;
 };
 
 export const Route = createFileRoute("/app")({
   validateSearch: (search: Record<string, unknown>): HomeSearch => ({
-    import:
-      typeof search.import === "string" && search.import.length > 0 ? search.import : undefined,
+    save: typeof search.save === "string" && search.save.length > 0 ? search.save : undefined,
   }),
+  // Bookmarklets created before the /capture handoff opened `/app?import=…`.
+  beforeLoad: ({ location }) => {
+    const legacy = new URLSearchParams(location.searchStr).get("import");
+    if (legacy) throw redirect({ to: "/capture", search: { import: legacy }, replace: true });
+  },
   component: HomePage,
 });
 
@@ -49,19 +54,12 @@ function HomePage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
 
-  // Runs outside AppGate so `?import=` survives the signed-out landing page.
-  // Home never gates on the library boot, so this stash always runs.
+  // Runs outside AppGate so a shared URL survives a detour through sign-in:
+  // park it as the draft, which <PendingCapturePickup /> saves once signed in.
   useEffect(() => {
-    if (search.import) {
-      stashImportPayload(search.import);
-      void navigate({
-        search: (prev: HomeSearch) => {
-          const next = { ...prev };
-          delete next.import;
-          return next;
-        },
-        replace: true,
-      });
+    if (search.save) {
+      writeDraftUrl(search.save);
+      void navigate({ search: {}, replace: true });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -69,10 +67,39 @@ function HomePage() {
   return <Home />;
 }
 
-function Home() {
-  const navigate = Route.useNavigate();
+/**
+ * Picks up work handed to Home from elsewhere — a page captured by the
+ * bookmarklet/extension (stashed by `/capture`), or a URL from the share
+ * sheet or an interrupted save. Rendered inside <AppShell>, so it only mounts
+ * once the session is confirmed: a signed-out visitor keeps the stash for
+ * after sign-in instead of spending it on a request that can't succeed.
+ */
+function PendingCapturePickup({
+  onCapture,
+  onUrl,
+}: {
+  onCapture: (payload: BookmarkletPayload) => void;
+  onUrl: (url: string) => void;
+}) {
   const search = Route.useSearch();
   const booted = useRef(false);
+  useEffect(() => {
+    if (booted.current) return;
+    booted.current = true;
+    const payload = takeStashedCapturePayload();
+    if (payload) {
+      onCapture(payload);
+      return;
+    }
+    const url = search.save ?? readDraftUrl();
+    if (url) onUrl(url);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return null;
+}
+
+function Home() {
+  const navigate = Route.useNavigate();
 
   const openOnSave = (id: string | null) => {
     if (id) goRead(navigate, id);
@@ -117,7 +144,7 @@ function Home() {
     const looksHtml = /<\/?[a-z][\s\S]*>/i.test(payload.html);
     if (!payload.title.trim() || !payload.html.trim()) {
       paste.seedPaste(payload);
-      toast.message("Captured from bookmarklet — review and import.");
+      toast.message("Captured page — review and import.");
       return;
     }
     setCapturing(true);
@@ -128,6 +155,7 @@ function Home() {
           title: payload.title.trim(),
           contentHtml: looksHtml ? payload.html : undefined,
           contentText: looksHtml ? undefined : payload.html,
+          capture: looksHtml,
         },
       });
       if (!result.ok) {
@@ -140,10 +168,10 @@ function Home() {
       const local = articleToItem(result.article);
       try {
         const saved = await persistArticleItem(local);
-        toast.success("Captured from bookmarklet — saved");
+        toast.success("Captured — saved to your list");
         goRead(navigate, saved.id);
       } catch (err) {
-        console.error("[bookmarklet] persist failed:", err);
+        console.error("[capture] persist failed:", err);
         if (typeof navigator !== "undefined" && navigator.onLine === false) {
           toast.success("Saved here — will sync when back online");
           goRead(navigate, local.id);
@@ -154,53 +182,21 @@ function Home() {
       }
     } catch {
       paste.seedPaste(payload);
-      toast.message("Captured from bookmarklet — review and import.");
+      toast.message("Captured page — review and import.");
     } finally {
       setCapturing(false);
     }
   }
 
-  useEffect(() => {
-    if (booted.current) return;
-    booted.current = true;
-
-    // ⌘K is handled by CommandPalette.
-    // `?import=` is stashed by <HomePage /> before the auth gate, so pick up
-    // the stash here (covers signed-out → sign-in and loading states).
-    // Bookmarklet captures are imported automatically — process, save, open —
-    // and only fall back to the manual review dialog when auto-import fails.
-    const raw = search.import ?? takeStashedImportPayload();
-    if (raw) {
-      const payload = decodeImportPayload(raw);
-      if (payload) {
-        void autoImportCapture(payload);
-      } else {
-        toast.error(
-          "Could not read the captured page — the URL was likely truncated. Try a smaller article section or Paste article instead.",
-        );
-      }
-      if (search.import) {
-        void navigate({
-          search: (prev: HomeSearch) => {
-            const next = { ...prev };
-            delete next.import;
-            return next;
-          },
-          replace: true,
-        });
-      }
-    } else {
-      const draft = readDraftUrl();
-      if (draft) {
-        save.setUrl(draft);
-        void save.save(draft, true);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <AppShell active="home" onOpenItem={openItem}>
+      <PendingCapturePickup
+        onCapture={(payload) => void autoImportCapture(payload)}
+        onUrl={(url) => {
+          save.setUrl(url);
+          void save.save(url, true);
+        }}
+      />
       <div className="mx-auto flex min-h-[70dvh] w-full max-w-3xl flex-col items-center justify-center px-4 py-10 sm:px-6">
         <p className="font-display text-5xl tracking-tight text-ink" translate="no">
           Kami

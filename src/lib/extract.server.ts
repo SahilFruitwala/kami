@@ -9,6 +9,7 @@ import { buildArticle, countWords, excerptOf, textFromHtml } from "./article-bui
 import { sanitizeHtml } from "./sanitize-html.server.ts";
 import { extractTweet, formatTweetDate } from "./extract-tweet.server.ts";
 import { markdownToHtml } from "./markdown.ts";
+import { extractSubstack, isSubstackDocument } from "./extract-substack.server.ts";
 
 type UrlKind =
   | { kind: "x-status"; id: string; url: URL }
@@ -115,6 +116,31 @@ function readabilityFromHtml(
     'meta[name="twitter:image"]',
   ]);
 
+  const published = formatTweetDate(ld.date || ogDate);
+  const hero = ld.image || ogImage || null;
+  const heroImage = hero ? absoluteUrl(hero, pageUrl) : null;
+
+  const doc = document as unknown as Document;
+  if (isSubstackDocument(doc, pageUrl)) {
+    const substack = extractSubstack(doc, pageUrl);
+    const article = substack
+      ? buildArticle({
+          url: pageUrl,
+          canonicalUrl: pageUrl,
+          title: substack.title || ld.title || ogTitle,
+          author: ld.author || substack.author || ogAuthor,
+          siteName: ogSite,
+          published,
+          contentHtml: substack.contentHtml,
+          source,
+          heroImage,
+          excerpt: substack.subtitle,
+        })
+      : null;
+    // Too short (e.g. a hard paywall) — let Readability have a go below.
+    if (article) return article;
+  }
+
   let parsed: {
     title?: string | null;
     byline?: string | null;
@@ -132,9 +158,6 @@ function readabilityFromHtml(
   const contentHtml = parsed?.content || "";
   const title = (parsed?.title || ld.title || ogTitle || "").trim();
   const author = (parsed?.byline || ld.author || ogAuthor || "").trim();
-  const published = formatTweetDate(ld.date || ogDate);
-  const hero = ld.image || ogImage || null;
-
   return buildArticle({
     url: pageUrl,
     canonicalUrl: pageUrl,
@@ -145,7 +168,7 @@ function readabilityFromHtml(
     contentHtml:
       contentHtml || (title ? `<p>${xmlEscape(textFromHtml(html).slice(0, 4000))}</p>` : ""),
     source,
-    heroImage: hero ? absoluteUrl(hero, pageUrl) : null,
+    heroImage,
   });
 }
 
@@ -202,7 +225,7 @@ export function articleFromLinkOnly(rawUrl: string, title?: string): Article {
   const host = pageUrl.hostname.replace(/^www\./, "");
   const safeTitle = (title || "").trim() || host;
   const contentHtml = sanitizeHtml(
-    `<p><em>Saved as a link.</em> Automatic capture was blocked — open the original, or paste the article / use the KAMI bookmarklet.</p><p><a href="${href.replace(/"/g, "&quot;")}">Open original</a></p>`,
+    `<p><em>Saved as a link.</em> Automatic capture was blocked — open the original, or paste the article / capture it with the KAMI bookmarklet or extension.</p><p><a href="${href.replace(/"/g, "&quot;")}">Open original</a></p>`,
     href,
   );
   return {
@@ -263,6 +286,24 @@ export function articleFromManualImport(input: {
     source: "blog",
     heroImage: null,
   };
+}
+
+/**
+ * A page captured in the user's browser (bookmarklet / extension): run it
+ * through the same extraction as a server fetch — site rules, Readability,
+ * metadata — and only fall back to sanitizing the raw HTML if that fails.
+ */
+export function articleFromCapturedPage(input: { url?: string; title: string; html: string }): Article {
+  let href = "";
+  if (input.url?.trim()) href = assertPublicHttpUrl(input.url.trim()).href;
+  if (href) {
+    const source: Article["source"] = classify(new URL(href)).kind === "web" ? "blog" : "x";
+    const article = readabilityFromHtml(input.html, href, source);
+    if (article) {
+      return { ...article, title: article.title || input.title.trim() };
+    }
+  }
+  return articleFromManualImport({ url: href || undefined, title: input.title, contentHtml: input.html });
 }
 
 export async function extractArticleFromUrl(rawUrl: string): Promise<ExtractResult> {

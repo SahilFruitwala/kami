@@ -126,14 +126,15 @@ export function ToolsDialog({ open, onOpenChange, bookmarklet }: ToolsDialogProp
         <DialogHeader>
           <DialogTitle>Capture tools</DialogTitle>
           <DialogDescription>
-            Bypass bot walls by capturing in your browser, then sending the HTML into KAMI.
+            Bypass bot walls and logins by capturing the page in your browser, then handing it to
+            KAMI.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 text-sm text-ink-soft">
           <ol className="list-decimal space-y-1.5 pl-5">
             <li>Copy the KAMI bookmarklet below into a new bookmark.</li>
-            <li>On any blocked article page, click that bookmark.</li>
-            <li>KAMI opens with the content ready — review and import.</li>
+            <li>On any article page, click that bookmark.</li>
+            <li>KAMI opens in a new tab and saves a clean copy — no length limit.</li>
           </ol>
           <Button
             type="button"
@@ -158,9 +159,15 @@ export function ToolsDialog({ open, onOpenChange, bookmarklet }: ToolsDialogProp
             </p>
           )}
           <p className="text-xs text-ink-muted">
-            Capture runs inside this app. There is no separate API or Worker to deploy.
-            Bookmarklets need a desktop browser bookmark bar — they don&apos;t work on
-            mobile browsers, where Paste article is the fallback.
+            Prefer a toolbar button? Load the <strong>Save to KAMI</strong> extension from the
+            repo&apos;s <code>extension/</code> folder (Chrome, Edge, Firefox) — one click or
+            Alt+Shift+K. On Android, install KAMI to your home screen and use{" "}
+            <strong>Share → KAMI</strong>. Elsewhere on mobile, Paste article is the fallback.
+          </p>
+          <p className="text-xs text-ink-muted">
+            The bookmarklet opens KAMI as a pop-up; if nothing arrives, allow pop-ups for that site.
+            Bookmarks made before this update still work but can truncate long articles — copy a
+            fresh one.
           </p>
         </div>
       </DialogContent>
