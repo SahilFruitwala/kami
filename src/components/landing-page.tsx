@@ -23,7 +23,7 @@ import { Hanko, KAMI_GLYPH, WashiTag } from "@/components/kami.tsx";
 
 // Hoisted static content — no per-render allocation.
 // Every claim below maps to a real capability in src/:
-// capture (paste / link-only / manual paste / bookmarklet ?import=),
+// capture (paste / link-only / manual paste / bookmarklet + extension → /capture, share target),
 // library (inbox-archive tabs, deferred search, folders, tags, stars, bulk ops),
 // reader (5 fonts, 7 sizes, 3 paper tones, TTS, scroll memory),
 // highlights (3 inks, notes, vault CSV), journal (calendar, 50k chars/day,

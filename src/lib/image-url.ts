@@ -48,25 +48,57 @@ export function preferReadableImage(url: string): string {
   }
 }
 
-function consider(raw: string | null, baseUrl: string, baseScore: number, into: { url: string; score: number }[]) {
-  if (!raw) return;
-  for (const part of raw.split(",")) {
-    const bits = part.trim().split(/\s+/);
-    if (!bits[0]) continue;
-    const abs = absoluteUrl(bits[0], baseUrl);
+/**
+ * Parse a srcset per the HTML spec's candidate rules: a URL is a run of
+ * non-whitespace (it may itself contain commas — Substack/Cloudinary CDN
+ * URLs do), followed by optional descriptors up to the next comma.
+ */
+export function parseSrcset(raw: string): { url: string; descriptor: string }[] {
+  const out: { url: string; descriptor: string }[] = [];
+  let i = 0;
+  const n = raw.length;
+  while (i < n) {
+    while (i < n && /[\s,]/.test(raw[i])) i += 1;
+    if (i >= n) break;
+    let start = i;
+    while (i < n && !/\s/.test(raw[i])) i += 1;
+    let url = raw.slice(start, i);
+    let descriptor = "";
+    if (/,$/.test(url)) {
+      url = url.replace(/,+$/, "");
+    } else {
+      start = i;
+      while (i < n && raw[i] !== ",") i += 1;
+      descriptor = raw.slice(start, i).trim();
+    }
+    if (url) out.push({ url, descriptor });
+  }
+  return out;
+}
+
+function consider(
+  raw: string | null,
+  baseUrl: string,
+  baseScore: number,
+  into: { url: string; score: number }[],
+  isSrcset = false,
+) {
+  if (!raw?.trim()) return;
+  const candidates = isSrcset ? parseSrcset(raw) : [{ url: raw.trim(), descriptor: "" }];
+  for (const { url, descriptor } of candidates) {
+    const abs = absoluteUrl(url, baseUrl);
     if (!abs || abs.startsWith("data:") || isJunkImageUrl(abs)) continue;
     let extra = 0;
-    const desc = bits[1] || "";
-    if (desc.endsWith("w")) extra = parseInt(desc, 10) || 0;
-    else if (desc.endsWith("x")) extra = Math.round((parseFloat(desc) || 1) * 400);
+    if (descriptor.endsWith("w")) extra = parseInt(descriptor, 10) || 0;
+    else if (descriptor.endsWith("x")) extra = Math.round((parseFloat(descriptor) || 1) * 400);
     into.push({ url: abs, score: baseScore + extra });
   }
 }
 
 export function pickImageSrc(el: Element, baseUrl: string): string | null {
   const scored: { url: string; score: number }[] = [];
-  consider(el.getAttribute("srcset"), baseUrl, 200, scored);
-  consider(el.getAttribute("data-srcset"), baseUrl, 150, scored);
+  consider(el.getAttribute("srcset"), baseUrl, 200, scored, true);
+  consider(el.getAttribute("data-srcset"), baseUrl, 150, scored, true);
   consider(el.getAttribute("data-src"), baseUrl, 80, scored);
   consider(el.getAttribute("data-original"), baseUrl, 80, scored);
   consider(el.getAttribute("data-lazy-src"), baseUrl, 70, scored);

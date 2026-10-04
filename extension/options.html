@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Save to KAMI — options</title>
+    <style>
+      body { font: 14px/1.5 system-ui, sans-serif; margin: 16px; min-width: 320px; color: #1c1b19; background: #faf6ee; }
+      label { display: block; font-weight: 600; margin-bottom: 4px; }
+      input { width: 100%; box-sizing: border-box; padding: 8px; border: 1px solid #d8d0c0; border-radius: 4px; font: inherit; }
+      button { margin-top: 12px; padding: 8px 16px; border: 0; border-radius: 4px; background: #b3261e; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+      p { color: #5b564d; margin: 8px 0 0; }
+      @media (prefers-color-scheme: dark) {
+        body { color: #eee8dc; background: #0e0d0b; }
+        input { background: #1c1b19; color: inherit; border-color: #3a3730; }
+        p { color: #a59f92; }
+      }
+    </style>
+  </head>
+  <body>
+    <form id="form">
+      <label for="origin">KAMI address</label>
+      <input id="origin" type="url" required placeholder="https://kami.sahilfruitwala.com" />
+      <button type="submit">Save</button>
+      <p id="status" role="status"></p>
+      <p>Self-hosting? Enter your KAMI URL; the browser will ask to let the extension hand pages to it.</p>
+    </form>
+    <script src="options.js"></script>
+  </body>
+</html>
