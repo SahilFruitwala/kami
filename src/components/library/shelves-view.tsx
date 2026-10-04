@@ -15,6 +15,7 @@ import {
   useShelfItems,
 } from "@/hooks/use-shelf-queries.ts";
 import { shelfPath, type ShelfDetail, type ShelfTab } from "@/lib/shelves.ts";
+import { statusLabels } from "@/lib/shelf-labels.ts";
 import { cn } from "@/lib/utils.ts";
 import { AddShelfDialog } from "@/components/library/add-shelf-dialog.tsx";
 import { ShelfFolio } from "@/components/library/shelf-folio.tsx";
@@ -22,7 +23,7 @@ import { ShelfTile } from "@/components/library/shelf-tile.tsx";
 import type { ShelvesSearch } from "@/lib/shelves-search.ts";
 
 /** UI filter: `all` means no status predicate on the server. */
-type StatusFilter = "to_try" | "done" | "all";
+type StatusFilter = "to_try" | "in_progress" | "done" | "abandoned" | "all";
 
 const SHELF_META: {
   id: ShelfTab;
@@ -36,32 +37,40 @@ const SHELF_META: {
   { id: "wishlist", pane: "wishlist", label: "Wishlist", eyebrow: "Wish Shelf" },
 ];
 
-const STATUS_META: { id: StatusFilter; label: string }[] = [
-  { id: "to_try", label: "To try" },
-  { id: "done", label: "Done" },
-  { id: "all", label: "All" },
-];
-
-function parseStatusFilter(v: unknown): StatusFilter {
-  if (v === "done" || v === "all") return v;
-  return "to_try";
+/** Series and books have an in-between state; movies and wishlist don't. */
+function statusMeta(tab: ShelfTab): { id: StatusFilter; label: string }[] {
+  const labels = statusLabels(tab);
+  const inProgress = tab === "tv" || tab === "book";
+  // In progress leads: it's the default view for series and books.
+  return [
+    ...(inProgress ? [{ id: "in_progress" as const, label: labels.inProgress }] : []),
+    { id: "to_try", label: labels.toTry },
+    { id: "done", label: labels.done },
+    ...(inProgress ? [{ id: "abandoned" as const, label: labels.abandoned }] : []),
+    { id: "all", label: "All" },
+  ];
 }
 
-function statusToApi(status: StatusFilter): "to_try" | "done" | undefined {
+/** Series and books open on what you're in the middle of; the rest on "to try". */
+function defaultStatus(tab: ShelfTab): StatusFilter {
+  return tab === "tv" || tab === "book" ? "in_progress" : "to_try";
+}
+
+function parseStatusFilter(v: unknown, tab: ShelfTab): StatusFilter {
+  if (v === "done" || v === "all" || v === "to_try") return v;
+  if ((v === "in_progress" || v === "abandoned") && (tab === "tv" || tab === "book")) return v;
+  return defaultStatus(tab);
+}
+
+function statusToApi(status: StatusFilter): Exclude<StatusFilter, "all"> | undefined {
   return status === "all" ? undefined : status;
 }
 
 /** One shelf type per route — movies, series, books, or wishlist. */
-export function ShelvesView({
-  tab,
-  search,
-}: {
-  tab: ShelfTab;
-  search: ShelvesSearch;
-}) {
+export function ShelvesView({ tab, search }: { tab: ShelfTab; search: ShelvesSearch }) {
   const navigate = useNavigate();
   const [query, setQuery] = useState(() => search.q ?? "");
-  const [status, setStatus] = useState<StatusFilter>(() => parseStatusFilter(search.status));
+  const [status, setStatus] = useState<StatusFilter>(() => parseStatusFilter(search.status, tab));
   const [limit, setLimit] = useState(SHELF_PAGE_SIZE);
   const deferredQuery = useDeferredValue(query);
   const [detailId, setDetailId] = useState<string | null>(null);
@@ -89,7 +98,7 @@ export function ShelvesView({
     if (syncedFromUrl.current) return;
     syncedFromUrl.current = true;
     if (typeof search.q === "string") setQuery(search.q);
-    setStatus(parseStatusFilter(search.status));
+    setStatus(parseStatusFilter(search.status, tab));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -102,8 +111,8 @@ export function ShelvesView({
         to: shelfPath(tab),
         search: {
           q: query ? query : undefined,
-          // Default filter is to_try — omit from the URL.
-          status: status === "to_try" ? undefined : status,
+          // Omit the shelf's default filter from the URL.
+          status: status === defaultStatus(tab) ? undefined : status,
         },
         replace: true,
       });
@@ -167,7 +176,7 @@ export function ShelvesView({
           </div>
 
           <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-1">
-            {STATUS_META.map((s) => (
+            {statusMeta(tab).map((s) => (
               <button
                 key={s.id}
                 type="button"
@@ -187,9 +196,13 @@ export function ShelvesView({
                       ? "bg-white"
                       : s.id === "done"
                         ? "bg-hanko"
-                        : s.id === "to_try"
-                          ? "bg-ok"
-                          : "bg-line",
+                        : s.id === "in_progress"
+                          ? "bg-bamboo"
+                          : s.id === "abandoned"
+                            ? "bg-ink-muted"
+                            : s.id === "to_try"
+                              ? "bg-ok"
+                              : "bg-line",
                   )}
                   aria-hidden="true"
                 />
@@ -212,6 +225,36 @@ export function ShelvesView({
                 </div>
               </div>
             ))}
+          </div>
+        ) : items.length === 0 && (query || status !== "all") && (shelfCount ?? 0) > 0 ? (
+          <div className="kami-sheet mx-auto max-w-md p-10 text-center">
+            <p className="font-display text-xl text-ink">
+              {query
+                ? `Nothing matches “${query}”`
+                : `Nothing under “${statusMeta(tab).find((s) => s.id === status)?.label}”`}
+            </p>
+            <p className="mt-2 font-sans text-sm text-ink-muted">
+              {query
+                ? "Check the spelling, or search the whole shelf."
+                : status === "in_progress"
+                  ? tab === "tv"
+                    ? "Tick an episode on a series and it shows up here."
+                    : "Start a book or log your page and it shows up here."
+                  : "Pick another filter to see the rest of your shelf."}
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setQuery("");
+                setStatus(status === "in_progress" && !query ? "to_try" : "all");
+              }}
+              className="mt-4"
+            >
+              {status === "in_progress" && !query
+                ? `Show ${statusLabels(tab).toTry.toLowerCase()}`
+                : "Show everything"}
+            </Button>
           </div>
         ) : items.length === 0 ? (
           <div className="kami-sheet mx-auto max-w-md p-10 text-center">

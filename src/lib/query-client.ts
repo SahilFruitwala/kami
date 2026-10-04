@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import type { ItemStatus } from "@/lib/schema";
 import type { ShelfTab } from "@/lib/shelves.ts";
 
 /**
@@ -33,7 +34,7 @@ export const queryKeys = {
     counts: () => [...queryKeys.shelves.all, "counts"] as const,
     list: (args: {
       type: ShelfTab;
-      status?: "to_try" | "done" | "abandoned";
+      status?: ItemStatus;
       query: string;
       limit: number;
     }) =>

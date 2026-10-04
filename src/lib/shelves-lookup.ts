@@ -7,7 +7,12 @@ import {
   cached,
   hashKeyPart,
   normalizeCacheQuery,
+  invalidateUserCache,
 } from "@/lib/cache.server.ts";
+import { and, eq, isNull } from "drizzle-orm";
+import { getDb } from "@/lib/db";
+import { books } from "@/lib/schema";
+import { findOwnedItem } from "@/lib/shelves-db.server.ts";
 
 /**
  * Watchlist lookup providers — Postgres port of `shelf/src/server/lookup.ts`.
@@ -268,6 +273,7 @@ type OpenLibraryDoc = {
   title: string;
   author_name?: string[];
   first_publish_year?: number;
+  number_of_pages_median?: number;
   cover_i?: number;
   subject?: string[];
   first_sentence?: string | string[] | { value?: string };
@@ -313,7 +319,7 @@ export const searchBooks = createServerFn({ method: "GET" })
         url.searchParams.set("limit", "8");
         url.searchParams.set(
           "fields",
-          "key,title,author_name,first_publish_year,cover_i,subject,first_sentence",
+          "key,title,author_name,first_publish_year,cover_i,subject,first_sentence,number_of_pages_median",
         );
 
         const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
@@ -324,6 +330,8 @@ export const searchBooks = createServerFn({ method: "GET" })
           const metadata: Record<string, string> = {};
           if (d.author_name?.length) metadata.author = d.author_name[0];
           if (d.first_publish_year) metadata.year = String(d.first_publish_year);
+          if (d.number_of_pages_median && d.number_of_pages_median > 0)
+            metadata.pages = String(d.number_of_pages_median);
           const genre = bookGenres(d.subject);
           if (genre) metadata.genre = genre;
           const overview = bookBlurb(d.first_sentence);
@@ -472,4 +480,84 @@ export const fetchLinkPreview = createServerFn({ method: "GET" })
       },
       { skipCache: (preview) => preview === null },
     );
+  });
+
+const OPEN_LIBRARY_WORK = /^https:\/\/openlibrary\.org(\/works\/OL\d+W)$/;
+
+/**
+ * Open Library's median page count for a work — by its exact work key when
+ * the book was added from search, else the best title + author match.
+ * Returns `undefined` when Open Library could not be reached (not cached).
+ */
+async function openLibraryPageCount(book: {
+  link: string | null;
+  title: string;
+  author: string | null;
+}): Promise<{ pages: number | null } | undefined> {
+  const workKey = book.link ? OPEN_LIBRARY_WORK.exec(book.link)?.[1] : undefined;
+  const lookup = workKey ?? `${book.title}|${book.author ?? ""}`;
+  return cached(
+    cacheKey("lookup", "book-pages", hashKeyPart(normalizeCacheQuery(lookup))),
+    CacheTTL.bookSearch,
+    async () => {
+      const url = new URL("https://openlibrary.org/search.json");
+      if (workKey) {
+        url.searchParams.set("q", `key:${workKey}`);
+      } else {
+        url.searchParams.set("title", book.title);
+        if (book.author) url.searchParams.set("author", book.author);
+      }
+      url.searchParams.set("limit", "1");
+      url.searchParams.set("fields", "key,number_of_pages_median");
+      try {
+        const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+        if (!res.ok) return undefined;
+        const json = (await res.json()) as { docs?: { number_of_pages_median?: number }[] };
+        const pages = json.docs?.[0]?.number_of_pages_median;
+        return { pages: pages && pages > 0 ? pages : null };
+      } catch {
+        return undefined;
+      }
+    },
+    // Cache "Open Library has no count" too; only network failures retry.
+    { skipCache: (v) => v === undefined },
+  );
+}
+
+/**
+ * Fill a book's missing page count from Open Library. Never overwrites a
+ * count the reader typed. Returns the stored count (or null if unknown).
+ */
+export const fillBookPageCount = createServerFn({ method: "POST" })
+  .middleware([rateLimited("lookup")])
+  .validator((input: unknown) => z.object({ id: z.string().min(1).max(200) }).parse(input))
+  .handler(async ({ context, data }): Promise<{ pageCount: number | null }> => {
+    const owned = await findOwnedItem(context.userId, "book", data.id);
+    if (!owned) throw new Error("Item not found");
+
+    const db = await getDb();
+    const [book] = await db
+      .select({
+        title: books.title,
+        author: books.author,
+        link: books.link,
+        pageCount: books.pageCount,
+      })
+      .from(books)
+      .where(eq(books.id, data.id))
+      .limit(1);
+    if (!book) throw new Error("Item not found");
+    if (book.pageCount) return { pageCount: book.pageCount };
+
+    const found = await openLibraryPageCount(book);
+    const pages = found?.pages ?? null;
+    if (pages == null) return { pageCount: null };
+
+    // `isNull` guard: a count typed meanwhile wins over the lookup.
+    await db
+      .update(books)
+      .set({ pageCount: pages })
+      .where(and(eq(books.id, data.id), isNull(books.pageCount)));
+    await invalidateUserCache(context.userId);
+    return { pageCount: pages };
   });

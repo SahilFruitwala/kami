@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   getSeasonEpisodes,
   getShowSeasons,
@@ -11,10 +12,12 @@ import {
   addShelfItem,
   deleteShelfItem,
   findShelfDuplicates,
+  setBookProgress,
   setShelfItemStatus,
 } from "@/lib/shelves-write-fns";
+import type { ItemStatus } from "@/lib/schema";
 import type { ShelfTab } from "@/lib/shelves";
-import { fetchLinkPreview, searchBooks, searchTmdb } from "@/lib/shelves-lookup";
+import { fetchLinkPreview, fillBookPageCount, searchBooks, searchTmdb } from "@/lib/shelves-lookup";
 import { invalidateShelves, queryKeys } from "@/lib/query-client";
 
 export function useShelfCounts() {
@@ -28,7 +31,7 @@ export const SHELF_PAGE_SIZE = 12;
 
 export function useShelfItems(args: {
   type: ShelfTab;
-  status?: "to_try" | "done" | "abandoned";
+  status?: ItemStatus;
   query: string;
   limit?: number;
 }) {
@@ -124,7 +127,7 @@ export function useFindShelfDuplicates() {
 export function useSetShelfItemStatus() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (data: { type: ShelfTab; id: string; status: "to_try" | "done" | "abandoned" }) =>
+    mutationFn: (data: { type: ShelfTab; id: string; status: ItemStatus }) =>
       setShelfItemStatus({ data }),
     onSuccess: () => invalidateShelves(client),
   });
@@ -161,6 +164,7 @@ export function useToggleEpisode(itemId: string) {
   return useMutation({
     mutationFn: (data: { season: number; number: number }) =>
       toggleEpisode({ data: { itemId, ...data } }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't update episodes."),
     onSuccess: () => {
       void invalidateShelves(client);
       void client.invalidateQueries({ queryKey: queryKeys.shelves.seasons(itemId) });
@@ -176,6 +180,7 @@ export function useSetSeasonWatched(itemId: string) {
   return useMutation({
     mutationFn: (data: { season: number; numbers: number[]; watched: boolean }) =>
       setSeasonWatched({ data: { itemId, ...data } }),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't update episodes."),
     onSuccess: () => {
       void invalidateShelves(client);
       void client.invalidateQueries({ queryKey: queryKeys.shelves.seasons(itemId) });
@@ -197,5 +202,36 @@ export function useSetShowWatched() {
         queryKey: [...queryKeys.shelves.all, "episodes", vars.itemId],
       });
     },
+  });
+}
+
+export function useSetBookProgress() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (
+      data:
+        | { id: string; mode: "pages"; currentPage: number; pageCount: number }
+        | { id: string; mode: "percent"; percent: number },
+    ) => setBookProgress({ data }),
+    onSuccess: () => invalidateShelves(client),
+  });
+}
+
+/**
+ * One-time Open Library lookup for a book with no page count. A hit is saved
+ * server-side, then shelves refetch so the progress form picks it up.
+ */
+export function useBookPageCountLookup(id: string, enabled: boolean) {
+  const client = useQueryClient();
+  return useQuery({
+    queryKey: [...queryKeys.shelves.all, "page-count", id] as const,
+    queryFn: async () => {
+      const res = await fillBookPageCount({ data: { id } });
+      if (res.pageCount) await invalidateShelves(client);
+      return res;
+    },
+    enabled,
+    staleTime: Infinity,
+    retry: false,
   });
 }

@@ -134,6 +134,7 @@ export const listShelfItems = createServerFn({ method: "GET" })
             episodesWatched: null,
             totalEpisodes: null,
             lastEpisode: null,
+            progressPercent: null,
           }));
         }
 
@@ -170,6 +171,7 @@ export const listShelfItems = createServerFn({ method: "GET" })
             episodesWatched: r.episodesWatched,
             totalEpisodes: r.totalEpisodes,
             lastEpisode: r.lastEpisode,
+            progressPercent: null,
           }));
         }
 
@@ -201,6 +203,7 @@ export const listShelfItems = createServerFn({ method: "GET" })
             episodesWatched: null,
             totalEpisodes: null,
             lastEpisode: null,
+            progressPercent: r.progressPercent,
           }));
         }
 
@@ -232,6 +235,7 @@ export const listShelfItems = createServerFn({ method: "GET" })
             episodesWatched: null,
             totalEpisodes: null,
             lastEpisode: null,
+            progressPercent: null,
           }));
         }
 
@@ -263,6 +267,7 @@ export const listShelfItems = createServerFn({ method: "GET" })
             episodesWatched: null,
             totalEpisodes: null,
             lastEpisode: null,
+            progressPercent: null,
           }));
         }
 
@@ -293,6 +298,7 @@ export const listShelfItems = createServerFn({ method: "GET" })
           episodesWatched: null,
           totalEpisodes: null,
           lastEpisode: null,
+          progressPercent: null,
         }));
       },
     );

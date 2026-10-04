@@ -1,11 +1,12 @@
-import { type MouseEvent } from "react";
+import { Link } from "@tanstack/react-router";
+import { type MouseEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Check, LoaderCircle } from "lucide-react";
-import { Hanko } from "@/components/kami.tsx";
+import { Hanko, WashiTag } from "@/components/kami.tsx";
 import { useSetShelfItemStatus, useSetShowWatched } from "@/hooks/use-shelf-queries.ts";
 import { type ShelfCard, type ShelfTab } from "@/lib/shelves.ts";
 import { cn } from "@/lib/utils.ts";
-import { statusLabels } from "@/lib/shelf-labels.ts";
+import { statusLabels, statusText } from "@/lib/shelf-labels.ts";
 
 export function ShelfTile({
   item,
@@ -48,11 +49,7 @@ export function ShelfTile({
 
   return (
     <article className="kami-sheet group flex flex-col overflow-hidden transition-transform hover:-translate-y-0.5">
-      <button
-        type="button"
-        onClick={onOpen}
-        className="flex min-w-0 flex-1 flex-col text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 focus-visible:ring-inset"
-      >
+      <OpenArea tab={tab} id={item.id} onOpen={onOpen}>
         <div className="poster-frame relative aspect-[2/3] w-full overflow-hidden bg-paper-warm">
           {item.imageUrl ? (
             <img
@@ -61,7 +58,10 @@ export function ShelfTile({
               width={300}
               height={450}
               loading="lazy"
-              className="size-full object-cover"
+              className={cn(
+                "size-full object-cover",
+                item.status === "abandoned" && "opacity-60 grayscale",
+              )}
             />
           ) : (
             <div className="flex size-full items-center justify-center font-display text-4xl text-ink-faint">
@@ -72,6 +72,12 @@ export function ShelfTile({
             <span className="absolute top-2 right-2 z-[2]">
               <Hanko glyph="✓" title={labels.done} />
             </span>
+          ) : item.status === "in_progress" || item.status === "abandoned" ? (
+            <span className="absolute top-2 left-2 z-[2]">
+              <WashiTag tone={item.status === "abandoned" ? "paper" : "bamboo"}>
+                {statusText(labels, item.status)}
+              </WashiTag>
+            </span>
           ) : null}
         </div>
         <div className="flex flex-1 flex-col p-3 pb-2">
@@ -80,6 +86,22 @@ export function ShelfTile({
           </p>
           {item.subtitle ? (
             <p className="mt-1 line-clamp-1 font-sans text-xs text-ink-muted">{item.subtitle}</p>
+          ) : null}
+          {tab === "book" && item.progressPercent && item.status !== "done" ? (
+            <div className="mt-2 space-y-1">
+              <p className="font-sans text-[11px] tabular-nums text-ink-muted">
+                {item.progressPercent}% read
+              </p>
+              <span
+                className="block h-1 w-full overflow-hidden rounded-full bg-paper-warm"
+                aria-hidden="true"
+              >
+                <span
+                  className="block h-full rounded-full bg-bamboo"
+                  style={{ width: `${item.progressPercent}%` }}
+                />
+              </span>
+            </div>
           ) : null}
           {tab === "tv" && (item.totalEpisodes || item.episodesWatched) ? (
             <div className="mt-2 space-y-1">
@@ -107,7 +129,7 @@ export function ShelfTile({
             </div>
           ) : null}
         </div>
-      </button>
+      </OpenArea>
       <div className="px-3 pb-3">
         <button
           type="button"
@@ -132,5 +154,45 @@ export function ShelfTile({
         </button>
       </div>
     </article>
+  );
+}
+
+const OPEN_CLASS =
+  "flex min-w-0 flex-1 flex-col text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 focus-visible:ring-inset";
+
+/** Movies, series, and books open their own page; wishlist keeps the dialog. */
+function OpenArea({
+  tab,
+  id,
+  onOpen,
+  children,
+}: {
+  tab: ShelfTab;
+  id: string;
+  onOpen: () => void;
+  children: ReactNode;
+}) {
+  if (tab === "movie")
+    return (
+      <Link to="/shelves/movies/$id" params={{ id }} className={OPEN_CLASS}>
+        {children}
+      </Link>
+    );
+  if (tab === "tv")
+    return (
+      <Link to="/shelves/series/$id" params={{ id }} className={OPEN_CLASS}>
+        {children}
+      </Link>
+    );
+  if (tab === "book")
+    return (
+      <Link to="/shelves/books/$id" params={{ id }} className={OPEN_CLASS}>
+        {children}
+      </Link>
+    );
+  return (
+    <button type="button" onClick={onOpen} className={OPEN_CLASS}>
+      {children}
+    </button>
   );
 }

@@ -55,6 +55,9 @@
   html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    /* Reserve the scrollbar's space so short pages (an empty shelf filter)
+       don't re-center everything when the scrollbar disappears. */
+    scrollbar-gutter: stable;
     -webkit-tap-highlight-color: rgba(208, 138, 94, 0.2);
     touch-action: manipulation;
     color-scheme: light;

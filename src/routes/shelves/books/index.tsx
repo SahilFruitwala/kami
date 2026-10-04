@@ -2,12 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ShelvesView } from "@/components/library/shelves-view.tsx";
 import { validateShelvesSearch } from "@/lib/shelves-search.ts";
 
-export const Route = createFileRoute("/shelves/series")({
+export const Route = createFileRoute("/shelves/books/")({
   validateSearch: validateShelvesSearch,
-  component: SeriesShelfPage,
+  component: BooksShelfPage,
 });
 
-function SeriesShelfPage() {
+function BooksShelfPage() {
   const search = Route.useSearch();
-  return <ShelvesView key="tv" tab="tv" search={search} />;
+  return <ShelvesView key="book" tab="book" search={search} />;
 }
