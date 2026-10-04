@@ -84,7 +84,7 @@ export function ShelfTile({
           <p className="line-clamp-2 font-display text-[15px] leading-snug font-medium text-ink">
             {item.title}
           </p>
-          {item.subtitle ? (
+          {item.subtitle && !(tab === "tv" && (item.totalEpisodes || item.episodesWatched)) ? (
             <p className="mt-1 line-clamp-1 font-sans text-xs text-ink-muted">{item.subtitle}</p>
           ) : null}
           {tab === "book" && item.progressPercent && item.status !== "done" ? (
