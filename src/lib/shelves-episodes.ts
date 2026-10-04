@@ -126,11 +126,31 @@ async function syncShowProgress(itemId: string) {
     return acc;
   }, null);
 
+  const [show] = await db
+    .select({
+      status: tvShows.status,
+      totalEpisodes: tvShows.totalEpisodes,
+      completedAt: tvShows.completedAt,
+    })
+    .from(tvShows)
+    .where(eq(tvShows.id, itemId))
+    .limit(1);
+
+  // Status follows the ticks: none → to try, some → in progress, all → done.
+  // Ticking an episode on a dropped show picks it back up. A show marked done
+  // with no known episode count stays done until its ticks are cleared.
+  let status = show?.status ?? "to_try";
+  if (rows.length === 0) status = "to_try";
+  else if (show?.totalEpisodes && rows.length >= show.totalEpisodes) status = "done";
+  else if (!(status === "done" && !show?.totalEpisodes)) status = "in_progress";
+
   await db
     .update(tvShows)
     .set({
       episodesWatched: rows.length,
       lastEpisode: last ? `S${last.season}E${last.number}` : null,
+      status,
+      completedAt: status === "done" ? (show?.completedAt ?? new Date()) : null,
     })
     .where(eq(tvShows.id, itemId));
 }

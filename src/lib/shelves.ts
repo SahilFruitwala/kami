@@ -1,4 +1,4 @@
-import type { books, movies, tvShows, wishlistItems } from "@/lib/schema";
+import type { ItemStatus, books, movies, tvShows, wishlistItems } from "@/lib/schema";
 
 /** Client-safe shelf constants, paths, and row types (no server code). */
 
@@ -33,7 +33,7 @@ export type ShelfCard = {
   type: ShelfTab | "restaurant" | "place";
   title: string;
   imageUrl: string | null;
-  status: "to_try" | "done" | "abandoned";
+  status: ItemStatus;
   /** Second line: author / year / price / address depending on type. */
   subtitle: string | null;
   overview: string | null;
@@ -44,6 +44,8 @@ export type ShelfCard = {
   episodesWatched: number | null;
   totalEpisodes: number | null;
   lastEpisode: string | null;
+  /** Books only — 0–100. */
+  progressPercent: number | null;
 };
 
 export type ShelfDetail =

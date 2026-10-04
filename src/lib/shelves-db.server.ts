@@ -1,6 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db";
+import type { ItemStatus } from "@/lib/schema";
 import {
   bookGenres,
   books,
@@ -20,7 +21,7 @@ import {
 /** Server-side shelf helpers shared by the read and write server functions. */
 
 export const shelfType = z.enum(["movie", "tv", "book", "wishlist", "restaurant", "place"]);
-export const shelfStatus = z.enum(["to_try", "done", "abandoned"]);
+export const shelfStatus = z.enum(["to_try", "in_progress", "done", "abandoned"]);
 
 /** Lowercase, punctuation-stripped title for duplicate checks (mirrors shelf). */
 export function normalizeTitle(title: string): string {
@@ -233,7 +234,7 @@ export async function findOwnedItem(
   id: string;
   listId: string;
   title: string;
-  status: "to_try" | "done" | "abandoned";
+  status: ItemStatus;
 } | null> {
   const db = await getDb();
   const table = tableForType(type);

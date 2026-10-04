@@ -117,7 +117,7 @@ export type ItemType = (typeof ITEM_TYPES)[number];
 export const LIST_TYPES = [...ITEM_TYPES, "mixed", "trip"] as const;
 export type ListType = (typeof LIST_TYPES)[number];
 
-export const ITEM_STATUSES = ["to_try", "done", "abandoned"] as const;
+export const ITEM_STATUSES = ["to_try", "in_progress", "done", "abandoned"] as const;
 export type ItemStatus = (typeof ITEM_STATUSES)[number];
 
 export type ItemMetadata = Record<string, string | undefined>;
@@ -249,6 +249,9 @@ export const books = pgTable("books", {
   author: text("author"),
   publishYear: integer("publish_year"),
   overview: text("overview"),
+  currentPage: integer("current_page"),
+  pageCount: integer("page_count"),
+  progressPercent: integer("progress_percent").notNull().default(0),
 });
 
 export const places = pgTable("places", {

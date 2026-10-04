@@ -1,66 +1,20 @@
-import { toast } from "sonner";
 import { Check, LoaderCircle, Trash2 } from "lucide-react";
 import { EpisodeTracker } from "@/components/library/episode-tracker.tsx";
 import { WatchWhere } from "@/components/library/watch-where.tsx";
 import { WashiTag } from "@/components/kami.tsx";
 import { Button } from "@/components/ui/button.tsx";
-import {
-  useDeleteShelfItem,
-  useSetShelfItemStatus,
-  useSetShowWatched,
-} from "@/hooks/use-shelf-queries.ts";
+import { useShelfItemActions } from "@/hooks/use-shelf-item-actions.ts";
+import { statusText } from "@/lib/shelf-labels.ts";
 import { type ShelfDetail } from "@/lib/shelves.ts";
-import { statusLabels } from "@/lib/shelf-labels.ts";
 
 export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: () => void }) {
-  const setStatus = useSetShelfItemStatus();
-  const deleteItem = useDeleteShelfItem();
-  const setShowWatched = useSetShowWatched();
   const genres = detail.type === "wishlist" ? [] : detail.genres;
   const overview =
     detail.type === "movie" || detail.type === "tv" || detail.type === "book"
       ? detail.item.overview
       : detail.item.description;
-  const labels = statusLabels(detail.type);
-  const busy = setStatus.isPending || deleteItem.isPending || setShowWatched.isPending;
+  const { busy, labels, setDone, remove } = useShelfItemActions(detail, onClose);
   const isDone = detail.item.status === "done";
-
-  async function markDone() {
-    try {
-      if (detail.type === "tv") {
-        await setShowWatched.mutateAsync({ itemId: detail.item.id, watched: true });
-      } else {
-        await setStatus.mutateAsync({ type: detail.type, id: detail.item.id, status: "done" });
-      }
-      toast.success(`Marked “${detail.item.title}” ${labels.done.toLowerCase()}`);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't update status.");
-    }
-  }
-
-  async function markToTry() {
-    try {
-      if (detail.type === "tv") {
-        await setShowWatched.mutateAsync({ itemId: detail.item.id, watched: false });
-      } else {
-        await setStatus.mutateAsync({ type: detail.type, id: detail.item.id, status: "to_try" });
-      }
-      toast.success(`Moved “${detail.item.title}” back to ${labels.toTry.toLowerCase()}`);
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't update status.");
-    }
-  }
-
-  async function remove() {
-    if (!window.confirm(`Remove “${detail.item.title}” from your shelf?`)) return;
-    try {
-      await deleteItem.mutateAsync({ type: detail.type, id: detail.item.id });
-      toast.success(`Removed “${detail.item.title}”`);
-      onClose();
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't delete that item.");
-    }
-  }
 
   return (
     <div className="space-y-4">
@@ -83,7 +37,7 @@ export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: 
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap gap-1.5">
             <WashiTag tone={isDone ? "vermilion" : "paper"}>
-              {detail.item.status === "done" ? labels.done : labels.toTry}
+              {statusText(labels, detail.item.status)}
             </WashiTag>
             {genres.map((g) => (
               <WashiTag key={g} tone="bamboo">
@@ -175,7 +129,7 @@ export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: 
             type="button"
             variant="secondary"
             disabled={busy}
-            onClick={() => void markToTry()}
+            onClick={() => void setDone(false)}
           >
             {busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : null}
             {labels.markTry}
@@ -184,7 +138,7 @@ export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: 
           <Button
             type="button"
             disabled={busy}
-            onClick={() => void markDone()}
+            onClick={() => void setDone(true)}
             className="bg-hanko text-white hover:bg-shu"
           >
             {busy ? (

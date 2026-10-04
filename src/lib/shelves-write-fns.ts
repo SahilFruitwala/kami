@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { authMiddleware } from "@/lib/auth/middleware";
@@ -116,6 +116,8 @@ export const addShelfItem = createServerFn({ method: "POST" })
             author: metadata.author ?? null,
             publishYear: optionalInteger(metadata.year),
             overview: metadata.overview ?? null,
+            pageCount: positiveInteger(metadata.pages),
+            progressPercent: status === "done" ? 100 : 0,
           });
         } else if (data.type === "restaurant") {
           await tx.insert(restaurants).values({
@@ -260,7 +262,21 @@ export const setShelfItemStatus = createServerFn({ method: "POST" })
       })
       .where(eq(table.id, data.id));
 
-    if (item.status !== data.status) {
+    // Keep book progress in step with the ends of the scale: read = 100%,
+    // back to "to read" = start over. Reading/abandoned keep their place.
+    if (data.type === "book" && (data.status === "done" || data.status === "to_try")) {
+      const finished = data.status === "done";
+      await db
+        .update(books)
+        .set({
+          progressPercent: finished ? 100 : 0,
+          currentPage: finished ? sql`${books.pageCount}` : null,
+        })
+        .where(eq(books.id, data.id));
+    }
+
+    // Starting a book/series is not worth an activity entry.
+    if (item.status !== data.status && data.status !== "in_progress") {
       const action =
         data.status === "done"
           ? "completed"
@@ -306,4 +322,82 @@ export const deleteShelfItem = createServerFn({ method: "POST" })
     });
     await invalidateUserCache(context.userId);
     return { deleted: true };
+  });
+
+function positiveInteger(value: string | undefined): number | null {
+  const n = optionalInteger(value);
+  return n != null && n > 0 ? n : null;
+}
+
+/**
+ * Set how far through a book the reader is — by page (`currentPage` of
+ * `pageCount`) or by `percent`. Status follows: 0 → to read, 1–99 → reading,
+ * 100 → read. Page counts are remembered even when tracking by percent.
+ */
+export const setBookProgress = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator((input: unknown) =>
+    z
+      .union([
+        z.object({
+          id: z.string().min(1).max(200),
+          mode: z.literal("pages"),
+          currentPage: z.number().int().min(0).max(100_000),
+          pageCount: z.number().int().min(1).max(100_000),
+        }),
+        z.object({
+          id: z.string().min(1).max(200),
+          mode: z.literal("percent"),
+          percent: z.number().int().min(0).max(100),
+        }),
+      ])
+      .refine((d) => d.mode !== "pages" || d.currentPage <= d.pageCount, {
+        message: "Current page can't be past the last page.",
+      })
+      .parse(input),
+  )
+  .handler(async ({ context, data }) => {
+    const item = await findOwnedItem(context.userId, "book", data.id);
+    if (!item) throw new Error("Item not found");
+
+    const percent =
+      data.mode === "pages"
+        ? Math.min(100, Math.round((data.currentPage / data.pageCount) * 100))
+        : data.percent;
+    // A book only counts as read on the last page, not at a rounded 100%.
+    const finished = data.mode === "pages" ? data.currentPage >= data.pageCount : percent >= 100;
+    const status = finished ? "done" : percent > 0 ? "in_progress" : "to_try";
+
+    const db = await getDb();
+    const [prev] = await db
+      .select({ completedAt: books.completedAt })
+      .from(books)
+      .where(eq(books.id, data.id))
+      .limit(1);
+
+    await db
+      .update(books)
+      .set({
+        progressPercent: finished ? 100 : Math.min(percent, 99),
+        ...(data.mode === "pages"
+          ? { currentPage: data.currentPage, pageCount: data.pageCount }
+          : { currentPage: null }),
+        status,
+        completedAt: finished ? (prev?.completedAt ?? new Date()) : null,
+      })
+      .where(eq(books.id, data.id));
+
+    if (item.status !== status && status !== "in_progress") {
+      await db.insert(activity).values({
+        id: crypto.randomUUID(),
+        listId: item.listId,
+        userId: context.userId,
+        action: status === "done" ? "completed" : "reverted",
+        itemTitle: item.title,
+        itemType: "book",
+      });
+    }
+
+    await invalidateUserCache(context.userId);
+    return { status, percent: finished ? 100 : Math.min(percent, 99) };
   });
