@@ -314,14 +314,6 @@
   color: var(--color-hanko);
 }
 
-.reader-body[data-font="literata"],
-.reader-body[data-font="source-serif"],
-.reader-body[data-font="atkinson"],
-.reader-body[data-font="figtree"],
-.reader-body[data-font="newsreader"] {
-  --reader-font: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-}
-
 .article-body p,
 .reader-body p {
   margin: 0 0 0.9em;
