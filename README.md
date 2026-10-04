@@ -42,6 +42,7 @@ pnpm dev              # http://0.0.0.0:8080
 | [`migrations/`](migrations/) | Hand-written SQL applied via `pnpm db:migrate` |
 | [`scripts/`](scripts/) | Env loader, migrator, shelf import |
 | [`docs/`](docs/) | Architecture, data model, development, contributing |
+| [`extension/`](extension/) | "Save to KAMI" browser extension (Chrome / Edge / Firefox, MV3) |
 
 ---
 
@@ -56,6 +57,8 @@ pnpm dev              # http://0.0.0.0:8080
 | `/journal` | Daily entries with highlight “slips” |
 | `/vault` | All highlights in one place; export |
 | `/settings` | Account, appearance, bookmarklet, import/export, wipe |
+| `/capture` | Receives pages from the bookmarklet / browser extension (`postMessage` handoff) |
+| `/share` | Web Share Target — Android share sheet → save URL |
 | `/login` | Clerk sign-in / sign-up |
 | `/api/img` | Authenticated image proxy for remote covers |
 

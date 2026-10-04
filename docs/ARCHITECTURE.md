@@ -181,24 +181,37 @@ flowchart TB
 
 ```mermaid
 flowchart TD
-  A[Paste URL / bookmarklet / paste HTML] --> B{Source}
+  A[Paste URL / share sheet / bookmarklet / extension / paste HTML] --> B{Source}
   B -->|URL| C[extractArticle ServerFn]
   B -->|HTML| D[importArticle]
   B -->|link only| E[saveLinkArticle]
   C --> F{Classify}
-  F -->|web| G[SSRF-safe fetch → Readability]
+  F -->|web| G[SSRF-safe fetch → site rules e.g. Substack → Readability]
   F -->|X| H[fxtwitter / helpers]
   G -->|fail| I[Jina Reader fallback]
   H --> J[Normalized article]
   G --> J
   I --> J
-  D --> J
+  D -->|captured page| G
+  D -->|pasted HTML/text| J
   E --> J
   J --> K[Optimistic Zustand + upsertLibraryItem]
   K --> L[invalidateUserCache]
 ```
 
 Extraction lives in `src/lib/extract.server.ts`. Public URL checks and redirect handling are intentional security surfaces — tighten, don’t bypass.
+
+Site rules run before Readability when a site's markup is known: `src/lib/extract-substack.server.ts` takes Substack's `.body.markup` directly (custom domains included) and strips subscribe widgets / share buttons, unwraps image links, renders footnotes and embeds, and notes paywalled tails. Add new site rules alongside it.
+
+### Browser capture handoff
+
+The bookmarklet and the `extension/` browser extension capture the page in the user's browser and hand it to `/capture` with `postMessage` — never in a URL, so long articles aren't truncated:
+
+1. `/capture` pings `kami:ready` to its opener (bookmarklet popup) and to itself (extension content script).
+2. The sender answers with `kami:capture` + `{ url, title, html }` (scripts/styles stripped, ≤ 1.4 MB).
+3. `/capture` accepts it only from its opener **for the opener's own origin**, or from same-origin/extension script; stashes it in `sessionStorage` and routes to `/app`, which imports it once the session is confirmed (`importArticle` with `capture: true` → full extraction).
+
+Legacy `?import=` links (`/` and `/app`) redirect to `/capture`. `/share` is the PWA Web Share Target (`site.webmanifest`): it takes the first URL from `url`/`text` and hands it to Home's normal save flow.
 
 ---
 

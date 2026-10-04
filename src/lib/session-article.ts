@@ -1,21 +1,28 @@
-const DRAFT_KEY = "quarto-draft-url";
-const IMPORT_KEY = "quarto-import-payload";
+import { parseCapturePayload, type BookmarkletPayload } from "./bookmarklet.ts";
 
-/** Stash a raw `?import=` payload so it survives the auth/loading gate. */
-export function stashImportPayload(raw: string) {
+const DRAFT_KEY = "quarto-draft-url";
+const IMPORT_KEY = "quarto-capture-payload";
+
+/**
+ * Stash a captured page so it survives the auth/loading gate on `/app`.
+ * Returns false if storage refused it (quota / private mode).
+ */
+export function stashCapturePayload(payload: BookmarkletPayload): boolean {
   try {
-    if (raw) sessionStorage.setItem(IMPORT_KEY, raw);
+    sessionStorage.setItem(IMPORT_KEY, JSON.stringify(payload));
+    return true;
   } catch {
-    // quota / private mode — caller falls back to direct handling
+    return false;
   }
 }
 
-/** Take (and clear) a stashed `?import=` payload. */
-export function takeStashedImportPayload(): string | null {
+/** Take (and clear) a stashed capture. */
+export function takeStashedCapturePayload(): BookmarkletPayload | null {
   try {
     const raw = sessionStorage.getItem(IMPORT_KEY);
-    if (raw) sessionStorage.removeItem(IMPORT_KEY);
-    return raw;
+    if (!raw) return null;
+    sessionStorage.removeItem(IMPORT_KEY);
+    return parseCapturePayload(JSON.parse(raw));
   } catch {
     return null;
   }
