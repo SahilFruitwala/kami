@@ -59,6 +59,7 @@ export function ReaderView({
   const setHighlightColor = useLibraryStore((s) => s.setHighlightColor);
   const addHighlight = useLibraryStore((s) => s.addHighlight);
   const removeHighlight = useLibraryStore((s) => s.removeHighlight);
+  const restoreHighlight = useLibraryStore((s) => s.restoreHighlight);
   const setHighlightColorById = useLibraryStore((s) => s.setHighlightColorById);
   const setHighlightNote = useLibraryStore((s) => s.setHighlightNote);
   const setFavorited = useLibraryStore((s) => s.setFavorited);
@@ -257,10 +258,20 @@ export function ReaderView({
     setEditMenu(null);
   }
 
+  /** Remove a highlight (and its note), offering a one-tap undo. */
+  function removeHighlightWithUndo(highlightId: string) {
+    const removed = item.highlights.find((h) => h.id === highlightId);
+    removeHighlight(item.id, highlightId);
+    if (!removed) return;
+    toast.success("Highlight removed", {
+      action: { label: "Undo", onClick: () => restoreHighlight(item.id, removed) },
+    });
+  }
+
   /** Remove the tapped highlight inline. */
   function removeEditingHighlight() {
     if (!editMenu) return;
-    removeHighlight(item.id, editMenu.highlightId);
+    removeHighlightWithUndo(editMenu.highlightId);
     setEditMenu(null);
   }
 
@@ -489,9 +500,7 @@ export function ReaderView({
                   <MarginaliaHighlights
                     item={item}
                     onNote={(highlightId, note) => setHighlightNote(item.id, highlightId, note)}
-                    onRemove={(highlightId) => {
-                      removeHighlight(item.id, highlightId);
-                    }}
+                    onRemove={removeHighlightWithUndo}
                     onExport={() => void exportToJournal()}
                   />
 
