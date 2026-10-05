@@ -27,6 +27,13 @@ import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
 import { Route as ApiArticlesExtractRouteImport } from './routes/api/articles/extract'
 import { Route as ApiArticlesImportRouteImport } from './routes/api/articles/import'
 import { Route as ApiArticlesLinkRouteImport } from './routes/api/articles/link'
+import { Route as ApiFeedsIndexRouteImport } from './routes/api/feeds/index'
+import { Route as ApiFeedsIdRouteImport } from './routes/api/feeds/$id'
+import { Route as ApiFeedsInboxRouteImport } from './routes/api/feeds/inbox'
+import { Route as ApiFeedsOpmlRouteImport } from './routes/api/feeds/opml'
+import { Route as ApiFeedsRefreshRouteImport } from './routes/api/feeds/refresh'
+import { Route as ApiHooksFeedsRouteImport } from './routes/api/hooks/feeds'
+import { Route as ApiHooksInboundEmailRouteImport } from './routes/api/hooks/inbound-email'
 import { Route as ApiJournalIndexRouteImport } from './routes/api/journal/index'
 import { Route as ApiJournalDateRouteImport } from './routes/api/journal/$date'
 import { Route as ApiJournalImportRouteImport } from './routes/api/journal/import'
@@ -45,6 +52,9 @@ import { Route as ShelvesMoviesIndexRouteImport } from './routes/shelves/movies/
 import { Route as ShelvesMoviesIdRouteImport } from './routes/shelves/movies/$id'
 import { Route as ShelvesSeriesIndexRouteImport } from './routes/shelves/series/index'
 import { Route as ShelvesSeriesIdRouteImport } from './routes/shelves/series/$id'
+import { Route as ApiFeedsEntriesIndexRouteImport } from './routes/api/feeds/entries/index'
+import { Route as ApiFeedsEntriesReadRouteImport } from './routes/api/feeds/entries/read'
+import { Route as ApiFeedsEntriesReadAllRouteImport } from './routes/api/feeds/entries/read-all'
 import { Route as ApiLibraryFoldersIndexRouteImport } from './routes/api/library/folders/index'
 import { Route as ApiLibraryFoldersIdRouteImport } from './routes/api/library/folders/$id'
 import { Route as ApiLibraryItemsIndexRouteImport } from './routes/api/library/items/index'
@@ -52,6 +62,7 @@ import { Route as ApiLibraryItemsIdRouteImport } from './routes/api/library/item
 import { Route as ApiShelvesTypeIndexRouteImport } from './routes/api/shelves/$type/index'
 import { Route as ApiShelvesTypeIdRouteImport } from './routes/api/shelves/$type/$id'
 import { Route as ApiShelvesTypeDuplicatesRouteImport } from './routes/api/shelves/$type/duplicates'
+import { Route as ApiFeedsEntriesIdArticleRouteImport } from './routes/api/feeds/entries/$id/article'
 import { Route as ApiShelvesBookIdPageCountRouteImport } from './routes/api/shelves/book/$id/page-count'
 import { Route as ApiShelvesBookIdProgressRouteImport } from './routes/api/shelves/book/$id/progress'
 import { Route as ApiShelvesTvIdWatchedRouteImport } from './routes/api/shelves/tv/$id/watched'
@@ -149,6 +160,41 @@ const ApiArticlesLinkRoute = ApiArticlesLinkRouteImport.update({
   path: '/api/articles/link',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiFeedsIndexRoute = ApiFeedsIndexRouteImport.update({
+  id: '/api/feeds/',
+  path: '/api/feeds/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFeedsIdRoute = ApiFeedsIdRouteImport.update({
+  id: '/api/feeds/$id',
+  path: '/api/feeds/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFeedsInboxRoute = ApiFeedsInboxRouteImport.update({
+  id: '/api/feeds/inbox',
+  path: '/api/feeds/inbox',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFeedsOpmlRoute = ApiFeedsOpmlRouteImport.update({
+  id: '/api/feeds/opml',
+  path: '/api/feeds/opml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFeedsRefreshRoute = ApiFeedsRefreshRouteImport.update({
+  id: '/api/feeds/refresh',
+  path: '/api/feeds/refresh',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHooksFeedsRoute = ApiHooksFeedsRouteImport.update({
+  id: '/api/hooks/feeds',
+  path: '/api/hooks/feeds',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHooksInboundEmailRoute = ApiHooksInboundEmailRouteImport.update({
+  id: '/api/hooks/inbound-email',
+  path: '/api/hooks/inbound-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiJournalIndexRoute = ApiJournalIndexRouteImport.update({
   id: '/api/journal/',
   path: '/api/journal/',
@@ -239,6 +285,21 @@ const ShelvesSeriesIdRoute = ShelvesSeriesIdRouteImport.update({
   path: '/series/$id',
   getParentRoute: () => ShelvesRouteRoute,
 } as any)
+const ApiFeedsEntriesIndexRoute = ApiFeedsEntriesIndexRouteImport.update({
+  id: '/api/feeds/entries/',
+  path: '/api/feeds/entries/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFeedsEntriesReadRoute = ApiFeedsEntriesReadRouteImport.update({
+  id: '/api/feeds/entries/read',
+  path: '/api/feeds/entries/read',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFeedsEntriesReadAllRoute = ApiFeedsEntriesReadAllRouteImport.update({
+  id: '/api/feeds/entries/read-all',
+  path: '/api/feeds/entries/read-all',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLibraryFoldersIndexRoute = ApiLibraryFoldersIndexRouteImport.update({
   id: '/api/library/folders/',
   path: '/api/library/folders/',
@@ -273,6 +334,12 @@ const ApiShelvesTypeDuplicatesRoute =
   ApiShelvesTypeDuplicatesRouteImport.update({
     id: '/api/shelves/$type/duplicates',
     path: '/api/shelves/$type/duplicates',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiFeedsEntriesIdArticleRoute =
+  ApiFeedsEntriesIdArticleRouteImport.update({
+    id: '/api/feeds/entries/$id/article',
+    path: '/api/feeds/entries/$id/article',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiShelvesBookIdPageCountRoute =
@@ -330,6 +397,12 @@ export interface FileRoutesByFullPath {
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
   '/api/articles/link': typeof ApiArticlesLinkRoute
+  '/api/feeds/$id': typeof ApiFeedsIdRoute
+  '/api/feeds/inbox': typeof ApiFeedsInboxRoute
+  '/api/feeds/opml': typeof ApiFeedsOpmlRoute
+  '/api/feeds/refresh': typeof ApiFeedsRefreshRoute
+  '/api/hooks/feeds': typeof ApiHooksFeedsRoute
+  '/api/hooks/inbound-email': typeof ApiHooksInboundEmailRoute
   '/api/journal/$date': typeof ApiJournalDateRoute
   '/api/journal/import': typeof ApiJournalImportRoute
   '/api/library/bulk': typeof ApiLibraryBulkRoute
@@ -343,18 +416,23 @@ export interface FileRoutesByFullPath {
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
+  '/api/feeds/': typeof ApiFeedsIndexRoute
   '/api/journal/': typeof ApiJournalIndexRoute
   '/api/library/': typeof ApiLibraryIndexRoute
   '/shelves/books/': typeof ShelvesBooksIndexRoute
   '/shelves/movies/': typeof ShelvesMoviesIndexRoute
   '/shelves/series/': typeof ShelvesSeriesIndexRoute
+  '/api/feeds/entries/read': typeof ApiFeedsEntriesReadRoute
+  '/api/feeds/entries/read-all': typeof ApiFeedsEntriesReadAllRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
+  '/api/feeds/entries/': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
   '/api/shelves/$type/': typeof ApiShelvesTypeIndexRoute
+  '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
   '/api/shelves/book/$id/progress': typeof ApiShelvesBookIdProgressRoute
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
@@ -380,6 +458,12 @@ export interface FileRoutesByTo {
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
   '/api/articles/link': typeof ApiArticlesLinkRoute
+  '/api/feeds/$id': typeof ApiFeedsIdRoute
+  '/api/feeds/inbox': typeof ApiFeedsInboxRoute
+  '/api/feeds/opml': typeof ApiFeedsOpmlRoute
+  '/api/feeds/refresh': typeof ApiFeedsRefreshRoute
+  '/api/hooks/feeds': typeof ApiHooksFeedsRoute
+  '/api/hooks/inbound-email': typeof ApiHooksInboundEmailRoute
   '/api/journal/$date': typeof ApiJournalDateRoute
   '/api/journal/import': typeof ApiJournalImportRoute
   '/api/library/bulk': typeof ApiLibraryBulkRoute
@@ -393,18 +477,23 @@ export interface FileRoutesByTo {
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
+  '/api/feeds': typeof ApiFeedsIndexRoute
   '/api/journal': typeof ApiJournalIndexRoute
   '/api/library': typeof ApiLibraryIndexRoute
   '/shelves/books': typeof ShelvesBooksIndexRoute
   '/shelves/movies': typeof ShelvesMoviesIndexRoute
   '/shelves/series': typeof ShelvesSeriesIndexRoute
+  '/api/feeds/entries/read': typeof ApiFeedsEntriesReadRoute
+  '/api/feeds/entries/read-all': typeof ApiFeedsEntriesReadAllRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
+  '/api/feeds/entries': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items': typeof ApiLibraryItemsIndexRoute
   '/api/shelves/$type': typeof ApiShelvesTypeIndexRoute
+  '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
   '/api/shelves/book/$id/progress': typeof ApiShelvesBookIdProgressRoute
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
@@ -432,6 +521,12 @@ export interface FileRoutesById {
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
   '/api/articles/link': typeof ApiArticlesLinkRoute
+  '/api/feeds/$id': typeof ApiFeedsIdRoute
+  '/api/feeds/inbox': typeof ApiFeedsInboxRoute
+  '/api/feeds/opml': typeof ApiFeedsOpmlRoute
+  '/api/feeds/refresh': typeof ApiFeedsRefreshRoute
+  '/api/hooks/feeds': typeof ApiHooksFeedsRoute
+  '/api/hooks/inbound-email': typeof ApiHooksInboundEmailRoute
   '/api/journal/$date': typeof ApiJournalDateRoute
   '/api/journal/import': typeof ApiJournalImportRoute
   '/api/library/bulk': typeof ApiLibraryBulkRoute
@@ -445,18 +540,23 @@ export interface FileRoutesById {
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
+  '/api/feeds/': typeof ApiFeedsIndexRoute
   '/api/journal/': typeof ApiJournalIndexRoute
   '/api/library/': typeof ApiLibraryIndexRoute
   '/shelves/books/': typeof ShelvesBooksIndexRoute
   '/shelves/movies/': typeof ShelvesMoviesIndexRoute
   '/shelves/series/': typeof ShelvesSeriesIndexRoute
+  '/api/feeds/entries/read': typeof ApiFeedsEntriesReadRoute
+  '/api/feeds/entries/read-all': typeof ApiFeedsEntriesReadAllRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
+  '/api/feeds/entries/': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
   '/api/shelves/$type/': typeof ApiShelvesTypeIndexRoute
+  '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
   '/api/shelves/book/$id/progress': typeof ApiShelvesBookIdProgressRoute
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
@@ -485,6 +585,12 @@ export interface FileRouteTypes {
     | '/api/articles/extract'
     | '/api/articles/import'
     | '/api/articles/link'
+    | '/api/feeds/$id'
+    | '/api/feeds/inbox'
+    | '/api/feeds/opml'
+    | '/api/feeds/refresh'
+    | '/api/hooks/feeds'
+    | '/api/hooks/inbound-email'
     | '/api/journal/$date'
     | '/api/journal/import'
     | '/api/library/bulk'
@@ -498,18 +604,23 @@ export interface FileRouteTypes {
     | '/shelves/books/$id'
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
+    | '/api/feeds/'
     | '/api/journal/'
     | '/api/library/'
     | '/shelves/books/'
     | '/shelves/movies/'
     | '/shelves/series/'
+    | '/api/feeds/entries/read'
+    | '/api/feeds/entries/read-all'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
+    | '/api/feeds/entries/'
     | '/api/library/folders/'
     | '/api/library/items/'
     | '/api/shelves/$type/'
+    | '/api/feeds/entries/$id/article'
     | '/api/shelves/book/$id/page-count'
     | '/api/shelves/book/$id/progress'
     | '/api/shelves/tv/$id/watched'
@@ -535,6 +646,12 @@ export interface FileRouteTypes {
     | '/api/articles/extract'
     | '/api/articles/import'
     | '/api/articles/link'
+    | '/api/feeds/$id'
+    | '/api/feeds/inbox'
+    | '/api/feeds/opml'
+    | '/api/feeds/refresh'
+    | '/api/hooks/feeds'
+    | '/api/hooks/inbound-email'
     | '/api/journal/$date'
     | '/api/journal/import'
     | '/api/library/bulk'
@@ -548,18 +665,23 @@ export interface FileRouteTypes {
     | '/shelves/books/$id'
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
+    | '/api/feeds'
     | '/api/journal'
     | '/api/library'
     | '/shelves/books'
     | '/shelves/movies'
     | '/shelves/series'
+    | '/api/feeds/entries/read'
+    | '/api/feeds/entries/read-all'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
+    | '/api/feeds/entries'
     | '/api/library/folders'
     | '/api/library/items'
     | '/api/shelves/$type'
+    | '/api/feeds/entries/$id/article'
     | '/api/shelves/book/$id/page-count'
     | '/api/shelves/book/$id/progress'
     | '/api/shelves/tv/$id/watched'
@@ -586,6 +708,12 @@ export interface FileRouteTypes {
     | '/api/articles/extract'
     | '/api/articles/import'
     | '/api/articles/link'
+    | '/api/feeds/$id'
+    | '/api/feeds/inbox'
+    | '/api/feeds/opml'
+    | '/api/feeds/refresh'
+    | '/api/hooks/feeds'
+    | '/api/hooks/inbound-email'
     | '/api/journal/$date'
     | '/api/journal/import'
     | '/api/library/bulk'
@@ -599,18 +727,23 @@ export interface FileRouteTypes {
     | '/shelves/books/$id'
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
+    | '/api/feeds/'
     | '/api/journal/'
     | '/api/library/'
     | '/shelves/books/'
     | '/shelves/movies/'
     | '/shelves/series/'
+    | '/api/feeds/entries/read'
+    | '/api/feeds/entries/read-all'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
+    | '/api/feeds/entries/'
     | '/api/library/folders/'
     | '/api/library/items/'
     | '/api/shelves/$type/'
+    | '/api/feeds/entries/$id/article'
     | '/api/shelves/book/$id/page-count'
     | '/api/shelves/book/$id/progress'
     | '/api/shelves/tv/$id/watched'
@@ -636,6 +769,12 @@ export interface RootRouteChildren {
   ApiArticlesExtractRoute: typeof ApiArticlesExtractRoute
   ApiArticlesImportRoute: typeof ApiArticlesImportRoute
   ApiArticlesLinkRoute: typeof ApiArticlesLinkRoute
+  ApiFeedsIdRoute: typeof ApiFeedsIdRoute
+  ApiFeedsInboxRoute: typeof ApiFeedsInboxRoute
+  ApiFeedsOpmlRoute: typeof ApiFeedsOpmlRoute
+  ApiFeedsRefreshRoute: typeof ApiFeedsRefreshRoute
+  ApiHooksFeedsRoute: typeof ApiHooksFeedsRoute
+  ApiHooksInboundEmailRoute: typeof ApiHooksInboundEmailRoute
   ApiJournalDateRoute: typeof ApiJournalDateRoute
   ApiJournalImportRoute: typeof ApiJournalImportRoute
   ApiLibraryBulkRoute: typeof ApiLibraryBulkRoute
@@ -646,15 +785,20 @@ export interface RootRouteChildren {
   ApiLookupTmdbRoute: typeof ApiLookupTmdbRoute
   ApiLookupWatchProvidersRoute: typeof ApiLookupWatchProvidersRoute
   ApiShelvesCountsRoute: typeof ApiShelvesCountsRoute
+  ApiFeedsIndexRoute: typeof ApiFeedsIndexRoute
   ApiJournalIndexRoute: typeof ApiJournalIndexRoute
   ApiLibraryIndexRoute: typeof ApiLibraryIndexRoute
+  ApiFeedsEntriesReadRoute: typeof ApiFeedsEntriesReadRoute
+  ApiFeedsEntriesReadAllRoute: typeof ApiFeedsEntriesReadAllRoute
   ApiLibraryFoldersIdRoute: typeof ApiLibraryFoldersIdRoute
   ApiLibraryItemsIdRoute: typeof ApiLibraryItemsIdRoute
   ApiShelvesTypeIdRoute: typeof ApiShelvesTypeIdRoute
   ApiShelvesTypeDuplicatesRoute: typeof ApiShelvesTypeDuplicatesRoute
+  ApiFeedsEntriesIndexRoute: typeof ApiFeedsEntriesIndexRoute
   ApiLibraryFoldersIndexRoute: typeof ApiLibraryFoldersIndexRoute
   ApiLibraryItemsIndexRoute: typeof ApiLibraryItemsIndexRoute
   ApiShelvesTypeIndexRoute: typeof ApiShelvesTypeIndexRoute
+  ApiFeedsEntriesIdArticleRoute: typeof ApiFeedsEntriesIdArticleRoute
   ApiShelvesBookIdPageCountRoute: typeof ApiShelvesBookIdPageCountRoute
   ApiShelvesBookIdProgressRoute: typeof ApiShelvesBookIdProgressRoute
   ApiShelvesTvIdWatchedRoute: typeof ApiShelvesTvIdWatchedRoute
@@ -791,6 +935,55 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiArticlesLinkRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/feeds/': {
+      id: '/api/feeds/'
+      path: '/api/feeds'
+      fullPath: '/api/feeds/'
+      preLoaderRoute: typeof ApiFeedsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/feeds/$id': {
+      id: '/api/feeds/$id'
+      path: '/api/feeds/$id'
+      fullPath: '/api/feeds/$id'
+      preLoaderRoute: typeof ApiFeedsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/feeds/inbox': {
+      id: '/api/feeds/inbox'
+      path: '/api/feeds/inbox'
+      fullPath: '/api/feeds/inbox'
+      preLoaderRoute: typeof ApiFeedsInboxRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/feeds/opml': {
+      id: '/api/feeds/opml'
+      path: '/api/feeds/opml'
+      fullPath: '/api/feeds/opml'
+      preLoaderRoute: typeof ApiFeedsOpmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/feeds/refresh': {
+      id: '/api/feeds/refresh'
+      path: '/api/feeds/refresh'
+      fullPath: '/api/feeds/refresh'
+      preLoaderRoute: typeof ApiFeedsRefreshRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/hooks/feeds': {
+      id: '/api/hooks/feeds'
+      path: '/api/hooks/feeds'
+      fullPath: '/api/hooks/feeds'
+      preLoaderRoute: typeof ApiHooksFeedsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/hooks/inbound-email': {
+      id: '/api/hooks/inbound-email'
+      path: '/api/hooks/inbound-email'
+      fullPath: '/api/hooks/inbound-email'
+      preLoaderRoute: typeof ApiHooksInboundEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/journal/': {
       id: '/api/journal/'
       path: '/api/journal'
@@ -917,6 +1110,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShelvesSeriesIdRouteImport
       parentRoute: typeof ShelvesRouteRoute
     }
+    '/api/feeds/entries/': {
+      id: '/api/feeds/entries/'
+      path: '/api/feeds/entries'
+      fullPath: '/api/feeds/entries/'
+      preLoaderRoute: typeof ApiFeedsEntriesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/feeds/entries/read': {
+      id: '/api/feeds/entries/read'
+      path: '/api/feeds/entries/read'
+      fullPath: '/api/feeds/entries/read'
+      preLoaderRoute: typeof ApiFeedsEntriesReadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/feeds/entries/read-all': {
+      id: '/api/feeds/entries/read-all'
+      path: '/api/feeds/entries/read-all'
+      fullPath: '/api/feeds/entries/read-all'
+      preLoaderRoute: typeof ApiFeedsEntriesReadAllRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/library/folders/': {
       id: '/api/library/folders/'
       path: '/api/library/folders'
@@ -964,6 +1178,13 @@ declare module '@tanstack/react-router' {
       path: '/api/shelves/$type/duplicates'
       fullPath: '/api/shelves/$type/duplicates'
       preLoaderRoute: typeof ApiShelvesTypeDuplicatesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/feeds/entries/$id/article': {
+      id: '/api/feeds/entries/$id/article'
+      path: '/api/feeds/entries/$id/article'
+      fullPath: '/api/feeds/entries/$id/article'
+      preLoaderRoute: typeof ApiFeedsEntriesIdArticleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/shelves/book/$id/page-count': {
@@ -1054,6 +1275,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiArticlesExtractRoute: ApiArticlesExtractRoute,
   ApiArticlesImportRoute: ApiArticlesImportRoute,
   ApiArticlesLinkRoute: ApiArticlesLinkRoute,
+  ApiFeedsIdRoute: ApiFeedsIdRoute,
+  ApiFeedsInboxRoute: ApiFeedsInboxRoute,
+  ApiFeedsOpmlRoute: ApiFeedsOpmlRoute,
+  ApiFeedsRefreshRoute: ApiFeedsRefreshRoute,
+  ApiHooksFeedsRoute: ApiHooksFeedsRoute,
+  ApiHooksInboundEmailRoute: ApiHooksInboundEmailRoute,
   ApiJournalDateRoute: ApiJournalDateRoute,
   ApiJournalImportRoute: ApiJournalImportRoute,
   ApiLibraryBulkRoute: ApiLibraryBulkRoute,
@@ -1064,15 +1291,20 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLookupTmdbRoute: ApiLookupTmdbRoute,
   ApiLookupWatchProvidersRoute: ApiLookupWatchProvidersRoute,
   ApiShelvesCountsRoute: ApiShelvesCountsRoute,
+  ApiFeedsIndexRoute: ApiFeedsIndexRoute,
   ApiJournalIndexRoute: ApiJournalIndexRoute,
   ApiLibraryIndexRoute: ApiLibraryIndexRoute,
+  ApiFeedsEntriesReadRoute: ApiFeedsEntriesReadRoute,
+  ApiFeedsEntriesReadAllRoute: ApiFeedsEntriesReadAllRoute,
   ApiLibraryFoldersIdRoute: ApiLibraryFoldersIdRoute,
   ApiLibraryItemsIdRoute: ApiLibraryItemsIdRoute,
   ApiShelvesTypeIdRoute: ApiShelvesTypeIdRoute,
   ApiShelvesTypeDuplicatesRoute: ApiShelvesTypeDuplicatesRoute,
+  ApiFeedsEntriesIndexRoute: ApiFeedsEntriesIndexRoute,
   ApiLibraryFoldersIndexRoute: ApiLibraryFoldersIndexRoute,
   ApiLibraryItemsIndexRoute: ApiLibraryItemsIndexRoute,
   ApiShelvesTypeIndexRoute: ApiShelvesTypeIndexRoute,
+  ApiFeedsEntriesIdArticleRoute: ApiFeedsEntriesIdArticleRoute,
   ApiShelvesBookIdPageCountRoute: ApiShelvesBookIdPageCountRoute,
   ApiShelvesBookIdProgressRoute: ApiShelvesBookIdProgressRoute,
   ApiShelvesTvIdWatchedRoute: ApiShelvesTvIdWatchedRoute,
