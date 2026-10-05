@@ -1,6 +1,6 @@
-import { createServerFn } from "@tanstack/react-start";
+import "@tanstack/react-start/server-only";
 import { z } from "zod";
-import { rateLimited } from "@/lib/rate-limit-middleware.ts";
+import type { CountryWatch, LookupResult, WatchProvider } from "@/lib/api/types";
 import {
   CacheTTL,
   cacheKey,
@@ -13,6 +13,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { books } from "@/lib/schema";
 import { findOwnedItem } from "@/lib/shelves-db.server.ts";
+import { notFound } from "@/server/http";
 
 /**
  * Watchlist lookup providers — Postgres port of `shelf/src/server/lookup.ts`.
@@ -35,12 +36,19 @@ import { findOwnedItem } from "@/lib/shelves-db.server.ts";
  * `searchPlaces` back if/when that key is configured.
  */
 
-export type LookupResult = {
-  title: string;
-  imageUrl?: string;
-  link?: string;
-  metadata: Record<string, string>;
-};
+export const tmdbSearchQuery = z.object({
+  q: z.string().max(200).default(""),
+  kind: z.enum(["movie", "tv"]),
+});
+
+export const watchProvidersQuery = z.object({
+  tmdbId: z.string().min(1).max(32),
+  kind: z.enum(["movie", "tv"]),
+});
+
+export const bookSearchQuery = z.object({ q: z.string().max(200).default("") });
+
+export const linkPreviewQuery = z.object({ url: z.string().max(2000) });
 
 const TMDB_MOVIE_GENRES: Record<number, string> = {
   28: "Action",
@@ -94,60 +102,55 @@ type TmdbResult = {
   genre_ids?: number[];
 };
 
-export const searchTmdb = createServerFn({ method: "GET" })
-  .middleware([rateLimited("lookup")])
-  .validator((input: unknown) =>
-    z.object({ query: z.string().max(200), kind: z.enum(["movie", "tv"]) }).parse(input),
-  )
-  .handler(async ({ data }): Promise<LookupResult[]> => {
-    const query = data.query.trim();
-    if (query.length < 2) return [];
-    const token = process.env.TMDB_API_TOKEN;
-    if (!token) return [];
+export async function searchTmdb(data: z.output<typeof tmdbSearchQuery>): Promise<LookupResult[]> {
+  const query = data.q.trim();
+  if (query.length < 2) return [];
+  const token = process.env.TMDB_API_TOKEN;
+  if (!token) return [];
 
-    // TMDB catalog data is stable for hours — serve repeat searches from
-    // Upstash instead of burning latency + rate limit on every keystroke.
-    // Empty results are not cached (they usually mean an upstream blip).
-    return cached(
-      cacheKey("lookup", "tmdb", data.kind, normalizeCacheQuery(query)),
-      CacheTTL.tmdbSearch,
-      async () => {
-        const url = new URL(`https://api.themoviedb.org/3/search/${data.kind}`);
-        url.searchParams.set("query", query);
-        url.searchParams.set("include_adult", "false");
+  // TMDB catalog data is stable for hours — serve repeat searches from
+  // Upstash instead of burning latency + rate limit on every keystroke.
+  // Empty results are not cached (they usually mean an upstream blip).
+  return cached(
+    cacheKey("lookup", "tmdb", data.kind, normalizeCacheQuery(query)),
+    CacheTTL.tmdbSearch,
+    async () => {
+      const url = new URL(`https://api.themoviedb.org/3/search/${data.kind}`);
+      url.searchParams.set("query", query);
+      url.searchParams.set("include_adult", "false");
 
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
-          signal: AbortSignal.timeout(10_000),
-        });
-        if (!res.ok) return [];
-        const json = (await res.json()) as { results?: TmdbResult[] };
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal: AbortSignal.timeout(10_000),
+      });
+      if (!res.ok) return [];
+      const json = (await res.json()) as { results?: TmdbResult[] };
 
-        return (json.results ?? []).slice(0, 8).map((r) => {
-          const title = (data.kind === "movie" ? r.title : r.name) ?? "Untitled";
-          const date = data.kind === "movie" ? r.release_date : r.first_air_date;
-          const metadata: Record<string, string> = {};
-          if (date) metadata.year = date.slice(0, 4);
-          if (r.overview) metadata.overview = r.overview.slice(0, 300);
-          const genreMap = data.kind === "movie" ? TMDB_MOVIE_GENRES : TMDB_TV_GENRES;
-          const genres = (r.genre_ids ?? [])
-            .map((id) => genreMap[id])
-            .filter(Boolean)
-            .slice(0, 3);
-          if (genres.length > 0) metadata.genre = genres.join(", ");
-          metadata.tmdbId = String(r.id);
-          metadata.tmdbKind = data.kind;
-          return {
-            title,
-            imageUrl: r.poster_path ? `https://image.tmdb.org/t/p/w342${r.poster_path}` : undefined,
-            link: `https://www.themoviedb.org/${data.kind}/${r.id}`,
-            metadata,
-          };
-        });
-      },
-      { skipCache: (rows) => rows.length === 0 },
-    );
-  });
+      return (json.results ?? []).slice(0, 8).map((r) => {
+        const title = (data.kind === "movie" ? r.title : r.name) ?? "Untitled";
+        const date = data.kind === "movie" ? r.release_date : r.first_air_date;
+        const metadata: Record<string, string> = {};
+        if (date) metadata.year = date.slice(0, 4);
+        if (r.overview) metadata.overview = r.overview.slice(0, 300);
+        const genreMap = data.kind === "movie" ? TMDB_MOVIE_GENRES : TMDB_TV_GENRES;
+        const genres = (r.genre_ids ?? [])
+          .map((id) => genreMap[id])
+          .filter(Boolean)
+          .slice(0, 3);
+        if (genres.length > 0) metadata.genre = genres.join(", ");
+        metadata.tmdbId = String(r.id);
+        metadata.tmdbKind = data.kind;
+        return {
+          title,
+          imageUrl: r.poster_path ? `https://image.tmdb.org/t/p/w342${r.poster_path}` : undefined,
+          link: `https://www.themoviedb.org/${data.kind}/${r.id}`,
+          metadata,
+        };
+      });
+    },
+    { skipCache: (rows) => rows.length === 0 },
+  );
+}
 
 // ---------- Where to watch (TMDB / JustWatch) ----------
 
@@ -164,19 +167,6 @@ type TmdbWatchRegion = {
   ads?: TmdbProvider[];
   rent?: TmdbProvider[];
   buy?: TmdbProvider[];
-};
-
-export type WatchProvider = {
-  name: string;
-  logo?: string;
-};
-
-export type CountryWatch = {
-  code: string;
-  name: string;
-  streaming: WatchProvider[];
-  rent: WatchProvider[];
-  link?: string;
 };
 
 const regionNames =
@@ -213,60 +203,52 @@ function dedupeProviders(lists: TmdbProvider[][]): WatchProvider[] {
 }
 
 /** Live streaming / rent availability for a TMDB movie or TV title. */
-export const fetchWatchProviders = createServerFn({ method: "GET" })
-  .middleware([rateLimited("lookup")])
-  .validator((input: unknown) =>
-    z
-      .object({
-        tmdbId: z.string().min(1).max(32),
-        kind: z.enum(["movie", "tv"]),
-      })
-      .parse(input),
-  )
-  .handler(async ({ data }): Promise<CountryWatch[]> => {
-    const token = process.env.TMDB_API_TOKEN;
-    if (!token) return [];
+export async function fetchWatchProviders(
+  data: z.output<typeof watchProvidersQuery>,
+): Promise<CountryWatch[]> {
+  const token = process.env.TMDB_API_TOKEN;
+  if (!token) return [];
 
-    // Availability changes slowly — a 24h entry turns every detail open
-    // after the first into a Redis hit instead of a TMDB round-trip.
-    return cached(
-      cacheKey("lookup", "watch", data.kind, data.tmdbId.trim().slice(0, 32)),
-      CacheTTL.watchProviders,
-      async () => {
-        const res = await fetch(
-          `https://api.themoviedb.org/3/${data.kind}/${data.tmdbId}/watch/providers`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            signal: AbortSignal.timeout(10_000),
-          },
+  // Availability changes slowly — a 24h entry turns every detail open
+  // after the first into a Redis hit instead of a TMDB round-trip.
+  return cached(
+    cacheKey("lookup", "watch", data.kind, data.tmdbId.trim().slice(0, 32)),
+    CacheTTL.watchProviders,
+    async () => {
+      const res = await fetch(
+        `https://api.themoviedb.org/3/${data.kind}/${data.tmdbId}/watch/providers`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: AbortSignal.timeout(10_000),
+        },
+      );
+      if (!res.ok) return [];
+      const json = (await res.json()) as { results?: Record<string, TmdbWatchRegion> };
+      const results = json.results ?? {};
+
+      const countries: CountryWatch[] = [];
+      for (const [code, r] of Object.entries(results)) {
+        const streaming = dedupeProviders([r.flatrate ?? [], r.free ?? [], r.ads ?? []]).slice(
+          0,
+          8,
         );
-        if (!res.ok) return [];
-        const json = (await res.json()) as { results?: Record<string, TmdbWatchRegion> };
-        const results = json.results ?? {};
+        const rent = dedupeProviders([r.rent ?? [], r.buy ?? []]).slice(0, 8);
+        if (streaming.length === 0 && rent.length === 0) continue;
+        countries.push({
+          code,
+          name: regionNames?.of(code) ?? code,
+          streaming,
+          rent,
+          link: r.link,
+        });
+      }
 
-        const countries: CountryWatch[] = [];
-        for (const [code, r] of Object.entries(results)) {
-          const streaming = dedupeProviders([r.flatrate ?? [], r.free ?? [], r.ads ?? []]).slice(
-            0,
-            8,
-          );
-          const rent = dedupeProviders([r.rent ?? [], r.buy ?? []]).slice(0, 8);
-          if (streaming.length === 0 && rent.length === 0) continue;
-          countries.push({
-            code,
-            name: regionNames?.of(code) ?? code,
-            streaming,
-            rent,
-            link: r.link,
-          });
-        }
-
-        countries.sort((a, b) => a.name.localeCompare(b.name));
-        return countries;
-      },
-      { skipCache: (rows) => rows.length === 0 },
-    );
-  });
+      countries.sort((a, b) => a.name.localeCompare(b.name));
+      return countries;
+    },
+    { skipCache: (rows) => rows.length === 0 },
+  );
+}
 
 type OpenLibraryDoc = {
   key: string;
@@ -302,53 +284,50 @@ function bookGenres(subjects: string[] | undefined): string | undefined {
   return picked.length > 0 ? picked.join(", ") : undefined;
 }
 
-export const searchBooks = createServerFn({ method: "GET" })
-  .middleware([rateLimited("lookup")])
-  .validator((input: unknown) => z.string().max(200).parse(input))
-  .handler(async ({ data: query }): Promise<LookupResult[]> => {
-    const q = query.trim();
-    if (q.length < 2) return [];
+export async function searchBooks(data: z.output<typeof bookSearchQuery>): Promise<LookupResult[]> {
+  const q = data.q.trim();
+  if (q.length < 2) return [];
 
-    // Catalog data — safe to share across users, stable for hours.
-    return cached(
-      cacheKey("lookup", "books", normalizeCacheQuery(q)),
-      CacheTTL.bookSearch,
-      async () => {
-        const url = new URL("https://openlibrary.org/search.json");
-        url.searchParams.set("q", q);
-        url.searchParams.set("limit", "8");
-        url.searchParams.set(
-          "fields",
-          "key,title,author_name,first_publish_year,cover_i,subject,first_sentence,number_of_pages_median",
-        );
+  // Catalog data — safe to share across users, stable for hours.
+  return cached(
+    cacheKey("lookup", "books", normalizeCacheQuery(q)),
+    CacheTTL.bookSearch,
+    async () => {
+      const url = new URL("https://openlibrary.org/search.json");
+      url.searchParams.set("q", q);
+      url.searchParams.set("limit", "8");
+      url.searchParams.set(
+        "fields",
+        "key,title,author_name,first_publish_year,cover_i,subject,first_sentence,number_of_pages_median",
+      );
 
-        const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-        if (!res.ok) return [];
-        const json = (await res.json()) as { docs?: OpenLibraryDoc[] };
+      const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+      if (!res.ok) return [];
+      const json = (await res.json()) as { docs?: OpenLibraryDoc[] };
 
-        return (json.docs ?? []).map((d) => {
-          const metadata: Record<string, string> = {};
-          if (d.author_name?.length) metadata.author = d.author_name[0];
-          if (d.first_publish_year) metadata.year = String(d.first_publish_year);
-          if (d.number_of_pages_median && d.number_of_pages_median > 0)
-            metadata.pages = String(d.number_of_pages_median);
-          const genre = bookGenres(d.subject);
-          if (genre) metadata.genre = genre;
-          const overview = bookBlurb(d.first_sentence);
-          if (overview) metadata.overview = overview;
-          return {
-            title: d.title,
-            imageUrl: d.cover_i
-              ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`
-              : undefined,
-            link: `https://openlibrary.org${d.key}`,
-            metadata,
-          };
-        });
-      },
-      { skipCache: (rows) => rows.length === 0 },
-    );
-  });
+      return (json.docs ?? []).map((d) => {
+        const metadata: Record<string, string> = {};
+        if (d.author_name?.length) metadata.author = d.author_name[0];
+        if (d.first_publish_year) metadata.year = String(d.first_publish_year);
+        if (d.number_of_pages_median && d.number_of_pages_median > 0)
+          metadata.pages = String(d.number_of_pages_median);
+        const genre = bookGenres(d.subject);
+        if (genre) metadata.genre = genre;
+        const overview = bookBlurb(d.first_sentence);
+        if (overview) metadata.overview = overview;
+        return {
+          title: d.title,
+          imageUrl: d.cover_i
+            ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`
+            : undefined,
+          link: `https://openlibrary.org${d.key}`,
+          metadata,
+        };
+      });
+    },
+    { skipCache: (rows) => rows.length === 0 },
+  );
+}
 
 function extractMeta(html: string, property: string): string | undefined {
   const patterns = [
@@ -438,49 +417,49 @@ async function fetchPreviewHtml(
   return null;
 }
 
-export const fetchLinkPreview = createServerFn({ method: "GET" })
-  .middleware([rateLimited("lookup")])
-  .validator((input: unknown) => z.string().max(2000).parse(input))
-  .handler(async ({ data: rawUrl }): Promise<LookupResult | null> => {
-    // Fetching + parsing a full page costs seconds; og metadata barely
-    // changes, so cache hits (7d) make repeat pastes feel instant.
-    // Keyed by URL hash — never by user — since previews aren't personal.
-    const cacheableUrl = rawUrl.trim().slice(0, 2000);
-    return cached(
-      cacheKey("lookup", "link", hashKeyPart(cacheableUrl)),
-      CacheTTL.linkPreview,
-      async () => {
-        const fetched = await fetchPreviewHtml(rawUrl);
-        if (!fetched) return null;
-        const { html, finalUrl } = fetched;
+export async function fetchLinkPreview(
+  data: z.output<typeof linkPreviewQuery>,
+): Promise<LookupResult | null> {
+  const rawUrl = data.url;
+  // Fetching + parsing a full page costs seconds; og metadata barely
+  // changes, so cache hits (7d) make repeat pastes feel instant.
+  // Keyed by URL hash — never by user — since previews aren't personal.
+  const cacheableUrl = rawUrl.trim().slice(0, 2000);
+  return cached(
+    cacheKey("lookup", "link", hashKeyPart(cacheableUrl)),
+    CacheTTL.linkPreview,
+    async () => {
+      const fetched = await fetchPreviewHtml(rawUrl);
+      if (!fetched) return null;
+      const { html, finalUrl } = fetched;
 
-        let title =
-          extractMeta(html, "og:title") ?? html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim();
-        let imageUrl = extractMeta(html, "og:image");
+      let title =
+        extractMeta(html, "og:title") ?? html.match(/<title[^>]*>([^<]*)<\/title>/i)?.[1]?.trim();
+      let imageUrl = extractMeta(html, "og:image");
 
-        if ((!title || !imageUrl) && /(^|\.)amazon\./i.test(new URL(finalUrl).hostname)) {
-          const fallback = amazonFallback(html);
-          title = title ?? fallback.title;
-          imageUrl = imageUrl ?? fallback.imageUrl;
-        }
-        if (!title) return null;
+      if ((!title || !imageUrl) && /(^|\.)amazon\./i.test(new URL(finalUrl).hostname)) {
+        const fallback = amazonFallback(html);
+        title = title ?? fallback.title;
+        imageUrl = imageUrl ?? fallback.imageUrl;
+      }
+      if (!title) return null;
 
-        const metadata: Record<string, string> = {};
-        const description = extractMeta(html, "og:description");
-        if (description) metadata.description = description.slice(0, 300);
-        const siteName = extractMeta(html, "og:site_name");
-        if (siteName) metadata.source = siteName;
+      const metadata: Record<string, string> = {};
+      const description = extractMeta(html, "og:description");
+      if (description) metadata.description = description.slice(0, 300);
+      const siteName = extractMeta(html, "og:site_name");
+      if (siteName) metadata.source = siteName;
 
-        return {
-          title: decodeEntities(title).slice(0, 300),
-          imageUrl: imageUrl && imageUrl.length <= 2000 ? imageUrl : undefined,
-          link: finalUrl.slice(0, 2000),
-          metadata,
-        };
-      },
-      { skipCache: (preview) => preview === null },
-    );
-  });
+      return {
+        title: decodeEntities(title).slice(0, 300),
+        imageUrl: imageUrl && imageUrl.length <= 2000 ? imageUrl : undefined,
+        link: finalUrl.slice(0, 2000),
+        metadata,
+      };
+    },
+    { skipCache: (preview) => preview === null },
+  );
+}
 
 const OPEN_LIBRARY_WORK = /^https:\/\/openlibrary\.org(\/works\/OL\d+W)$/;
 
@@ -528,36 +507,37 @@ async function openLibraryPageCount(book: {
  * Fill a book's missing page count from Open Library. Never overwrites a
  * count the reader typed. Returns the stored count (or null if unknown).
  */
-export const fillBookPageCount = createServerFn({ method: "POST" })
-  .middleware([rateLimited("lookup")])
-  .validator((input: unknown) => z.object({ id: z.string().min(1).max(200) }).parse(input))
-  .handler(async ({ context, data }): Promise<{ pageCount: number | null }> => {
-    const owned = await findOwnedItem(context.userId, "book", data.id);
-    if (!owned) throw new Error("Item not found");
+export async function fillBookPageCount(
+  userId: string,
+  id: string,
+): Promise<{ pageCount: number | null }> {
+  const data = { id };
+  const owned = await findOwnedItem(userId, "book", data.id);
+  if (!owned) throw notFound("Item not found");
 
-    const db = await getDb();
-    const [book] = await db
-      .select({
-        title: books.title,
-        author: books.author,
-        link: books.link,
-        pageCount: books.pageCount,
-      })
-      .from(books)
-      .where(eq(books.id, data.id))
-      .limit(1);
-    if (!book) throw new Error("Item not found");
-    if (book.pageCount) return { pageCount: book.pageCount };
+  const db = await getDb();
+  const [book] = await db
+    .select({
+      title: books.title,
+      author: books.author,
+      link: books.link,
+      pageCount: books.pageCount,
+    })
+    .from(books)
+    .where(eq(books.id, data.id))
+    .limit(1);
+  if (!book) throw notFound("Item not found");
+  if (book.pageCount) return { pageCount: book.pageCount };
 
-    const found = await openLibraryPageCount(book);
-    const pages = found?.pages ?? null;
-    if (pages == null) return { pageCount: null };
+  const found = await openLibraryPageCount(book);
+  const pages = found?.pages ?? null;
+  if (pages == null) return { pageCount: null };
 
-    // `isNull` guard: a count typed meanwhile wins over the lookup.
-    await db
-      .update(books)
-      .set({ pageCount: pages })
-      .where(and(eq(books.id, data.id), isNull(books.pageCount)));
-    await invalidateUserCache(context.userId);
-    return { pageCount: pages };
-  });
+  // `isNull` guard: a count typed meanwhile wins over the lookup.
+  await db
+    .update(books)
+    .set({ pageCount: pages })
+    .where(and(eq(books.id, data.id), isNull(books.pageCount)));
+  await invalidateUserCache(userId);
+  return { pageCount: pages };
+}

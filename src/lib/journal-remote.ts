@@ -1,13 +1,5 @@
-import {
-  getJournalEntries,
-  importJournalSnapshot,
-  upsertJournalEntry,
-} from "@/lib/journal-fns";
-import {
-  isDateKey,
-  useJournalStore,
-  type JournalEntry,
-} from "@/lib/journal";
+import { journalApi } from "@/lib/api/journal";
+import { isDateKey, useJournalStore, type JournalEntry } from "@/lib/journal";
 
 const LOCAL_KEY = "quarto-journal";
 const MIGRATED_FLAG = "quarto-journal-migrated-v1";
@@ -90,9 +82,7 @@ function parseEntry(value: unknown): JournalEntry | null {
   if (typeof row.date !== "string" || !isDateKey(row.date)) return null;
   if (typeof row.text !== "string") return null;
   const updatedAt =
-    typeof row.updatedAt === "number" && Number.isFinite(row.updatedAt)
-      ? row.updatedAt
-      : 0;
+    typeof row.updatedAt === "number" && Number.isFinite(row.updatedAt) ? row.updatedAt : 0;
   return { date: row.date, text: row.text, updatedAt };
 }
 
@@ -162,12 +152,12 @@ export async function bootstrapJournalFromServer(userId: string): Promise<void> 
   }
   bootInflight = (async () => {
     setJournalRemoteEnabled(true);
-    let remote = await getJournalEntries();
+    let remote = await journalApi.list();
     const local = readLocalEntries();
     const localList = Object.values(local);
 
     if (remote.length === 0 && localList.length > 0 && !wasLegacyMigrated()) {
-      remote = await importJournalSnapshot({ data: { entries: localList } });
+      remote = await journalApi.import(localList);
       markLegacyMigrated();
     } else if (!wasLegacyMigrated()) {
       markLegacyMigrated();
@@ -179,12 +169,10 @@ export async function bootstrapJournalFromServer(userId: string): Promise<void> 
       const server = remoteByDate[entry.date];
       if (!server || entry.updatedAt > server.updatedAt) {
         sync("entry", () =>
-          upsertJournalEntry({
-            data: {
-              date: entry.date,
-              text: entry.text,
-              updatedAt: entry.updatedAt,
-            },
+          journalApi.upsert({
+            date: entry.date,
+            text: entry.text,
+            updatedAt: entry.updatedAt,
           }),
         );
       }
@@ -201,7 +189,7 @@ export async function bootstrapJournalFromServer(userId: string): Promise<void> 
 }
 
 export function syncUpsertEntry(date: string, text: string, updatedAt: number) {
-  sync("entry", () => upsertJournalEntry({ data: { date, text, updatedAt } }));
+  sync("entry", () => journalApi.upsert({ date, text, updatedAt }));
 }
 
 export function clearJournalLocal() {

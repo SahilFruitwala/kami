@@ -1,21 +1,26 @@
+import "@tanstack/react-start/server-only";
 import { and, desc, eq, sql } from "drizzle-orm";
-import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { authMiddleware } from "@/lib/auth/middleware";
+import { JOURNAL_IMPORT_MAX } from "@/lib/api/types";
 import { CacheTTL, cacheKey, cached, invalidateUserCache } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db";
 import { JOURNAL_TEXT_MAX, type JournalEntry } from "@/lib/journal";
 import { journalEntries } from "@/lib/schema";
 import { uid } from "@/lib/store";
 
-export const JOURNAL_IMPORT_MAX = 2000;
-
-const dateKeySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+export const dateKeySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date.");
 
 const entrySchema = z.object({
   date: dateKeySchema,
   text: z.string().max(JOURNAL_TEXT_MAX).default(""),
   updatedAt: z.number().int().nonnegative(),
+});
+
+/** `PUT /api/journal/:date` body — the date lives in the path. */
+export const entryBody = entrySchema.omit({ date: true });
+
+export const importBody = z.object({
+  entries: z.array(entrySchema).max(JOURNAL_IMPORT_MAX),
 });
 
 function rowToEntry(row: typeof journalEntries.$inferSelect): JournalEntry {
@@ -87,34 +92,26 @@ async function upsertOwnedEntry(
   return next[0] ? rowToEntry(next[0]) : { date: data.date, text, updatedAt: data.updatedAt };
 }
 
-export const getJournalEntries = createServerFn({ method: "GET" })
-  .middleware([authMiddleware])
-  .handler(async ({ context }): Promise<JournalEntry[]> => {
-    return loadEntries(context.userId);
-  });
+export async function listJournalEntries(userId: string): Promise<JournalEntry[]> {
+  return loadEntries(userId);
+}
 
-export const upsertJournalEntry = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator((input: unknown) => entrySchema.parse(input))
-  .handler(async ({ context, data }): Promise<JournalEntry> => {
-    const entry = await upsertOwnedEntry(context.userId, data);
-    await invalidateUserCache(context.userId);
-    return entry;
-  });
+export async function upsertJournalEntry(
+  userId: string,
+  data: z.output<typeof entrySchema>,
+): Promise<JournalEntry> {
+  const entry = await upsertOwnedEntry(userId, data);
+  await invalidateUserCache(userId);
+  return entry;
+}
 
-export const importJournalSnapshot = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator((input: unknown) =>
-    z
-      .object({
-        entries: z.array(entrySchema).max(JOURNAL_IMPORT_MAX),
-      })
-      .parse(input),
-  )
-  .handler(async ({ context, data }): Promise<JournalEntry[]> => {
-    for (const entry of data.entries) {
-      await upsertOwnedEntry(context.userId, entry);
-    }
-    await invalidateUserCache(context.userId);
-    return loadEntries(context.userId);
-  });
+export async function importJournalEntries(
+  userId: string,
+  data: z.output<typeof importBody>,
+): Promise<JournalEntry[]> {
+  for (const entry of data.entries) {
+    await upsertOwnedEntry(userId, entry);
+  }
+  await invalidateUserCache(userId);
+  return loadEntries(userId);
+}

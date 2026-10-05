@@ -37,11 +37,13 @@ pnpm dev              # http://0.0.0.0:8080
 |------|------|
 | [`src/routes/`](src/routes/) | File-based pages (`/`, `/library`, `/read`, `/shelves`, `/journal`, `/vault`, `/settings`, `/login`) |
 | [`src/components/`](src/components/) | UI — library, reader, shelves widgets, Kami brand primitives, shadcn `ui/` |
-| [`src/lib/`](src/lib/) | ServerFns (`*-fns.ts`), client sync (`*-remote.ts`), schema, auth, extract, cache |
+| [`src/routes/api/`](src/routes/api/) | REST endpoints (`/api/*`) — thin HTTP wrappers over services. See [API reference](docs/API.md) |
+| [`src/server/`](src/server/) | Server-only: `http.ts` (auth, validation, errors) + `services/` (business logic, DB) |
+| [`src/lib/`](src/lib/) | API client (`api/`), client sync (`*-remote.ts`), schema, auth, extract, cache |
 | [`src/hooks/`](src/hooks/) | React hooks (capture, TTS, shelf queries, filters) |
 | [`migrations/`](migrations/) | Hand-written SQL applied via `pnpm db:migrate` |
 | [`scripts/`](scripts/) | Env loader, migrator, shelf import |
-| [`docs/`](docs/) | Architecture, data model, development, contributing |
+| [`docs/`](docs/) | Architecture, API, data model, development, contributing |
 | [`extension/`](extension/) | "Save to KAMI" browser extension (Chrome / Edge / Firefox, MV3) |
 
 ---
@@ -80,7 +82,7 @@ pnpm dev              # http://0.0.0.0:8080
 | [Architecture](docs/ARCHITECTURE.md) | Understand request flow, auth isolation, caching, diagrams |
 | [Data model](docs/DATA-MODEL.md) | Tables, relationships, migration rules |
 | [Development](docs/DEVELOPMENT.md) | Env vars, local DB, scripts, debugging |
-| [Contributing](docs/CONTRIBUTING.md) | Add a route, ServerFn, schema change, shelf type, UI |
+| [Contributing](docs/CONTRIBUTING.md) | Add a route, API endpoint, schema change, shelf type, UI |
 
 ---
 

@@ -12,7 +12,7 @@ import {
   toVaultCsv,
 } from "@/lib/export.ts";
 import { wipeLibraryAccount } from "@/lib/library-remote.ts";
-import { getLibraryForExport } from "@/lib/library-fns.ts";
+import { libraryApi } from "@/lib/api/library";
 import { Card, ExportButton, FieldLabel, MiniButton } from "@/components/settings/settings-ui.tsx";
 
 export function DataCard() {
@@ -24,7 +24,10 @@ export function DataCard() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const dupes = useMemo(() => findDuplicateGroups(library), [library]);
-  const slipCount = useMemo(() => library.reduce((n, row) => n + (row.highlights?.length ?? 0), 0), [library]);
+  const slipCount = useMemo(
+    () => library.reduce((n, row) => n + (row.highlights?.length ?? 0), 0),
+    [library],
+  );
 
   function exportOpml() {
     downloadBlob(new Blob([toOPML(library)], { type: "text/xml" }), "kami-library.opml");
@@ -39,7 +42,7 @@ export function DataCard() {
   async function exportJson() {
     try {
       // Boot omits article bodies — pull a full snapshot for a faithful export.
-      const snapshot = await getLibraryForExport();
+      const snapshot = await libraryApi.export();
       downloadBlob(
         new Blob([toLibraryJson(snapshot.library, snapshot.folders)], {
           type: "application/json",
@@ -84,7 +87,11 @@ export function DataCard() {
   }
 
   return (
-    <Card id="data" title="Data — export, import & account" copy="Your library, your file. Exports download immediately; imports merge by URL so nothing duplicates.">
+    <Card
+      id="data"
+      title="Data — export, import & account"
+      copy="Your library, your file. Exports download immediately; imports merge by URL so nothing duplicates."
+    >
       <div className="flex flex-wrap gap-2">
         <ExportButton onClick={exportJson}>Library JSON</ExportButton>
         <ExportButton onClick={exportOpml}>OPML (RSS readers)</ExportButton>
@@ -126,7 +133,8 @@ export function DataCard() {
                 <ul className="mt-1 space-y-0.5">
                   {group.map((row) => (
                     <li key={row.id} className="truncate font-body text-xs text-ink-muted">
-                      {new Date(row.savedAt).toLocaleDateString()} · {row.highlights.length} highlights · {row.url}
+                      {new Date(row.savedAt).toLocaleDateString()} · {row.highlights.length}{" "}
+                      highlights · {row.url}
                     </li>
                   ))}
                 </ul>
@@ -135,15 +143,21 @@ export function DataCard() {
                     onClick={() => {
                       const [keep, ...rest] = [...group].sort((a, b) => a.savedAt - b.savedAt);
                       for (const drop of rest) mergeItems(keep!.id, drop.id);
-                      toast.success(`Merged ${rest.length} ${rest.length === 1 ? "copy" : "copies"} — tags and highlights kept`);
+                      toast.success(
+                        `Merged ${rest.length} ${rest.length === 1 ? "copy" : "copies"} — tags and highlights kept`,
+                      );
                     }}
                   >
                     Merge (keep oldest)
                   </MiniButton>
-                  <span className="font-sans text-[11px] text-ink-muted">or open each work from the Library to keep both.</span>
+                  <span className="font-sans text-[11px] text-ink-muted">
+                    or open each work from the Library to keep both.
+                  </span>
                 </div>
                 {i === 9 && dupes.length > 10 ? (
-                  <p className="mt-1 font-sans text-[11px] text-ink-muted">…and {dupes.length - 10} more groups.</p>
+                  <p className="mt-1 font-sans text-[11px] text-ink-muted">
+                    …and {dupes.length - 10} more groups.
+                  </p>
                 ) : null}
               </li>
             ))}
@@ -154,21 +168,27 @@ export function DataCard() {
       <div className="rounded-[0.25rem] border border-danger/30 bg-danger/5 p-4">
         <p className="font-sans text-sm font-semibold text-danger">Danger zone</p>
         <p className="mt-1 font-body text-sm text-ink-muted">
-          Export first — this deletes every work, folder, and highlight from
-          this device <em>and</em> your account on the server.
+          Export first — this deletes every work, folder, and highlight from this device{" "}
+          <em>and</em> your account on the server.
         </p>
         <button
           type="button"
           onClick={() => {
-            if (!window.confirm("Delete your entire library? This cannot be undone. Export first.")) return;
-            if (!window.confirm("Really delete everything, including the server copy? Last chance.")) return;
+            if (!window.confirm("Delete your entire library? This cannot be undone. Export first."))
+              return;
+            if (
+              !window.confirm("Really delete everything, including the server copy? Last chance.")
+            )
+              return;
             void (async () => {
               try {
                 await wipeLibraryAccount();
                 toast.success("Library deleted everywhere");
               } catch {
                 clearLibrary();
-                toast.error("Server unreachable — cleared this device only. Try again online to finish.");
+                toast.error(
+                  "Server unreachable — cleared this device only. Try again online to finish.",
+                );
               }
             })();
           }}

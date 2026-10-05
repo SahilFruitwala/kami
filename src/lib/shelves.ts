@@ -1,4 +1,5 @@
 import type { ItemStatus, books, movies, tvShows, wishlistItems } from "@/lib/schema";
+import type { JsonRow } from "@/lib/api/types";
 
 /** Client-safe shelf constants, paths, and row types (no server code). */
 
@@ -48,8 +49,14 @@ export type ShelfCard = {
   progressPercent: number | null;
 };
 
+/** Folio detail as served by `GET /api/shelves/:type/:id` (dates are ISO strings). */
 export type ShelfDetail =
-  | { type: "movie"; item: typeof movies.$inferSelect; genres: string[] }
-  | { type: "tv"; item: typeof tvShows.$inferSelect; genres: string[]; episodesTicked: number }
-  | { type: "book"; item: typeof books.$inferSelect; genres: string[] }
-  | { type: "wishlist"; item: typeof wishlistItems.$inferSelect };
+  | { type: "movie"; item: JsonRow<typeof movies.$inferSelect>; genres: string[] }
+  | {
+      type: "tv";
+      item: JsonRow<typeof tvShows.$inferSelect>;
+      genres: string[];
+      episodesTicked: number;
+    }
+  | { type: "book"; item: JsonRow<typeof books.$inferSelect>; genres: string[] }
+  | { type: "wishlist"; item: JsonRow<typeof wishlistItems.$inferSelect> };
