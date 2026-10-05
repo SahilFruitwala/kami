@@ -6,16 +6,18 @@ How KAMI (package name **quarto**) is put together — so you can change one lay
 
 ```
 Browser (React + Zustand + React Query)
-        │  createServerFn RPC (CSRF + Clerk)
+        │  fetch /api/* JSON (src/lib/api)
         ▼
-TanStack Start handlers  ──authMiddleware──►  context.userId
+src/routes/api/*  ──apiHandler (src/server/http.ts)──►  userId
+        │
+src/server/services/*  (business logic)
         │
         ├─ Drizzle → Postgres (DATABASE_URL)
         ├─ extract.server.ts → Readability / Jina / X APIs
         └─ cache.server.ts → Upstash Redis (optional)
 ```
 
-Signed-in users pass **`AppGate`**, which loads a per-user library + journal snapshot into **Zustand**. Mutations update the store immediately and sync through **`createServerFn` + Drizzle**, always scoped by Clerk **`userId`**. Shelves skip the optimistic store and use **React Query**. Article HTML is produced only on the server.
+Signed-in users pass **`AppGate`**, which loads a per-user library + journal snapshot into **Zustand**. Mutations update the store immediately and sync through the **REST API (`/api/*`) + Drizzle**, always scoped by Clerk **`userId`**. Shelves skip the optimistic store and use **React Query**. Article HTML is produced only on the server.
 
 ---
 
@@ -32,7 +34,7 @@ flowchart TB
   subgraph Start["TanStack Start (Vite / Nitro)"]
     CSRF[CSRF middleware]
     ClerkMW[Clerk middleware]
-    SFNs["createServerFn handlers<br/>*-fns.ts"]
+    SFNs["/api/* routes → services<br/>src/server/services"]
     Extract[extract.server.ts]
     Img["/api/img proxy"]
   end
@@ -74,25 +76,25 @@ flowchart TB
 sequenceDiagram
   participant B as Browser
   participant S as Start middleware
-  participant F as ServerFn + authMiddleware
+  participant F as /api route + apiHandler
   participant D as Drizzle / DB
   participant R as Redis (optional)
 
-  B->>S: RPC / navigation
-  S->>S: CSRF (serverFn only)
+  B->>S: fetch /api/… / navigation
+  S->>S: CSRF (/api/* only)
   S->>S: clerkMiddleware
-  B->>F: e.g. getLibrary()
-  F->>F: assertSameSiteRequest
-  F->>F: requireUserId → context.userId
+  B->>F: e.g. GET /api/library
+  F->>F: assertSameSiteRequest + JSON content-type
+  F->>F: requireUserId → userId, rate limit, Zod parse
   alt cache hit
     F->>R: GET quarto:v1:u:&lt;id&gt;:…
     R-->>F: payload
   else miss / no Redis
-    F->>D: SELECT … WHERE user_id = context.userId
+    F->>D: SELECT … WHERE user_id = userId
     D-->>F: rows
     F->>R: SET (if enabled)
   end
-  F-->>B: typed result
+  F-->>B: JSON (errors as { error } + status)
   Note over B: Library/journal hydrate Zustand;<br/>shelves hydrate React Query
 ```
 
@@ -103,10 +105,13 @@ sequenceDiagram
 | Layer | Location | Responsibility |
 |-------|----------|----------------|
 | Routes | `src/routes/*.tsx` | URL, search params, compose shell + page |
-| UI | `src/components/**` | Presentation; call hooks / stores / ServerFns |
+| UI | `src/components/**` | Presentation; call hooks / stores / `src/lib/api` |
 | Hooks | `src/hooks/**` | Capture, filters, TTS, shelf queries |
 | Client state | `store.ts`, `journal.ts`, `*-remote.ts` | Optimistic library/journal + offline outbox |
-| Server API | `*-fns.ts`, `shelves-lookup.ts` | Auth’d RPC, Zod validation, DB writes |
+| API client | `src/lib/api/**` | Typed `fetch` wrappers + shared request/response types |
+| HTTP routes | `src/routes/api/**` | Method + path → service call; no business logic |
+| HTTP layer | `src/server/http.ts` | Auth, same-site, rate limit, Zod, error → status |
+| Services | `src/server/services/**` | Business logic, DB reads/writes, cache invalidation |
 | Server-only | `*.server.ts` | Node/ALS code that must not ship to the browser |
 | Schema | `schema.ts` + `migrations/*.sql` | Source of truth for tables |
 | Bootstrap | `start.ts`, `router.tsx`, `__root.tsx` | Middleware, router, providers |
@@ -115,7 +120,8 @@ sequenceDiagram
 
 | Pattern | Meaning |
 |---------|---------|
-| `*-fns.ts` | `createServerFn` exports (server API) |
+| `src/routes/api/**` | REST endpoints (see [API reference](./API.md)) |
+| `src/server/**` | Server-only (guarded by `@tanstack/react-start/server-only`) |
 | `*-remote.ts` | Client sync / bootstrap / outbox |
 | `*.server.ts` | Server-only module — never import from client components |
 | `migrations/NNNN_*.sql` | Ordered SQL; basename recorded in `_migrations` |
@@ -129,19 +135,19 @@ Package/repo identifiers often say **quarto** (`quarto-library` localStorage key
 
 ```mermaid
 flowchart LR
-  A[Incoming ServerFn] --> B[assertSameSiteRequest]
+  A["Incoming /api/* request"] --> B[assertSameSiteRequest]
   B --> C[requireUserId via Clerk auth]
   C --> D[ensureLocalUser upsert]
-  D --> E["All queries: eq(userId, context.userId)"]
+  D --> E["All queries: eq(userId, userId)"]
 ```
 
 Rules that must not be broken:
 
-1. **Never trust a client-supplied user id** — only `context.userId` from Clerk.
+1. **Never trust a client-supplied user id** — only the `userId` `apiHandler` resolves from Clerk.
 2. Scope every read/write with that id (or list ownership / membership for shelves).
 3. `VITE_AUTH_ENABLED=false` is fail-closed — every request is rejected. Use Clerk for local dev.
-4. Global middleware in `src/start.ts`: CSRF for serverFns + `clerkMiddleware()`.
-5. Per-function: `authMiddleware` from `src/lib/auth/middleware.ts`.
+4. Global middleware in `src/start.ts`: CSRF for `/api/*` + `clerkMiddleware()`.
+5. Per-endpoint: every JSON route is wrapped in `apiHandler` (`src/server/http.ts`), which also requires an `application/json` body on writes.
 
 UI gates: `AppGate`, Clerk `Show`, `/login`. Image proxy `/api/img` also checks Clerk when auth is enabled.
 
@@ -162,10 +168,10 @@ flowchart TB
     Lookup[TMDB / Open Library / link preview]
   end
 
-  Lib <-->|library-remote outbox| SF1[library-fns / article-fns]
-  Jrn <-->|journal-remote| SF2[journal-fns]
-  Shelf <-->|invalidate on mutate| SF3[shelves-fns]
-  Lookup --> SF4[shelves-lookup]
+  Lib <-->|library-remote outbox| SF1["/api/library, /api/articles"]
+  Jrn <-->|journal-remote| SF2["/api/journal"]
+  Shelf <-->|invalidate on mutate| SF3["/api/shelves"]
+  Lookup --> SF4["/api/lookup"]
 ```
 
 | Domain | Store | Why |
@@ -182,9 +188,9 @@ flowchart TB
 ```mermaid
 flowchart TD
   A[Paste URL / share sheet / bookmarklet / extension / paste HTML] --> B{Source}
-  B -->|URL| C[extractArticle ServerFn]
-  B -->|HTML| D[importArticle]
-  B -->|link only| E[saveLinkArticle]
+  B -->|URL| C[POST /api/articles/extract]
+  B -->|HTML| D[POST /api/articles/import]
+  B -->|link only| E[POST /api/articles/link]
   C --> F{Classify}
   F -->|web| G[SSRF-safe fetch → site rules e.g. Substack → Readability]
   F -->|X| H[fxtwitter / helpers]
@@ -195,7 +201,7 @@ flowchart TD
   D -->|captured page| G
   D -->|pasted HTML/text| J
   E --> J
-  J --> K[Optimistic Zustand + upsertLibraryItem]
+  J --> K[Optimistic Zustand + POST /api/library/items]
   K --> L[invalidateUserCache]
 ```
 
@@ -209,7 +215,7 @@ The bookmarklet and the `extension/` browser extension capture the page in the u
 
 1. `/capture` pings `kami:ready` to its opener (bookmarklet popup) and to itself (extension content script).
 2. The sender answers with `kami:capture` + `{ url, title, html }` (scripts/styles stripped, ≤ 1.4 MB).
-3. `/capture` accepts it only from its opener **for the opener's own origin**, or from same-origin/extension script; stashes it in `sessionStorage` and routes to `/app`, which imports it once the session is confirmed (`importArticle` with `capture: true` → full extraction).
+3. `/capture` accepts it only from its opener **for the opener's own origin**, or from same-origin/extension script; stashes it in `sessionStorage` and routes to `/app`, which imports it once the session is confirmed (`POST /api/articles/import` with `capture: true` → full extraction).
 
 Legacy `?import=` links (`/` and `/app`) redirect to `/capture`. `/share` is the PWA Web Share Target (`site.webmanifest`): it takes the first URL from `url`/`text` and hands it to Home's normal save flow.
 
@@ -272,6 +278,7 @@ flowchart LR
 
 ## Related docs
 
+- [API reference](./API.md) — REST endpoints
 - [Data model](./DATA-MODEL.md) — tables and migrations
 - [Development](./DEVELOPMENT.md) — env and local workflows
 - [Contributing](./CONTRIBUTING.md) — how to change the app safely

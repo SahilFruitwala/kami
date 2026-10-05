@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { bulkSaveLinks } from "@/lib/library-bulk-fns.ts";
+import { libraryApi } from "@/lib/api/library";
 import { useLibraryStore } from "@/lib/store.ts";
 import { parseBulkUrls } from "@/lib/session-article.ts";
 
@@ -38,7 +38,7 @@ export function useBulkSave() {
     try {
       for (let i = 0; i < urls.length; i += BULK_CHUNK) {
         const chunk = urls.slice(i, i + BULK_CHUNK);
-        const result = await bulkSaveLinks({ data: { urls: chunk } });
+        const result = await libraryApi.bulkSave(chunk);
         const store = useLibraryStore.getState();
         for (const item of result.saved) {
           store.upsertItem(item, { sync: false });

@@ -11,7 +11,7 @@ If you have not set up the app yet, start with [Development](./DEVELOPMENT.md). 
 1. Branch from latest `master`.
 2. Keep changes focused — one concern per PR when possible.
 3. Run `pnpm typecheck` (and `pnpm test` if you touched `scripts/`).
-4. Prefer matching existing naming (`*-fns.ts`, `*.server.ts`, Kami CSS tokens).
+4. Prefer matching existing naming (`src/server/services/*`, `src/routes/api/*`, `*.server.ts`, Kami CSS tokens).
 5. Never commit `.env`, secrets, or real user data dumps.
 
 ---
@@ -43,40 +43,66 @@ function MyFeaturePage() {
 3. Let the Vite router plugin regenerate `src/routeTree.gen.ts` (do not hand-edit).
 4. If it is a primary “sanctuary” pane, add it to nav in `src/components/site-header.tsx` (`PANES` / `SitePane`).
 
-### 2. Add a ServerFn (API)
+### 2. Add an API endpoint
 
-Put it in the right `src/lib/*-fns.ts` (or a new module next to peers).
+An endpoint is three small pieces — keep business logic out of the route file.
+
+**a. Service** — `src/server/services/<domain>.ts` (plain async functions, server-only):
 
 ```ts
-import { createServerFn } from "@tanstack/react-start";
+import "@tanstack/react-start/server-only";
 import { z } from "zod";
-import { authMiddleware } from "@/lib/auth/middleware";
 import { getDb } from "@/lib/db";
 import { invalidateUserCache } from "@/lib/cache.server";
+import { notFound } from "@/server/http";
 
-const Input = z.object({ /* … */ });
+export const doThingBody = z.object({ /* … */ });
 
-export const doThing = createServerFn({ method: "POST" })
-  .middleware([authMiddleware])
-  .validator((input) => Input.parse(input))
-  .handler(async ({ context, data }) => {
-    const db = await getDb();
-    // ALWAYS scope by context.userId
-    // …
-    await invalidateUserCache(context.userId);
-    return { ok: true as const };
-  });
+export async function doThing(userId: string, id: string, data: z.output<typeof doThingBody>) {
+  const db = await getDb();
+  // ALWAYS scope by userId; throw notFound()/conflict()/badRequest() for user-facing errors
+  // …
+  await invalidateUserCache(userId);
+  return { ok: true as const };
+}
+```
+
+**b. Route** — `src/routes/api/<domain>/$id/thing.ts`:
+
+```ts
+import { createFileRoute } from "@tanstack/react-router";
+import { z } from "zod";
+import { apiHandler } from "@/server/http";
+import { doThing, doThingBody } from "@/server/services/<domain>";
+
+const params = z.object({ id: z.string().min(1).max(200) });
+
+export const Route = createFileRoute("/api/<domain>/$id/thing")({
+  server: {
+    handlers: {
+      POST: apiHandler({ params, body: doThingBody }, ({ userId, params, body }) =>
+        doThing(userId, params.id, body),
+      ),
+    },
+  },
+});
+```
+
+**c. Client** — add a method to `src/lib/api/<domain>.ts`:
+
+```ts
+doThing: (id: string, input: DoThingInput) => http.post<{ ok: true }>(`/api/<domain>/${seg(id)}/thing`, input),
 ```
 
 Checklist:
 
-- [ ] `.middleware([authMiddleware])`
-- [ ] Zod `.validator`
-- [ ] Queries/mutations filtered by `context.userId` (or verified list membership)
-- [ ] Writes call `invalidateUserCache(context.userId)`
-- [ ] Server-only imports stay in `*.server.ts` or behind dynamic import if needed
-
-Client call sites look like `await doThing({ data: { … } })`.
+- [ ] Route wraps its handler in `apiHandler` (auth, same-site, JSON body, Zod, error mapping)
+- [ ] `rateLimit: "lookup" | "extract"` when the service fetches from the outside world
+- [ ] Queries/mutations filtered by `userId` (or verified list membership)
+- [ ] Writes call `invalidateUserCache(userId)`
+- [ ] Shared response types live in `src/lib/api/types.ts` — never import `src/server/**` from client code
+- [ ] REST shape: `GET` reads, `POST` create/actions, `PATCH` partial update, `PUT` replace/set, `DELETE` remove; 404 for missing-or-not-yours
+- [ ] Endpoint listed in [`docs/API.md`](./API.md)
 
 For shelves, prefer React Query hooks in `src/hooks/use-shelf-queries.ts` and keys in `src/lib/query-client.ts`. For library/journal, go through `*-remote.ts` so the outbox stays consistent.
 
@@ -90,7 +116,7 @@ For shelves, prefer React Query hooks in `src/hooks/use-shelf-queries.ts` and ke
 pnpm db:migrate          # Postgres (required)
 ```
 
-4. Update any ServerFns / types that assume the old shape.
+4. Update any services / API types that assume the old shape.
 
 Do **not** edit already-shipped migration files on shared DBs. See [Data model](./DATA-MODEL.md).
 
@@ -109,14 +135,14 @@ Reuse existing patterns: `kami-desk`, paper/ink CSS variables, `Button` from `ui
 
 1. SQL table + Drizzle table (copy the `shelfBase()` pattern in `schema.ts`).
 2. Extend `ITEM_TYPES` / `LIST_TYPES`.
-3. Wire `tableForType` / `addShelfItem` (and related switches) in `shelves-db.server.ts` / `shelves-write-fns.ts`.
+3. Wire `tableForType` / `addShelfItem` (and related switches) in `shelves-db.server.ts` / `src/server/services/shelves-write.ts`.
 4. Add a route under `/shelves/<type>` (`SHELF_TABS` / `SHELF_PATHS`) and a sidebar pane in `site-header.tsx`.
-5. Optional: lookup ServerFn in `shelves-lookup.ts`, query keys + hooks.
+5. Optional: lookup in `src/server/services/lookup.ts` + `/api/lookup/*` route, query keys + hooks.
 6. Invalidate React Query caches on mutate.
 
 ### 6. Touch article extraction
 
-Server-only: `src/lib/extract.server.ts` + thin wrappers in `article-fns.ts`.
+Server-only: `src/lib/extract.server.ts` + thin wrappers in `src/server/services/articles.ts`.
 
 - Keep SSRF checks and public-URL validation.
 - New third-party hosts may need CSP `connect-src` updates in `vercel.json`.
@@ -127,7 +153,7 @@ Server-only: `src/lib/extract.server.ts` + thin wrappers in `article-fns.ts`.
 | Need | File |
 |------|------|
 | Server identity | `src/lib/auth/verify.server.ts` |
-| ServerFn middleware | `src/lib/auth/middleware.ts` |
+| API auth wrapper | `src/server/http.ts` (`apiHandler`) |
 | Same-site isolation | `src/lib/auth/isolation.server.ts` |
 | React provider | `src/lib/auth/provider.tsx` |
 | Sign-in UI helpers | `src/lib/auth/gates.tsx` |

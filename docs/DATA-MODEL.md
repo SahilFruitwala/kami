@@ -90,7 +90,7 @@ Clerk owns identity. We keep a local row so library tables can FK `user_id`.
 | Column | Notes |
 |--------|--------|
 | `id` | Clerk user id (text PK) |
-| `name`, `email`, `emailVerified`, `image` | Synced / upserted on first ServerFn |
+| `name`, `email`, `emailVerified`, `image` | Synced / upserted on first API request |
 | `deleted_at`, `purge_after` | Soft-delete / purge scheduling |
 
 Legacy Better Auth session/account/verification tables may exist in older DBs but are unused.
@@ -174,9 +174,9 @@ Rules:
 | Concern | Module |
 |---------|--------|
 | Table definitions | `src/lib/schema.ts` |
-| Library CRUD | `src/lib/library-fns.ts` |
-| Article extract/save | `src/lib/article-fns.ts` |
-| Journal CRUD | `src/lib/journal-fns.ts` |
-| Shelves CRUD | `src/lib/shelves-fns.ts` (reads), `shelves-write-fns.ts` (writes), `shelves-db.server.ts` (helpers), `shelves.ts` (client-safe types) |
-| Lookups | `src/lib/shelves-lookup.ts`, `shelves-episodes.ts` |
+| Library CRUD | `src/server/services/library.ts`, `library-folders.ts`, `library-bulk.ts` |
+| Article extract/save | `src/server/services/articles.ts` |
+| Journal CRUD | `src/server/services/journal.ts` |
+| Shelves CRUD | `src/server/services/shelves.ts` (reads), `shelves-write.ts` (writes), `src/lib/shelves-db.server.ts` (helpers), `src/lib/shelves.ts` (client-safe types) |
+| Lookups / episodes | `src/server/services/lookup.ts`, `episodes.ts` |
 | DB client | `src/lib/db.ts` |

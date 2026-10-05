@@ -35,10 +35,10 @@ import {
   useTmdbSearch,
 } from "@/hooks/use-shelf-queries.ts";
 import { articleToItem, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
-import { extractArticle, saveLinkArticle } from "@/lib/article-fns.ts";
+import { articlesApi } from "@/lib/api/articles";
 import { persistArticleItem } from "@/lib/library-remote.ts";
 import { shelfPath, type ShelfTab } from "@/lib/shelves.ts";
-import type { LookupResult } from "@/lib/shelves-lookup.ts";
+import type { LookupResult } from "@/lib/api/types";
 
 type AddPage = "home" | ShelfTab;
 
@@ -72,11 +72,7 @@ function normalizeUrl(raw: string): string {
  *   with one-key add, or a manual fallback
  * - jump between panes, or open a bound work.
  */
-export function CommandPalette({
-  onOpenItem,
-}: {
-  onOpenItem: (item: LibraryItem) => void;
-}) {
+export function CommandPalette({ onOpenItem }: { onOpenItem: (item: LibraryItem) => void }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [page, setPage] = useState<AddPage>("home");
@@ -119,11 +115,7 @@ export function CommandPalette({
 
   const shelfSearchOpen = open && page !== "home" && page !== "wishlist";
   const tmdbKind = page === "tv" ? "tv" : "movie";
-  const tmdbQuery = useTmdbSearch(
-    tmdbKind,
-    deferredQuery,
-    shelfSearchOpen && page !== "book",
-  );
+  const tmdbQuery = useTmdbSearch(tmdbKind, deferredQuery, shelfSearchOpen && page !== "book");
   const booksQuery = useBookSearch(deferredQuery, shelfSearchOpen && page === "book");
   const lookupQuery = page === "book" ? booksQuery : tmdbQuery;
   const results = shelfSearchOpen ? (lookupQuery.data ?? null) : null;
@@ -202,16 +194,17 @@ export function CommandPalette({
     if (!raw || savingUrl) return;
     setSavingUrl(true);
     try {
-      const result = saveLinkOnly
-        ? await saveLinkArticle({ data: { url: raw } })
-        : await extractArticle({ data: { url: raw } });
+      const result = saveLinkOnly ? await articlesApi.link(raw) : await articlesApi.extract(raw);
       if (!result.ok) {
         // Fall back to a link-only save so the URL is never lost.
         if (!saveLinkOnly) {
           try {
-            const fallback = await saveLinkArticle({ data: { url: raw } });
+            const fallback = await articlesApi.link(raw);
             if (fallback.ok) {
-              await persistAndOpen(articleToItem(fallback.article), "Saved link — clean copy unavailable");
+              await persistAndOpen(
+                articleToItem(fallback.article),
+                "Saved link — clean copy unavailable",
+              );
               return;
             }
           } catch {
@@ -260,7 +253,9 @@ export function CommandPalette({
       await addItem.mutateAsync({
         type,
         title: r.title.trim().slice(0, 300),
-        link: r.link?.trim() || (page === "wishlist" && urlLike ? normalizeUrl(trimmedQuery) : undefined),
+        link:
+          r.link?.trim() ||
+          (page === "wishlist" && urlLike ? normalizeUrl(trimmedQuery) : undefined),
         imageUrl: imageUrl && imageUrl.length <= 2000 ? imageUrl : undefined,
         metadata: Object.keys(cleaned).length ? cleaned : undefined,
         status: "to_try",
@@ -412,7 +407,10 @@ export function CommandPalette({
                   <span className="truncate">
                     Add {p.label.toLowerCase()}…
                     {trimmedQuery.length >= 2 && !urlLike ? (
-                      <span className="text-muted-foreground"> for “{trimmedQuery.slice(0, 40)}”</span>
+                      <span className="text-muted-foreground">
+                        {" "}
+                        for “{trimmedQuery.slice(0, 40)}”
+                      </span>
                     ) : null}
                   </span>
                   <CommandShortcut>
@@ -558,7 +556,11 @@ export function CommandPalette({
             </CommandGroup>
 
             {page === "wishlist" ? null : (
-              <CommandGroup heading={searching ? "Searching…" : results?.length ? "Results — pick to add" : undefined}>
+              <CommandGroup
+                heading={
+                  searching ? "Searching…" : results?.length ? "Results — pick to add" : undefined
+                }
+              >
                 {searching
                   ? Array.from({ length: 3 }).map((_, i) => (
                       <CommandItem key={`skeleton-${i}`} value={`searching-${i}`} disabled>

@@ -20,7 +20,7 @@ export const CAPTURE_READY = "kami:ready";
 export const CAPTURE_MESSAGE = "kami:capture";
 export const CAPTURE_RECEIVED = "kami:received";
 
-/** Keep in sync with `importInput.contentHtml` in article-fns. */
+/** Keep in sync with `importInput.contentHtml` in `src/server/services/articles.ts`. */
 export const MAX_CAPTURE_HTML = 1_400_000;
 
 export function parseCapturePayload(raw: unknown): BookmarkletPayload | null {

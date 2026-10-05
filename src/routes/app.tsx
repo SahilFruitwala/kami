@@ -12,7 +12,7 @@ import { BulkSaveDialog, PasteDialog } from "@/components/library/library-dialog
 import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useBulkSave } from "@/hooks/use-bulk-save.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
-import { importArticle } from "@/lib/article-fns.ts";
+import { articlesApi } from "@/lib/api/articles";
 import type { BookmarkletPayload } from "@/lib/bookmarklet.ts";
 import {
   parseBulkUrls,
@@ -40,10 +40,7 @@ export const Route = createFileRoute("/app")({
   component: HomePage,
 });
 
-function goRead(
-  navigate: ReturnType<typeof Route.useNavigate>,
-  id: string,
-) {
+function goRead(navigate: ReturnType<typeof Route.useNavigate>, id: string) {
   startTransition(() => {
     addTransitionType("nav-forward");
     void navigate({ to: "/read", search: { id } });
@@ -149,14 +146,12 @@ function Home() {
     }
     setCapturing(true);
     try {
-      const result = await importArticle({
-        data: {
-          url: payload.url.trim() || undefined,
-          title: payload.title.trim(),
-          contentHtml: looksHtml ? payload.html : undefined,
-          contentText: looksHtml ? undefined : payload.html,
-          capture: looksHtml,
-        },
+      const result = await articlesApi.import({
+        url: payload.url.trim() || undefined,
+        title: payload.title.trim(),
+        contentHtml: looksHtml ? payload.html : undefined,
+        contentText: looksHtml ? undefined : payload.html,
+        capture: looksHtml,
       });
       if (!result.ok) {
         paste.seedPaste(payload);

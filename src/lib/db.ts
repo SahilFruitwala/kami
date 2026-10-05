@@ -54,8 +54,8 @@ function getPool(): Pool {
 async function createDb(): Promise<AppDb> {
   if (typeof window !== "undefined") {
     throw new Error(
-      "@/lib/db is server-only — call getDb() from a createServerFn handler " +
-        "or a server route loader, never from client code.",
+      "@/lib/db is server-only — call getDb() from a server service (src/server/services) " +
+        "or a server route handler, never from client code.",
     );
   }
   return drizzlePg({ client: getPool(), schema });
