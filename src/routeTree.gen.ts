@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as CaptureRouteImport } from './routes/capture'
+import { Route as FeedsRouteImport } from './routes/feeds'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as ReadRouteImport } from './routes/read'
@@ -83,6 +84,11 @@ const AppRoute = AppRouteImport.update({
 const CaptureRoute = CaptureRouteImport.update({
   id: '/capture',
   path: '/capture',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FeedsRoute = FeedsRouteImport.update({
+  id: '/feeds',
+  path: '/feeds',
   getParentRoute: () => rootRouteImport,
 } as any)
 const JournalRoute = JournalRouteImport.update({
@@ -383,6 +389,7 @@ export interface FileRoutesByFullPath {
   '/shelves': typeof ShelvesRouteRouteWithChildren
   '/app': typeof AppRoute
   '/capture': typeof CaptureRoute
+  '/feeds': typeof FeedsRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
   '/read': typeof ReadRoute
@@ -444,6 +451,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/capture': typeof CaptureRoute
+  '/feeds': typeof FeedsRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
   '/read': typeof ReadRoute
@@ -507,6 +515,7 @@ export interface FileRoutesById {
   '/shelves': typeof ShelvesRouteRouteWithChildren
   '/app': typeof AppRoute
   '/capture': typeof CaptureRoute
+  '/feeds': typeof FeedsRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
   '/read': typeof ReadRoute
@@ -571,6 +580,7 @@ export interface FileRouteTypes {
     | '/shelves'
     | '/app'
     | '/capture'
+    | '/feeds'
     | '/journal'
     | '/library'
     | '/read'
@@ -632,6 +642,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/capture'
+    | '/feeds'
     | '/journal'
     | '/library'
     | '/read'
@@ -694,6 +705,7 @@ export interface FileRouteTypes {
     | '/shelves'
     | '/app'
     | '/capture'
+    | '/feeds'
     | '/journal'
     | '/library'
     | '/read'
@@ -757,6 +769,7 @@ export interface RootRouteChildren {
   ShelvesRouteRoute: typeof ShelvesRouteRouteWithChildren
   AppRoute: typeof AppRoute
   CaptureRoute: typeof CaptureRoute
+  FeedsRoute: typeof FeedsRoute
   JournalRoute: typeof JournalRoute
   LibraryRoute: typeof LibraryRoute
   ReadRoute: typeof ReadRoute
@@ -828,6 +841,13 @@ declare module '@tanstack/react-router' {
       path: '/capture'
       fullPath: '/capture'
       preLoaderRoute: typeof CaptureRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/feeds': {
+      id: '/feeds'
+      path: '/feeds'
+      fullPath: '/feeds'
+      preLoaderRoute: typeof FeedsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/journal': {
@@ -1263,6 +1283,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShelvesRouteRoute: ShelvesRouteRouteWithChildren,
   AppRoute: AppRoute,
   CaptureRoute: CaptureRoute,
+  FeedsRoute: FeedsRoute,
   JournalRoute: JournalRoute,
   LibraryRoute: LibraryRoute,
   ReadRoute: ReadRoute,

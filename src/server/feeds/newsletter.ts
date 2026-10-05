@@ -18,7 +18,7 @@ import { insertEntries } from "./poller";
  *
  * Each user gets one secret address `<token>@INBOUND_EMAIL_DOMAIN`. An inbound
  * mail provider (Postmark inbound, or a Cloudflare Email Worker — see
- * docs/FEEDS.md) POSTs each message to `/api/hooks/inbound-email`; the message
+ * docs/ARCHITECTURE.md) POSTs each message to `/api/hooks/inbound-email`; the message
  * becomes an entry in a feed owned by that user, named after the sender. No
  * polling is involved: newsletters cost nothing until they arrive.
  */

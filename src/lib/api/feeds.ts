@@ -1,4 +1,4 @@
-import type { ExtractResult } from "@/lib/article-types";
+import type { Article } from "@/lib/article-types";
 import { http, seg } from "./client";
 
 export type FeedKind = "rss" | "email";
@@ -46,6 +46,10 @@ export type FeedEntryCursor = { at: number; id: string };
 
 export type FeedEntryPage = { entries: FeedEntry[]; nextCursor: FeedEntryCursor | null };
 
+/** A fresh article to save, or the id of the library work it already is. */
+export type EntryArticleResult =
+  { ok: true; article: Article } | { ok: true; existingId: string } | { ok: false; error: string };
+
 export type RefreshResult = { polled: number; newEntries: number; failed: number };
 
 const feed = (id: string) => `/api/feeds/${seg(id)}`;
@@ -83,7 +87,7 @@ export const feedsApi = {
   markAllRead: (feedId?: string) => http.post<void>("/api/feeds/entries/read-all", { feedId }),
 
   /** Build a library article from an entry (feed body, or a page fetch when the feed only has a teaser). */
-  article: (id: string) => http.post<ExtractResult>(`${entry(id)}/article`),
+  article: (id: string) => http.post<EntryArticleResult>(`${entry(id)}/article`),
 
   /** Create (or, with `rotate`, replace) the private newsletter address. */
   inbox: (rotate = false) => http.post<NewsletterInbox>("/api/feeds/inbox", { rotate }),
