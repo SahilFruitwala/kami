@@ -133,6 +133,20 @@ Movie/TV uniqueness (partial indexes):
 - `(list_id, tmdb_id)` when TMDB id present
 - `(list_id, normalized_title)` when title present
 
+### Feeds — `feeds`, `feed_subscriptions`, `feed_entries`, `feed_entry_states`, `newsletter_inboxes`
+
+See [Feeds & newsletters](./ARCHITECTURE.md#feeds--newsletters) for the polling design.
+
+| Table | Role |
+|-------|------|
+| `feeds` | One row per feed URL, **shared** across users (`kind = 'rss'`), or a private per-sender newsletter feed (`kind = 'email'`, `owner_id` set). Holds poll scheduling: validators (`etag`, `last_modified`), `next_fetch_at`, `interval_minutes`, `error_count`, `last_error` |
+| `feed_subscriptions` | `(user_id, feed_id)` PK; optional custom `title`; `cleared_at` = "mark all read" watermark |
+| `feed_entries` | Entry metadata + the feed-supplied body (raw, capped; sanitized only on save). Unique `(feed_id, guid)`; 100 newest kept per feed |
+| `feed_entry_states` | Per-user `read` / `saved` marks (absence = unread) |
+| `newsletter_inboxes` | One secret inbound-email token per user (unique) |
+
+Highlight notes (inside `articles.highlights` jsonb) are capped at 1000 chars (`HIGHLIGHT_NOTE_MAX`).
+
 ### Misc
 
 | Table | Role |

@@ -1,8 +1,9 @@
 import "@tanstack/react-start/server-only";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { DOMParser } from "linkedom";
 import { z } from "zod";
 import type {
+  EntryArticleResult,
   FeedEntry,
   FeedEntryPage,
   FeedSummary,
@@ -23,6 +24,7 @@ import { withJitter } from "@/lib/feed-schedule.ts";
 import { enforceRateLimit } from "@/lib/rate-limit.server.ts";
 import { assertPublicHttpUrl } from "@/lib/safe-url.ts";
 import {
+  articles,
   feedEntries,
   feedEntryStates,
   feedSubscriptions,
@@ -478,7 +480,35 @@ export async function markAllRead(userId: string, data: z.output<typeof markAllR
  * the stored body — no network at all. Teaser-only feeds fetch the page once
  * through the normal extractor (counted against the `extract` rate limit).
  */
-export async function entryArticle(userId: string, entryId: string): Promise<ExtractResult> {
+/** Id of this user's library work saved from any of `urls`, if one exists. */
+async function existingArticleId(
+  db: AppDb,
+  userId: string,
+  urls: string[],
+): Promise<string | null> {
+  const list = [...new Set(urls.filter(Boolean))];
+  if (list.length === 0) return null;
+  const row = (
+    await db
+      .select({ id: articles.id })
+      .from(articles)
+      .where(
+        and(
+          eq(articles.userId, userId),
+          or(inArray(articles.url, list), inArray(articles.canonicalUrl, list)),
+        ),
+      )
+      .limit(1)
+  )[0];
+  return row?.id ?? null;
+}
+
+/**
+ * Either a fresh article to save, or — when the work is already in the
+ * library — its id, so the client opens it instead of re-saving over the
+ * reader's existing highlights and notes.
+ */
+export async function entryArticle(userId: string, entryId: string): Promise<EntryArticleResult> {
   const db = await getDb();
   const row = (
     await db
@@ -504,9 +534,25 @@ export async function entryArticle(userId: string, entryId: string): Promise<Ext
   )[0];
   if (!row) throw notFound("Entry not found");
 
+  const markSaved = () =>
+    db
+      .insert(feedEntryStates)
+      .values({ userId, entryId, state: "saved" })
+      .onConflictDoUpdate({
+        target: [feedEntryStates.userId, feedEntryStates.entryId],
+        set: { state: "saved", updatedAt: sql`now()` },
+      });
+
+  const pageUrl = httpUrl(row.url);
+  const fallbackHref = `https://newsletter.local/${encodeURIComponent(row.id)}`;
+  const known = await existingArticleId(db, userId, [pageUrl ?? "", fallbackHref]);
+  if (known) {
+    await markSaved();
+    return { ok: true, existingId: known };
+  }
+
   const { buildArticle, countWords } = await import("@/lib/article-build.server.ts");
   const words = countWords(plainText(row.contentHtml));
-  const pageUrl = httpUrl(row.url);
   let result: ExtractResult | null = null;
 
   if (pageUrl && words < FULL_TEXT_MIN_WORDS) {
@@ -517,7 +563,7 @@ export async function entryArticle(userId: string, entryId: string): Promise<Ext
   }
 
   if (!result && row.contentHtml) {
-    const href = pageUrl ?? `https://newsletter.local/${encodeURIComponent(row.id)}`;
+    const href = pageUrl ?? fallbackHref;
     const article = buildArticle({
       url: href,
       canonicalUrl: href,
@@ -537,15 +583,15 @@ export async function entryArticle(userId: string, entryId: string): Promise<Ext
     result = { ok: true, article: articleFromLinkOnly(pageUrl, row.title) };
   }
   if (!result) return { ok: false, error: "This entry has no readable text or link." };
+  if (!result.ok) return result;
 
-  await db
-    .insert(feedEntryStates)
-    .values({ userId, entryId, state: "saved" })
-    .onConflictDoUpdate({
-      target: [feedEntryStates.userId, feedEntryStates.entryId],
-      set: { state: "saved", updatedAt: sql`now()` },
-    });
-  return result;
+  await markSaved();
+  // Extraction can land on a different canonical URL (redirects, rel=canonical).
+  const after = await existingArticleId(db, userId, [
+    result.article.url,
+    result.article.canonicalUrl,
+  ]);
+  return after ? { ok: true, existingId: after } : result;
 }
 
 // ---------- Newsletter inbox ----------

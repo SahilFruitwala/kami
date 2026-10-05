@@ -221,6 +221,122 @@ Legacy `?import=` links (`/` and `/app`) redirect to `/capture`. `/share` is the
 
 ---
 
+## Feeds & newsletters
+
+`/feeds` follows RSS, Atom and JSON Feed sources and email newsletters. New
+entries collect in a lightweight inbox, and saving one turns it into a normal
+library work that you can read, highlight and keep.
+
+### Design goals
+
+You can follow hundreds of feeds without the server doing much work.
+
+| Concern | How it's handled |
+|---|---|
+| Duplicate work | Feeds are **shared rows**. A blog followed by 100 readers is one row and one poll. Only feeds with at least one subscriber are ever polled. Unfollowed feeds are deleted with their entries. |
+| Double polling | A poll **claims** feeds with `FOR UPDATE SKIP LOCKED` and pushes `next_fetch_at` forward 10 minutes as a lease. Overlapping cron runs, tabs or instances never fetch the same feed twice. If a run dies, the lease expires and the feed comes due again. |
+| Bandwidth | Polls send a **conditional GET** (`If-None-Match` / `If-Modified-Since`), so an unchanged feed costs a `304` with no body. |
+| Poll frequency | **Adaptive per feed**: the interval halves after new posts and grows 1.5× when nothing changed, between 30 minutes and 12 hours. Publisher hints (`<ttl>`, `Cache-Control: max-age`, `Retry-After`) can only slow polling down, never speed it up. ±10% jitter spreads feeds that were added together. |
+| Broken feeds | **Exponential backoff** on errors: 30 min, 1 h, 2 h, and so on up to 24 h. The last error is shown in the UI, and the feed recovers on its own after its next good poll. |
+| Burst cost | Every run has a **feed cap, a concurrency cap and a wall-clock deadline**. Leases on feeds it didn't reach are released. Bodies are streamed under a 3 MB cap with a per-request timeout. |
+| Manual refresh | The Refresh button never re-polls a feed checked in the last 5 minutes. It shares the `feeds` rate-limit bucket with adding feeds and importing OPML (60 per 10 min per user). |
+| Saving | Entries keep the body the feed supplied, stored raw and capped. **Full-text feeds save with no network call at all**: the body is sanitized and built into an article on save. Only teaser feeds (under 150 words) fetch the page, once, through the normal extractor and its `extract` rate limit. |
+| Storage | 100 entries are kept per feed, newest first. Read state is one row per explicit mark. "Mark all read" is a single timestamp per subscription. |
+| Discovery | A known feed URL needs no fetch. A feed URL needs one fetch. A page needs its `<link rel="alternate">` feeds (up to 3), and only after that a few conventional paths, probed in parallel. OPML import registers feeds **without fetching**; the poller picks them up. |
+| SSRF | Every fetch goes through `safeFetch` (`src/lib/fetch-text.server.ts`), which re-validates each redirect hop against the private-address denylist and DNS. |
+
+Unread means: no per-user mark, fetched after the subscription's `cleared_at`,
+and published no more than 14 days before you subscribed. Following a blog with
+years of archives therefore shows recent posts as unread, not the whole archive.
+
+### When polling happens
+
+1. **Opening `/feeds`** polls *your* due feeds: up to 12, 4 at a time, with a 5-second budget. The page shows stored entries immediately and refetches only if something new arrived.
+2. **Cron**: `GET /api/hooks/feeds` sweeps every due subscribed feed (up to 80 per run, 6 at a time, 25-second budget). `vite.config.ts` (Nitro's Vercel Build Output config) schedules it **daily**, which works on every Vercel plan. On Pro you can raise it, for example to hourly (`0 * * * *`). Any external scheduler (GitHub Actions, cron-job.org, Upstash QStash) can also call it with `Authorization: Bearer $CRON_SECRET`.
+
+Set `CRON_SECRET` (16+ characters). Vercel Cron sends it automatically. Without it the hook returns `503`.
+
+### Newsletters by email
+
+Each user can create a private address, `<token>@INBOUND_EMAIL_DOMAIN`. Mail
+sent to it (plus-addressing like `token+brew@…` also works) is delivered to
+`POST /api/hooks/inbound-email` by an inbound-mail provider:
+
+- Each **sender** becomes a private feed, owned by that user and never shared.
+- Tracking pixels and hidden preheader text are stripped. The "View in browser" link becomes the entry's URL.
+- Nothing is polled. Unknown addresses, duplicates (same `Message-ID`) and floods over 300 per user per day are acknowledged with a `2xx` and dropped, so the provider doesn't retry them.
+- Removing a sender deletes its feed. If the newsletter keeps mailing, the next issue starts a new one, so unsubscribe at the source too.
+- "New address" rotates the token. Mail to the old address is dropped from then on.
+
+Environment:
+
+```bash
+INBOUND_EMAIL_DOMAIN=in.example.com   # MX/route for this domain → your provider
+INBOUND_EMAIL_SECRET=<32+ random chars>
+```
+
+Two common providers can send to the webhook:
+
+**Postmark inbound**: set the inbound webhook URL to
+`https://postmark:<INBOUND_EMAIL_SECRET>@your-app/api/hooks/inbound-email`. The
+Basic-auth password is the secret. Postmark's JSON is accepted as is.
+
+**Cloudflare Email Routing** (free): route `*@in.example.com` to an Email
+Worker that forwards a small JSON payload:
+
+```js
+// worker.js — npm i postal-mime
+import PostalMime from "postal-mime";
+
+export default {
+  async email(message, env) {
+    const mail = await PostalMime.parse(message.raw);
+    const res = await fetch(`${env.KAMI_URL}/api/hooks/inbound-email`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${env.INBOUND_EMAIL_SECRET}`,
+      },
+      body: JSON.stringify({
+        to: message.to,
+        // Header From, not the envelope (bounce) sender, which changes per message.
+        from: mail.from?.address ?? message.from,
+        fromName: mail.from?.name,
+        subject: mail.subject,
+        html: mail.html,
+        text: mail.text,
+        date: mail.date,
+        messageId: mail.messageId,
+      }),
+    });
+    if (!res.ok) message.setReject(`KAMI returned ${res.status}`);
+  },
+};
+```
+
+Any other provider works if it posts the same generic shape:
+`{ to, from, fromName?, subject?, html?, text?, date?, messageId? }`.
+
+Many newsletters (Substack, Ghost, Buttondown, beehiiv) also publish RSS. Following
+the newsletter's site as a feed needs no email setup at all.
+
+### Code map
+
+| Path | Role |
+|---|---|
+| `src/lib/feed-parse.server.ts` | RSS 2.0 / RDF / Atom / JSON Feed parsing, feed discovery (pure, tested) |
+| `src/lib/feed-schedule.ts` | Interval, backoff, jitter and header-hint math (pure, tested) |
+| `src/lib/newsletter-parse.server.ts` | Inbound payload normalization, tracking-pixel stripping (pure, tested) |
+| `src/server/feeds/poller.ts` | Claim → conditional fetch → parse → insert → reschedule |
+| `src/server/feeds/newsletter.ts` | Inbound email → private sender feed |
+| `src/server/services/feeds.ts` | Subscriptions, entries, read state, save-to-library, inbox, OPML |
+| `src/server/hooks.ts` | Shared-secret auth for `/api/hooks/*` (exempt from browser CSRF) |
+| `src/routes/api/feeds/**`, `src/routes/api/hooks/**` | HTTP routes |
+| `src/hooks/use-feeds.ts`, `src/components/feeds/*` | `/feeds` UI (React Query) |
+| `migrations/0009_feeds.sql` | `feeds`, `feed_subscriptions`, `feed_entries`, `feed_entry_states`, `newsletter_inboxes` |
+
+---
+
 ## Caching
 
 `src/lib/cache.server.ts` — enabled only when both Upstash env vars are set.
@@ -241,6 +357,7 @@ flowchart TB
   Root["__root.tsx<br/>QueryClient + Clerk + theme"]
   Root --> Index["/ — Landing or desk"]
   Root --> Lib["/library — AppShell"]
+  Root --> Feeds["/feeds — AppShell"]
   Root --> Read["/read — AppGate only"]
   Root --> Movies["/shelves/movies — AppShell"]
   Root --> Series["/shelves/series — AppShell"]
