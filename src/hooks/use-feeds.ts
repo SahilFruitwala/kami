@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import {
   useInfiniteQuery,
   useMutation,
@@ -20,6 +19,8 @@ import { queryKeys } from "@/lib/query-client.ts";
 import { articleToItem, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
 
 export const FEED_PAGE_SIZE = 30;
+/** Batches one Refresh click may run (the server polls up to 20 feeds each). */
+const MAX_REFRESH_ROUNDS = 8;
 
 export function useFeedsOverview() {
   return useQuery({
@@ -88,26 +89,6 @@ function useEntryPatcher() {
   };
 }
 
-/**
- * Poll this user's due feeds once when the page opens (the server bounds it
- * and skips anything polled recently), then refetch if anything arrived.
- */
-export function useFeedsAutoRefresh(enabled: boolean) {
-  const invalidate = useInvalidateFeeds();
-  const ran = useRef(false);
-  useEffect(() => {
-    if (!enabled || ran.current) return;
-    ran.current = true;
-    void feedsApi
-      .refresh(false)
-      .then((r) => {
-        if (r.newEntries > 0 || r.failed > 0) void invalidate();
-      })
-      .catch(() => undefined);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [enabled]);
-}
-
 export function useFeedActions() {
   const invalidate = useInvalidateFeeds();
   const patch = useEntryPatcher();
@@ -121,16 +102,37 @@ export function useFeedActions() {
     onError: (err) => toast.error(err instanceof Error ? err.message : "Could not add that feed."),
   });
 
+  /**
+   * On-demand fetch — the only way feeds update (no cron, no auto-poll).
+   * The server polls one bounded batch per call; keep calling while it
+   * reports feeds remaining, up to a cap so a huge list can't spin forever.
+   */
   const refresh = useMutation({
-    mutationFn: () => feedsApi.refresh(true),
+    mutationFn: async (feedId: string | null) => {
+      const total = { polled: 0, newEntries: 0, failed: 0, remaining: 0 };
+      for (let round = 0; round < MAX_REFRESH_ROUNDS; round += 1) {
+        const r = await feedsApi.refresh({ force: true, feedId: feedId ?? undefined });
+        total.polled += r.polled;
+        total.newEntries += r.newEntries;
+        total.failed += r.failed;
+        total.remaining = r.remaining;
+        if (r.remaining === 0 || r.polled + r.failed === 0) break;
+      }
+      return total;
+    },
     onSuccess: (r) => {
-      toast.success(
+      const parts = [
         r.newEntries > 0
           ? `${r.newEntries} new ${r.newEntries === 1 ? "entry" : "entries"}`
           : r.polled > 0
             ? "All caught up"
-            : "Feeds were checked moments ago",
-      );
+            : "Already up to date — checked moments ago",
+      ];
+      if (r.failed > 0) parts.push(`${r.failed} failed`);
+      toast.success(parts.join(" · "), {
+        description:
+          r.remaining > 0 ? `${r.remaining} feeds still queued — refresh again.` : undefined,
+      });
       void invalidate();
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Refresh failed."),
@@ -180,14 +182,9 @@ export function useFeedActions() {
     onSuccess: (r) => {
       toast.success(
         `Imported ${r.added} ${r.added === 1 ? "feed" : "feeds"}${r.skipped ? ` · ${r.skipped} skipped` : ""}`,
-        { description: "New feeds fill in over the next few minutes." },
+        { description: "Press Refresh to fetch their latest entries." },
       );
       void invalidate();
-      // The poller picks imported feeds up; nudge it for this user now.
-      void feedsApi
-        .refresh(false)
-        .then(() => invalidate())
-        .catch(() => undefined);
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Import failed."),
   });

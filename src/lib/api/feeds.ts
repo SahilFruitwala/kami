@@ -50,7 +50,13 @@ export type FeedEntryPage = { entries: FeedEntry[]; nextCursor: FeedEntryCursor 
 export type EntryArticleResult =
   { ok: true; article: Article } | { ok: true; existingId: string } | { ok: false; error: string };
 
-export type RefreshResult = { polled: number; newEntries: number; failed: number };
+export type RefreshResult = {
+  polled: number;
+  newEntries: number;
+  failed: number;
+  /** Feeds still waiting after this batch — call again to continue. */
+  remaining: number;
+};
 
 const feed = (id: string) => `/api/feeds/${seg(id)}`;
 const entry = (id: string) => `/api/feeds/entries/${seg(id)}`;
@@ -65,8 +71,9 @@ export const feedsApi = {
 
   remove: (id: string) => http.delete<void>(feed(id)),
 
-  /** Poll this user's due feeds now (bounded server-side). */
-  refresh: (force = false) => http.post<RefreshResult>("/api/feeds/refresh", { force }),
+  /** Fetch this user's feeds (or one feed) now, one bounded batch per call. */
+  refresh: (opts: { force?: boolean; feedId?: string } = {}) =>
+    http.post<RefreshResult>("/api/feeds/refresh", opts),
 
   entries: (opts: {
     view: FeedEntryView;

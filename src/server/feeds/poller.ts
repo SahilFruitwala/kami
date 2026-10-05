@@ -23,7 +23,7 @@ import { uid } from "@/lib/store";
  *   - feeds are shared, so a feed is polled once no matter how many follow it;
  *   - only feeds with at least one subscriber are ever claimed;
  *   - a claim is a lease (`FOR UPDATE SKIP LOCKED` + pushing next_fetch_at
- *     forward), so overlapping cron runs / tabs never poll the same feed twice;
+ *     forward), so overlapping refreshes / tabs never poll the same feed twice;
  *   - conditional GET (ETag / Last-Modified) makes unchanged feeds a 304;
  *   - intervals adapt per feed, errors back off exponentially;
  *   - each run has a feed cap, a concurrency cap and a wall-clock deadline.
@@ -45,7 +45,13 @@ type ClaimedFeed = {
   title: string;
 };
 
-export type RefreshSummary = { polled: number; newEntries: number; failed: number };
+export type RefreshSummary = {
+  polled: number;
+  newEntries: number;
+  failed: number;
+  /** Feeds in scope still due after this run (call again to continue). */
+  remaining: number;
+};
 
 /** Decode with the charset from Content-Type or the XML declaration. */
 export function decodeFeedBody(bytes: Uint8Array, contentType: string): string {
@@ -105,26 +111,40 @@ export async function pruneEntries(db: AppDb, feedId: string): Promise<void> {
   `);
 }
 
-async function claimDueFeeds(
-  db: AppDb,
-  opts: { userId?: string; limit: number; force?: boolean },
-): Promise<ClaimedFeed[]> {
+type DueScope = { userId?: string; feedId?: string; force?: boolean };
+
+/** Feeds a run may claim: rss, subscribed (by this user), and due. */
+function dueFeedsWhere(opts: DueScope) {
   const subscribed = opts.userId
     ? sql`exists (select 1 from feed_subscriptions s where s.feed_id = f.id and s.user_id = ${opts.userId})`
     : sql`exists (select 1 from feed_subscriptions s where s.feed_id = f.id)`;
   // `last_fetched_at` is stamped at claim time, so a manual refresh can't
   // re-claim a feed another request is fetching right now.
-  const due = opts.force
-    ? sql`(f.next_fetch_at <= now() or f.last_fetched_at is null
-           or f.last_fetched_at < now() - make_interval(mins => ${FEED_MANUAL_MIN_AGE_MIN}))`
-    : sql`f.next_fetch_at <= now()`;
+  // Forced (Refresh button): anything not checked in the last few minutes.
+  // "Refresh all" still leaves failing feeds to their backoff; refreshing a
+  // single feed retries it.
+  const stale = sql`(f.last_fetched_at is null
+    or f.last_fetched_at < now() - make_interval(mins => ${FEED_MANUAL_MIN_AGE_MIN}))`;
+  const due = !opts.force
+    ? sql`f.next_fetch_at <= now()`
+    : opts.feedId
+      ? sql`(f.next_fetch_at <= now() or ${stale})`
+      : sql`(f.next_fetch_at <= now() or (${stale} and f.error_count = 0))`;
+  const only = opts.feedId ? sql`and f.id = ${opts.feedId}` : sql``;
+  return sql`f.kind = 'rss' and ${due} and ${subscribed} ${only}`;
+}
+
+async function claimDueFeeds(
+  db: AppDb,
+  opts: DueScope & { limit: number },
+): Promise<ClaimedFeed[]> {
   const result = await db.execute<ClaimedFeed>(sql`
     update feeds set
       next_fetch_at = now() + make_interval(mins => ${FEED_LEASE_MIN}),
       last_fetched_at = now()
     where id in (
       select f.id from feeds f
-      where f.kind = 'rss' and ${due} and ${subscribed}
+      where ${dueFeedsWhere(opts)}
       order by f.next_fetch_at
       limit ${opts.limit}
       for update skip locked
@@ -132,6 +152,14 @@ async function claimDueFeeds(
     returning id, url, etag, last_modified, interval_minutes, error_count, title
   `);
   return result.rows;
+}
+
+/** How many feeds in scope are still waiting to be polled. */
+async function countDueFeeds(db: AppDb, opts: DueScope): Promise<number> {
+  const result = await db.execute<{ n: number }>(sql`
+    select count(*)::int as n from feeds f where ${dueFeedsWhere(opts)}
+  `);
+  return Number(result.rows[0]?.n ?? 0);
 }
 
 const minutesFromNow = (minutes: number) => new Date(Date.now() + minutes * 60_000);
@@ -266,11 +294,12 @@ async function eachLimited<T>(items: T[], limit: number, task: (item: T) => Prom
 }
 
 /**
- * Poll due feeds. `userId` limits the run to that user's subscriptions
- * (opening the Feeds page); omit it for the global cron sweep.
+ * Poll due feeds. `userId` limits the run to that user's subscriptions and
+ * `feedId` to one feed (the Refresh button); omit both for a global sweep.
  */
 export async function refreshDueFeeds(opts: {
   userId?: string;
+  feedId?: string;
   limit: number;
   concurrency: number;
   /** Stop starting new fetches after this many ms (in-flight ones finish). */
@@ -281,7 +310,7 @@ export async function refreshDueFeeds(opts: {
   const db = await getDb();
   const startedAt = Date.now();
   const claimed = await claimDueFeeds(db, opts);
-  const summary: RefreshSummary = { polled: 0, newEntries: 0, failed: 0 };
+  const summary: RefreshSummary = { polled: 0, newEntries: 0, failed: 0, remaining: 0 };
   const skipped: string[] = [];
 
   await eachLimited(claimed, opts.concurrency, async (feed) => {
@@ -290,7 +319,10 @@ export async function refreshDueFeeds(opts: {
       return;
     }
     try {
-      summary.newEntries += await pollFeed(db, feed, opts.timeoutMs);
+      // Await first: `total += await x` reads `total` before suspending, so
+      // concurrent workers would overwrite each other's counts.
+      const fresh = await pollFeed(db, feed, opts.timeoutMs);
+      summary.newEntries += fresh;
       summary.polled += 1;
     } catch {
       summary.failed += 1;
@@ -307,6 +339,7 @@ export async function refreshDueFeeds(opts: {
       )})
     `);
   }
+  summary.remaining = await countDueFeeds(db, opts);
   return summary;
 }
 
