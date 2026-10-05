@@ -60,7 +60,10 @@ export const addFeedInput = z.object({
 });
 export const feedIdParams = z.object({ id: z.string().min(1).max(200) });
 export const renameFeedInput = z.object({ title: z.string().trim().max(200).nullable() });
-export const refreshInput = z.object({ force: z.boolean().optional() });
+export const refreshInput = z.object({
+  force: z.boolean().optional(),
+  feedId: z.string().min(1).max(200).optional(),
+});
 export const entriesQuery = z.object({
   view: z.enum(["unread", "all", "saved"]).default("unread"),
   feedId: z.string().max(200).optional(),
@@ -338,18 +341,24 @@ export async function removeFeed(userId: string, feedId: string) {
   });
 }
 
+/**
+ * On-demand refresh (there is no scheduled sweep): polls this user's feeds —
+ * or one feed — in bounded batches. `remaining` tells the client whether to
+ * call again; feeds checked in the last few minutes are never re-polled.
+ */
 export async function refreshMyFeeds(userId: string, data: z.output<typeof refreshInput>) {
   return refreshDueFeeds({
     userId,
+    feedId: data.feedId,
     force: data.force,
-    limit: 12,
-    concurrency: 4,
-    deadlineMs: 5_000,
+    limit: 20,
+    concurrency: 5,
+    deadlineMs: 6_000,
     timeoutMs: 8_000,
   });
 }
 
-/** Cron sweep across every subscribed feed. */
+/** Global sweep for `/api/hooks/feeds` (not scheduled — call it from any scheduler). */
 export async function refreshAllDueFeeds() {
   return refreshDueFeeds({ limit: 80, concurrency: 6, deadlineMs: 25_000, timeoutMs: 10_000 });
 }

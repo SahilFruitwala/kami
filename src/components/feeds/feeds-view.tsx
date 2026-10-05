@@ -20,12 +20,7 @@ import {
   NewsletterCard,
   OpmlTools,
 } from "@/components/feeds/feeds-sidebar.tsx";
-import {
-  useFeedActions,
-  useFeedEntries,
-  useFeedsAutoRefresh,
-  useFeedsOverview,
-} from "@/hooks/use-feeds.ts";
+import { useFeedActions, useFeedEntries, useFeedsOverview } from "@/hooks/use-feeds.ts";
 import type { FeedEntry, FeedEntryView, FeedSummary } from "@/lib/api/feeds";
 import { previewImageSrc } from "@/lib/image-url.ts";
 import type { LibraryItem } from "@/lib/store.ts";
@@ -54,7 +49,6 @@ export function FeedsView({
   const overview = useFeedsOverview();
   const feeds = useMemo(() => overview.data?.feeds ?? [], [overview.data]);
   const hasFeeds = feeds.length > 0;
-  useFeedsAutoRefresh(hasFeeds);
   const actions = useFeedActions();
   const selected = feedId ? (feeds.find((f) => f.id === feedId) ?? null) : null;
 
@@ -78,6 +72,7 @@ export function FeedsView({
           <>
             <FeedHeader
               feed={selected}
+              lastRefreshed={lastRefreshed(feeds)}
               actions={actions}
               onUnsubscribed={() => onSelectFeed(null)}
             />
@@ -107,11 +102,21 @@ export function FeedsView({
               </div>
               <div className="flex items-center gap-1">
                 <ToolbarButton
-                  onClick={() => actions.refresh.mutate()}
+                  onClick={() =>
+                    actions.refresh.mutate(selected?.kind === "rss" ? selected.id : null)
+                  }
                   busy={actions.refresh.isPending}
+                  disabled={selected?.kind === "email"}
+                  title={
+                    selected?.kind === "email"
+                      ? "Newsletters arrive by email — nothing to fetch"
+                      : selected
+                        ? "Fetch new entries for this feed"
+                        : "Fetch new entries for every feed"
+                  }
                   icon={<RefreshCcw className="size-3.5" aria-hidden="true" />}
                 >
-                  Refresh
+                  {selected ? "Refresh feed" : "Refresh all"}
                 </ToolbarButton>
                 <ToolbarButton
                   onClick={() => {
@@ -144,11 +149,15 @@ export function FeedsView({
 function ToolbarButton({
   onClick,
   busy,
+  disabled,
+  title,
   icon,
   children,
 }: {
   onClick: () => void;
   busy?: boolean;
+  disabled?: boolean;
+  title?: string;
   icon: React.ReactNode;
   children: React.ReactNode;
 }) {
@@ -156,7 +165,8 @@ function ToolbarButton({
     <button
       type="button"
       onClick={onClick}
-      disabled={busy}
+      title={title}
+      disabled={busy || disabled}
       className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-sans text-xs text-ink-soft transition-colors hover:bg-paper-warm hover:text-ink disabled:opacity-60"
     >
       {busy ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" /> : icon}
@@ -165,12 +175,25 @@ function ToolbarButton({
   );
 }
 
+/** Most recent check across RSS feeds (newsletters arrive on their own). */
+function lastRefreshed(feeds: FeedSummary[]): number | null {
+  let latest: number | null = null;
+  for (const f of feeds) {
+    if (f.kind === "rss" && f.lastFetchedAt && (latest === null || f.lastFetchedAt > latest)) {
+      latest = f.lastFetchedAt;
+    }
+  }
+  return latest;
+}
+
 function FeedHeader({
   feed,
+  lastRefreshed,
   actions,
   onUnsubscribed,
 }: {
   feed: FeedSummary | null;
+  lastRefreshed: number | null;
   actions: ReturnType<typeof useFeedActions>;
   onUnsubscribed: () => void;
 }) {
@@ -184,6 +207,10 @@ function FeedHeader({
         <p className="mt-1 font-body text-sm text-ink-soft">
           Fresh entries from everything you follow. Save one to read it in the reader and highlight
           it like any other work.
+        </p>
+        <p className="mt-1.5 font-sans text-xs text-ink-muted">
+          Feeds update when you press Refresh
+          {lastRefreshed ? ` · last checked ${relativeTime(lastRefreshed)}` : ""}.
         </p>
       </div>
     );
@@ -244,7 +271,7 @@ function FeedHeader({
             {feed.kind === "email" ? "Last issue" : "Checked"} {relativeTime(feed.lastFetchedAt)}
           </span>
         ) : feed.kind === "rss" ? (
-          <span>Waiting for the first check…</span>
+          <span>Not fetched yet — press Refresh feed</span>
         ) : null}
         <button
           type="button"

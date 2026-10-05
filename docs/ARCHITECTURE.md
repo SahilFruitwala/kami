@@ -234,15 +234,15 @@ You can follow hundreds of feeds without the server doing much work.
 | Concern | How it's handled |
 |---|---|
 | Duplicate work | Feeds are **shared rows**. A blog followed by 100 readers is one row and one poll. Only feeds with at least one subscriber are ever polled. Unfollowed feeds are deleted with their entries. |
-| Double polling | A poll **claims** feeds with `FOR UPDATE SKIP LOCKED` and pushes `next_fetch_at` forward 10 minutes as a lease. Overlapping cron runs, tabs or instances never fetch the same feed twice. If a run dies, the lease expires and the feed comes due again. |
+| Double polling | A poll **claims** feeds with `FOR UPDATE SKIP LOCKED` and pushes `next_fetch_at` forward 10 minutes as a lease. Overlapping refreshes, tabs or instances never fetch the same feed twice. If a run dies, the lease expires and the feed comes due again. |
 | Bandwidth | Polls send a **conditional GET** (`If-None-Match` / `If-Modified-Since`), so an unchanged feed costs a `304` with no body. |
-| Poll frequency | **Adaptive per feed**: the interval halves after new posts and grows 1.5× when nothing changed, between 30 minutes and 12 hours. Publisher hints (`<ttl>`, `Cache-Control: max-age`, `Retry-After`) can only slow polling down, never speed it up. ±10% jitter spreads feeds that were added together. |
-| Broken feeds | **Exponential backoff** on errors: 30 min, 1 h, 2 h, and so on up to 24 h. The last error is shown in the UI, and the feed recovers on its own after its next good poll. |
+| Poll frequency | **On demand only**: nothing polls in the background. Each feed still tracks an adaptive schedule (the interval halves after new posts and grows 1.5× when nothing changed, between 30 minutes and 12 hours; publisher hints like `<ttl>`, `Cache-Control: max-age` and `Retry-After` can only lengthen it). The optional sweep hook uses that schedule. |
+| Broken feeds | **Exponential backoff** on errors: 30 min, 1 h, 2 h, and so on up to 24 h. "Refresh all" skips a failing feed until its backoff ends; refreshing that one feed retries it. The last error is shown in the UI, and it clears after the next good poll. |
 | Burst cost | Every run has a **feed cap, a concurrency cap and a wall-clock deadline**. Leases on feeds it didn't reach are released. Bodies are streamed under a 3 MB cap with a per-request timeout. |
-| Manual refresh | The Refresh button never re-polls a feed checked in the last 5 minutes. It shares the `feeds` rate-limit bucket with adding feeds and importing OPML (60 per 10 min per user). |
+| Manual refresh | The Refresh button never re-polls a feed checked in the last 5 minutes. Each request polls at most 20 feeds (5 at a time, 6-second budget) and reports how many remain; the client repeats up to 8 batches. It shares the `feeds` rate-limit bucket with adding feeds and importing OPML (60 per 10 min per user). |
 | Saving | Entries keep the body the feed supplied, stored raw and capped. **Full-text feeds save with no network call at all**: the body is sanitized and built into an article on save. Only teaser feeds (under 150 words) fetch the page, once, through the normal extractor and its `extract` rate limit. |
 | Storage | 100 entries are kept per feed, newest first. Read state is one row per explicit mark. "Mark all read" is a single timestamp per subscription. |
-| Discovery | A known feed URL needs no fetch. A feed URL needs one fetch. A page needs its `<link rel="alternate">` feeds (up to 3), and only after that a few conventional paths, probed in parallel. OPML import registers feeds **without fetching**; the poller picks them up. |
+| Discovery | A known feed URL needs no fetch. A feed URL needs one fetch. A page needs its `<link rel="alternate">` feeds (up to 3), and only after that a few conventional paths, probed in parallel. OPML import registers feeds **without fetching**; the next Refresh fetches them. |
 | SSRF | Every fetch goes through `safeFetch` (`src/lib/fetch-text.server.ts`), which re-validates each redirect hop against the private-address denylist and DNS. |
 
 Unread means: no per-user mark, fetched after the subscription's `cleared_at`,
@@ -251,10 +251,15 @@ years of archives therefore shows recent posts as unread, not the whole archive.
 
 ### When polling happens
 
-1. **Opening `/feeds`** polls *your* due feeds: up to 12, 4 at a time, with a 5-second budget. The page shows stored entries immediately and refetches only if something new arrived.
-2. **Cron**: `GET /api/hooks/feeds` sweeps every due subscribed feed (up to 80 per run, 6 at a time, 25-second budget). `vite.config.ts` (Nitro's Vercel Build Output config) schedules it **daily**, which works on every Vercel plan. On Pro you can raise it, for example to hourly (`0 * * * *`). Any external scheduler (GitHub Actions, cron-job.org, Upstash QStash) can also call it with `Authorization: Bearer $CRON_SECRET`.
+Only when a user asks. There is **no cron and no automatic polling**:
 
-Set `CRON_SECRET` (16+ characters). Vercel Cron sends it automatically. Without it the hook returns `503`.
+- **Refresh all** on `/feeds` fetches every feed you follow that wasn't checked in the last 5 minutes, in batches of 20.
+- **Refresh feed** (with one feed selected) fetches just that feed, retrying it even while it's failing.
+- **Adding a feed** fetches it once while finding it, so its entries appear immediately.
+
+Opening `/feeds` only reads what is already stored. Newsletters need no polling, since they arrive by email.
+
+A sweep endpoint, `GET /api/hooks/feeds`, is kept for later but **nothing schedules it**. It polls every due subscribed feed on its adaptive schedule (up to 80 per run, 6 at a time, 25-second budget). It only answers when `CRON_SECRET` (16+ characters) is set and sent as `Authorization: Bearer …`; otherwise it returns `503`. To bring scheduled polling back, add a Vercel cron for it through Nitro's Vercel options in `vite.config.ts` (`nitro({ preset: "vercel", vercel: { config: { crons: [...] } } })`) or call it from any external scheduler.
 
 ### Newsletters by email
 

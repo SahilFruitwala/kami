@@ -19,16 +19,7 @@ export default defineConfig(({ command, isPreview }) => ({
   plugins: [
     tailwindcss(),
     tanstackStart(),
-    ...(command === "build" || isPreview
-      ? [
-          nitro({
-            preset: "vercel",
-            // Build Output API config: daily feed sweep (works on every Vercel
-            // plan; raise the frequency on Pro). See docs/ARCHITECTURE.md.
-            vercel: { config: { crons: [{ path: "/api/hooks/feeds", schedule: "13 6 * * *" }] } },
-          }),
-        ]
-      : []),
+    ...(command === "build" || isPreview ? [nitro({ preset: "vercel" })] : []),
     viteReact(),
   ],
 }));

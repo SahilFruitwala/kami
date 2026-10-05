@@ -3,8 +3,9 @@ import { hookHandler } from "@/server/hooks";
 import { refreshAllDueFeeds } from "@/server/services/feeds";
 
 /**
- * Scheduled sweep of due feeds (Vercel Cron sends `Authorization: Bearer
- * $CRON_SECRET`). Any external scheduler can call it the same way.
+ * Sweep of every due feed. Not scheduled for now — feeds are fetched on
+ * demand from /feeds. Kept so a scheduler can be added later; it needs
+ * `Authorization: Bearer $CRON_SECRET` and returns 503 while that is unset.
  */
 const sweep = hookHandler("CRON_SECRET", () => refreshAllDueFeeds());
 
