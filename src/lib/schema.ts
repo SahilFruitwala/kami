@@ -105,14 +105,7 @@ export type JournalEntryRow = typeof journalEntries.$inferSelect;
 // ---------- Shelves (TV / Movies / Books / Places / Restaurants / Wishlist) ----------
 // Postgres port of the SQLite shelf app. Snake_case columns keep the import 1:1.
 
-export const ITEM_TYPES = [
-  "restaurant",
-  "movie",
-  "tv",
-  "book",
-  "place",
-  "wishlist",
-] as const;
+export const ITEM_TYPES = ["restaurant", "movie", "tv", "book", "place", "wishlist"] as const;
 export type ItemType = (typeof ITEM_TYPES)[number];
 
 export const LIST_TYPES = [...ITEM_TYPES, "mixed", "trip"] as const;
@@ -167,10 +160,7 @@ export const listMembers = pgTable(
     role: text("role").notNull().default("editor").$type<"owner" | "editor">(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    index("list_members_list_idx").on(t.listId),
-    index("list_members_user_idx").on(t.userId),
-  ],
+  (t) => [index("list_members_list_idx").on(t.listId), index("list_members_user_idx").on(t.userId)],
 );
 
 function shelfBase() {
@@ -485,6 +475,52 @@ export const newsletterInboxes = pgTable(
 export type FeedRow = typeof feeds.$inferSelect;
 export type FeedEntryRow = typeof feedEntries.$inferSelect;
 
+// ---------- Extracts (Firecrawl page questions) ----------
+// Snake_case columns match `migrations/0010_extracts.sql`.
+
+export const EXTRACT_RESULT_STATUSES = ["pending", "accepted"] as const;
+export type ExtractResultStatus = (typeof EXTRACT_RESULT_STATUSES)[number];
+
+export const extractSources = pgTable(
+  "extract_sources",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    question: text("question").notNull(),
+    lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("extract_sources_user_idx").on(t.userId, t.createdAt)],
+);
+
+export const extractResults = pgTable(
+  "extract_results",
+  {
+    id: text("id").primaryKey(),
+    sourceId: text("source_id")
+      .notNull()
+      .references(() => extractSources.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    status: text("status").$type<ExtractResultStatus>().notNull().default("pending"),
+    markdown: text("markdown").notNull(),
+    url: text("url").notNull(),
+    question: text("question").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  },
+  (t) => [index("extract_results_source_idx").on(t.sourceId, desc(t.createdAt))],
+);
+
+export type ExtractSourceRow = typeof extractSources.$inferSelect;
+export type ExtractResultRow = typeof extractResults.$inferSelect;
+
 export const schema = {
   user,
   folders,
@@ -512,4 +548,6 @@ export const schema = {
   feedEntries,
   feedEntryStates,
   newsletterInboxes,
+  extractSources,
+  extractResults,
 };

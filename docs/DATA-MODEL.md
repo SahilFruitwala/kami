@@ -145,6 +145,15 @@ See [Feeds & newsletters](./ARCHITECTURE.md#feeds--newsletters) for the polling 
 | `feed_entry_states` | Per-user `read` / `saved` marks (absence = unread) |
 | `newsletter_inboxes` | One secret inbound-email token per user (unique) |
 
+### Extracts — `extract_sources`, `extract_results`
+
+See [Extracts (Firecrawl)](./ARCHITECTURE.md#extracts-firecrawl).
+
+| Table | Role |
+|-------|------|
+| `extract_sources` | Per-user saved question: `name`, `url`, `question`, `last_run_at`, `last_error` |
+| `extract_results` | Firecrawl's Markdown answer. `status` is `pending` (awaiting review — at most one per source, partial unique index) or `accepted`. Snapshots the `url` / `question` used so history survives edits. Discarded results are deleted |
+
 Highlight notes (inside `articles.highlights` jsonb) are capped at 1000 chars (`HIGHLIGHT_NOTE_MAX`).
 
 ### Misc
