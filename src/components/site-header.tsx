@@ -9,6 +9,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Rss,
+  ScanSearch,
   Settings as SettingsIcon,
   Tv,
 } from "lucide-react";
@@ -23,6 +24,7 @@ export type SitePane =
   | "home"
   | "library"
   | "feeds"
+  | "extracts"
   | "vault"
   | "movies"
   | "series"
@@ -36,6 +38,7 @@ type Pane = {
     | "/app"
     | "/library"
     | "/feeds"
+    | "/extracts"
     | "/vault"
     | "/shelves/movies"
     | "/shelves/series"
@@ -50,6 +53,7 @@ const SANCTUARY_PANES: Pane[] = [
   { id: "home", to: "/app", label: "Home", icon: House },
   { id: "library", to: "/library", label: "Library", icon: LibraryBig },
   { id: "feeds", to: "/feeds", label: "Feeds", icon: Rss },
+  { id: "extracts", to: "/extracts", label: "Extracts", icon: ScanSearch },
   { id: "vault", to: "/vault", label: "Vault", icon: Bookmark },
 ];
 
@@ -176,12 +180,13 @@ export function SiteHeader({
               {KAMI_GLYPH}
             </span>
             <span className="leading-none">
-              <span className="block font-display text-base font-semibold tracking-tight text-ink" translate="no">
+              <span
+                className="block font-display text-base font-semibold tracking-tight text-ink"
+                translate="no"
+              >
                 KAMI
               </span>
-              <span className="kami-label mt-0.5 block text-ink-muted">
-                Washi &amp; Thought
-              </span>
+              <span className="kami-label mt-0.5 block text-ink-muted">Washi &amp; Thought</span>
             </span>
           </Link>
           {onToggleSidebar ? (
@@ -246,7 +251,12 @@ export function SiteHeader({
       </aside>
 
       {/* Slim utility top bar (desktop) */}
-      <div className={cn("sticky top-0 z-30 hidden border-b border-line bg-paper/90 backdrop-blur-xl lg:block", topBarPad)}>
+      <div
+        className={cn(
+          "sticky top-0 z-30 hidden border-b border-line bg-paper/90 backdrop-blur-xl lg:block",
+          topBarPad,
+        )}
+      >
         <div className="flex h-14 items-center gap-3 px-6">
           {sidebarCollapsed && onToggleSidebar ? (
             <button
@@ -283,14 +293,21 @@ export function SiteHeader({
       {/* Mobile top row */}
       <div className="sticky top-0 z-40 border-b border-line bg-paper/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl lg:hidden">
         <div className="flex h-14 items-center justify-between gap-3 px-[max(1rem,env(safe-area-inset-left))]">
-          <Link to="/app" className="flex items-center gap-2 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40" aria-label="Kami home">
+          <Link
+            to="/app"
+            className="flex items-center gap-2 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            aria-label="Kami home"
+          >
             <span
               className="kami-hanko flex size-7 items-center justify-center rounded-[0.25rem] font-display text-xs font-bold leading-none"
               lang="ja"
             >
               {KAMI_GLYPH}
             </span>
-            <span className="font-display text-base font-semibold tracking-tight text-ink" translate="no">
+            <span
+              className="font-display text-base font-semibold tracking-tight text-ink"
+              translate="no"
+            >
               KAMI
             </span>
           </Link>
@@ -356,7 +373,9 @@ function PaneLink({
       aria-current={active ? "page" : undefined}
       className={cn(
         "flex items-center gap-2 rounded-[0.25rem] px-2 py-2 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
-        active ? "bg-paper-warm font-semibold text-ink" : "font-medium text-ink-muted hover:text-ink",
+        active
+          ? "bg-paper-warm font-semibold text-ink"
+          : "font-medium text-ink-muted hover:text-ink",
       )}
     >
       {children}
@@ -372,9 +391,7 @@ function SignedName() {
         <span className="block truncate font-sans text-xs font-semibold text-ink">
           {user?.displayName ?? "Sanctuary"}
         </span>
-        <span className="block font-sans text-[11px] text-ink-muted">
-          In deep focus
-        </span>
+        <span className="block font-sans text-[11px] text-ink-muted">In deep focus</span>
       </Show>
       <Show when="signed-out">
         <span className="block font-sans text-xs font-semibold text-ink">Guest</span>

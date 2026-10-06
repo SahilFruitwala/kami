@@ -21,6 +21,8 @@ export const RATE_LIMITS = {
   image: { limit: 600, windowSeconds: 60 },
   /** Feed adds (discovery fetches) and manual refreshes. */
   feeds: { limit: 60, windowSeconds: 600 },
+  /** Firecrawl extract runs (each one spends paid Firecrawl credits). */
+  firecrawl: { limit: 30, windowSeconds: 3600 },
   /** Inbound newsletter emails stored per user. */
   inbound: { limit: 300, windowSeconds: 86_400 },
 } as const;

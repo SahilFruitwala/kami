@@ -59,6 +59,8 @@ embedded fallback.
 | `VITE_PUBLIC_HOSTNAME` | optional | Public host for OG / share cards |
 | `CRON_SECRET` | optional | Bearer secret for the (unscheduled) feed sweep hook `/api/hooks/feeds` ([Feeds](./ARCHITECTURE.md#feeds--newsletters)) |
 | `INBOUND_EMAIL_DOMAIN` / `INBOUND_EMAIL_SECRET` | optional | Private newsletter addresses + inbound-email webhook secret ([Feeds](./ARCHITECTURE.md#feeds--newsletters)) |
+| `FIRECRAWL_API_KEY` | for `/extracts` | Firecrawl API key; without it extracts can be saved but not run ([Extracts](./ARCHITECTURE.md#extracts-firecrawl)) |
+| `FIRECRAWL_API_URL` | optional | Self-hosted Firecrawl base URL (default `https://api.firecrawl.dev`) |
 
 Env loading: `scripts/with-app-env.mjs` and `scripts/load-dotenv.mjs` load `.env` then `.env.local` before Vite/build/migrate. Never commit `.env`.
 

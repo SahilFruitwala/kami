@@ -342,6 +342,51 @@ the newsletter's site as a feed needs no email setup at all.
 
 ---
 
+## Extracts (Firecrawl)
+
+`/extracts` asks a web page a question and keeps the answers you approve. For
+example: *Product Hunt — "the best products launched this week and this month,
+with name, link and category"*.
+
+1. **Save a source**: a URL plus a plain-English question (and an optional name).
+   Sources are private to one user, up to 50 each.
+2. **Run it** (on demand only — nothing is scheduled). The server calls
+   Firecrawl `POST /v2/scrape` with the [`question` format](https://www.firecrawl.dev/blog/question-format-launch):
+
+   ```json
+   {
+     "url": "https://www.producthunt.com/",
+     "onlyMainContent": true,
+     "maxAge": 172800000,
+     "parsers": ["pdf"],
+     "formats": [{ "type": "question", "question": "…" }]
+   }
+   ```
+
+   **Run** reuses Firecrawl's cached copy of the page when it is under 2 days old
+   (cheaper, faster). **Run live** sends `maxAge: 0` for a fresh fetch.
+3. **Review**: the Markdown answer is stored as the source's single `pending`
+   result and shown rendered. **Accept** keeps it in the source's history;
+   **Discard** deletes it. Running again before reviewing replaces the pending one.
+
+| Concern | Approach |
+|---|---|
+| Cost | Every run spends Firecrawl credits, so runs share a `firecrawl` rate-limit bucket (30 per hour per user). Nothing runs on page load. |
+| Key | One server-wide `FIRECRAWL_API_KEY`; never sent to the browser. Without it the page explains the setup and Run is disabled. `FIRECRAWL_API_URL` points at a self-hosted Firecrawl. |
+| Rendering | Answers are stored as raw Markdown and rendered with `markdownToHtml` + `sanitizeHtml` on read, so the browser only ever receives sanitized HTML (plus the Markdown for "Copy Markdown"). |
+| Failures | A failed run records `last_error` on the source (shown in the UI) and keeps any earlier pending result. Upstream auth / credit errors are reported generically. |
+| URLs | Same public-http(s) check as article capture (`assertPublicHttpUrl`); the fetch itself happens on Firecrawl's side. |
+
+| Path | Role |
+|---|---|
+| `src/lib/firecrawl.server.ts` | Request builder, response parser (pure, tested), `askPage` |
+| `src/server/services/extracts.ts` | Sources, runs, accept / discard, history |
+| `src/routes/api/extracts/**` | HTTP routes |
+| `src/hooks/use-extracts.ts`, `src/components/extracts/*` | `/extracts` UI (React Query) |
+| `migrations/0010_extracts.sql` | `extract_sources`, `extract_results` |
+
+---
+
 ## Caching
 
 `src/lib/cache.server.ts` — enabled only when both Upstash env vars are set.

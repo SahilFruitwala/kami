@@ -29,6 +29,11 @@ export function getAppQueryClient() {
 }
 
 export const queryKeys = {
+  extracts: {
+    all: ["extracts"] as const,
+    overview: () => [...queryKeys.extracts.all, "overview"] as const,
+    results: (sourceId: string) => [...queryKeys.extracts.all, "results", sourceId] as const,
+  },
   feeds: {
     all: ["feeds"] as const,
     overview: () => [...queryKeys.feeds.all, "overview"] as const,
@@ -39,12 +44,7 @@ export const queryKeys = {
   shelves: {
     all: ["shelves"] as const,
     counts: () => [...queryKeys.shelves.all, "counts"] as const,
-    list: (args: {
-      type: ShelfTab;
-      status?: ItemStatus;
-      query: string;
-      limit: number;
-    }) =>
+    list: (args: { type: ShelfTab; status?: ItemStatus; query: string; limit: number }) =>
       [
         ...queryKeys.shelves.all,
         "list",
@@ -53,10 +53,8 @@ export const queryKeys = {
         args.query,
         args.limit,
       ] as const,
-    detail: (type: ShelfTab, id: string) =>
-      [...queryKeys.shelves.all, "detail", type, id] as const,
-    seasons: (itemId: string) =>
-      [...queryKeys.shelves.all, "seasons", itemId] as const,
+    detail: (type: ShelfTab, id: string) => [...queryKeys.shelves.all, "detail", type, id] as const,
+    seasons: (itemId: string) => [...queryKeys.shelves.all, "seasons", itemId] as const,
     episodes: (itemId: string, season: number) =>
       [...queryKeys.shelves.all, "episodes", itemId, season] as const,
   },
