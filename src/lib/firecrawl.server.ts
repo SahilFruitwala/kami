@@ -6,7 +6,7 @@
  * parser can be unit-tested (scripts/firecrawl.test.mjs).
  */
 
-const DEFAULT_API_URL = "https://api.firecrawl.dev";
+export const FIRECRAWL_SCRAPE_URL = "https://api.firecrawl.dev/v2/scrape";
 /** Reuse a Firecrawl-cached copy of the page up to this old (2 days). */
 export const DEFAULT_MAX_AGE_MS = 172_800_000;
 /** Firecrawl scrapes can take a while (JS rendering + LLM answer). */
@@ -77,11 +77,6 @@ export function firecrawlApiKey(): string | null {
   return process.env.FIRECRAWL_API_KEY?.trim() || null;
 }
 
-/** `FIRECRAWL_API_URL` points at a self-hosted Firecrawl; defaults to the cloud API. */
-export function scrapeEndpoint(base = process.env.FIRECRAWL_API_URL): string {
-  return `${(base?.trim() || DEFAULT_API_URL).replace(/\/+$/, "")}/v2/scrape`;
-}
-
 /** Ask Firecrawl a question about one page; resolves to the Markdown answer. */
 export async function askPage(req: QuestionRequest): Promise<string> {
   const key = firecrawlApiKey();
@@ -89,7 +84,7 @@ export async function askPage(req: QuestionRequest): Promise<string> {
 
   let res: Response;
   try {
-    res = await fetch(scrapeEndpoint(), {
+    res = await fetch(FIRECRAWL_SCRAPE_URL, {
       method: "POST",
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
       body: JSON.stringify(buildQuestionBody(req)),

@@ -372,7 +372,7 @@ with name, link and category"*.
 | Concern | Approach |
 |---|---|
 | Cost | Every run spends Firecrawl credits, so runs share a `firecrawl` rate-limit bucket (30 per hour per user). Nothing runs on page load. |
-| Key | One server-wide `FIRECRAWL_API_KEY`; never sent to the browser. Without it the page explains the setup and Run is disabled. `FIRECRAWL_API_URL` points at a self-hosted Firecrawl. |
+| Key | One server-wide `FIRECRAWL_API_KEY`; never sent to the browser. Without it the page explains the setup and Run is disabled. |
 | Rendering | Answers are stored as raw Markdown and rendered with `markdownToHtml` + `sanitizeHtml` on read, so the browser only ever receives sanitized HTML (plus the Markdown for "Copy Markdown"). |
 | Failures | A failed run records `last_error` on the source (shown in the UI) and keeps any earlier pending result. Upstream auth / credit errors are reported generically. |
 | URLs | Same public-http(s) check as article capture (`assertPublicHttpUrl`); the fetch itself happens on Firecrawl's side. |
