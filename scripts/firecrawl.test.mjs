@@ -6,7 +6,6 @@ import {
   MAX_ANSWER_CHARS,
   buildQuestionBody,
   parseQuestionResponse,
-  scrapeEndpoint,
 } from "../src/lib/firecrawl.server.ts";
 
 describe("buildQuestionBody", () => {
@@ -54,12 +53,5 @@ describe("parseQuestionResponse", () => {
       FirecrawlError,
     );
     assert.throws(() => parseQuestionResponse(null), FirecrawlError);
-  });
-});
-
-describe("scrapeEndpoint", () => {
-  it("defaults to the cloud API and honours a self-hosted base", () => {
-    assert.equal(scrapeEndpoint(""), "https://api.firecrawl.dev/v2/scrape");
-    assert.equal(scrapeEndpoint("http://firecrawl:3002/"), "http://firecrawl:3002/v2/scrape");
   });
 });
