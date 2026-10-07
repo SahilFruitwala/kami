@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { type MouseEvent, type ReactNode } from "react";
+import { type MouseEvent, type ReactNode, useState } from "react";
 import { toast } from "sonner";
 import { Check, LoaderCircle } from "lucide-react";
 import { Hanko, WashiTag } from "@/components/kami.tsx";
@@ -47,17 +47,22 @@ export function ShelfTile({
     }
   }
 
+  // A cover that fails to load (e.g. no Open Library cover) falls back to the initial.
+  const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
+  const cover = item.imageUrl && item.imageUrl !== brokenSrc ? item.imageUrl : null;
+
   return (
     <article className="kami-sheet group flex flex-col overflow-hidden transition-transform hover:-translate-y-0.5">
       <OpenArea tab={tab} id={item.id} onOpen={onOpen}>
         <div className="poster-frame relative aspect-[2/3] w-full overflow-hidden bg-paper-warm">
-          {item.imageUrl ? (
+          {cover ? (
             <img
-              src={item.imageUrl}
+              src={cover}
               alt=""
               width={300}
               height={450}
               loading="lazy"
+              onError={() => setBrokenSrc(cover)}
               className={cn(
                 "size-full object-cover",
                 item.status === "abandoned" && "opacity-60 grayscale",
