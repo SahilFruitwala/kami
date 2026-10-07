@@ -52,6 +52,7 @@ import { Route as ApiLibraryItemsIdRouteImport } from './routes/api/library/item
 import { Route as ApiShelvesTypeIndexRouteImport } from './routes/api/shelves/$type/index'
 import { Route as ApiShelvesTypeIdRouteImport } from './routes/api/shelves/$type/$id'
 import { Route as ApiShelvesTypeDuplicatesRouteImport } from './routes/api/shelves/$type/duplicates'
+import { Route as ApiShelvesBookImportRouteImport } from './routes/api/shelves/book/import'
 import { Route as ApiShelvesBookIdPageCountRouteImport } from './routes/api/shelves/book/$id/page-count'
 import { Route as ApiShelvesBookIdProgressRouteImport } from './routes/api/shelves/book/$id/progress'
 import { Route as ApiShelvesTvIdWatchedRouteImport } from './routes/api/shelves/tv/$id/watched'
@@ -275,6 +276,11 @@ const ApiShelvesTypeDuplicatesRoute =
     path: '/api/shelves/$type/duplicates',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiShelvesBookImportRoute = ApiShelvesBookImportRouteImport.update({
+  id: '/api/shelves/book/import',
+  path: '/api/shelves/book/import',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiShelvesBookIdPageCountRoute =
   ApiShelvesBookIdPageCountRouteImport.update({
     id: '/api/shelves/book/$id/page-count',
@@ -352,6 +358,7 @@ export interface FileRoutesByFullPath {
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
+  '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
   '/api/shelves/$type/': typeof ApiShelvesTypeIndexRoute
@@ -402,6 +409,7 @@ export interface FileRoutesByTo {
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
+  '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
   '/api/library/folders': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items': typeof ApiLibraryItemsIndexRoute
   '/api/shelves/$type': typeof ApiShelvesTypeIndexRoute
@@ -454,6 +462,7 @@ export interface FileRoutesById {
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
+  '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
   '/api/shelves/$type/': typeof ApiShelvesTypeIndexRoute
@@ -507,6 +516,7 @@ export interface FileRouteTypes {
     | '/api/library/items/$id'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
+    | '/api/shelves/book/import'
     | '/api/library/folders/'
     | '/api/library/items/'
     | '/api/shelves/$type/'
@@ -557,6 +567,7 @@ export interface FileRouteTypes {
     | '/api/library/items/$id'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
+    | '/api/shelves/book/import'
     | '/api/library/folders'
     | '/api/library/items'
     | '/api/shelves/$type'
@@ -608,6 +619,7 @@ export interface FileRouteTypes {
     | '/api/library/items/$id'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
+    | '/api/shelves/book/import'
     | '/api/library/folders/'
     | '/api/library/items/'
     | '/api/shelves/$type/'
@@ -652,6 +664,7 @@ export interface RootRouteChildren {
   ApiLibraryItemsIdRoute: typeof ApiLibraryItemsIdRoute
   ApiShelvesTypeIdRoute: typeof ApiShelvesTypeIdRoute
   ApiShelvesTypeDuplicatesRoute: typeof ApiShelvesTypeDuplicatesRoute
+  ApiShelvesBookImportRoute: typeof ApiShelvesBookImportRoute
   ApiLibraryFoldersIndexRoute: typeof ApiLibraryFoldersIndexRoute
   ApiLibraryItemsIndexRoute: typeof ApiLibraryItemsIndexRoute
   ApiShelvesTypeIndexRoute: typeof ApiShelvesTypeIndexRoute
@@ -966,6 +979,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiShelvesTypeDuplicatesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/shelves/book/import': {
+      id: '/api/shelves/book/import'
+      path: '/api/shelves/book/import'
+      fullPath: '/api/shelves/book/import'
+      preLoaderRoute: typeof ApiShelvesBookImportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/shelves/book/$id/page-count': {
       id: '/api/shelves/book/$id/page-count'
       path: '/api/shelves/book/$id/page-count'
@@ -1070,6 +1090,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLibraryItemsIdRoute: ApiLibraryItemsIdRoute,
   ApiShelvesTypeIdRoute: ApiShelvesTypeIdRoute,
   ApiShelvesTypeDuplicatesRoute: ApiShelvesTypeDuplicatesRoute,
+  ApiShelvesBookImportRoute: ApiShelvesBookImportRoute,
   ApiLibraryFoldersIndexRoute: ApiLibraryFoldersIndexRoute,
   ApiLibraryItemsIndexRoute: ApiLibraryItemsIndexRoute,
   ApiShelvesTypeIndexRoute: ApiShelvesTypeIndexRoute,

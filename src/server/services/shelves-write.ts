@@ -394,3 +394,102 @@ export async function setBookProgress(
   await invalidateUserCache(userId);
   return { status, percent: finished ? 100 : Math.min(percent, 99) };
 }
+
+/** `POST /api/shelves/book/import` — rows parsed client-side from a Goodreads export. */
+export const importBooksBody = z.object({
+  books: z
+    .array(
+      z.object({
+        title: z.string().trim().min(1).max(500),
+        author: z.string().trim().max(300).optional(),
+        isbn: z
+          .string()
+          .regex(/^(\d{9}[\dX]|\d{13})$/)
+          .optional(),
+        year: z.number().int().min(1).max(3000).optional(),
+        pages: z.number().int().min(1).max(100_000).optional(),
+        status: shelfStatus,
+        rating: z.number().int().min(1).max(5).optional(),
+        goodreadsId: z.string().regex(/^\d{1,20}$/).optional(),
+        dateAdded: z.iso.date().optional(),
+        dateRead: z.iso.date().optional(),
+        review: z.string().max(20_000).optional(),
+      }),
+    )
+    .max(10_000),
+});
+
+const IMPORT_CHUNK = 500;
+
+/**
+ * Bulk-add books from a Goodreads export to the user's default book shelf.
+ * Skips books already there (same normalized title and author) and repeats
+ * inside the file, so re-importing the same export is a no-op.
+ */
+export async function importBooks(
+  userId: string,
+  data: z.output<typeof importBooksBody>,
+): Promise<{ imported: number; skipped: number }> {
+  const db = await getDb();
+  const listId = await getOrCreateDefaultList(userId, "book");
+  const key = (title: string, author: string | null | undefined) =>
+    `${normalizeTitle(title)}\u0000${normalizeTitle(author ?? "")}`;
+
+  const existing = await db
+    .select({ title: books.title, author: books.author })
+    .from(books)
+    .where(eq(books.listId, listId));
+  const seen = new Set(existing.map((b) => key(b.title, b.author)));
+
+  const rows: (typeof books.$inferInsert)[] = [];
+  for (const b of data.books) {
+    const k = key(b.title, b.author);
+    if (seen.has(k)) continue;
+    seen.add(k);
+    const done = b.status === "done";
+    const added = b.dateAdded ? new Date(b.dateAdded) : new Date();
+    const extraMetadata: Record<string, string> = { source: "goodreads" };
+    if (b.isbn) extraMetadata.isbn = b.isbn;
+    if (b.rating) extraMetadata.rating = String(b.rating);
+    if (b.goodreadsId) extraMetadata.goodreadsId = b.goodreadsId;
+    rows.push({
+      id: crypto.randomUUID(),
+      listId,
+      title: b.title,
+      normalizedTitle: normalizeTitle(b.title),
+      notes: b.review ?? null,
+      link: b.goodreadsId ? `https://www.goodreads.com/book/show/${b.goodreadsId}` : null,
+      imageUrl: b.isbn ? `https://covers.openlibrary.org/b/isbn/${b.isbn}-M.jpg` : null,
+      status: b.status,
+      extraMetadata,
+      addedBy: userId,
+      createdAt: added,
+      completedAt: done ? (b.dateRead ? new Date(b.dateRead) : added) : null,
+      author: b.author ?? null,
+      publishYear: b.year ?? null,
+      pageCount: b.pages ?? null,
+      currentPage: done && b.pages ? b.pages : null,
+      progressPercent: done ? 100 : 0,
+    });
+  }
+
+  if (rows.length > 0) {
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < rows.length; i += IMPORT_CHUNK) {
+        await tx.insert(books).values(rows.slice(i, i + IMPORT_CHUNK));
+      }
+      // One activity entry for the batch rather than one per book.
+      await tx.insert(activity).values({
+        id: crypto.randomUUID(),
+        listId,
+        userId,
+        action: "added",
+        itemTitle: `${rows.length} ${rows.length === 1 ? "book" : "books"} from Goodreads`,
+        itemType: "book",
+      });
+    });
+    await invalidateUserCache(userId);
+  }
+
+  return { imported: rows.length, skipped: data.books.length - rows.length };
+}
