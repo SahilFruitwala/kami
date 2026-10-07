@@ -5,16 +5,20 @@ import { Check, LoaderCircle } from "lucide-react";
 import { Hanko, WashiTag } from "@/components/kami.tsx";
 import { useSetShelfItemStatus, useSetShowWatched } from "@/hooks/use-shelf-queries.ts";
 import { type ShelfCard, type ShelfTab } from "@/lib/shelves.ts";
+import type { ShelvesSearch } from "@/lib/shelves-search.ts";
 import { cn } from "@/lib/utils.ts";
 import { statusLabels, statusText } from "@/lib/shelf-labels.ts";
 
 export function ShelfTile({
   item,
   tab,
+  listSearch,
   onOpen,
 }: {
   item: ShelfCard;
   tab: ShelfTab;
+  /** Current shelf filters, handed to the detail page so Back returns to them. */
+  listSearch: ShelvesSearch;
   onOpen: () => void;
 }) {
   const setStatus = useSetShelfItemStatus();
@@ -53,7 +57,7 @@ export function ShelfTile({
 
   return (
     <article className="kami-sheet group flex flex-col overflow-hidden transition-transform hover:-translate-y-0.5">
-      <OpenArea tab={tab} id={item.id} onOpen={onOpen}>
+      <OpenArea tab={tab} id={item.id} listSearch={listSearch} onOpen={onOpen}>
         <div className="poster-frame relative aspect-[2/3] w-full overflow-hidden bg-paper-warm">
           {cover ? (
             <img
@@ -169,29 +173,31 @@ const OPEN_CLASS =
 function OpenArea({
   tab,
   id,
+  listSearch,
   onOpen,
   children,
 }: {
   tab: ShelfTab;
   id: string;
+  listSearch: ShelvesSearch;
   onOpen: () => void;
   children: ReactNode;
 }) {
   if (tab === "movie")
     return (
-      <Link to="/shelves/movies/$id" params={{ id }} className={OPEN_CLASS}>
+      <Link to="/shelves/movies/$id" params={{ id }} search={listSearch} className={OPEN_CLASS}>
         {children}
       </Link>
     );
   if (tab === "tv")
     return (
-      <Link to="/shelves/series/$id" params={{ id }} className={OPEN_CLASS}>
+      <Link to="/shelves/series/$id" params={{ id }} search={listSearch} className={OPEN_CLASS}>
         {children}
       </Link>
     );
   if (tab === "book")
     return (
-      <Link to="/shelves/books/$id" params={{ id }} className={OPEN_CLASS}>
+      <Link to="/shelves/books/$id" params={{ id }} search={listSearch} className={OPEN_CLASS}>
         {children}
       </Link>
     );

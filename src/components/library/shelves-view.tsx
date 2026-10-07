@@ -129,6 +129,11 @@ export function ShelvesView({ tab, search }: { tab: ShelfTab; search: ShelvesSea
   }, [tab, status, deferredQuery]);
 
   const shelfCount = counts?.[tab] ?? null;
+  // Omit the shelf's default filter from the URL.
+  const listSearch: ShelvesSearch = {
+    q: query ? query : undefined,
+    status: status === defaultStatus(tab) ? undefined : status,
+  };
 
   return (
     <AppShell active={activeMeta.pane} onOpenItem={() => undefined}>
@@ -279,6 +284,7 @@ export function ShelvesView({ tab, search }: { tab: ShelfTab; search: ShelvesSea
                   key={item.id}
                   item={item}
                   tab={tab}
+                  listSearch={listSearch}
                   onOpen={() => setDetailId(item.id)}
                 />
               ))}
