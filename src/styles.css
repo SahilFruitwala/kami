@@ -576,16 +576,84 @@
   margin: 1.6em 0;
 }
 
+/* Highlight inks — each color gets its own wash. The --hl custom
+   property carries the tint so <mark>s in the reader and quotes in the
+   highlights list stay in sync. Legacy ids (amber, lemon, …) keep a
+   matching hue so older highlights still render distinctly. */
 .reader-body mark,
-.reader-body mark[data-color="amber"],
-.reader-body mark[data-color="lemon"],
-.reader-body mark[data-color="mint"],
-.reader-body mark[data-color="sky"],
-.reader-body mark[data-color="rose"],
+.hl-quote {
+  --hl: rgba(200, 75, 49, 0.22);
+}
 .reader-body mark[data-color="vermilion"],
+.hl-quote[data-hl="vermilion"] {
+  --hl: rgba(200, 75, 49, 0.22);
+}
 .reader-body mark[data-color="bamboo"],
-.reader-body mark[data-color="sumi"] {
-  background: rgba(156, 74, 48, 0.22);
+.hl-quote[data-hl="bamboo"] {
+  --hl: rgba(110, 125, 106, 0.3);
+}
+.reader-body mark[data-color="sumi"],
+.hl-quote[data-hl="sumi"] {
+  --hl: rgba(67, 64, 58, 0.2);
+}
+.reader-body mark[data-color="amber"],
+.hl-quote[data-hl="amber"] {
+  --hl: rgba(214, 150, 40, 0.28);
+}
+.reader-body mark[data-color="lemon"],
+.hl-quote[data-hl="lemon"] {
+  --hl: rgba(230, 205, 60, 0.32);
+}
+.reader-body mark[data-color="mint"],
+.hl-quote[data-hl="mint"] {
+  --hl: rgba(80, 170, 130, 0.26);
+}
+.reader-body mark[data-color="sky"],
+.hl-quote[data-hl="sky"] {
+  --hl: rgba(80, 140, 200, 0.24);
+}
+.reader-body mark[data-color="rose"],
+.hl-quote[data-hl="rose"] {
+  --hl: rgba(210, 100, 130, 0.24);
+}
+
+.dark .reader-body mark,
+.dark .hl-quote,
+.dark .reader-body mark[data-color="vermilion"],
+.dark .hl-quote[data-hl="vermilion"] {
+  --hl: rgba(226, 110, 80, 0.26);
+}
+.dark .reader-body mark[data-color="bamboo"],
+.dark .hl-quote[data-hl="bamboo"] {
+  --hl: rgba(150, 175, 140, 0.26);
+}
+.dark .reader-body mark[data-color="sumi"],
+.dark .hl-quote[data-hl="sumi"] {
+  --hl: rgba(220, 212, 200, 0.18);
+}
+.dark .reader-body mark[data-color="amber"],
+.dark .hl-quote[data-hl="amber"] {
+  --hl: rgba(230, 170, 70, 0.26);
+}
+.dark .reader-body mark[data-color="lemon"],
+.dark .hl-quote[data-hl="lemon"] {
+  --hl: rgba(235, 215, 90, 0.24);
+}
+.dark .reader-body mark[data-color="mint"],
+.dark .hl-quote[data-hl="mint"] {
+  --hl: rgba(110, 200, 160, 0.24);
+}
+.dark .reader-body mark[data-color="sky"],
+.dark .hl-quote[data-hl="sky"] {
+  --hl: rgba(110, 165, 225, 0.26);
+}
+.dark .reader-body mark[data-color="rose"],
+.dark .hl-quote[data-hl="rose"] {
+  --hl: rgba(230, 125, 155, 0.26);
+}
+
+.reader-body mark {
+  background: var(--hl);
   color: inherit;
   padding: 0;
   margin: 0;
@@ -593,42 +661,16 @@
   border-radius: 0;
   cursor: pointer;
 }
-
-/* Dark mode = same muted wash. */
-.dark .reader-body mark,
-.dark .reader-body mark[data-color="amber"],
-.dark .reader-body mark[data-color="lemon"],
-.dark .reader-body mark[data-color="mint"],
-.dark .reader-body mark[data-color="sky"],
-.dark .reader-body mark[data-color="rose"],
-.dark .reader-body mark[data-color="vermilion"],
-.dark .reader-body mark[data-color="bamboo"],
-.dark .reader-body mark[data-color="sumi"] {
-  background: rgba(208, 138, 94, 0.2);
+.dark .reader-body mark {
   color: #f0e8de;
 }
 
-/* Highlights list quotes — muted wash. */
-.hl-quote[data-hl="amber"],
-.hl-quote[data-hl="lemon"],
-.hl-quote[data-hl="mint"],
-.hl-quote[data-hl="sky"],
-.hl-quote[data-hl="rose"],
-.hl-quote[data-hl="vermilion"],
-.hl-quote[data-hl="bamboo"],
-.hl-quote[data-hl="sumi"] {
-  background: rgba(156, 74, 48, 0.12);
+/* Highlights list quotes — same ink as the reader. */
+.hl-quote {
+  background: var(--hl);
   color: var(--color-ink);
 }
-.dark .hl-quote[data-hl="amber"],
-.dark .hl-quote[data-hl="lemon"],
-.dark .hl-quote[data-hl="mint"],
-.dark .hl-quote[data-hl="sky"],
-.dark .hl-quote[data-hl="rose"],
-.dark .hl-quote[data-hl="vermilion"],
-.dark .hl-quote[data-hl="bamboo"],
-.dark .hl-quote[data-hl="sumi"] {
-  background: rgba(208, 138, 94, 0.11);
+.dark .hl-quote {
   color: #e3dcd3;
 }
 
