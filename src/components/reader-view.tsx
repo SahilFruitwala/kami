@@ -30,12 +30,14 @@ export function ReaderView({
   article,
   onBack,
   onArchive,
+  onDelete,
   onOpenItem,
 }: {
   item: LibraryItem;
   article: Article;
   onBack: () => void;
   onArchive: () => void;
+  onDelete: () => void;
   onOpenItem?: (item: LibraryItem) => void;
 }) {
   const bodyRef = useRef<HTMLDivElement>(null);
@@ -371,6 +373,10 @@ export function ReaderView({
           }}
           onTogglePrefs={() => setPrefsOpen((open) => !open)}
           onArchive={onArchive}
+          onDelete={() => {
+            tts.stopTts();
+            onDelete();
+          }}
           onTtsRate={tts.setTtsRate}
           onTtsVoice={tts.setTtsVoiceURI}
           prefsPanel={

@@ -6,6 +6,7 @@ import {
   Play,
   Square,
   Star,
+  Trash2,
   Type,
 } from "lucide-react";
 import type { TtsStatus } from "@/lib/tts.ts";
@@ -34,6 +35,7 @@ type ReaderHeaderProps = {
   onToggleFavorite: () => void;
   onTogglePrefs: () => void;
   onArchive: () => void;
+  onDelete: () => void;
   onTtsRate: (rate: number) => void;
   onTtsVoice: (uri: string) => void;
   prefsPanel: React.ReactNode;
@@ -57,6 +59,7 @@ export function ReaderHeader({
   onToggleFavorite,
   onTogglePrefs,
   onArchive,
+  onDelete,
   onTtsRate,
   onTtsVoice,
   prefsPanel,
@@ -143,6 +146,16 @@ export function ReaderHeader({
               <Archive className="size-4" aria-hidden="true" />
             )}
             <span className="hidden sm:inline">{archived ? "Inbox" : "Archive"}</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Delete article"
+            title="Delete article"
+            className="hover:text-hanko"
+            onClick={onDelete}
+          >
+            <Trash2 className="size-4" aria-hidden="true" />
           </Button>
         </div>
       </nav>

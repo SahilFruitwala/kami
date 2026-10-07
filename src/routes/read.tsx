@@ -51,6 +51,7 @@ function Read() {
   );
   const archiveItem = useLibraryStore((s) => s.archiveItem);
   const upsertItem = useLibraryStore((s) => s.upsertItem);
+  const removeItem = useLibraryStore((s) => s.removeItem);
 
   const article = openItem?.contentHtml ? itemToArticle(openItem) : null;
 
@@ -172,6 +173,14 @@ function Read() {
       article={article}
       onBack={goLibrary}
       onOpenItem={openNext}
+      onDelete={() => {
+        const snapshot = openItem;
+        removeItem(snapshot.id);
+        goLibrary();
+        toast.success(`Removed “${snapshot.title.slice(0, 40)}”`, {
+          action: { label: "Undo", onClick: () => upsertItem(snapshot) },
+        });
+      }}
       onArchive={() => {
         archiveItem(openItem.id, !openItem.archived);
         if (!openItem.archived) {
