@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Check, LoaderCircle, Trash2 } from "lucide-react";
 import { EpisodeTracker } from "@/components/library/episode-tracker.tsx";
 import { WatchWhere } from "@/components/library/watch-where.tsx";
@@ -15,14 +16,18 @@ export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: 
       : detail.item.description;
   const { busy, labels, setDone, remove } = useShelfItemActions(detail, onClose);
   const isDone = detail.item.status === "done";
+  const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
+  const cover =
+    detail.item.imageUrl && detail.item.imageUrl !== brokenSrc ? detail.item.imageUrl : null;
 
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
         <div className="poster-frame relative w-24 shrink-0 overflow-hidden rounded-[0.25rem] bg-paper-warm">
-          {detail.item.imageUrl ? (
+          {cover ? (
             <img
-              src={detail.item.imageUrl}
+              src={cover}
+              onError={() => setBrokenSrc(cover)}
               alt=""
               width={96}
               height={144}

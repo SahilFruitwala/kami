@@ -465,7 +465,10 @@ export async function importBooks(
       normalizedTitle: normalizeTitle(b.title),
       notes: b.review ?? null,
       link: b.goodreadsId ? `https://www.goodreads.com/book/show/${b.goodreadsId}` : null,
-      imageUrl: b.isbn ? `https://covers.openlibrary.org/b/isbn/${b.isbn}-M.jpg` : null,
+      // default=false: 404 when Open Library has no cover, instead of a blank 1×1 image.
+      imageUrl: b.isbn
+        ? `https://covers.openlibrary.org/b/isbn/${b.isbn}-M.jpg?default=false`
+        : null,
       status: b.status,
       extraMetadata,
       addedBy: userId,
