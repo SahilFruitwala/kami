@@ -1,4 +1,5 @@
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useLibraryStore } from "@/lib/store.ts";
 import {
@@ -13,6 +14,9 @@ import {
 } from "@/lib/export.ts";
 import { wipeLibraryAccount } from "@/lib/library-remote.ts";
 import { libraryApi } from "@/lib/api/library";
+import { shelvesApi } from "@/lib/api/shelves";
+import { parseGoodreadsCsv } from "@/lib/goodreads.ts";
+import { invalidateShelves } from "@/lib/query-client";
 import { Card, ExportButton, FieldLabel, MiniButton } from "@/components/settings/settings-ui.tsx";
 
 export function DataCard() {
@@ -22,6 +26,9 @@ export function DataCard() {
   const mergeItems = useLibraryStore((s) => s.mergeItems);
   const clearLibrary = useLibraryStore((s) => s.clearLibrary);
   const fileRef = useRef<HTMLInputElement>(null);
+  const goodreadsRef = useRef<HTMLInputElement>(null);
+  const queryClient = useQueryClient();
+  const [goodreadsBusy, setGoodreadsBusy] = useState(false);
 
   const dupes = useMemo(() => findDuplicateGroups(library), [library]);
   const slipCount = useMemo(
@@ -86,6 +93,27 @@ export function DataCard() {
     }
   }
 
+  async function importGoodreads(file: File) {
+    setGoodreadsBusy(true);
+    try {
+      const books = parseGoodreadsCsv(await file.text());
+      if (books.length === 0) {
+        toast.error("No books found in that Goodreads export.");
+        return;
+      }
+      const { imported, skipped } = await shelvesApi.books.importGoodreads(books);
+      void invalidateShelves(queryClient);
+      toast.success(
+        `Shelved ${imported} ${imported === 1 ? "book" : "books"} from Goodreads` +
+          (skipped ? ` (${skipped} already on your shelf)` : ""),
+      );
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not import that file.");
+    } finally {
+      setGoodreadsBusy(false);
+    }
+  }
+
   return (
     <Card
       id="data"
@@ -115,7 +143,32 @@ export function DataCard() {
             e.target.value = "";
           }}
         />
+        <button
+          type="button"
+          disabled={goodreadsBusy}
+          onClick={() => goodreadsRef.current?.click()}
+          className="rounded-[0.25rem] bg-paper-warm px-4 py-2 font-sans text-xs font-medium text-ink hover:bg-line disabled:opacity-60"
+        >
+          {goodreadsBusy ? "Importing Goodreads…" : "Import Goodreads CSV…"}
+        </button>
+        <input
+          ref={goodreadsRef}
+          type="file"
+          accept=".csv,text/csv"
+          className="hidden"
+          aria-label="Import Goodreads library export"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void importGoodreads(file);
+            e.target.value = "";
+          }}
+        />
       </div>
+      <p className="font-body text-xs text-ink-muted">
+        Goodreads: My Books → Import and export → Export library. Read, currently reading and
+        want-to-read land on your Book shelf with ratings, reviews and dates; books already there
+        are skipped.
+      </p>
 
       <div>
         <FieldLabel>Possible duplicates ({dupes.length})</FieldLabel>
