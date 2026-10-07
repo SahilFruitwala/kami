@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { importArticle } from "@/lib/article-fns.ts";
+import { articlesApi } from "@/lib/api/articles";
 import { persistArticleItem } from "@/lib/library-remote.ts";
 import { articleToItem } from "@/lib/store.ts";
 
@@ -32,13 +32,11 @@ export function usePasteImport(goOpen: (id: string | null, replace?: boolean) =>
     setBusy(true);
     try {
       const looksHtml = /<\/?[a-z][\s\S]*>/i.test(pasteBody);
-      const result = await importArticle({
-        data: {
-          url: pasteUrl.trim() || undefined,
-          title: pasteTitle.trim(),
-          contentHtml: looksHtml ? pasteBody : undefined,
-          contentText: looksHtml ? undefined : pasteBody,
-        },
+      const result = await articlesApi.import({
+        url: pasteUrl.trim() || undefined,
+        title: pasteTitle.trim(),
+        contentHtml: looksHtml ? pasteBody : undefined,
+        contentText: looksHtml ? undefined : pasteBody,
       });
       if (!result.ok) {
         toast.error(result.error);

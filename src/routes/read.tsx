@@ -4,14 +4,9 @@ import { toast } from "sonner";
 import { AppGate, LibraryGate } from "@/components/app-gate.tsx";
 import { DirectionalTransition } from "@/components/directional-transition.tsx";
 import { ReaderView } from "@/components/reader-view.tsx";
-import { extractArticle } from "@/lib/article-fns.ts";
-import { getArticleContent } from "@/lib/library-fns.ts";
-import {
-  articleToItem,
-  itemToArticle,
-  useLibraryStore,
-  type LibraryItem,
-} from "@/lib/store.ts";
+import { articlesApi } from "@/lib/api/articles";
+import { libraryApi } from "@/lib/api/library";
+import { articleToItem, itemToArticle, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
 
 type ReadSearch = {
   id?: string;
@@ -72,12 +67,12 @@ function Read() {
     setFetchError("");
     void (async () => {
       try {
-        const fromDb = await getArticleContent({ data: { id: openItem.id } });
+        const fromDb = await libraryApi.items.get(openItem.id);
         if (fromDb?.contentHtml && !isStubBody(fromDb.contentHtml)) {
           upsertItem(fromDb, { sync: false });
           return;
         }
-        const result = await extractArticle({ data: { url: openItem.url } });
+        const result = await articlesApi.extract(openItem.url);
         if (!result.ok) {
           if (!openItem.contentHtml.trim()) setFetchError(result.error);
           return;
@@ -149,7 +144,10 @@ function Read() {
         >
           <h1 className="font-display text-2xl text-balance text-ink">{openItem.title}</h1>
           {!fetchError ? (
-            <div className="h-4 w-2/3 animate-pulse rounded-full bg-paper-warm" aria-hidden="true" />
+            <div
+              className="h-4 w-2/3 animate-pulse rounded-full bg-paper-warm"
+              aria-hidden="true"
+            />
           ) : null}
           <p className="font-body text-sm text-ink-muted">
             {fetchError || "Preparing a clean copy…"}

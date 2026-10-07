@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { importArticle } from "@/lib/article-fns.ts";
+import { articlesApi } from "@/lib/api/articles";
 import { articleToItem, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
 import { MAX_BULK_URLS } from "@/hooks/use-bulk-save.ts";
 
@@ -49,7 +49,14 @@ export function PasteDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
-          <Input aria-label="Article title" placeholder="Title — e.g. How Great Essays Work…" value={title} onChange={(e) => onTitle(e.target.value)} name="paste-title" autoComplete="off" />
+          <Input
+            aria-label="Article title"
+            placeholder="Title — e.g. How Great Essays Work…"
+            value={title}
+            onChange={(e) => onTitle(e.target.value)}
+            name="paste-title"
+            autoComplete="off"
+          />
           <Input
             aria-label="Source URL (optional)"
             placeholder="Source URL — e.g. https://example.com/essay…"
@@ -202,17 +209,15 @@ export function BulkSaveDialog({
   onDraft: (value: string) => void;
   onSave: () => void;
 }) {
-  const pct =
-    progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
+  const pct = progress.total > 0 ? Math.round((progress.done / progress.total) * 100) : 0;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90dvh] w-full max-w-[calc(100dvw-2rem)] overflow-x-hidden overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Bulk save links</DialogTitle>
           <DialogDescription className="break-words">
-            Paste up to {MAX_BULK_URLS} links — one per line, or separated by commas
-            or spaces. Titles are fetched right away; anything that resists
-            finishes loading when you open it.
+            Paste up to {MAX_BULK_URLS} links — one per line, or separated by commas or spaces.
+            Titles are fetched right away; anything that resists finishes loading when you open it.
           </DialogDescription>
         </DialogHeader>
         <div className="min-w-0 space-y-3">
@@ -240,7 +245,10 @@ export function BulkSaveDialog({
             )}
           </p>
           {urls.length > 0 ? (
-            <ul className="max-h-32 min-w-0 space-y-1 overflow-x-hidden overflow-y-auto rounded-md bg-bg/60 p-2" aria-label="Detected links">
+            <ul
+              className="max-h-32 min-w-0 space-y-1 overflow-x-hidden overflow-y-auto rounded-md bg-bg/60 p-2"
+              aria-label="Detected links"
+            >
               {urls.slice(0, 8).map((u) => (
                 <li
                   key={u}
@@ -257,11 +265,18 @@ export function BulkSaveDialog({
               ) : null}
             </ul>
           ) : null}
-          <Button type="button" className="w-full" disabled={busy || urls.length === 0} onClick={onSave}>
+          <Button
+            type="button"
+            className="w-full"
+            disabled={busy || urls.length === 0}
+            onClick={onSave}
+          >
             {busy ? (
               <>
                 <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                Saving {progress.total > 0 ? `${progress.done}/${progress.total}` : urls.length}{" "}
+                Saving {progress.total > 0
+                  ? `${progress.done}/${progress.total}`
+                  : urls.length}{" "}
                 {urls.length === 1 ? "link" : "links"}…
               </>
             ) : (
@@ -326,9 +341,7 @@ export function TranscribeDialog({ open, onOpenChange, onOpenItem }: TranscribeD
     }
     setBusy(true);
     try {
-      const result = await importArticle({
-        data: { title: title.trim(), contentText: passage.trim() },
-      });
+      const result = await articlesApi.import({ title: title.trim(), contentText: passage.trim() });
       if (!result.ok) {
         toast.error(result.error);
         return;

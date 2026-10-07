@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { extractArticle, saveLinkArticle } from "@/lib/article-fns.ts";
+import { articlesApi } from "@/lib/api/articles";
 import { persistArticleItem } from "@/lib/library-remote.ts";
 import { normalizeSourceUrl, writeDraftUrl } from "@/lib/session-article.ts";
 import { articleToItem } from "@/lib/store.ts";
@@ -65,7 +65,7 @@ export function useSaveArticle(goOpen: (id: string | null, replace?: boolean) =>
     setBusy(true);
     setError("");
     try {
-      const result = await extractArticle({ data: { url: trimmed } });
+      const result = await articlesApi.extract(trimmed);
       if (inFlight.current !== trimmed) return;
       await acceptResult(result, thenOpen);
     } catch {
@@ -88,7 +88,7 @@ export function useSaveArticle(goOpen: (id: string | null, replace?: boolean) =>
     setBusy(true);
     setError("");
     try {
-      const result = await saveLinkArticle({ data: { url: trimmed } });
+      const result = await articlesApi.link(trimmed);
       await acceptResult(result, true);
     } catch {
       setError("Could not save that link.");

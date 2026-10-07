@@ -14,7 +14,8 @@ import {
 } from "@/hooks/use-shelf-queries.ts";
 import { queryKeys } from "@/lib/query-client.ts";
 import { type ShelfTab } from "@/lib/shelves.ts";
-import { fetchLinkPreview, type LookupResult } from "@/lib/shelves-lookup.ts";
+import { lookupApi } from "@/lib/api/lookup";
+import type { LookupResult } from "@/lib/api/types";
 import { cn } from "@/lib/utils.ts";
 
 const ADD_TYPE_META: { id: ShelfTab; label: string; hint: string }[] = [
@@ -130,7 +131,7 @@ export function AddShelfDialog({
     try {
       const r = await queryClient.fetchQuery({
         queryKey: queryKeys.lookup.link(raw),
-        queryFn: () => fetchLinkPreview({ data: raw }),
+        queryFn: () => lookupApi.link(raw),
       });
       if (r) pick(r);
       else setLinkFetchError("Couldn't read that page — fill in the details below instead.");

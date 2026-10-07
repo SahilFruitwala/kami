@@ -5,6 +5,7 @@ import {
   integer,
   jsonb,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -104,14 +105,7 @@ export type JournalEntryRow = typeof journalEntries.$inferSelect;
 // ---------- Shelves (TV / Movies / Books / Places / Restaurants / Wishlist) ----------
 // Postgres port of the SQLite shelf app. Snake_case columns keep the import 1:1.
 
-export const ITEM_TYPES = [
-  "restaurant",
-  "movie",
-  "tv",
-  "book",
-  "place",
-  "wishlist",
-] as const;
+export const ITEM_TYPES = ["restaurant", "movie", "tv", "book", "place", "wishlist"] as const;
 export type ItemType = (typeof ITEM_TYPES)[number];
 
 export const LIST_TYPES = [...ITEM_TYPES, "mixed", "trip"] as const;
@@ -166,10 +160,7 @@ export const listMembers = pgTable(
     role: text("role").notNull().default("editor").$type<"owner" | "editor">(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [
-    index("list_members_list_idx").on(t.listId),
-    index("list_members_user_idx").on(t.userId),
-  ],
+  (t) => [index("list_members_list_idx").on(t.listId), index("list_members_user_idx").on(t.userId)],
 );
 
 function shelfBase() {
@@ -384,6 +375,152 @@ export type ShelfTvShow = typeof tvShows.$inferSelect;
 export type ShelfBook = typeof books.$inferSelect;
 export type ShelfWishlistItem = typeof wishlistItems.$inferSelect;
 
+// ---------- Feeds (RSS / Atom / JSON Feed + email newsletters) ----------
+// Snake_case columns match `migrations/0009_feeds.sql`.
+
+export const FEED_KINDS = ["rss", "email"] as const;
+export type FeedKind = (typeof FEED_KINDS)[number];
+
+export const feeds = pgTable(
+  "feeds",
+  {
+    id: text("id").primaryKey(),
+    kind: text("kind").$type<FeedKind>().notNull().default("rss"),
+    url: text("url").notNull(),
+    ownerId: text("owner_id").references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull().default(""),
+    siteUrl: text("site_url"),
+    etag: text("etag"),
+    lastModified: text("last_modified"),
+    lastFetchedAt: timestamp("last_fetched_at", { withTimezone: true }),
+    lastNewEntryAt: timestamp("last_new_entry_at", { withTimezone: true }),
+    nextFetchAt: timestamp("next_fetch_at", { withTimezone: true }).notNull().defaultNow(),
+    intervalMinutes: integer("interval_minutes").notNull().default(60),
+    errorCount: integer("error_count").notNull().default(0),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("feeds_url_uidx").on(t.url), index("feeds_due_idx").on(t.nextFetchAt)],
+);
+
+export const feedSubscriptions = pgTable(
+  "feed_subscriptions",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    feedId: text("feed_id")
+      .notNull()
+      .references(() => feeds.id, { onDelete: "cascade" }),
+    title: text("title"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    clearedAt: timestamp("cleared_at", { withTimezone: true }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.feedId] }),
+    index("feed_subscriptions_feed_idx").on(t.feedId),
+  ],
+);
+
+export const feedEntries = pgTable(
+  "feed_entries",
+  {
+    id: text("id").primaryKey(),
+    feedId: text("feed_id")
+      .notNull()
+      .references(() => feeds.id, { onDelete: "cascade" }),
+    guid: text("guid").notNull(),
+    url: text("url").notNull().default(""),
+    title: text("title").notNull().default(""),
+    author: text("author").notNull().default(""),
+    excerpt: text("excerpt").notNull().default(""),
+    contentHtml: text("content_html").notNull().default(""),
+    imageUrl: text("image_url"),
+    publishedAt: timestamp("published_at", { withTimezone: true }).notNull(),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("feed_entries_feed_guid_uidx").on(t.feedId, t.guid),
+    index("feed_entries_feed_published_idx").on(t.feedId, desc(t.publishedAt), desc(t.id)),
+  ],
+);
+
+export const feedEntryStates = pgTable(
+  "feed_entry_states",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    entryId: text("entry_id")
+      .notNull()
+      .references(() => feedEntries.id, { onDelete: "cascade" }),
+    state: text("state").$type<"read" | "saved">().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.entryId] })],
+);
+
+export const newsletterInboxes = pgTable(
+  "newsletter_inboxes",
+  {
+    userId: text("user_id")
+      .primaryKey()
+      .references(() => user.id, { onDelete: "cascade" }),
+    token: text("token").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("newsletter_inboxes_token_uidx").on(t.token)],
+);
+
+export type FeedRow = typeof feeds.$inferSelect;
+export type FeedEntryRow = typeof feedEntries.$inferSelect;
+
+// ---------- Extracts (Firecrawl page questions) ----------
+// Snake_case columns match `migrations/0010_extracts.sql`.
+
+export const EXTRACT_RESULT_STATUSES = ["pending", "accepted"] as const;
+export type ExtractResultStatus = (typeof EXTRACT_RESULT_STATUSES)[number];
+
+export const extractSources = pgTable(
+  "extract_sources",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    url: text("url").notNull(),
+    question: text("question").notNull(),
+    lastRunAt: timestamp("last_run_at", { withTimezone: true }),
+    lastError: text("last_error"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("extract_sources_user_idx").on(t.userId, t.createdAt)],
+);
+
+export const extractResults = pgTable(
+  "extract_results",
+  {
+    id: text("id").primaryKey(),
+    sourceId: text("source_id")
+      .notNull()
+      .references(() => extractSources.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    status: text("status").$type<ExtractResultStatus>().notNull().default("pending"),
+    markdown: text("markdown").notNull(),
+    url: text("url").notNull(),
+    question: text("question").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  },
+  (t) => [index("extract_results_source_idx").on(t.sourceId, desc(t.createdAt))],
+);
+
+export type ExtractSourceRow = typeof extractSources.$inferSelect;
+export type ExtractResultRow = typeof extractResults.$inferSelect;
+
 export const schema = {
   user,
   folders,
@@ -406,4 +543,11 @@ export const schema = {
   activity,
   itemReactions,
   watchedEpisodes,
+  feeds,
+  feedSubscriptions,
+  feedEntries,
+  feedEntryStates,
+  newsletterInboxes,
+  extractSources,
+  extractResults,
 };
