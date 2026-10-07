@@ -1,6 +1,7 @@
 /**
  * Goodreads library export (My Books → Import and export → Export library)
- * parsed into book shelf rows. Pure — shared by the settings UI and tests.
+ * and StoryGraph export (Manage Account → Export StoryGraph Library) parsed
+ * into book shelf rows. Pure — shared by the settings UI and tests.
  */
 
 export type GoodreadsStatus = "to_try" | "in_progress" | "done" | "abandoned";
@@ -12,7 +13,7 @@ export type GoodreadsBook = {
   year?: number;
   pages?: number;
   status: GoodreadsStatus;
-  /** 1–5, omitted when unrated. */
+  /** 1–5 (StoryGraph allows quarter stars), omitted when unrated. */
   rating?: number;
   goodreadsId?: string;
   /** ISO dates. */
@@ -60,7 +61,9 @@ export function parseCsv(text: string): string[][] {
 /** Goodreads wraps ISBNs as `="0439023483"` so spreadsheets keep the zeros. */
 function cleanIsbn(value: string | undefined): string | undefined {
   const digits = value?.replace(/^="?|"$/g, "").replace(/[^0-9X]/gi, "");
-  return digits && (digits.length === 10 || digits.length === 13) ? digits.toUpperCase() : undefined;
+  return digits && (digits.length === 10 || digits.length === 13)
+    ? digits.toUpperCase()
+    : undefined;
 }
 
 function positiveInt(value: string | undefined): number | undefined {
@@ -92,6 +95,65 @@ function plainText(value: string | undefined): string | undefined {
     .replace(/<[^>]+>/g, "")
     .trim();
   return text ? text : undefined;
+}
+
+export type BookCsvSource = "goodreads" | "storygraph";
+
+/** StoryGraph `Read Status` → status. `paused` is still a book in progress. */
+const STORYGRAPH_STATUS: Record<string, GoodreadsStatus> = {
+  read: "done",
+  "currently-reading": "in_progress",
+  paused: "in_progress",
+  "did-not-finish": "abandoned",
+  "to-read": "to_try",
+};
+
+/** `4.0` → 4, `3.75` → 3.75; StoryGraph rates in quarter stars. */
+function quarterRating(value: string | undefined): number | undefined {
+  const n = Math.round(Number.parseFloat(value ?? "") * 4) / 4;
+  return n > 0 && n <= 5 ? n : undefined;
+}
+
+/** Parse a Goodreads or StoryGraph export CSV, telling them apart by header. */
+export function parseBookCsv(text: string): { source: BookCsvSource; books: GoodreadsBook[] } {
+  const header = (parseCsv(text)[0] ?? []).map((name) => name.trim().toLowerCase());
+  if (header.includes("read status") && !header.includes("exclusive shelf")) {
+    return { source: "storygraph", books: parseStoryGraphCsv(text) };
+  }
+  return { source: "goodreads", books: parseGoodreadsCsv(text) };
+}
+
+/** Parse a StoryGraph export CSV. Throws when the header doesn't look like one. */
+export function parseStoryGraphCsv(text: string): GoodreadsBook[] {
+  const [header, ...rows] = parseCsv(text);
+  if (!header) throw new Error("That file is empty.");
+  const col = new Map(header.map((name, i) => [name.trim().toLowerCase(), i]));
+  if (!col.has("title") || !col.has("read status")) {
+    throw new Error("That doesn't look like a StoryGraph library export.");
+  }
+  const get = (row: string[], name: string) => {
+    const i = col.get(name);
+    const v = i == null ? undefined : row[i]?.trim();
+    return v ? v : undefined;
+  };
+
+  const books: GoodreadsBook[] = [];
+  for (const row of rows) {
+    const title = get(row, "title");
+    if (!title) continue;
+    books.push({
+      title,
+      author: get(row, "authors"),
+      // ISBN/UID also holds Amazon ASINs (B07…); cleanIsbn drops those.
+      isbn: cleanIsbn(get(row, "isbn/uid")),
+      status: STORYGRAPH_STATUS[(get(row, "read status") ?? "").toLowerCase()] ?? "to_try",
+      rating: quarterRating(get(row, "star rating")),
+      dateAdded: isoDate(get(row, "date added")),
+      dateRead: isoDate(get(row, "last date read")),
+      review: plainText(get(row, "review")),
+    });
+  }
+  return books;
 }
 
 /** Parse a Goodreads export CSV. Throws when the header doesn't look like one. */
