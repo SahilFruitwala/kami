@@ -47,6 +47,7 @@ export function VaultView({
   const [tag, setTag] = useState<string | null>(initialTag ?? null);
   const [author, setAuthor] = useState<string | null>(initialAuthor ?? null);
   const [localQuery, setLocalQuery] = useState(initialLocalQuery ?? "");
+  const [notesOnly, setNotesOnly] = useState(false);
   const paramsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Deep-linking: view state → URL (debounced so typing doesn't spam history).
@@ -77,6 +78,7 @@ export function VaultView({
       if (tag && !(item.tags ?? []).some((t) => t.toLowerCase() === tag.toLowerCase()))
         return false;
       if (author && (item.author || "").toLowerCase() !== author.toLowerCase()) return false;
+      if (notesOnly && !highlight.note.trim()) return false;
       if (!q) return true;
       return [highlight.text, highlight.note, item.title, item.author, item.siteName, ...(item.tags ?? [])]
         .join(" ")
@@ -89,7 +91,7 @@ export function VaultView({
       source: (a, b) => b.item.savedAt - a.item.savedAt,
     };
     return [...out].sort(by[sort]);
-  }, [slips, tag, author, q, sort]);
+  }, [slips, tag, author, q, sort, notesOnly]);
 
   const tagCounts = useMemo(() => {
     const map = new Map<string, number>();
@@ -250,6 +252,10 @@ export function VaultView({
             Source Chronology
           </SortButton>
           <span className="mx-1 h-4 w-px bg-line" aria-hidden="true" />
+          <SortButton active={notesOnly} onClick={() => setNotesOnly((v) => !v)}>
+            With notes
+          </SortButton>
+          <span className="mx-1 h-4 w-px bg-line" aria-hidden="true" />
           <button
             type="button"
             onClick={exportMarkdown}
@@ -271,10 +277,10 @@ export function VaultView({
       </div>
 
       <p className="font-sans text-xs text-ink-muted" role="status" aria-live="polite">
-        Showing {filtered.length} of {slips.length} slips{tag ? ` tagged #${tag}` : ""}{author ? ` by ${author}` : ""}{q ? ` matching “${localQuery || query}”` : ""}
+        Showing {filtered.length} of {slips.length} slips{tag ? ` tagged #${tag}` : ""}{author ? ` by ${author}` : ""}{notesOnly ? " with notes" : ""}{q ? ` matching “${localQuery || query}”` : ""}
       </p>
 
-      {(tag || author || localQuery) && (
+      {(tag || author || localQuery || notesOnly) && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-sans text-xs text-ink-muted">Filtered by</span>
           {tag ? (
@@ -301,6 +307,7 @@ export function VaultView({
               setTag(null);
               setAuthor(null);
               setLocalQuery("");
+              setNotesOnly(false);
             }}
             className="rounded px-2 py-0.5 font-sans text-xs font-medium text-ink-muted underline underline-offset-2 hover:text-hanko"
           >
@@ -363,6 +370,7 @@ export function VaultView({
                   setTag(null);
                   setAuthor(null);
                   setLocalQuery("");
+                  setNotesOnly(false);
                 }}
                 className="mt-3 rounded-[0.25rem] bg-hanko px-4 py-2 font-sans text-xs font-semibold text-white shadow-sm hover:bg-shu"
               >

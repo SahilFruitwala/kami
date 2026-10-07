@@ -1,8 +1,8 @@
 # KAMI (Quarto)
 
-Personal read-later library, shelves, journal, and highlight vault — packaged as **KAMI** in the UI, **`quarto`** in code and Docker.
+Personal read-later library, feed reader, shelves, journal, and highlight vault — packaged as **KAMI** in the UI, **`quarto`** in code and Docker.
 
-Save articles and X posts into a calm reader, organize with tags and folders, track movies/TV/books on shelves, jot a daily journal, and collect every highlight in one vault.
+Save articles and X posts into a calm reader, follow RSS feeds and email newsletters, organize with tags and folders, track movies/TV/books on shelves, jot a daily journal, and collect every highlight in one vault.
 
 ---
 
@@ -35,7 +35,7 @@ pnpm dev              # http://0.0.0.0:8080
 
 | Path | Role |
 |------|------|
-| [`src/routes/`](src/routes/) | File-based pages (`/`, `/library`, `/read`, `/shelves`, `/journal`, `/vault`, `/settings`, `/login`) |
+| [`src/routes/`](src/routes/) | File-based pages (`/`, `/library`, `/feeds`, `/extracts`, `/read`, `/shelves`, `/journal`, `/vault`, `/settings`, `/login`) |
 | [`src/components/`](src/components/) | UI — library, reader, shelves widgets, Kami brand primitives, shadcn `ui/` |
 | [`src/routes/api/`](src/routes/api/) | REST endpoints (`/api/*`) — thin HTTP wrappers over services. See [API reference](docs/API.md) |
 | [`src/server/`](src/server/) | Server-only: `http.ts` (auth, validation, errors) + `services/` (business logic, DB) |
@@ -57,7 +57,9 @@ pnpm dev              # http://0.0.0.0:8080
 | `/read?id=` | Distraction-free reader — highlights, fonts, paper tone, TTS |
 | `/shelves` | Movies, TV, books, wishlist (TMDB / Open Library lookups) |
 | `/journal` | Daily entries with highlight “slips” |
-| `/vault` | All highlights in one place; export |
+| `/feeds` | RSS / Atom / JSON feeds + email newsletters; save entries to the library ([docs](docs/ARCHITECTURE.md#feeds--newsletters)) |
+| `/extracts` | Ask a page a question with Firecrawl (e.g. latest Product Hunt launches — name, link, category); review the Markdown answer and keep or discard it ([docs](docs/ARCHITECTURE.md#extracts-firecrawl)) |
+| `/vault` | All highlights in one place; edit or delete notes and highlights; export |
 | `/settings` | Account, appearance, bookmarklet, import/export, wipe |
 | `/capture` | Receives pages from the bookmarklet / browser extension (`postMessage` handoff) |
 | `/share` | Web Share Target — Android share sheet → save URL |

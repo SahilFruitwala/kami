@@ -11,6 +11,7 @@ import { getDb } from "@/lib/db";
 import { articles, folders } from "@/lib/schema";
 import type { Highlight, HighlightColorId, LibraryItem } from "@/lib/store";
 import { HIGHLIGHT_COLORS, normalizeTag } from "@/lib/store";
+import { HIGHLIGHT_NOTE_MAX } from "@/lib/item-ops";
 import type { LibrarySnapshot } from "@/lib/api/types";
 
 /** Shared server-side helpers for the library server functions: input
@@ -24,7 +25,7 @@ const highlightColorIds = HIGHLIGHT_COLORS.map((c) => c.id) as [
 export const highlightSchema = z.object({
   id: z.string().min(1),
   text: z.string().min(1).max(800),
-  note: z.string().max(280).default(""),
+  note: z.string().max(HIGHLIGHT_NOTE_MAX).default(""),
   createdAt: z.number(),
   color: z.enum(highlightColorIds).default("vermilion"),
 });
@@ -44,7 +45,7 @@ export const highlightOpSchema = z.discriminatedUnion("op", [
     op: z.literal("update"),
     id: z.string().min(1).max(200),
     color: z.enum(highlightColorIds).optional(),
-    note: z.string().max(280).optional(),
+    note: z.string().max(HIGHLIGHT_NOTE_MAX).optional(),
   }),
 ]);
 
