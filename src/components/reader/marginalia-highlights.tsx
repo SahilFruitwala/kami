@@ -1,5 +1,13 @@
 import { PenLine } from "lucide-react";
+import { HIGHLIGHT_NOTE_MAX } from "@/lib/item-ops.ts";
 import { type LibraryItem } from "@/lib/store.ts";
+
+/** Grow a textarea with its content (capped) so long notes stay readable. */
+function autosize(el: HTMLTextAreaElement | null) {
+  if (!el) return;
+  el.style.height = "auto";
+  el.style.height = `${Math.min(el.scrollHeight, 280)}px`;
+}
 
 export function MarginaliaHighlights({
   item,
@@ -45,11 +53,17 @@ export function MarginaliaHighlights({
             </p>
             <label className="mt-2 block">
               <span className="sr-only">Note for highlight</span>
-              <input
+              <textarea
+                ref={autosize}
+                rows={1}
                 value={highlight.note}
-                onChange={(e) => onNote(highlight.id, e.target.value)}
+                maxLength={HIGHLIGHT_NOTE_MAX}
+                onChange={(e) => {
+                  autosize(e.currentTarget);
+                  onNote(highlight.id, e.target.value);
+                }}
                 placeholder="Add a marginalia note…"
-                className="h-10 w-full rounded-[0.25rem] border border-line bg-surface px-3 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-hanko/30"
+                className="block min-h-10 w-full resize-none rounded-[0.25rem] border border-line bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-hanko/30"
               />
             </label>
             <button

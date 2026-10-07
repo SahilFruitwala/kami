@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Tv } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { fetchWatchProviders } from "@/lib/shelves-lookup.ts";
+import { lookupApi } from "@/lib/api/lookup";
 import { cn } from "@/lib/utils.ts";
 
 function guessCountry(): string {
@@ -28,7 +28,11 @@ function safeHttpUrl(value: string | null | undefined): string | undefined {
 
 function WatchWhereSkeleton() {
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-1.5" aria-busy="true" aria-label="Finding where to watch">
+    <div
+      className="mt-2 flex flex-wrap items-center gap-1.5"
+      aria-busy="true"
+      aria-label="Finding where to watch"
+    >
       <Skeleton className="h-4 w-20" />
       <Skeleton className="size-7 rounded-[0.25rem]" />
       <Skeleton className="size-7 rounded-[0.25rem]" />
@@ -49,7 +53,7 @@ export function WatchWhere({
 }) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["watch-providers", kind, tmdbId],
-    queryFn: () => fetchWatchProviders({ data: { tmdbId, kind } }),
+    queryFn: () => lookupApi.watchProviders(tmdbId, kind),
     staleTime: 1000 * 60 * 60 * 12,
   });
   const [country, setCountry] = useState<string | null>(null);
@@ -57,7 +61,9 @@ export function WatchWhere({
   if (isLoading) return <WatchWhereSkeleton />;
   if (isError || !data || data.length === 0) {
     return (
-      <p className={cn("mt-2 flex items-center gap-1.5 font-sans text-xs text-ink-faint", className)}>
+      <p
+        className={cn("mt-2 flex items-center gap-1.5 font-sans text-xs text-ink-faint", className)}
+      >
         <Tv className="size-3 shrink-0" aria-hidden="true" />
         No streaming info available.
       </p>
@@ -66,9 +72,7 @@ export function WatchWhere({
 
   const guess = guessCountry();
   const active =
-    data.find((c) => c.code === (country ?? guess)) ??
-    data.find((c) => c.code === "US") ??
-    data[0];
+    data.find((c) => c.code === (country ?? guess)) ?? data.find((c) => c.code === "US") ?? data[0];
   const list = active.streaming.length > 0 ? active.streaming : active.rent;
   const rentOnly = active.streaming.length === 0;
   const shown = list.slice(0, 6);

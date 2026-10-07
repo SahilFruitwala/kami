@@ -1,25 +1,7 @@
-import {
-  LIBRARY_BOOT_LIMIT,
-  getLibrary,
-  patchLibraryItem,
-  removeLibraryItem,
-  upsertLibraryItem,
-  type LibraryCursor,
-  type LibrarySnapshot,
-} from "@/lib/library-fns";
-import {
-  addLibraryFolder,
-  importLibrarySnapshot,
-  removeLibraryFolder,
-  renameLibraryFolder,
-  wipeLibrary,
-} from "@/lib/library-folder-fns";
+import { libraryApi } from "@/lib/api/library";
+import { LIBRARY_BOOT_LIMIT, type LibraryCursor, type LibrarySnapshot } from "@/lib/api/types";
 import type { HighlightOp, TagOp } from "@/lib/item-ops";
-import {
-  useLibraryStore,
-  type Folder,
-  type LibraryItem,
-} from "@/lib/store";
+import { useLibraryStore, type Folder, type LibraryItem } from "@/lib/store";
 
 const LEGACY_KEY = "quarto-library";
 const MIGRATED_FLAG = "quarto-library-migrated-v1";
@@ -95,12 +77,9 @@ if (typeof window !== "undefined") {
 }
 
 export function hydrateLibrary(snapshot: LibrarySnapshot) {
-  useLibraryStore.getState().setLibrarySnapshot(
-    snapshot.library,
-    snapshot.folders,
-    snapshot.library.length,
-    true,
-  );
+  useLibraryStore
+    .getState()
+    .setLibrarySnapshot(snapshot.library, snapshot.folders, snapshot.library.length, true);
 }
 
 function readLegacySnapshot(): LibrarySnapshot | null {
@@ -171,12 +150,12 @@ export async function bootstrapLibraryFromServer(userId: string): Promise<void> 
   bootInflight = (async () => {
     bootSeq += 1;
     setLibraryRemoteEnabled(true);
-    const page = await getLibrary({ data: { limit: LIBRARY_BOOT_LIMIT } });
+    const page = await libraryApi.page({ limit: LIBRARY_BOOT_LIMIT });
 
     if ((page.total ?? 0) === 0 && page.folders.length === 0 && !wasLegacyMigrated()) {
       const legacy = readLegacySnapshot();
       if (legacy && (legacy.library.length > 0 || legacy.folders.length > 0)) {
-        const snapshot = await importLibrarySnapshot({ data: legacy });
+        const snapshot = await libraryApi.import(legacy);
         markLegacyMigrated();
         hydrateLibrary(snapshot);
         nextPageCursor = null;
@@ -187,9 +166,7 @@ export async function bootstrapLibraryFromServer(userId: string): Promise<void> 
     }
 
     const complete = page.nextCursor == null;
-    useLibraryStore
-      .getState()
-      .setLibrarySnapshot(page.library, page.folders, page.total, complete);
+    useLibraryStore.getState().setLibrarySnapshot(page.library, page.folders, page.total, complete);
     nextPageCursor = page.nextCursor;
     bootedUserId = userId;
     // Stream the rest without blocking first paint; failures surface via the
@@ -214,13 +191,9 @@ async function fillRemainingLibrary(userId: string): Promise<void> {
     while (nextPageCursor) {
       // Signed out or switched account mid-fill — stop; the new boot restarts.
       if (bootedUserId !== userId || seq !== bootSeq) return;
-      const page = await getLibrary({
-        data: { limit: LIBRARY_BOOT_LIMIT, cursor: nextPageCursor },
-      });
+      const page = await libraryApi.page({ limit: LIBRARY_BOOT_LIMIT, cursor: nextPageCursor });
       if (seq !== bootSeq) return;
-      useLibraryStore
-        .getState()
-        .appendLibraryItems(page.library, page.nextCursor == null);
+      useLibraryStore.getState().appendLibraryItems(page.library, page.nextCursor == null);
       nextPageCursor = page.nextCursor;
     }
   })();
@@ -247,9 +220,7 @@ export async function loadMoreLibrary(): Promise<boolean> {
     const last = state.library[state.library.length - 1];
     cursor = last ? { savedAt: last.savedAt, id: last.id } : null;
   }
-  const page = await getLibrary({
-    data: cursor ? { limit: LIBRARY_BOOT_LIMIT, cursor } : { limit: LIBRARY_BOOT_LIMIT },
-  });
+  const page = await libraryApi.page({ limit: LIBRARY_BOOT_LIMIT, cursor });
   if (seq !== bootSeq) return false;
   useLibraryStore.getState().appendLibraryItems(page.library, page.nextCursor == null);
   nextPageCursor = page.nextCursor;
@@ -257,7 +228,7 @@ export async function loadMoreLibrary(): Promise<boolean> {
 }
 
 export function syncUpsertItem(item: LibraryItem) {
-  sync("save", () => upsertLibraryItem({ data: item }));
+  sync("save", () => libraryApi.items.upsert(item));
 }
 
 /**
@@ -282,8 +253,7 @@ export async function persistArticleItem(item: LibraryItem): Promise<LibraryItem
     siteName: item.siteName.slice(0, 200),
     excerpt: item.excerpt.slice(0, 4000),
     contentHtml: item.contentHtml.slice(0, 1_500_000),
-    heroImage:
-      item.heroImage && item.heroImage.length <= 2000 ? item.heroImage : null,
+    heroImage: item.heroImage && item.heroImage.length <= 2000 ? item.heroImage : null,
     published: item.published ? item.published.slice(0, 100) : null,
     note: item.note.slice(0, 2000),
     tags: item.tags.slice(0, 12),
@@ -293,7 +263,7 @@ export async function persistArticleItem(item: LibraryItem): Promise<LibraryItem
   store.upsertItem(prepared, { sync: false });
   let saved: LibraryItem;
   try {
-    saved = await upsertLibraryItem({ data: prepared });
+    saved = await libraryApi.items.upsert(prepared);
   } catch (err) {
     syncUpsertItem(prepared);
     throw err;
@@ -309,11 +279,11 @@ export async function persistArticleItem(item: LibraryItem): Promise<LibraryItem
 }
 
 export function syncArchiveItem(id: string, archived: boolean) {
-  sync("archive", () => patchLibraryItem({ data: { id, archived } }));
+  sync("archive", () => libraryApi.items.patch(id, { archived }));
 }
 
 export function syncRemoveItem(id: string) {
-  sync("remove", () => removeLibraryItem({ data: { id } }));
+  sync("remove", () => libraryApi.items.remove(id));
 }
 
 export function syncPatchItem(
@@ -326,25 +296,25 @@ export function syncPatchItem(
     highlightOps?: HighlightOp[];
   },
 ) {
-  sync("update", () => patchLibraryItem({ data: { id, ...patch } }));
+  sync("update", () => libraryApi.items.patch(id, patch));
 }
 
 export function syncAddFolder(folder: Folder) {
-  sync("folder", () => addLibraryFolder({ data: { id: folder.id, name: folder.name } }));
+  sync("folder", () => libraryApi.folders.add({ id: folder.id, name: folder.name }));
 }
 
 export function syncRenameFolder(id: string, name: string) {
-  sync("folder", () => renameLibraryFolder({ data: { id, name } }));
+  sync("folder", () => libraryApi.folders.rename(id, name));
 }
 
 export function syncRemoveFolder(id: string) {
-  sync("folder", () => removeLibraryFolder({ data: { id } }));
+  sync("folder", () => libraryApi.folders.remove(id));
 }
 
 /** Delete every server row for this account, then clear local state.
  *  Explicit user action — not queued; throws when unreachable. */
 export async function wipeLibraryAccount(): Promise<void> {
-  await wipeLibrary();
+  await libraryApi.wipe();
   nextPageCursor = null;
   useLibraryStore.setState({
     library: [],

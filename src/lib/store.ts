@@ -2,12 +2,44 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Article, ArticleSource } from "./article-types.ts";
 import { isPaperTone, type PaperTone } from "./paper-tones.ts";
-import { applyTagOps } from "./item-ops.ts";
+import { HIGHLIGHT_NOTE_MAX, applyHighlightOps, applyTagOps } from "./item-ops.ts";
 
 function remoteSync(run: (m: typeof import("./library-remote.ts")) => void) {
   void import("./library-remote.ts")
     .then(run)
     .catch((err) => console.error("[library]", err));
+}
+
+/**
+ * Note fields are edited per keystroke; coalesce their server writes so a
+ * sentence is one PATCH, not forty. Pending writes flush when the tab hides.
+ */
+const NOTE_SYNC_DELAY_MS = 700;
+const pendingNoteSyncs = new Map<string, { timer: ReturnType<typeof setTimeout>; run: () => void }>();
+
+function debouncedRemoteSync(key: string, run: (m: typeof import("./library-remote.ts")) => void) {
+  const prev = pendingNoteSyncs.get(key);
+  if (prev) clearTimeout(prev.timer);
+  const fire = () => {
+    pendingNoteSyncs.delete(key);
+    remoteSync(run);
+  };
+  pendingNoteSyncs.set(key, { timer: setTimeout(fire, NOTE_SYNC_DELAY_MS), run: fire });
+}
+
+/** Send every coalesced note write now (tab hidden / page leaving). */
+export function flushPendingNoteSyncs() {
+  for (const { timer, run } of [...pendingNoteSyncs.values()]) {
+    clearTimeout(timer);
+    run();
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("pagehide", flushPendingNoteSyncs);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushPendingNoteSyncs();
+  });
 }
 
 /** Ink colors for highlights — Dokusho toolbar (Vermilion / Bamboo / Sumi). */
@@ -172,6 +204,8 @@ export type LibraryState = {
   mergeItems: (keepId: string, dropId: string) => void;
   addHighlight: (itemId: string, text: string, color?: HighlightColorId) => Highlight | null;
   removeHighlight: (itemId: string, highlightId: string) => void;
+  /** Put back a removed highlight (undo) with its original id, note and date. */
+  restoreHighlight: (itemId: string, highlight: Highlight) => void;
   setHighlightColorById: (itemId: string, highlightId: string, color: HighlightColorId) => void;
   setHighlightNote: (itemId: string, highlightId: string, note: string) => void;
   setFavorited: (itemId: string, favorited: boolean) => void;
@@ -489,6 +523,19 @@ export const useLibraryStore = create<LibraryState>()(
           );
         }
       },
+      restoreHighlight: (itemId, highlight) => {
+        let restored = false;
+        set((state) => ({
+          library: mapItem(state.library, itemId, (row) => {
+            const highlights = applyHighlightOps(row.highlights, [{ op: "add", highlight }]);
+            restored = highlights.some((h) => h.id === highlight.id);
+            return restored ? { ...row, highlights } : row;
+          }),
+        }));
+        if (restored) {
+          remoteSync((m) => m.syncPatchItem(itemId, { highlightOps: [{ op: "add", highlight }] }));
+        }
+      },
       setHighlightColorById: (itemId, highlightId, color) => {
         if (!isHighlightColor(color)) return;
         let highlights: Highlight[] | undefined;
@@ -508,19 +555,20 @@ export const useLibraryStore = create<LibraryState>()(
         }
       },
       setHighlightNote: (itemId, highlightId, note) => {
+        const cleaned = note.slice(0, HIGHLIGHT_NOTE_MAX);
         let highlights: Highlight[] | undefined;
         set((state) => ({
           library: mapItem(state.library, itemId, (row) => {
             highlights = row.highlights.map((h) =>
-              h.id === highlightId ? { ...h, note: note.slice(0, 280) } : h,
+              h.id === highlightId ? { ...h, note: cleaned } : h,
             );
             return { ...row, highlights };
           }),
         }));
         if (highlights) {
-          remoteSync((m) =>
+          debouncedRemoteSync(`hl-note:${itemId}:${highlightId}`, (m) =>
             m.syncPatchItem(itemId, {
-              highlightOps: [{ op: "update", id: highlightId, note: note.slice(0, 280) }],
+              highlightOps: [{ op: "update", id: highlightId, note: cleaned }],
             }),
           );
         }
@@ -534,7 +582,7 @@ export const useLibraryStore = create<LibraryState>()(
         set((state) => ({
           library: mapItem(state.library, itemId, (row) => ({ ...row, note: cleaned })),
         }));
-        remoteSync((m) => m.syncPatchItem(itemId, { note: cleaned }));
+        debouncedRemoteSync(`item-note:${itemId}`, (m) => m.syncPatchItem(itemId, { note: cleaned }));
       },
       setResumeEnabled: (enabled) => set({ resumeEnabled: enabled }),
       clearLibrary: () => set({ library: [], openId: null }),

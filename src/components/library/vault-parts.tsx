@@ -1,7 +1,8 @@
-import { useMemo } from "react";
-import { BookOpen, Copy, Droplets, Heart, PenLine } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { BookOpen, Copy, Droplets, Heart, PenLine, StickyNote, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Hanko } from "@/components/kami.tsx";
+import { HIGHLIGHT_NOTE_MAX } from "@/lib/item-ops.ts";
 import type { Highlight, LibraryItem } from "@/lib/store.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
@@ -88,7 +89,40 @@ export function SlipCard({
 }) {
   const { item, highlight } = slip;
   const setFavorited = useLibraryStore((s) => s.setFavorited);
+  const setHighlightNote = useLibraryStore((s) => s.setHighlightNote);
+  const removeHighlight = useLibraryStore((s) => s.removeHighlight);
+  const restoreHighlight = useLibraryStore((s) => s.restoreHighlight);
   const favorited = item.favorited;
+  const [editingNote, setEditingNote] = useState(false);
+
+  function saveNote(next: string) {
+    const trimmed = next.trim();
+    setEditingNote(false);
+    if (trimmed === highlight.note) return;
+    setHighlightNote(item.id, highlight.id, trimmed);
+    if (!trimmed && highlight.note) {
+      const previous = highlight.note;
+      toast.success("Note deleted", {
+        action: { label: "Undo", onClick: () => setHighlightNote(item.id, highlight.id, previous) },
+      });
+    } else {
+      toast.success(highlight.note ? "Note updated" : "Note added");
+    }
+  }
+
+  function deleteNote() {
+    setEditingNote(false);
+    saveNote("");
+  }
+
+  function deleteSlip() {
+    const snapshot = highlight;
+    removeHighlight(item.id, snapshot.id);
+    toast.success("Highlight deleted", {
+      description: snapshot.note ? "Its note was removed with it." : undefined,
+      action: { label: "Undo", onClick: () => restoreHighlight(item.id, snapshot) },
+    });
+  }
 
   async function copyText(text: string, message: string) {
     try {
@@ -125,12 +159,39 @@ export function SlipCard({
             <span className="font-normal italic">{item.title}</span>
           </p>
         </div>
-        {highlight.note ? (
-          <div className="flex items-start gap-2.5 rounded-md bg-bg/70 px-3 py-2.5">
+        {editingNote ? (
+          <NoteEditor
+            initial={highlight.note}
+            onSave={saveNote}
+            onCancel={() => setEditingNote(false)}
+            onDelete={highlight.note ? deleteNote : undefined}
+          />
+        ) : highlight.note ? (
+          <div className="group/note flex items-start gap-2.5 rounded-md bg-bg/70 px-3 py-2.5">
             <PenLine className="mt-0.5 size-[18px] shrink-0 text-hanko" aria-hidden="true" />
-            <div>
-              <p className="kami-label text-ink-muted">Personal Marginalia</p>
-              <p className="font-body text-sm text-ink italic">{highlight.note}</p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="kami-label text-ink-muted">Personal Marginalia</p>
+                <span className="flex items-center gap-2 opacity-100 transition-opacity md:opacity-0 md:group-focus-within/note:opacity-100 md:group-hover/note:opacity-100">
+                  <button
+                    type="button"
+                    onClick={() => setEditingNote(true)}
+                    className="font-sans text-[11px] text-ink-accent underline-offset-2 hover:text-hanko hover:underline"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={deleteNote}
+                    className="font-sans text-[11px] text-ink-muted underline-offset-2 hover:text-hanko hover:underline"
+                  >
+                    Delete
+                  </button>
+                </span>
+              </div>
+              <p className="font-body text-sm break-words whitespace-pre-wrap text-ink italic">
+                {highlight.note}
+              </p>
             </div>
           </div>
         ) : null}
@@ -168,25 +229,133 @@ export function SlipCard({
             <PenLine className="size-4" aria-hidden="true" />
             Cite
           </SlipAction>
+          {!highlight.note && !editingNote ? (
+            <SlipAction onClick={() => setEditingNote(true)}>
+              <StickyNote className="size-4" aria-hidden="true" />
+              Note
+            </SlipAction>
+          ) : null}
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setFavorited(item.id, !favorited);
-            toast.success(favorited ? "Removed from Favorites" : "Added to Favorites");
-          }}
-          aria-pressed={favorited}
-          aria-label={favorited ? "Remove from Favorites" : "Add to Favorites"}
-          title={favorited ? "Remove from Favorites" : "Add to Favorites"}
-          className={cn(
-            "transition-transform hover:scale-110",
-            favorited ? "text-hanko" : "text-ink-muted hover:text-hanko",
-          )}
-        >
-          <Heart className={cn("size-[18px]", favorited && "fill-hanko")} aria-hidden="true" />
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={deleteSlip}
+            aria-label="Delete highlight"
+            title="Delete highlight"
+            className="text-ink-muted transition-colors hover:text-hanko"
+          >
+            <Trash2 className="size-[17px]" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setFavorited(item.id, !favorited);
+              toast.success(favorited ? "Removed from Favorites" : "Added to Favorites");
+            }}
+            aria-pressed={favorited}
+            aria-label={favorited ? "Remove from Favorites" : "Add to Favorites"}
+            title={favorited ? "Remove from Favorites" : "Add to Favorites"}
+            className={cn(
+              "transition-transform hover:scale-110",
+              favorited ? "text-hanko" : "text-ink-muted hover:text-hanko",
+            )}
+          >
+            <Heart className={cn("size-[18px]", favorited && "fill-hanko")} aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </article>
+  );
+}
+
+/** Inline marginalia editor — ⌘/Ctrl+Enter saves, Escape cancels. */
+export function NoteEditor({
+  initial,
+  onSave,
+  onCancel,
+  onDelete,
+}: {
+  initial: string;
+  onSave: (note: string) => void;
+  onCancel: () => void;
+  onDelete?: () => void;
+}) {
+  const [draft, setDraft] = useState(initial);
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, []);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 320)}px`;
+  }, [draft]);
+
+  return (
+    <form
+      className="space-y-2 rounded-md bg-bg/70 px-3 py-2.5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSave(draft);
+      }}
+    >
+      <label className="kami-label block text-ink-muted">
+        Personal Marginalia
+        <textarea
+          ref={ref}
+          value={draft}
+          maxLength={HIGHLIGHT_NOTE_MAX}
+          rows={3}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              e.preventDefault();
+              onCancel();
+            } else if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              onSave(draft);
+            }
+          }}
+          placeholder="Why did this passage matter?"
+          className="mt-1.5 block w-full resize-none rounded-[0.25rem] border border-line bg-surface px-2.5 py-2 font-body text-sm tracking-normal text-ink normal-case outline-none placeholder:text-ink-muted placeholder:italic focus-visible:ring-2 focus-visible:ring-hanko/30"
+        />
+      </label>
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-sans text-[10px] tabular-nums text-ink-muted">
+          {draft.length}/{HIGHLIGHT_NOTE_MAX}
+        </span>
+        <span className="flex items-center gap-2">
+          {onDelete ? (
+            <button
+              type="button"
+              onClick={onDelete}
+              className="rounded px-2 py-1 font-sans text-[11px] text-ink-muted hover:text-hanko"
+            >
+              Delete note
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded px-2 py-1 font-sans text-[11px] text-ink-soft hover:bg-paper-warm"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="rounded bg-hanko px-2.5 py-1 font-sans text-[11px] font-medium text-white shadow-sm hover:bg-shu"
+          >
+            Save
+          </button>
+        </span>
+      </div>
+    </form>
   );
 }
 

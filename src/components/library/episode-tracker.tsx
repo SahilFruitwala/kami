@@ -7,14 +7,17 @@ import {
   useShowSeasons,
   useToggleEpisode,
 } from "@/hooks/use-shelf-queries.ts";
-import { getSeasonEpisodes } from "@/lib/shelves-episodes";
+import { shelvesApi } from "@/lib/api/shelves";
 import { queryKeys } from "@/lib/query-client.ts";
 import { cn } from "@/lib/utils.ts";
 
 function ProgressBar({ done, total }: { done: number; total: number }) {
   const pct = total > 0 ? Math.min((done / total) * 100, 100) : 0;
   return (
-    <span className="block h-1 w-full overflow-hidden rounded-full bg-paper-warm" aria-hidden="true">
+    <span
+      className="block h-1 w-full overflow-hidden rounded-full bg-paper-warm"
+      aria-hidden="true"
+    >
       <span
         className={cn(
           "block h-full rounded-full transition-[width] duration-300",
@@ -26,13 +29,7 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
   );
 }
 
-function SeasonEpisodes({
-  itemId,
-  season,
-}: {
-  itemId: string;
-  season: number;
-}) {
+function SeasonEpisodes({ itemId, season }: { itemId: string; season: number }) {
   const { data: episodes, isPending } = useSeasonEpisodes(itemId, season);
   const toggle = useToggleEpisode(itemId);
   const bulk = useSetSeasonWatched(itemId);
@@ -204,8 +201,7 @@ export function EpisodeTracker({ itemId }: { itemId: string }) {
                       void (async () => {
                         const episodes = await queryClient.fetchQuery({
                           queryKey: queryKeys.shelves.episodes(itemId, s.season),
-                          queryFn: () =>
-                            getSeasonEpisodes({ data: { itemId, season: s.season } }),
+                          queryFn: () => shelvesApi.tv.episodes(itemId, s.season),
                           staleTime: 60 * 60_000,
                         });
                         seasonBulk.mutate({

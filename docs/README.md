@@ -8,7 +8,8 @@ Onboarding material for KAMI / **quarto** (`simple-pocket`).
 | [ARCHITECTURE.md](./ARCHITECTURE.md) | Engineers | Layers, request flow, auth, caching, Mermaid diagrams |
 | [DATA-MODEL.md](./DATA-MODEL.md) | Engineers touching DB | ER diagram, tables, migrations |
 | [DEVELOPMENT.md](./DEVELOPMENT.md) | Local contributors | Env vars, Docker, scripts, debugging |
-| [CONTRIBUTING.md](./CONTRIBUTING.md) | Anyone shipping changes | Recipes for routes, ServerFns, schema, UI, shelves |
+| [API.md](./API.md) | Anyone calling or adding endpoints | REST endpoint reference, conventions, errors |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | Anyone shipping changes | Recipes for routes, API endpoints, schema, UI, shelves |
 
 Suggested first hour:
 

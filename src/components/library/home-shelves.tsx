@@ -18,7 +18,8 @@ import { Input } from "@/components/ui/input.tsx";
 import { useAddShelfItem, useBookSearch, useTmdbSearch } from "@/hooks/use-shelf-queries.ts";
 import { queryKeys } from "@/lib/query-client.ts";
 import { shelfPath, type ShelfTab } from "@/lib/shelves.ts";
-import { fetchLinkPreview, type LookupResult } from "@/lib/shelves-lookup.ts";
+import { lookupApi } from "@/lib/api/lookup";
+import type { LookupResult } from "@/lib/api/types";
 import { cn } from "@/lib/utils.ts";
 
 export type HomeCaptureType = "article" | ShelfTab;
@@ -53,24 +54,24 @@ export function HomeCaptureTabs({
         aria-label="What to save"
         className="flex max-w-full items-center gap-1 overflow-x-auto pb-1"
       >
-      {TABS.map((t) => (
-        <button
-          key={t.id}
-          type="button"
-          role="tab"
-          aria-selected={value === t.id}
-          onClick={() => onChange(t.id)}
-          className={cn(
-            "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1 font-sans text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
-            value === t.id
-              ? "bg-hanko font-semibold text-white shadow-sm"
-              : "bg-surface font-medium text-ink-soft shadow-[var(--shadow-border)] hover:bg-paper-warm hover:text-ink",
-          )}
-        >
-          <t.icon className="size-3.5" aria-hidden="true" />
-          {t.label}
-        </button>
-      ))}
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={value === t.id}
+            onClick={() => onChange(t.id)}
+            className={cn(
+              "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1 font-sans text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+              value === t.id
+                ? "bg-hanko font-semibold text-white shadow-sm"
+                : "bg-surface font-medium text-ink-soft shadow-[var(--shadow-border)] hover:bg-paper-warm hover:text-ink",
+            )}
+          >
+            <t.icon className="size-3.5" aria-hidden="true" />
+            {t.label}
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -147,7 +148,7 @@ export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
       try {
         preview = await queryClient.fetchQuery({
           queryKey: queryKeys.lookup.link(raw),
-          queryFn: () => fetchLinkPreview({ data: raw }),
+          queryFn: () => lookupApi.link(raw),
         });
       } catch {
         preview = null;
@@ -267,7 +268,10 @@ export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
                         className="h-12 w-9 shrink-0 rounded-md border border-line object-cover"
                       />
                     ) : (
-                      <span className="flex h-12 w-9 shrink-0 items-center justify-center rounded-md border border-line bg-paper-warm font-display text-lg text-ink-faint" aria-hidden="true">
+                      <span
+                        className="flex h-12 w-9 shrink-0 items-center justify-center rounded-md border border-line bg-paper-warm font-display text-lg text-ink-faint"
+                        aria-hidden="true"
+                      >
                         {r.title.charAt(0)}
                       </span>
                     )}
@@ -311,9 +315,7 @@ export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
                 size="sm"
                 variant="secondary"
                 disabled={busy}
-                onClick={() =>
-                  void saveResult({ title: debounced, metadata: {} }, debounced)
-                }
+                onClick={() => void saveResult({ title: debounced, metadata: {} }, debounced)}
               >
                 Add
               </Button>

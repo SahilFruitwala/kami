@@ -57,6 +57,9 @@ embedded fallback.
 | `UPSTASH_REDIS_REST_TOKEN` / `UPSTASH_TOKEN` | optional | Redis REST token |
 | `DATABASE_POOL_MAX` | optional | pg pool size per instance (default `5`) |
 | `VITE_PUBLIC_HOSTNAME` | optional | Public host for OG / share cards |
+| `CRON_SECRET` | optional | Bearer secret for the (unscheduled) feed sweep hook `/api/hooks/feeds` ([Feeds](./ARCHITECTURE.md#feeds--newsletters)) |
+| `INBOUND_EMAIL_DOMAIN` / `INBOUND_EMAIL_SECRET` | optional | Private newsletter addresses + inbound-email webhook secret ([Feeds](./ARCHITECTURE.md#feeds--newsletters)) |
+| `FIRECRAWL_API_KEY` | for `/extracts` | Firecrawl API key; without it extracts can be saved but not run ([Extracts](./ARCHITECTURE.md#extracts-firecrawl)) |
 
 Env loading: `scripts/with-app-env.mjs` and `scripts/load-dotenv.mjs` load `.env` then `.env.local` before Vite/build/migrate. Never commit `.env`.
 
@@ -83,13 +86,17 @@ Env loading: `scripts/with-app-env.mjs` and `scripts/load-dotenv.mjs` load `.env
 ```
 src/
   routes/          # File routes → routeTree.gen.ts
+    api/           # REST endpoints (/api/*) — thin wrappers over services
+  server/          # Server-only
+    http.ts        # apiHandler: auth, same-site, rate limit, Zod, errors
+    services/      # Business logic + DB access, one module per domain
   components/      # UI (library/, reader/, ui/, kami.tsx, …)
   hooks/           # Capture, TTS, shelf queries, filters
   lib/
-    *-fns.ts       # Server API
+    api/           # Typed fetch client + shared request/response types
     *-remote.ts    # Client sync
     *.server.ts    # Server-only (do not import from client)
-    auth/          # Clerk provider, gates, middleware
+    auth/          # Clerk provider, gates, server session checks
     schema.ts      # Drizzle tables
     db.ts          # getDb() — Postgres via pg pool
     store.ts       # Zustand library
@@ -105,7 +112,7 @@ scripts/           # migrate, env, import-shelves
 
 | Symptom | Check |
 |---------|--------|
-| Auth loops / 401 on ServerFns | Clerk keys, clock skew, `VITE_AUTH_ENABLED` |
+| Auth loops / 401 on `/api/*` | Clerk keys, clock skew, `VITE_AUTH_ENABLED` |
 | Empty movie/TV search | `TMDB_API_TOKEN` |
 | Stale shelf data with Redis | Mutation path must call `invalidateUserCache` |
 | Migration “already applied” locally | Inspect `_migrations` or reset Docker volume (`db:down` + remove volume) |
@@ -128,7 +135,7 @@ pnpm db:up && pnpm db:migrate
 
 - Script unit tests: `pnpm test` (dotenv, migration plan, with-app-env).
 - Manual: run `pnpm dev`, sign in, exercise capture → reader → vault → shelves → journal.
-- Type safety: `pnpm typecheck` before pushing schema/ServerFn changes.
+- Type safety: `pnpm typecheck` before pushing schema/API changes.
 
 ---
 
