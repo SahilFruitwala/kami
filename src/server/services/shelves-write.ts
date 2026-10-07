@@ -395,8 +395,9 @@ export async function setBookProgress(
   return { status, percent: finished ? 100 : Math.min(percent, 99) };
 }
 
-/** `POST /api/shelves/book/import` — rows parsed client-side from a Goodreads export. */
+/** `POST /api/shelves/book/import` — rows parsed client-side from a Goodreads or StoryGraph export. */
 export const importBooksBody = z.object({
+  source: z.enum(["goodreads", "storygraph"]).default("goodreads"),
   books: z
     .array(
       z.object({
@@ -409,8 +410,12 @@ export const importBooksBody = z.object({
         year: z.number().int().min(1).max(3000).optional(),
         pages: z.number().int().min(1).max(100_000).optional(),
         status: shelfStatus,
-        rating: z.number().int().min(1).max(5).optional(),
-        goodreadsId: z.string().regex(/^\d{1,20}$/).optional(),
+        // Goodreads rates in whole stars, StoryGraph in quarter stars.
+        rating: z.number().min(0.25).max(5).multipleOf(0.25).optional(),
+        goodreadsId: z
+          .string()
+          .regex(/^\d{1,20}$/)
+          .optional(),
         dateAdded: z.iso.date().optional(),
         dateRead: z.iso.date().optional(),
         review: z.string().max(20_000).optional(),
@@ -420,9 +425,10 @@ export const importBooksBody = z.object({
 });
 
 const IMPORT_CHUNK = 500;
+const SOURCE_NAMES = { goodreads: "Goodreads", storygraph: "StoryGraph" } as const;
 
 /**
- * Bulk-add books from a Goodreads export to the user's default book shelf.
+ * Bulk-add books from a Goodreads or StoryGraph export to the user's default book shelf.
  * Skips books already there (same normalized title and author) and repeats
  * inside the file, so re-importing the same export is a no-op.
  */
@@ -448,7 +454,7 @@ export async function importBooks(
     seen.add(k);
     const done = b.status === "done";
     const added = b.dateAdded ? new Date(b.dateAdded) : new Date();
-    const extraMetadata: Record<string, string> = { source: "goodreads" };
+    const extraMetadata: Record<string, string> = { source: data.source };
     if (b.isbn) extraMetadata.isbn = b.isbn;
     if (b.rating) extraMetadata.rating = String(b.rating);
     if (b.goodreadsId) extraMetadata.goodreadsId = b.goodreadsId;
@@ -484,7 +490,7 @@ export async function importBooks(
         listId,
         userId,
         action: "added",
-        itemTitle: `${rows.length} ${rows.length === 1 ? "book" : "books"} from Goodreads`,
+        itemTitle: `${rows.length} ${rows.length === 1 ? "book" : "books"} from ${SOURCE_NAMES[data.source]}`,
         itemType: "book",
       });
     });

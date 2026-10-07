@@ -1,4 +1,4 @@
-import type { GoodreadsBook } from "@/lib/goodreads";
+import type { BookCsvSource, GoodreadsBook } from "@/lib/goodreads";
 import type { ItemStatus } from "@/lib/schema";
 import type { ShelfCard, ShelfDetail, ShelfTab } from "@/lib/shelves";
 import { http, orNull, seg } from "./client";
@@ -63,9 +63,12 @@ export const shelvesApi = {
     fillPageCount: (id: string) =>
       http.post<{ pageCount: number | null }>(`${book(id)}/page-count`),
 
-    /** Bulk-add books from a parsed Goodreads export; skips ones already shelved. */
-    importGoodreads: (books: GoodreadsBook[]) =>
-      http.post<{ imported: number; skipped: number }>("/api/shelves/book/import", { books }),
+    /** Bulk-add books from a parsed Goodreads / StoryGraph export; skips ones already shelved. */
+    importBooks: (source: BookCsvSource, books: GoodreadsBook[]) =>
+      http.post<{ imported: number; skipped: number }>("/api/shelves/book/import", {
+        source,
+        books,
+      }),
   },
 
   tv: {

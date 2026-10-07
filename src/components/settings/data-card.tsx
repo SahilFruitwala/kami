@@ -15,7 +15,7 @@ import {
 import { wipeLibraryAccount } from "@/lib/library-remote.ts";
 import { libraryApi } from "@/lib/api/library";
 import { shelvesApi } from "@/lib/api/shelves";
-import { parseGoodreadsCsv } from "@/lib/goodreads.ts";
+import { parseBookCsv } from "@/lib/goodreads.ts";
 import { invalidateShelves } from "@/lib/query-client";
 import { Card, ExportButton, FieldLabel, MiniButton } from "@/components/settings/settings-ui.tsx";
 
@@ -96,15 +96,16 @@ export function DataCard() {
   async function importGoodreads(file: File) {
     setGoodreadsBusy(true);
     try {
-      const books = parseGoodreadsCsv(await file.text());
+      const { source, books } = parseBookCsv(await file.text());
+      const from = source === "storygraph" ? "StoryGraph" : "Goodreads";
       if (books.length === 0) {
-        toast.error("No books found in that Goodreads export.");
+        toast.error(`No books found in that ${from} export.`);
         return;
       }
-      const { imported, skipped } = await shelvesApi.books.importGoodreads(books);
+      const { imported, skipped } = await shelvesApi.books.importBooks(source, books);
       void invalidateShelves(queryClient);
       toast.success(
-        `Shelved ${imported} ${imported === 1 ? "book" : "books"} from Goodreads` +
+        `Shelved ${imported} ${imported === 1 ? "book" : "books"} from ${from}` +
           (skipped ? ` (${skipped} already on your shelf)` : ""),
       );
     } catch (err) {
@@ -149,14 +150,14 @@ export function DataCard() {
           onClick={() => goodreadsRef.current?.click()}
           className="rounded-[0.25rem] bg-paper-warm px-4 py-2 font-sans text-xs font-medium text-ink hover:bg-line disabled:opacity-60"
         >
-          {goodreadsBusy ? "Importing Goodreads…" : "Import Goodreads CSV…"}
+          {goodreadsBusy ? "Importing books…" : "Import Goodreads / StoryGraph CSV…"}
         </button>
         <input
           ref={goodreadsRef}
           type="file"
           accept=".csv,text/csv"
           className="hidden"
-          aria-label="Import Goodreads library export"
+          aria-label="Import Goodreads or StoryGraph library export"
           onChange={(e) => {
             const file = e.target.files?.[0];
             if (file) void importGoodreads(file);
@@ -165,9 +166,9 @@ export function DataCard() {
         />
       </div>
       <p className="font-body text-xs text-ink-muted">
-        Goodreads: My Books → Import and export → Export library. Read, currently reading and
-        want-to-read land on your Book shelf with ratings, reviews and dates; books already there
-        are skipped.
+        Goodreads: My Books → Import and export → Export library. StoryGraph: Manage Account →
+        Export StoryGraph Library. Read, currently reading and want-to-read land on your Book shelf
+        with ratings, reviews and dates; books already there are skipped.
       </p>
 
       <div>
