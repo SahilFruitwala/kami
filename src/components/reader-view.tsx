@@ -391,7 +391,6 @@ export function ReaderView({
       {menu ? (
         <HighlightMenu
           menu={menu}
-          activeColor={highlightColor}
           onInk={saveHighlight}
         />
       ) : editMenu && editingHighlight ? (
