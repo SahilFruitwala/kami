@@ -11,6 +11,8 @@ import type { Highlight, HighlightColorId } from "./store.ts";
 
 export const MAX_TAGS = 12;
 export const MAX_HIGHLIGHTS = 80;
+/** Longest marginalia note kept on a single highlight. */
+export const HIGHLIGHT_NOTE_MAX = 1000;
 
 export type TagOp =
   | { op: "add"; tag: string }
@@ -41,6 +43,12 @@ export function applyTagOps(tags: readonly string[], ops: readonly TagOp[]): str
   return next.slice(0, MAX_TAGS);
 }
 
+/** Insert `h` keeping the list newest-first (an undo restores it in place). */
+function insertByCreatedAt(list: readonly Highlight[], h: Highlight): Highlight[] {
+  const at = list.findIndex((x) => x.createdAt <= h.createdAt);
+  return at === -1 ? [...list, h] : [...list.slice(0, at), h, ...list.slice(at)];
+}
+
 /** Apply highlight ops (newest first, de-duplicated by text, capped). */
 export function applyHighlightOps(
   highlights: readonly Highlight[],
@@ -50,7 +58,7 @@ export function applyHighlightOps(
   for (const op of ops) {
     if (op.op === "add") {
       const h = op.highlight;
-      if (!next.some((x) => x.id === h.id || x.text === h.text)) next = [h, ...next];
+      if (!next.some((x) => x.id === h.id || x.text === h.text)) next = insertByCreatedAt(next, h);
     } else if (op.op === "remove") {
       next = next.filter((h) => h.id !== op.id);
     } else {
@@ -60,7 +68,7 @@ export function applyHighlightOps(
           : {
               ...h,
               ...(op.color !== undefined ? { color: op.color } : {}),
-              ...(op.note !== undefined ? { note: op.note.slice(0, 280) } : {}),
+              ...(op.note !== undefined ? { note: op.note.slice(0, HIGHLIGHT_NOTE_MAX) } : {}),
             },
       );
     }
