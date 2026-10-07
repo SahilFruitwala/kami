@@ -463,20 +463,28 @@ export async function fetchLinkPreview(
 
 const OPEN_LIBRARY_WORK = /^https:\/\/openlibrary\.org(\/works\/OL\d+W)$/;
 
+/** Cover URLs the Goodreads/StoryGraph import guesses from the ISBN; often 404. */
+const IMPORTED_ISBN_COVER = /^https:\/\/covers\.openlibrary\.org\/b\/isbn\//;
+
+/** True when a book's cover is the import's ISBN guess, so Open Library's real one is worth fetching. */
+export function hasGuessedCover(imageUrl: string | null | undefined): boolean {
+  return !!imageUrl && IMPORTED_ISBN_COVER.test(imageUrl);
+}
+
 /**
- * Open Library's median page count for a work — by its exact work key when
- * the book was added from search, else the best title + author match.
+ * Open Library's median page count and cover for a work — by its exact work
+ * key when the book was added from search, else the best title + author match.
  * Returns `undefined` when Open Library could not be reached (not cached).
  */
-async function openLibraryPageCount(book: {
+async function openLibraryBookMeta(book: {
   link: string | null;
   title: string;
   author: string | null;
-}): Promise<{ pages: number | null } | undefined> {
+}): Promise<{ pages: number | null; coverUrl: string | null } | undefined> {
   const workKey = book.link ? OPEN_LIBRARY_WORK.exec(book.link)?.[1] : undefined;
   const lookup = workKey ?? `${book.title}|${book.author ?? ""}`;
   return cached(
-    cacheKey("lookup", "book-pages", hashKeyPart(normalizeCacheQuery(lookup))),
+    cacheKey("lookup", "book-meta", hashKeyPart(normalizeCacheQuery(lookup))),
     CacheTTL.bookSearch,
     async () => {
       const url = new URL("https://openlibrary.org/search.json");
@@ -487,30 +495,39 @@ async function openLibraryPageCount(book: {
         if (book.author) url.searchParams.set("author", book.author);
       }
       url.searchParams.set("limit", "1");
-      url.searchParams.set("fields", "key,number_of_pages_median");
+      url.searchParams.set("fields", "key,number_of_pages_median,cover_i");
       try {
         const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
         if (!res.ok) return undefined;
-        const json = (await res.json()) as { docs?: { number_of_pages_median?: number }[] };
-        const pages = json.docs?.[0]?.number_of_pages_median;
-        return { pages: pages && pages > 0 ? pages : null };
+        const json = (await res.json()) as {
+          docs?: { number_of_pages_median?: number; cover_i?: number }[];
+        };
+        const doc = json.docs?.[0];
+        const pages = doc?.number_of_pages_median;
+        return {
+          pages: pages && pages > 0 ? pages : null,
+          coverUrl: doc?.cover_i
+            ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`
+            : null,
+        };
       } catch {
         return undefined;
       }
     },
-    // Cache "Open Library has no count" too; only network failures retry.
+    // Cache "Open Library has nothing" too; only network failures retry.
     { skipCache: (v) => v === undefined },
   );
 }
 
 /**
- * Fill a book's missing page count from Open Library. Never overwrites a
- * count the reader typed. Returns the stored count (or null if unknown).
+ * Fill a book's missing page count and replace an import-guessed cover with
+ * Open Library's real one. Never overwrites a count the reader typed or a
+ * cover picked from search.
  */
 export async function fillBookPageCount(
   userId: string,
   id: string,
-): Promise<{ pageCount: number | null }> {
+): Promise<{ pageCount: number | null; imageUrl: string | null }> {
   const data = { id };
   const owned = await findOwnedItem(userId, "book", data.id);
   if (!owned) throw notFound("Item not found");
@@ -522,22 +539,38 @@ export async function fillBookPageCount(
       author: books.author,
       link: books.link,
       pageCount: books.pageCount,
+      imageUrl: books.imageUrl,
     })
     .from(books)
     .where(eq(books.id, data.id))
     .limit(1);
   if (!book) throw notFound("Item not found");
-  if (book.pageCount) return { pageCount: book.pageCount };
 
-  const found = await openLibraryPageCount(book);
-  const pages = found?.pages ?? null;
-  if (pages == null) return { pageCount: null };
+  const needsPages = !book.pageCount;
+  const needsCover = hasGuessedCover(book.imageUrl);
+  if (!needsPages && !needsCover) return { pageCount: book.pageCount, imageUrl: book.imageUrl };
 
-  // `isNull` guard: a count typed meanwhile wins over the lookup.
-  await db
-    .update(books)
-    .set({ pageCount: pages })
-    .where(and(eq(books.id, data.id), isNull(books.pageCount)));
-  await invalidateUserCache(userId);
-  return { pageCount: pages };
+  const found = await openLibraryBookMeta(book);
+  let pageCount = book.pageCount;
+  let imageUrl = book.imageUrl;
+  if (needsPages && found?.pages != null) {
+    // `isNull` guard: a count typed meanwhile wins over the lookup.
+    await db
+      .update(books)
+      .set({ pageCount: found.pages })
+      .where(and(eq(books.id, data.id), isNull(books.pageCount)));
+    pageCount = found.pages;
+  }
+  if (needsCover && found?.coverUrl) {
+    // Only swap while it is still the guess, so a cover set meanwhile wins.
+    await db
+      .update(books)
+      .set({ imageUrl: found.coverUrl })
+      .where(and(eq(books.id, data.id), eq(books.imageUrl, book.imageUrl as string)));
+    imageUrl = found.coverUrl;
+  }
+  if (pageCount !== book.pageCount || imageUrl !== book.imageUrl) {
+    await invalidateUserCache(userId);
+  }
+  return { pageCount, imageUrl };
 }

@@ -59,9 +59,9 @@ export const shelvesApi = {
     setProgress: (id: string, progress: BookProgress) =>
       http.put<{ status: ItemStatus; percent: number }>(`${book(id)}/progress`, progress),
 
-    /** Fill a missing page count from Open Library. */
+    /** Fill a missing page count and import-guessed cover from Open Library. */
     fillPageCount: (id: string) =>
-      http.post<{ pageCount: number | null }>(`${book(id)}/page-count`),
+      http.post<{ pageCount: number | null; imageUrl: string | null }>(`${book(id)}/page-count`),
 
     /** Bulk-add books from a parsed Goodreads / StoryGraph export; skips ones already shelved. */
     importBooks: (source: BookCsvSource, books: GoodreadsBook[]) =>

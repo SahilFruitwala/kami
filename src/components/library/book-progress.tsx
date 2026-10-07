@@ -17,14 +17,19 @@ export function BookProgress({
   currentPage,
   pageCount,
   percent,
+  imageUrl,
 }: {
   id: string;
   currentPage: number | null;
   pageCount: number | null;
   percent: number;
+  imageUrl?: string | null;
 }) {
   const save = useSetBookProgress();
-  const lookup = useBookPageCountLookup(id, pageCount == null);
+  // Imported books carry an ISBN-guessed cover that often 404s; the same
+  // lookup swaps in Open Library's real cover for the work.
+  const guessedCover = !!imageUrl?.startsWith("https://covers.openlibrary.org/b/isbn/");
+  const lookup = useBookPageCountLookup(id, pageCount == null || guessedCover);
   const lookingUp = pageCount == null && lookup.isFetching;
   const fieldId = useId();
   const [mode, setMode] = useState<Mode>(pageCount ? "pages" : "percent");

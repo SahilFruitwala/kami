@@ -192,8 +192,9 @@ export function useSetBookProgress() {
 }
 
 /**
- * One-time Open Library lookup for a book with no page count. A hit is saved
- * server-side, then shelves refetch so the progress form picks it up.
+ * One-time Open Library lookup for a book with no page count or an
+ * import-guessed cover. A hit is saved server-side, then shelves refetch so
+ * the progress form and cover pick it up.
  */
 export function useBookPageCountLookup(id: string, enabled: boolean) {
   const client = useQueryClient();
@@ -201,7 +202,7 @@ export function useBookPageCountLookup(id: string, enabled: boolean) {
     queryKey: [...queryKeys.shelves.all, "page-count", id] as const,
     queryFn: async () => {
       const res = await shelvesApi.books.fillPageCount(id);
-      if (res.pageCount) await invalidateShelves(client);
+      await invalidateShelves(client);
       return res;
     },
     enabled,

@@ -311,6 +311,7 @@ function DetailBody({
             currentPage={detail.item.currentPage}
             pageCount={detail.item.pageCount}
             percent={detail.item.progressPercent}
+            imageUrl={detail.item.imageUrl}
           />
         ) : null}
 
