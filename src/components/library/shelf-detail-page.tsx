@@ -21,6 +21,7 @@ import { statusText } from "@/lib/shelf-labels.ts";
 import { useShelfDetail } from "@/hooks/use-shelf-queries.ts";
 import { cn } from "@/lib/utils.ts";
 import { shelfPath, type ShelfDetail, type ShelfTab } from "@/lib/shelves.ts";
+import type { ShelvesSearch } from "@/lib/shelves-search.ts";
 
 type DetailTab = Exclude<ShelfTab, "wishlist">;
 
@@ -51,7 +52,16 @@ function httpUrl(value: string | null | undefined): string | null {
 }
 
 /** Full page for one movie, series, or book — deep-linkable from anywhere. */
-export function ShelfDetailPage({ tab, id }: { tab: DetailTab; id: string }) {
+export function ShelfDetailPage({
+  tab,
+  id,
+  listSearch,
+}: {
+  tab: DetailTab;
+  id: string;
+  /** The shelf list's filters when it was opened, so going back lands on the same tab. */
+  listSearch: ShelvesSearch;
+}) {
   const meta = TAB_META[tab];
   const query = useShelfDetail(tab, id);
   const data = query.data ?? null;
@@ -62,6 +72,7 @@ export function ShelfDetailPage({ tab, id }: { tab: DetailTab; id: string }) {
       <div className="mx-auto w-full max-w-5xl px-4 pt-6 pb-16 sm:px-6 lg:px-12">
         <Link
           to={shelfPath(tab)}
+          search={listSearch}
           className="inline-flex min-h-11 items-center gap-1.5 font-sans text-xs text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
         >
           <ArrowLeft className="size-3.5" aria-hidden="true" />
@@ -78,11 +89,13 @@ export function ShelfDetailPage({ tab, id }: { tab: DetailTab; id: string }) {
               This {tab === "tv" ? "series" : tab} was removed, or the link is wrong.
             </p>
             <Button asChild className="mt-4 bg-hanko text-white hover:bg-shu">
-              <Link to={shelfPath(tab)}>Back to {meta.label.toLowerCase()}</Link>
+              <Link to={shelfPath(tab)} search={listSearch}>
+                Back to {meta.label.toLowerCase()}
+              </Link>
             </Button>
           </div>
         ) : (
-          <DetailBody detail={detail} tab={tab} eyebrow={meta.eyebrow} />
+          <DetailBody detail={detail} tab={tab} eyebrow={meta.eyebrow} listSearch={listSearch} />
         )}
       </div>
     </AppShell>
@@ -93,17 +106,19 @@ function DetailBody({
   detail,
   tab,
   eyebrow,
+  listSearch,
 }: {
   detail: Exclude<ShelfDetail, { type: "wishlist" }>;
   tab: DetailTab;
   eyebrow: string;
+  listSearch: ShelvesSearch;
 }) {
   const navigate = useNavigate();
   const { item } = detail;
   const { busy, labels, setDone, startReading, setAbandoned, remove } = useShelfItemActions(
     detail,
     () => {
-      void navigate({ to: shelfPath(tab), replace: true });
+      void navigate({ to: shelfPath(tab), search: listSearch, replace: true });
     },
   );
   const isDone = item.status === "done";
