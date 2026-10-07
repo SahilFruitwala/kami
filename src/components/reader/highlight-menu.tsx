@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils.ts";
  * existing highlight. Theme-aware (follows app + reader paper via
  * design tokens) and highlight-only: pick an ink to save, or — when
  * opened from an existing highlight — recolor it or remove it inline.
+ * Only edit mode marks an ink as active: a fresh selection isn't
+ * highlighted yet, so pre-selecting the last-used ink reads as applied.
  */
 export function HighlightMenu({
   menu,
@@ -16,7 +18,8 @@ export function HighlightMenu({
   onRemove,
 }: {
   menu: SelMenu | EditMenu;
-  activeColor: HighlightColorId;
+  /** Current ink of the highlight being edited; omitted for a fresh selection. */
+  activeColor?: HighlightColorId;
   onInk: (color: HighlightColorId) => void;
   onRemove?: () => void;
 }) {
@@ -44,7 +47,7 @@ export function HighlightMenu({
             type="button"
             aria-label={isEdit ? `Change highlight to ${color.label}` : `Highlight in ${color.label}`}
             title={color.label}
-            aria-pressed={activeColor === color.id}
+            aria-pressed={isEdit ? activeColor === color.id : undefined}
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => onInk(color.id)}
             className={cn(
