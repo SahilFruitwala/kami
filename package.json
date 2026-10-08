@@ -21,9 +21,12 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.92",
+    "@ai-sdk/react": "^4.0.136",
     "@base-ui/react": "^1.8.0",
     "@clerk/tanstack-react-start": "^1.5.13",
     "@mozilla/readability": "^0.6.0",
+    "@openrouter/ai-sdk-provider": "^3.1.0",
     "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/vite": "^4.3.0",
     "@tanstack/react-query": "^5.101.0",
@@ -32,6 +35,7 @@
     "@tanstack/react-virtual": "^3.14.13",
     "@tanstack/router-plugin": "1.168.42",
     "@upstash/redis": "^1.38.4",
+    "ai": "^7.0.133",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "cn": "^0.3.0",

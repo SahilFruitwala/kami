@@ -8,6 +8,7 @@ import {
   LibraryBig,
   PanelLeftClose,
   PanelLeftOpen,
+  Plane,
   Rss,
   ScanSearch,
   Settings as SettingsIcon,
@@ -25,6 +26,7 @@ export type SitePane =
   | "library"
   | "feeds"
   | "extracts"
+  | "trips"
   | "vault"
   | "movies"
   | "series"
@@ -39,6 +41,7 @@ type Pane = {
     | "/library"
     | "/feeds"
     | "/extracts"
+    | "/trips"
     | "/vault"
     | "/shelves/movies"
     | "/shelves/series"
@@ -54,6 +57,7 @@ const SANCTUARY_PANES: Pane[] = [
   { id: "library", to: "/library", label: "Library", icon: LibraryBig },
   { id: "feeds", to: "/feeds", label: "Feeds", icon: Rss },
   { id: "extracts", to: "/extracts", label: "Extracts", icon: ScanSearch },
+  { id: "trips", to: "/trips", label: "Trips", icon: Plane },
   { id: "vault", to: "/vault", label: "Vault", icon: Bookmark },
 ];
 
