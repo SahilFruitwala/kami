@@ -554,3 +554,51 @@ export async function removeTripItem(
   if (!deleted.length) throw notFound("That plan is no longer on this trip.");
   return touchAndLoad(db, userId, tripId);
 }
+
+export const replaceDayInput = z.object({
+  dayIndex: z
+    .number()
+    .int()
+    .min(0)
+    .max(MAX_TRIP_DAYS - 1),
+  items: z
+    .array(createItemInput.omit({ dayIndex: true }))
+    .max(20, "Keep one day to 20 plans or fewer."),
+});
+
+/** Replace every item on one day in a single transaction (used by the trip agent). */
+export async function replaceTripDay(
+  userId: string,
+  tripId: string,
+  input: z.output<typeof replaceDayInput>,
+): Promise<Trip> {
+  const db = await getDb();
+  const trip = await ownedTrip(db, userId, tripId);
+  assertDayInTrip(trip, input.dayIndex);
+  const rows = input.items.map((item, i) => ({
+    id: uid(),
+    tripId,
+    userId,
+    dayIndex: input.dayIndex,
+    slot: item.slot,
+    title: item.title,
+    place: clean(item.place) ?? null,
+    url: cleanUrl(item.url) ?? null,
+    notes: clean(item.notes) ?? null,
+    sort: i,
+  }));
+  const [count] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(tripItems)
+    .where(and(eq(tripItems.tripId, tripId), ne(tripItems.dayIndex, input.dayIndex)));
+  if ((count?.n ?? 0) + rows.length > MAX_ITEMS) {
+    throw badRequest(`A trip can hold up to ${MAX_ITEMS} plans.`);
+  }
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(tripItems)
+      .where(and(eq(tripItems.tripId, tripId), eq(tripItems.dayIndex, input.dayIndex)));
+    if (rows.length) await tx.insert(tripItems).values(rows);
+  });
+  return touchAndLoad(db, userId, tripId);
+}

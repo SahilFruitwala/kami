@@ -59,7 +59,9 @@ embedded fallback.
 | `VITE_PUBLIC_HOSTNAME` | optional | Public host for OG / share cards |
 | `CRON_SECRET` | optional | Bearer secret for the (unscheduled) feed sweep hook `/api/hooks/feeds` ([Feeds](./ARCHITECTURE.md#feeds--newsletters)) |
 | `INBOUND_EMAIL_DOMAIN` / `INBOUND_EMAIL_SECRET` | optional | Private newsletter addresses + inbound-email webhook secret ([Feeds](./ARCHITECTURE.md#feeds--newsletters)) |
-| `FIRECRAWL_API_KEY` | for `/extracts` | Firecrawl API key; without it extracts can be saved but not run ([Extracts](./ARCHITECTURE.md#extracts-firecrawl)) |
+| `GOOGLE_GENERATIVE_AI_API_KEY` / `OPENROUTER_API_KEY` | for the trip agent | Model provider keys for the `/trips` chat; at least one enables it ([Trips](./ARCHITECTURE.md#trips)) |
+| `TRIPS_MODELS` | no | Trip agent model picker as `provider:model`, comma-separated; default `google:gemini-3.8-flash,openrouter:anthropic/claude-haiku-5.5` |
+| `FIRECRAWL_API_KEY` | for `/extracts` | Firecrawl API key; without it extracts can be saved but not run ([Extracts](./ARCHITECTURE.md#extracts-firecrawl)), and the trip agent plans without web research |
 
 Env loading: `scripts/with-app-env.mjs` and `scripts/load-dotenv.mjs` load `.env` then `.env.local` before Vite/build/migrate. Never commit `.env`.
 

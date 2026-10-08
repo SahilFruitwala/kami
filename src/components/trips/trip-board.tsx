@@ -62,14 +62,10 @@ export function TripBoard({ tripId, onDeleted }: { tripId: string; onDeleted: ()
   const trip = query.data;
 
   return (
-    <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
-      <div className="flex min-w-0 flex-col gap-6 lg:sticky lg:top-24 lg:col-span-5 xl:col-span-4">
-        <TripDetails trip={trip} actions={actions} onDeleted={onDeleted} />
-        <Hotels trip={trip} actions={actions} />
-      </div>
-      <div className="min-w-0 lg:col-span-7 xl:col-span-8">
-        <Itinerary trip={trip} actions={actions} />
-      </div>
+    <div className="flex min-w-0 flex-col gap-6">
+      <TripDetails trip={trip} actions={actions} onDeleted={onDeleted} />
+      <Hotels trip={trip} actions={actions} />
+      <Itinerary trip={trip} actions={actions} />
     </div>
   );
 }

@@ -74,6 +74,7 @@ import { Route as ApiShelvesTypeIndexRouteImport } from './routes/api/shelves/$t
 import { Route as ApiShelvesTypeIdRouteImport } from './routes/api/shelves/$type/$id'
 import { Route as ApiShelvesTypeDuplicatesRouteImport } from './routes/api/shelves/$type/duplicates'
 import { Route as ApiShelvesBookImportRouteImport } from './routes/api/shelves/book/import'
+import { Route as ApiTripsIdChatRouteImport } from './routes/api/trips/$id/chat'
 import { Route as ApiTripsIdHotelsRouteImport } from './routes/api/trips/$id/hotels'
 import { Route as ApiTripsIdItemsRouteImport } from './routes/api/trips/$id/items'
 import { Route as ApiExtractsResultsIdAcceptRouteImport } from './routes/api/extracts/results/$id/accept'
@@ -413,6 +414,11 @@ const ApiShelvesBookImportRoute = ApiShelvesBookImportRouteImport.update({
   path: '/api/shelves/book/import',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTripsIdChatRoute = ApiTripsIdChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => ApiTripsIdRoute,
+} as any)
 const ApiTripsIdHotelsRoute = ApiTripsIdHotelsRouteImport.update({
   id: '/hotels',
   path: '/hotels',
@@ -543,6 +549,7 @@ export interface FileRoutesByFullPath {
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
+  '/api/trips/$id/chat': typeof ApiTripsIdChatRoute
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
   '/api/feeds/entries/': typeof ApiFeedsEntriesIndexRoute
@@ -621,6 +628,7 @@ export interface FileRoutesByTo {
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
+  '/api/trips/$id/chat': typeof ApiTripsIdChatRoute
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
   '/api/feeds/entries': typeof ApiFeedsEntriesIndexRoute
@@ -701,6 +709,7 @@ export interface FileRoutesById {
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
+  '/api/trips/$id/chat': typeof ApiTripsIdChatRoute
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
   '/api/feeds/entries/': typeof ApiFeedsEntriesIndexRoute
@@ -782,6 +791,7 @@ export interface FileRouteTypes {
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
+    | '/api/trips/$id/chat'
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
     | '/api/feeds/entries/'
@@ -860,6 +870,7 @@ export interface FileRouteTypes {
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
+    | '/api/trips/$id/chat'
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
     | '/api/feeds/entries'
@@ -939,6 +950,7 @@ export interface FileRouteTypes {
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
+    | '/api/trips/$id/chat'
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
     | '/api/feeds/entries/'
@@ -1479,6 +1491,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiShelvesBookImportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/trips/$id/chat': {
+      id: '/api/trips/$id/chat'
+      path: '/chat'
+      fullPath: '/api/trips/$id/chat'
+      preLoaderRoute: typeof ApiTripsIdChatRouteImport
+      parentRoute: typeof ApiTripsIdRoute
+    }
     '/api/trips/$id/hotels': {
       id: '/api/trips/$id/hotels'
       path: '/hotels'
@@ -1630,11 +1649,13 @@ const ApiTripsIdItemsRouteWithChildren = ApiTripsIdItemsRoute._addFileChildren(
 )
 
 interface ApiTripsIdRouteChildren {
+  ApiTripsIdChatRoute: typeof ApiTripsIdChatRoute
   ApiTripsIdHotelsRoute: typeof ApiTripsIdHotelsRouteWithChildren
   ApiTripsIdItemsRoute: typeof ApiTripsIdItemsRouteWithChildren
 }
 
 const ApiTripsIdRouteChildren: ApiTripsIdRouteChildren = {
+  ApiTripsIdChatRoute: ApiTripsIdChatRoute,
   ApiTripsIdHotelsRoute: ApiTripsIdHotelsRouteWithChildren,
   ApiTripsIdItemsRoute: ApiTripsIdItemsRouteWithChildren,
 }

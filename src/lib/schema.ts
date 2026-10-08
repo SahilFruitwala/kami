@@ -1,5 +1,6 @@
 import { desc, sql } from "drizzle-orm";
 import {
+  bigint,
   boolean,
   date,
   index,
@@ -596,9 +597,30 @@ export const tripItems = pgTable(
   (t) => [index("trip_items_trip_idx").on(t.tripId, t.dayIndex, t.sort)],
 );
 
+export const tripMessages = pgTable(
+  "trip_messages",
+  {
+    id: text("id").primaryKey(),
+    seq: bigint("seq", { mode: "number" }).generatedAlwaysAsIdentity(),
+    tripId: text("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    role: text("role").$type<"user" | "assistant">().notNull(),
+    /** AI SDK UIMessage parts (text, tool calls + results). */
+    parts: jsonb("parts").$type<unknown[]>().notNull(),
+    model: text("model"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("trip_messages_trip_idx").on(t.tripId, t.seq)],
+);
+
 export type TripRow = typeof trips.$inferSelect;
 export type TripHotelRow = typeof tripHotels.$inferSelect;
 export type TripItemRow = typeof tripItems.$inferSelect;
+export type TripMessageRow = typeof tripMessages.$inferSelect;
 
 export const schema = {
   user,
@@ -632,4 +654,5 @@ export const schema = {
   trips,
   tripHotels,
   tripItems,
+  tripMessages,
 };

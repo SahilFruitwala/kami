@@ -38,6 +38,7 @@ export const queryKeys = {
     all: ["trips"] as const,
     list: () => [...queryKeys.trips.all, "list"] as const,
     detail: (id: string) => [...queryKeys.trips.all, "detail", id] as const,
+    chat: (id: string) => [...queryKeys.trips.all, "chat", id] as const,
   },
   feeds: {
     all: ["feeds"] as const,
