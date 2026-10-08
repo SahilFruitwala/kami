@@ -387,6 +387,71 @@ with name, link and category"*.
 
 ---
 
+## Trips
+
+`/trips` is a private trip planner: a list of trips, and per trip a board with
+the details (destination, start date, length, travellers, budget, what you
+like), a **hotel shortlist**, and a **day-by-day itinerary**, plus a **trip
+agent**: a chat beside the board that researches with Firecrawl and edits the
+board through the same service a person uses.
+
+| Concern | Approach |
+|---|---|
+| Dates | A trip stores `start_date` (optional) and `day_count` (1–30); the end date is derived, so the two can't disagree. Date math is UTC on `YYYY-MM-DD` strings (`src/lib/trip-days.ts`, tested). |
+| Itinerary | Items carry a 0-based `day_index` and a `slot` (`morning` → `night`), ordered by day, slot, then `sort`. Moving an item to another day or slot puts it at the end there. A trip can't be shortened past a day that still has plans. |
+| Hotels | `shortlisted` or `chosen`; choosing one demotes the previous pick in the same transaction, and a partial unique index allows only one `chosen` per trip. Prices and ratings are free-text notes, never live data. |
+| Writes | Every write returns the whole updated trip; the client swaps it into the React Query cache. Each write also bumps `trips.updated_at` so the list sorts by recent activity. |
+| Limits | 50 trips per user, 30 hotels and 300 items per trip. Links go through `assertPublicHttpUrl`. |
+
+### Trip agent
+
+```mermaid
+sequenceDiagram
+  participant UI as Chat (useChat)
+  participant API as POST /api/trips/:id/chat
+  participant LLM as Model (Google / OpenRouter)
+  participant FC as Firecrawl
+  participant DB as Postgres
+  UI->>API: new message + chosen model
+  API->>DB: save user message, load trip + history
+  loop up to 12 steps
+    API->>LLM: instructions (trip snapshot) + history + tools
+    LLM-->>API: tool call
+    alt web_search / read_page
+      API->>FC: search or read (≤ 6 per message)
+    else update_trip, shortlist_hotel, set_day, …
+      API->>DB: trips service (same checks as the board)
+    end
+    API-->>UI: streamed tool status
+  end
+  LLM-->>API: reply text
+  API-->>UI: streamed reply
+  API->>DB: save assistant message
+  UI->>UI: refetch the board after each write tool
+```
+
+| Concern | Approach |
+|---|---|
+| Models | Vercel AI SDK v7 (`streamText`). `src/lib/llm.server.ts` is the only provider-aware file: `google:<model>` via `@ai-sdk/google`, `openrouter:<vendor/model>` via `@openrouter/ai-sdk-provider`. `TRIPS_MODELS` lists what the picker offers (default `google:gemini-3.8-flash`, then `openrouter:anthropic/claude-haiku-5.5`); entries without a provider key show as unavailable, and an unusable request falls back to the first usable model. The user's pick is remembered per browser. |
+| Tools | Research: `web_search`, `read_page` (Firecrawl, only when `FIRECRAWL_API_KEY` is set). Writes: `update_trip`, `shortlist_hotel`, `update_hotel`, `remove_hotel`, `set_day`, `add_item`, `update_item`, `remove_item`, each bound to the signed-in user + this trip and calling `src/server/services/trips.ts`. Write tools answer with the fresh trip snapshot so the model always has current ids. Failures come back as `{ error }` for the model to recover from. |
+| Safety | No booking, payment or messaging tools; the worst a misleading page can do is edit this one trip, which the user can undo. Page text is returned as `untrusted_page_content` and the instructions say never to follow it. URLs pass `assertPublicHttpUrl`. Only plain text from the client's message is used; the server builds the stored user message itself. Replies render through a small React Markdown renderer that only links http(s) URLs. |
+| Cost | `agent` rate-limit bucket (40 messages/hour/user); 12 model steps and 6 Firecrawl calls per message; each Firecrawl call also counts against the shared `firecrawl` bucket. |
+| History | `trip_messages` stores AI SDK UIMessages (newest 200 per trip). The model gets the last 30 plus a fresh trip snapshot in its instructions each turn. History that no longer validates against the tools is skipped rather than failing the turn. `consumeStream()` lets a turn finish and save even if the browser disconnects. |
+
+| Path | Role |
+|---|---|
+| `src/lib/trip-days.ts` | Date math, day grouping, item order (pure, tested) |
+| `src/server/services/trips.ts` | Trips, hotels, itinerary items |
+| `src/lib/trip-models.ts`, `src/lib/llm.server.ts` | Model menu parsing (pure, tested) and provider wiring |
+| `src/lib/trip-agent-prompt.ts` | Agent instructions + trip snapshot (pure, tested) |
+| `src/server/services/trip-agent.ts` | Tools, chat turn, history |
+| `src/lib/firecrawl.server.ts` | `searchWeb`, `readPage` (alongside Extracts' `askPage`) |
+| `src/routes/api/trips/**` | HTTP routes (`$id/chat` streams the agent) |
+| `src/hooks/use-trips.ts`, `src/components/trips/*`, `src/routes/trips/*` | `/trips` UI, including `trip-chat.tsx` |
+| `migrations/0012_trips.sql`, `migrations/0013_trip_messages.sql` | `trips`, `trip_hotels`, `trip_items`, `trip_messages` |
+
+---
+
 ## Caching
 
 `src/lib/cache.server.ts` — enabled only when both Upstash env vars are set.
@@ -408,6 +473,7 @@ flowchart TB
   Root --> Index["/ — Landing or desk"]
   Root --> Lib["/library — AppShell"]
   Root --> Feeds["/feeds — AppShell"]
+  Root --> Trips["/trips, /trips/$id — AppShell"]
   Root --> Read["/read — AppGate only"]
   Root --> Movies["/shelves/movies — AppShell"]
   Root --> Series["/shelves/series — AppShell"]
