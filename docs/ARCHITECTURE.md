@@ -414,7 +414,7 @@ sequenceDiagram
   participant DB as Postgres
   UI->>API: new message + chosen model
   API->>DB: save user message, load trip + history
-  loop up to 12 steps
+  loop up to 8 steps
     API->>LLM: instructions (trip snapshot) + history + tools
     LLM-->>API: tool call
     alt web_search / read_page
@@ -435,7 +435,7 @@ sequenceDiagram
 | Models | Vercel AI SDK v7 (`streamText`). `src/lib/llm.server.ts` is the only provider-aware file: `google:<model>` via `@ai-sdk/google`, `openrouter:<vendor/model>` via `@openrouter/ai-sdk-provider`. `TRIPS_MODELS` lists what the picker offers (default `google:gemini-3.8-flash`, then `openrouter:anthropic/claude-haiku-5.5`); entries without a provider key show as unavailable, and an unusable request falls back to the first usable model. The user's pick is remembered per browser. |
 | Tools | Research: `web_search`, `read_page` (Firecrawl, only when `FIRECRAWL_API_KEY` is set). Writes: `update_trip`, `shortlist_hotel`, `update_hotel`, `remove_hotel`, `set_day`, `add_item`, `update_item`, `remove_item`, each bound to the signed-in user + this trip and calling `src/server/services/trips.ts`. Write tools answer with the fresh trip snapshot so the model always has current ids. Failures come back as `{ error }` for the model to recover from. |
 | Safety | No booking, payment or messaging tools; the worst a misleading page can do is edit this one trip, which the user can undo. Page text is returned as `untrusted_page_content` and the instructions say never to follow it. URLs pass `assertPublicHttpUrl`. Only plain text from the client's message is used; the server builds the stored user message itself. Replies render through a small React Markdown renderer that only links http(s) URLs. |
-| Cost | `agent` rate-limit bucket (40 messages/hour/user); 12 model steps and 6 Firecrawl calls per message; each Firecrawl call also counts against the shared `firecrawl` bucket. |
+| Cost | `agent` rate-limit bucket (40 messages/hour/user); 8 model steps and 6 Firecrawl calls per message (research tools are withdrawn once the 6 are spent, repeated searches and page reads in a turn are served from a per-turn cache, and only the text of the last 16 messages is re-sent as history, never old tool results); each Firecrawl call also counts against the shared `firecrawl` bucket. |
 | History | `trip_messages` stores AI SDK UIMessages (newest 200 per trip). The model gets the last 30 plus a fresh trip snapshot in its instructions each turn. History that no longer validates against the tools is skipped rather than failing the turn. `consumeStream()` lets a turn finish and save even if the browser disconnects. |
 
 | Path | Role |
