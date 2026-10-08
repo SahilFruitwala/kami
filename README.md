@@ -59,7 +59,7 @@ pnpm dev              # http://0.0.0.0:8080
 | `/journal` | Daily entries with highlight “slips” |
 | `/feeds` | RSS / Atom / JSON feeds + email newsletters; save entries to the library ([docs](docs/ARCHITECTURE.md#feeds--newsletters)) |
 | `/extracts` | Ask a page a question with Firecrawl (e.g. latest Product Hunt launches — name, link, category); review the Markdown answer and keep or discard it ([docs](docs/ARCHITECTURE.md#extracts-firecrawl)) |
-| `/trips` | Trip planner — details, a hotel shortlist, and a day-by-day itinerary you edit by hand ([docs](docs/ARCHITECTURE.md#trips)) |
+| `/trips` | Trip planner — details, a hotel shortlist, and a day-by-day itinerary, with a chat agent (Gemini or OpenRouter models) that researches with Firecrawl and fills in the board ([docs](docs/ARCHITECTURE.md#trips)) |
 | `/vault` | All highlights in one place; edit or delete notes and highlights; export |
 | `/settings` | Account, appearance, bookmarklet, import/export, wipe |
 | `/capture` | Receives pages from the bookmarklet / browser extension (`postMessage` handoff) |

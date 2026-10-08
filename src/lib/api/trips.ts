@@ -1,3 +1,4 @@
+import type { UIMessage } from "ai";
 import { http, seg } from "./client";
 
 export type TripSlot = "morning" | "afternoon" | "evening" | "night";
@@ -98,6 +99,31 @@ export type TripItemInput = {
 
 export type TripItemPatch = Partial<TripItemInput>;
 
+export type TripChatModel = { id: string; label: string; available: boolean };
+
+export type TripChat = {
+  /** Saved conversation, oldest first (AI SDK UIMessage shape). */
+  messages: UIMessage[];
+  /** Models the agent can run on; `available` is false when the server lacks that provider's key. */
+  models: TripChatModel[];
+  /** The model used when none is picked; null when no provider is configured. */
+  defaultModel: string | null;
+  /** Firecrawl is configured, so the agent can search and read the web. */
+  research: boolean;
+};
+
+/** Agent tools that change the trip; the board refreshes after each one finishes. */
+export const TRIP_WRITE_TOOLS = [
+  "update_trip",
+  "shortlist_hotel",
+  "update_hotel",
+  "remove_hotel",
+  "set_day",
+  "add_item",
+  "update_item",
+  "remove_item",
+] as const;
+
 const trip = (id: string) => `/api/trips/${seg(id)}`;
 
 /** Every write returns the whole updated trip so the board can swap it in. */
@@ -124,6 +150,14 @@ export const tripsApi = {
 
   updateItem: (id: string, itemId: string, patch: TripItemPatch) =>
     http.patch<Trip>(`${trip(id)}/items/${seg(itemId)}`, patch),
+
+  chat: (id: string) => http.get<TripChat>(`${trip(id)}/chat`),
+
+  /** Forget the conversation (the board is unchanged). */
+  clearChat: (id: string) => http.delete<void>(`${trip(id)}/chat`),
+
+  /** Streaming endpoint used by `useChat`. */
+  chatUrl: (id: string) => `${trip(id)}/chat`,
 
   removeItem: (id: string, itemId: string) => http.delete<Trip>(`${trip(id)}/items/${seg(itemId)}`),
 };
