@@ -36,6 +36,7 @@
     "@tanstack/router-plugin": "1.168.42",
     "@upstash/redis": "^1.38.4",
     "ai": "^7.0.133",
+    "aws4fetch": "^1.0.20",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "cn": "^0.3.0",

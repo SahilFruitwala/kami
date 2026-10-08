@@ -16,6 +16,13 @@
       ]
     },
     {
+      "source": "/api/media/:name",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Content-Security-Policy", "value": "default-src 'none'; frame-ancestors 'none'; base-uri 'none'" }
+      ]
+    },
+    {
       "source": "/api/img",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },

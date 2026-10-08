@@ -103,7 +103,12 @@ export function sanitizeHtml(html: string, baseUrl: string): string {
         }
       }
       if (tag === "IMG") {
-        const abs = pickImageSrc(el, baseUrl);
+        // Already mirrored into our storage: keep the same-origin path as-is
+        // (resolving it against the article URL would break it on re-save).
+        const rawSrc = el.getAttribute("src") ?? "";
+        const abs = /^\/api\/media\/[a-f0-9]{64}\.[a-z0-9]+$/.test(rawSrc)
+          ? rawSrc
+          : pickImageSrc(el, baseUrl);
         if (!abs) {
           el.remove();
           continue;

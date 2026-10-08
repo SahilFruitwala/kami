@@ -51,6 +51,7 @@ import { Route as ApiLookupBooksRouteImport } from './routes/api/lookup/books'
 import { Route as ApiLookupLinkRouteImport } from './routes/api/lookup/link'
 import { Route as ApiLookupTmdbRouteImport } from './routes/api/lookup/tmdb'
 import { Route as ApiLookupWatchProvidersRouteImport } from './routes/api/lookup/watch-providers'
+import { Route as ApiMediaNameRouteImport } from './routes/api/media/$name'
 import { Route as ApiShelvesCountsRouteImport } from './routes/api/shelves/counts'
 import { Route as ApiTripsIndexRouteImport } from './routes/api/trips/index'
 import { Route as ApiTripsIdRouteImport } from './routes/api/trips/$id'
@@ -298,6 +299,11 @@ const ApiLookupWatchProvidersRoute = ApiLookupWatchProvidersRouteImport.update({
   path: '/api/lookup/watch-providers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMediaNameRoute = ApiMediaNameRouteImport.update({
+  id: '/api/media/$name',
+  path: '/api/media/$name',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiShelvesCountsRoute = ApiShelvesCountsRouteImport.update({
   id: '/api/shelves/counts',
   path: '/api/shelves/counts',
@@ -526,6 +532,7 @@ export interface FileRoutesByFullPath {
   '/api/lookup/link': typeof ApiLookupLinkRoute
   '/api/lookup/tmdb': typeof ApiLookupTmdbRoute
   '/api/lookup/watch-providers': typeof ApiLookupWatchProvidersRoute
+  '/api/media/$name': typeof ApiMediaNameRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
   '/api/trips/$id': typeof ApiTripsIdRouteWithChildren
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
@@ -605,6 +612,7 @@ export interface FileRoutesByTo {
   '/api/lookup/link': typeof ApiLookupLinkRoute
   '/api/lookup/tmdb': typeof ApiLookupTmdbRoute
   '/api/lookup/watch-providers': typeof ApiLookupWatchProvidersRoute
+  '/api/media/$name': typeof ApiMediaNameRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
   '/api/trips/$id': typeof ApiTripsIdRouteWithChildren
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
@@ -686,6 +694,7 @@ export interface FileRoutesById {
   '/api/lookup/link': typeof ApiLookupLinkRoute
   '/api/lookup/tmdb': typeof ApiLookupTmdbRoute
   '/api/lookup/watch-providers': typeof ApiLookupWatchProvidersRoute
+  '/api/media/$name': typeof ApiMediaNameRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
   '/api/trips/$id': typeof ApiTripsIdRouteWithChildren
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
@@ -768,6 +777,7 @@ export interface FileRouteTypes {
     | '/api/lookup/link'
     | '/api/lookup/tmdb'
     | '/api/lookup/watch-providers'
+    | '/api/media/$name'
     | '/api/shelves/counts'
     | '/api/trips/$id'
     | '/shelves/books/$id'
@@ -847,6 +857,7 @@ export interface FileRouteTypes {
     | '/api/lookup/link'
     | '/api/lookup/tmdb'
     | '/api/lookup/watch-providers'
+    | '/api/media/$name'
     | '/api/shelves/counts'
     | '/api/trips/$id'
     | '/shelves/books/$id'
@@ -927,6 +938,7 @@ export interface FileRouteTypes {
     | '/api/lookup/link'
     | '/api/lookup/tmdb'
     | '/api/lookup/watch-providers'
+    | '/api/media/$name'
     | '/api/shelves/counts'
     | '/api/trips/$id'
     | '/shelves/books/$id'
@@ -1006,6 +1018,7 @@ export interface RootRouteChildren {
   ApiLookupLinkRoute: typeof ApiLookupLinkRoute
   ApiLookupTmdbRoute: typeof ApiLookupTmdbRoute
   ApiLookupWatchProvidersRoute: typeof ApiLookupWatchProvidersRoute
+  ApiMediaNameRoute: typeof ApiMediaNameRoute
   ApiShelvesCountsRoute: typeof ApiShelvesCountsRoute
   ApiTripsIdRoute: typeof ApiTripsIdRouteWithChildren
   ApiExtractsIndexRoute: typeof ApiExtractsIndexRoute
@@ -1328,6 +1341,13 @@ declare module '@tanstack/react-router' {
       path: '/api/lookup/watch-providers'
       fullPath: '/api/lookup/watch-providers'
       preLoaderRoute: typeof ApiLookupWatchProvidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/media/$name': {
+      id: '/api/media/$name'
+      path: '/api/media/$name'
+      fullPath: '/api/media/$name'
+      preLoaderRoute: typeof ApiMediaNameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/shelves/counts': {
@@ -1712,6 +1732,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLookupLinkRoute: ApiLookupLinkRoute,
   ApiLookupTmdbRoute: ApiLookupTmdbRoute,
   ApiLookupWatchProvidersRoute: ApiLookupWatchProvidersRoute,
+  ApiMediaNameRoute: ApiMediaNameRoute,
   ApiShelvesCountsRoute: ApiShelvesCountsRoute,
   ApiTripsIdRoute: ApiTripsIdRouteWithChildren,
   ApiExtractsIndexRoute: ApiExtractsIndexRoute,

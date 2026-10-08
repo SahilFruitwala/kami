@@ -178,11 +178,14 @@ export async function upsertLibraryItem(
   // identity fields stay intact and tags/highlights stay bounded.
   const title = data.title.trim().slice(0, 500) || "Untitled";
   const excerpt = data.excerpt.slice(0, 4000);
-  const contentHtml = await sanitizeStoredHtml(
+  const sanitizedHtml = await sanitizeStoredHtml(
     data.contentHtml.slice(0, 1_500_000),
     data.canonicalUrl || data.url,
   );
-  const heroImage = data.heroImage && data.heroImage.length <= 2000 ? data.heroImage : null;
+  const heroInput = data.heroImage && data.heroImage.length <= 2000 ? data.heroImage : null;
+  // Keep our own copy of the images (no-op unless object storage is configured).
+  const { mirrorArticleImages } = await import("@/lib/mirror-images.server.ts");
+  const { contentHtml, heroImage } = await mirrorArticleImages(userId, sanitizedHtml, heroInput);
   const author = data.author.slice(0, 300);
   const siteName = data.siteName.slice(0, 200);
   const note = data.note.slice(0, 2000);

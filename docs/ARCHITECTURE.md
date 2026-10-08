@@ -209,6 +209,10 @@ Extraction lives in `src/lib/extract.server.ts`. Public URL checks and redirect 
 
 Site rules run before Readability when a site's markup is known: `src/lib/extract-substack.server.ts` takes Substack's `.body.markup` directly (custom domains included) and strips subscribe widgets / share buttons, unwraps image links, renders footnotes and embeds, and notes paywalled tails. Add new site rules alongside it.
 
+### Image archive (optional)
+
+Article text lives in Postgres (`articles.content_html`), but the images in it point at the original site. When `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY` are set (Cloudflare R2, S3, MinIO), `upsertLibraryItem` calls `mirrorArticleImages` (`src/lib/mirror-images.server.ts`): each remote `<img>` and the hero image is fetched through the same SSRF-guarded fetcher as `/api/img`, stored at `u/<userId>/img/<sha256>.<ext>` (content-addressed, so duplicates collapse), and the stored HTML/hero are rewritten to `/api/media/<sha256>.<ext>`. `/api/media/$name` is auth-gated and builds the bucket key from the verified session user, so objects are per-user. Best effort: up to 40 images per save, a 20 s budget, and any image that fails keeps its original URL; with no env vars nothing changes. Re-saving an article mirrors any images that were skipped. Objects are not deleted when an article is removed (they may be shared by other articles).
+
 ### Browser capture handoff
 
 The bookmarklet and the `extension/` browser extension capture the page in the user's browser and hand it to `/capture` with `postMessage` — never in a URL, so long articles aren't truncated:

@@ -1,5 +1,8 @@
 import { absoluteUrl } from "./safe-url.ts";
 
+/** Same-origin path of images we mirrored into our own object storage. */
+export const MEDIA_PATH_PREFIX = "/api/media/";
+
 const JUNK =
   /enwiki-|wikipedia-wordmark|wikipedia-tagline|\/static\/images\/icons\/|1x1|pixel\.gif|spacer|doubleclick|scorecardresearch|facebook\.com\/tr|analytics|gravatar\.com\/avatar/i;
 
@@ -125,7 +128,7 @@ export function repairMangledImageUrl(url: string): string {
 }
 
 export function previewImageSrc(raw: string): string {
-  if (!raw || raw.startsWith("data:") || raw.startsWith("/api/img")) {
+  if (!raw || raw.startsWith("data:") || raw.startsWith("/api/img") || raw.startsWith(MEDIA_PATH_PREFIX)) {
     return raw;
   }
   const original = repairMangledImageUrl(raw);
