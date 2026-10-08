@@ -1,6 +1,7 @@
 import { desc, sql } from "drizzle-orm";
 import {
   boolean,
+  date,
   index,
   integer,
   jsonb,
@@ -521,6 +522,84 @@ export const extractResults = pgTable(
 export type ExtractSourceRow = typeof extractSources.$inferSelect;
 export type ExtractResultRow = typeof extractResults.$inferSelect;
 
+// ---------- Trips (planner: details, hotel shortlist, itinerary) ----------
+// Snake_case columns match `migrations/0012_trips.sql`.
+
+export const TRIP_HOTEL_STATUSES = ["shortlisted", "chosen"] as const;
+export type TripHotelStatus = (typeof TRIP_HOTEL_STATUSES)[number];
+export const TRIP_SLOTS = ["morning", "afternoon", "evening", "night"] as const;
+export type TripSlot = (typeof TRIP_SLOTS)[number];
+
+export const trips = pgTable(
+  "trips",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    destination: text("destination").notNull(),
+    /** `YYYY-MM-DD`; the end date is derived from `dayCount`. */
+    startDate: date("start_date", { mode: "string" }),
+    dayCount: integer("day_count").notNull().default(3),
+    travelers: integer("travelers"),
+    budget: text("budget"),
+    preferences: text("preferences"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("trips_user_idx").on(t.userId, desc(t.updatedAt))],
+);
+
+export const tripHotels = pgTable(
+  "trip_hotels",
+  {
+    id: text("id").primaryKey(),
+    tripId: text("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    area: text("area"),
+    url: text("url"),
+    priceNote: text("price_note"),
+    ratingNote: text("rating_note"),
+    why: text("why"),
+    status: text("status").$type<TripHotelStatus>().notNull().default("shortlisted"),
+    sort: integer("sort").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("trip_hotels_trip_idx").on(t.tripId, t.sort)],
+);
+
+export const tripItems = pgTable(
+  "trip_items",
+  {
+    id: text("id").primaryKey(),
+    tripId: text("trip_id")
+      .notNull()
+      .references(() => trips.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    dayIndex: integer("day_index").notNull(),
+    slot: text("slot").$type<TripSlot>().notNull(),
+    title: text("title").notNull(),
+    place: text("place"),
+    url: text("url"),
+    notes: text("notes"),
+    sort: integer("sort").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("trip_items_trip_idx").on(t.tripId, t.dayIndex, t.sort)],
+);
+
+export type TripRow = typeof trips.$inferSelect;
+export type TripHotelRow = typeof tripHotels.$inferSelect;
+export type TripItemRow = typeof tripItems.$inferSelect;
+
 export const schema = {
   user,
   folders,
@@ -550,4 +629,7 @@ export const schema = {
   newsletterInboxes,
   extractSources,
   extractResults,
+  trips,
+  tripHotels,
+  tripItems,
 };

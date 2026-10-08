@@ -154,6 +154,16 @@ See [Extracts (Firecrawl)](./ARCHITECTURE.md#extracts-firecrawl).
 | `extract_sources` | Per-user saved question: `name`, `url`, `question`, `last_run_at`, `last_error` |
 | `extract_results` | Firecrawl's Markdown answer. `status` is `pending` (awaiting review — at most one per source, partial unique index) or `accepted`. Snapshots the `url` / `question` used so history survives edits. Discarded results are deleted |
 
+### Trips — `trips`, `trip_hotels`, `trip_items`
+
+See [Trips](./ARCHITECTURE.md#trips).
+
+| Table | Role |
+|-------|------|
+| `trips` | Per-user trip: `title`, `destination`, optional `start_date`, `day_count` (1–30; end date is derived), `travelers`, `budget`, `preferences` |
+| `trip_hotels` | Hotel shortlist. `status` is `shortlisted` or `chosen` (at most one per trip, partial unique index). `price_note` / `rating_note` are free text, not live data |
+| `trip_items` | Itinerary entries: `day_index` (0-based), `slot` (`morning` / `afternoon` / `evening` / `night`), `title`, `place`, `url`, `notes`, `sort` |
+
 Highlight notes (inside `articles.highlights` jsonb) are capped at 1000 chars (`HIGHLIGHT_NOTE_MAX`).
 
 ### Misc
