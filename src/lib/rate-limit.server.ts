@@ -23,7 +23,7 @@ export const RATE_LIMITS = {
   feeds: { limit: 60, windowSeconds: 600 },
   /** Firecrawl extract runs (each one spends paid Firecrawl credits). */
   firecrawl: { limit: 30, windowSeconds: 3600 },
-  /** Trip agent chat turns (each runs a model loop with up to 12 steps). */
+  /** Trip agent chat turns (each runs a model loop with up to 8 steps). */
   agent: { limit: 40, windowSeconds: 3600 },
   /** Inbound newsletter emails stored per user. */
   inbound: { limit: 300, windowSeconds: 86_400 },

@@ -44,6 +44,9 @@ function errorText(err: Error): string {
   } catch {
     // Not JSON: a stream error message, already user-facing.
   }
+  if (/network error|failed to fetch|load failed|terminated/i.test(err.message)) {
+    return "The connection dropped before the agent finished. It may still be working: reopen this tab in a minute to see its reply.";
+  }
   return err.message || "The trip agent hit an error. Try again.";
 }
 

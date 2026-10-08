@@ -6,7 +6,6 @@ import {
   streamText,
   tool,
   toUIMessageStream,
-  validateUIMessages,
   type UIMessage,
 } from "ai";
 import { and, desc, eq, inArray } from "drizzle-orm";
@@ -46,12 +45,19 @@ import {
  * gets the same validation, ownership checks and limits as a person.
  */
 
-/** Model steps per user message (each tool call + answer is one step). */
-const MAX_STEPS = 12;
+/**
+ * Model steps per user message (each tool call + answer is one step). Every
+ * step re-sends the whole context, so this is the main LLM cost lever.
+ */
+const MAX_STEPS = 8;
 /** Firecrawl calls (search + read) per user message. */
 const MAX_RESEARCH_CALLS = 6;
-/** Messages sent back to the model as history. */
-const HISTORY_FOR_MODEL = 30;
+/**
+ * Messages sent back to the model as history. Text only: tool calls and page
+ * contents from earlier turns are dropped (the board snapshot in the
+ * instructions already carries what they decided).
+ */
+const HISTORY_FOR_MODEL = 16;
 /** Messages kept per trip; older ones are deleted. */
 const MAX_STORED_MESSAGES = 200;
 const MAX_MESSAGE_CHARS = 4000;
@@ -171,20 +177,38 @@ const slot = z.enum(TRIP_SLOTS);
 const optionalText = (max: number, description: string) =>
   z.string().max(max).optional().describe(description);
 
-function tripTools(userId: string, tripId: string) {
-  let researchCalls = 0;
+const RESEARCH_TOOLS = ["web_search", "read_page"] as const;
+
+/** Firecrawl calls spent so far in one chat turn. */
+type ResearchBudget = { used: number };
+
+function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
   const research = firecrawlApiKey() !== null;
+  // Repeating a search or page read within a turn is answered from here, free.
+  const searches = new Map<string, Promise<unknown>>();
+  const pages = new Map<string, Promise<unknown>>();
 
   /** Count one Firecrawl call against this turn and the user's hourly budget. */
   async function spendResearch() {
-    if (researchCalls >= MAX_RESEARCH_CALLS) {
+    if (budget.used >= MAX_RESEARCH_CALLS) {
       throw new HttpError(
         429,
         `Research limit for this message reached (${MAX_RESEARCH_CALLS} calls). Work with what you have.`,
       );
     }
-    researchCalls += 1;
+    budget.used += 1;
     await enforceRateLimit(userId, "firecrawl");
+  }
+
+  /** Run `fetch` once per key; later identical calls reuse the first result. */
+  function once<T>(cache: Map<string, Promise<unknown>>, key: string, fetch: () => Promise<T>) {
+    const hit = cache.get(key);
+    if (hit) return hit as Promise<T>;
+    const pending = fetch();
+    cache.set(key, pending);
+    // A failed call may be retried (it was still counted).
+    pending.catch(() => cache.delete(key));
+    return pending;
   }
 
   /** Write tools answer with the fresh trip so the model always has current ids. */
@@ -369,8 +393,12 @@ function tripTools(userId: string, tripId: string) {
       }),
       execute: ({ query, limit }) =>
         attempt(async () => {
-          await spendResearch();
-          return { results: await searchWeb(query, limit ?? 5) };
+          const n = limit ?? 5;
+          const results = await once(searches, `${n}:${query.trim().toLowerCase()}`, async () => {
+            await spendResearch();
+            return searchWeb(query, n);
+          });
+          return { results };
         }),
     }),
 
@@ -386,8 +414,10 @@ function tripTools(userId: string, tripId: string) {
           } catch {
             return { error: "That URL can't be read." };
           }
-          await spendResearch();
-          const page = await readPage(safe);
+          const page = await once(pages, safe, async () => {
+            await spendResearch();
+            return readPage(safe);
+          });
           return {
             url: safe,
             truncated: page.truncated,
@@ -412,6 +442,18 @@ function friendlyModelError(err: unknown): string {
   return "The trip agent hit an error. Try again, or pick another model.";
 }
 
+const isResearchTool = (name: string) => (RESEARCH_TOOLS as readonly string[]).includes(name);
+
+/** Keep only the words of earlier turns; drop tool calls and their (large) results. */
+function textOnly(history: UIMessage[]): UIMessage[] {
+  const out: UIMessage[] = [];
+  for (const m of history) {
+    const parts = m.parts.filter((p) => p.type === "text" && p.text.trim());
+    if (parts.length) out.push({ id: m.id, role: m.role, parts });
+  }
+  return out;
+}
+
 export async function runTripChat(
   userId: string,
   tripId: string,
@@ -434,17 +476,11 @@ export async function runTripChat(
 
   // Server-built user message: only plain text from the client is trusted.
   const userMessage: UIMessage = { id: uid(), role: "user", parts: [{ type: "text", text }] };
-  const tools = tripTools(userId, tripId);
+  const budget: ResearchBudget = { used: 0 };
+  const tools = tripTools(userId, tripId, budget);
 
-  const history = await loadMessages(tripId, HISTORY_FOR_MODEL);
-  let messages: UIMessage[];
-  try {
-    messages = await validateUIMessages({ messages: [...history, userMessage], tools });
-  } catch (err) {
-    // Stored history no longer matches the tools (e.g. after a change): start fresh.
-    console.warn("[trip-agent] history failed validation, sending only the new message:", err);
-    messages = [userMessage];
-  }
+  const history = textOnly(await loadMessages(tripId, HISTORY_FOR_MODEL));
+  const messages: UIMessage[] = [...history, userMessage];
   await saveMessage(userId, tripId, userMessage, null);
 
   const result = streamText({
@@ -453,9 +489,15 @@ export async function runTripChat(
       today: new Date().toISOString().slice(0, 10),
       research: firecrawlApiKey() !== null,
     }),
-    messages: await convertToModelMessages(messages, { tools, ignoreIncompleteToolCalls: true }),
+    messages: await convertToModelMessages(messages),
     tools,
     stopWhen: isStepCount(MAX_STEPS),
+    // Once the research budget is spent, stop offering the research tools so
+    // the model writes its answer instead of burning a step on a refusal.
+    prepareStep: () =>
+      budget.used >= MAX_RESEARCH_CALLS
+        ? { activeTools: Object.keys(tools).filter((t) => !isResearchTool(t)) as never }
+        : {},
     onError: ({ error }) => console.error("[trip-agent] model error:", error),
   });
 

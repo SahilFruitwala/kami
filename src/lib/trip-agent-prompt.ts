@@ -63,8 +63,8 @@ export function buildTripInstructions(
   opts: { today: string; research: boolean },
 ): string {
   const research = opts.research
-    ? `- Research before recommending hotels, restaurants, cafés, hikes or sights: use web_search, then read_page on the most useful results (reviews, official sites, local guides). Prefer places that at least two independent sources mention.
-- You can make at most 6 research calls per message. Spend them on what you are unsure of (opening hours, closures, transport, prices); plan the rest from general knowledge.`
+    ? `- Research before recommending hotels, restaurants, cafés, hikes or sights: use web_search, then read_page only on the one or two most useful results (a search snippet is often enough) (reviews, official sites, local guides). Prefer places that at least two independent sources mention.
+- You can make at most 6 research calls per message, and every step re-sends the whole conversation, so call independent searches together in the same step instead of one after another, never repeat a search, and don't search for things you already know. Spend calls on what you are unsure of (opening hours, closures, transport, prices); plan the rest from general knowledge. When the budget is gone, answer with what you have.`
     : `- Web research is not available on this server. Plan from general knowledge, say so once, and tell the user to check hours and prices themselves.`;
 
   return `You are the trip planner inside KAMI, a personal reading and planning app. You help one person plan the trip below by chatting with them and by editing their trip board with tools.
