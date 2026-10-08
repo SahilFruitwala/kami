@@ -387,6 +387,32 @@ with name, link and category"*.
 
 ---
 
+## Trips
+
+`/trips` is a private trip planner: a list of trips, and per trip a board with
+the details (destination, start date, length, travellers, budget, what you
+like), a **hotel shortlist**, and a **day-by-day itinerary**. It is fully
+manual today; a trip agent (chat that researches with Firecrawl and edits the
+board through the same service) is planned on top of it.
+
+| Concern | Approach |
+|---|---|
+| Dates | A trip stores `start_date` (optional) and `day_count` (1–30); the end date is derived, so the two can't disagree. Date math is UTC on `YYYY-MM-DD` strings (`src/lib/trip-days.ts`, tested). |
+| Itinerary | Items carry a 0-based `day_index` and a `slot` (`morning` → `night`), ordered by day, slot, then `sort`. Moving an item to another day or slot puts it at the end there. A trip can't be shortened past a day that still has plans. |
+| Hotels | `shortlisted` or `chosen`; choosing one demotes the previous pick in the same transaction, and a partial unique index allows only one `chosen` per trip. Prices and ratings are free-text notes, never live data. |
+| Writes | Every write returns the whole updated trip; the client swaps it into the React Query cache. Each write also bumps `trips.updated_at` so the list sorts by recent activity. |
+| Limits | 50 trips per user, 30 hotels and 300 items per trip. Links go through `assertPublicHttpUrl`. |
+
+| Path | Role |
+|---|---|
+| `src/lib/trip-days.ts` | Date math, day grouping, item order (pure, tested) |
+| `src/server/services/trips.ts` | Trips, hotels, itinerary items |
+| `src/routes/api/trips/**` | HTTP routes |
+| `src/hooks/use-trips.ts`, `src/components/trips/*`, `src/routes/trips/*` | `/trips` UI |
+| `migrations/0012_trips.sql` | `trips`, `trip_hotels`, `trip_items` |
+
+---
+
 ## Caching
 
 `src/lib/cache.server.ts` — enabled only when both Upstash env vars are set.
@@ -408,6 +434,7 @@ flowchart TB
   Root --> Index["/ — Landing or desk"]
   Root --> Lib["/library — AppShell"]
   Root --> Feeds["/feeds — AppShell"]
+  Root --> Trips["/trips, /trips/$id — AppShell"]
   Root --> Read["/read — AppGate only"]
   Root --> Movies["/shelves/movies — AppShell"]
   Root --> Series["/shelves/series — AppShell"]
