@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   CalendarDays,
   Check,
+  ChevronDown,
   ExternalLink,
   LoaderCircle,
   MapPin,
@@ -281,21 +282,59 @@ function FormButtons({
   );
 }
 
+/** Chevron button that shows or hides a section's body. */
+function ToggleButton({
+  open,
+  onToggle,
+  controls,
+  className,
+  children,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  controls: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      aria-controls={controls}
+      className={cn("flex min-w-0 items-center gap-1.5 text-left", className)}
+    >
+      <ChevronDown
+        className={cn("size-4 shrink-0 text-ink-muted transition-transform", !open && "-rotate-90")}
+        aria-hidden="true"
+      />
+      {children}
+    </button>
+  );
+}
+
 // ---------- Hotels ----------
 
 function Hotels({ trip, actions }: { trip: Trip; actions: Actions }) {
   const [adding, setAdding] = useState(false);
+  const [open, setOpen] = useState(true);
+  const bodyId = `trip-${trip.id}-hotels`;
 
   return (
     <section aria-label="Hotels" className="space-y-3">
       <div className="flex items-center justify-between px-1">
-        <p className="kami-label text-ink-muted">
-          Hotels{trip.hotels.length ? ` · ${trip.hotels.length}` : ""}
-        </p>
+        <ToggleButton open={open} onToggle={() => setOpen((v) => !v)} controls={bodyId}>
+          <span className="kami-label text-ink-muted">
+            Hotels{trip.hotels.length ? ` · ${trip.hotels.length}` : ""}
+          </span>
+        </ToggleButton>
         {!adding ? (
           <button
             type="button"
-            onClick={() => setAdding(true)}
+            onClick={() => {
+              setOpen(true);
+              setAdding(true);
+            }}
             className="flex items-center gap-1 font-sans text-xs text-ink-soft hover:text-hanko"
           >
             <Plus className="size-3.5" aria-hidden="true" />
@@ -303,20 +342,22 @@ function Hotels({ trip, actions }: { trip: Trip; actions: Actions }) {
           </button>
         ) : null}
       </div>
-      {adding ? (
-        <HotelForm tripId={trip.id} actions={actions} onDone={() => setAdding(false)} />
-      ) : null}
-      {trip.hotels.length === 0 && !adding ? (
-        <p className="px-1 font-body text-sm text-ink-muted">
-          Shortlist a few places to stay, then mark the one you book.
-        </p>
-      ) : (
-        <ul className="space-y-2">
-          {trip.hotels.map((h) => (
-            <HotelCard key={h.id} hotel={h} tripId={trip.id} actions={actions} />
-          ))}
-        </ul>
-      )}
+      <div id={bodyId} hidden={!open} className="space-y-3">
+        {adding ? (
+          <HotelForm tripId={trip.id} actions={actions} onDone={() => setAdding(false)} />
+        ) : null}
+        {trip.hotels.length === 0 && !adding ? (
+          <p className="px-1 font-body text-sm text-ink-muted">
+            Shortlist a few places to stay, then mark the one you book.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {trip.hotels.map((h) => (
+              <HotelCard key={h.id} hotel={h} tripId={trip.id} actions={actions} />
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }
@@ -513,12 +554,21 @@ function HotelForm({
 
 function Itinerary({ trip, actions }: { trip: Trip; actions: Actions }) {
   const days = groupByDay(trip.items, trip.dayCount);
+  const [open, setOpen] = useState(true);
+  const bodyId = `trip-${trip.id}-itinerary`;
   return (
     <section aria-label="Itinerary" className="space-y-4">
-      <p className="kami-label px-1 text-ink-muted">
-        Itinerary · {trip.dayCount} {trip.dayCount === 1 ? "day" : "days"}
-      </p>
-      <ol className="space-y-4">
+      <ToggleButton
+        open={open}
+        onToggle={() => setOpen((v) => !v)}
+        controls={bodyId}
+        className="px-1"
+      >
+        <span className="kami-label text-ink-muted">
+          Itinerary · {trip.dayCount} {trip.dayCount === 1 ? "day" : "days"}
+        </span>
+      </ToggleButton>
+      <ol id={bodyId} hidden={!open} className="space-y-4">
         {days.map((items, index) => (
           <Day key={index} trip={trip} index={index} items={items} actions={actions} />
         ))}
@@ -539,19 +589,34 @@ function Day({
   actions: Actions;
 }) {
   const [adding, setAdding] = useState(false);
+  const [open, setOpen] = useState(true);
   const date = dayDate(trip.startDate, index);
+  const bodyId = `trip-${trip.id}-day-${index}`;
 
   return (
     <li className="kami-sheet list-none overflow-hidden">
-      <div className="flex items-center justify-between gap-2 border-b border-line bg-paper px-4 py-2">
-        <p className="font-sans text-sm">
-          <span className="font-semibold text-ink">Day {index + 1}</span>
-          {date ? <span className="ml-2 text-ink-muted">{formatDay(date)}</span> : null}
-        </p>
+      <div
+        className={cn(
+          "flex items-center justify-between gap-2 bg-paper px-4 py-2",
+          open && "border-b border-line",
+        )}
+      >
+        <ToggleButton open={open} onToggle={() => setOpen((v) => !v)} controls={bodyId}>
+          <span className="font-sans text-sm">
+            <span className="font-semibold text-ink">Day {index + 1}</span>
+            {date ? <span className="ml-2 text-ink-muted">{formatDay(date)}</span> : null}
+            {!open && items.length ? (
+              <span className="ml-2 text-xs text-ink-muted">· {items.length}</span>
+            ) : null}
+          </span>
+        </ToggleButton>
         {!adding ? (
           <button
             type="button"
-            onClick={() => setAdding(true)}
+            onClick={() => {
+              setOpen(true);
+              setAdding(true);
+            }}
             className="flex items-center gap-1 font-sans text-xs text-ink-soft hover:text-hanko"
           >
             <Plus className="size-3.5" aria-hidden="true" />
@@ -559,25 +624,27 @@ function Day({
           </button>
         ) : null}
       </div>
-      {items.length === 0 && !adding ? (
-        <p className="px-4 py-3 font-body text-sm text-ink-muted">Nothing planned yet.</p>
-      ) : (
-        <ul className="divide-y divide-dashed divide-line">
-          {items.map((item) => (
-            <ItemRow key={item.id} trip={trip} item={item} actions={actions} />
-          ))}
-        </ul>
-      )}
-      {adding ? (
-        <div className="border-t border-line p-4">
-          <ItemForm
-            trip={trip}
-            dayIndex={index}
-            actions={actions}
-            onDone={() => setAdding(false)}
-          />
-        </div>
-      ) : null}
+      <div id={bodyId} hidden={!open}>
+        {items.length === 0 && !adding ? (
+          <p className="px-4 py-3 font-body text-sm text-ink-muted">Nothing planned yet.</p>
+        ) : (
+          <ul className="divide-y divide-dashed divide-line">
+            {items.map((item) => (
+              <ItemRow key={item.id} trip={trip} item={item} actions={actions} />
+            ))}
+          </ul>
+        )}
+        {adding ? (
+          <div className="border-t border-line p-4">
+            <ItemForm
+              trip={trip}
+              dayIndex={index}
+              actions={actions}
+              onDone={() => setAdding(false)}
+            />
+          </div>
+        ) : null}
+      </div>
     </li>
   );
 }
