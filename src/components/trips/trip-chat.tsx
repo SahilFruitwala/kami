@@ -219,7 +219,7 @@ function ChatPanel({ tripId, data }: { tripId: string; data: TripChatData }) {
 
       <div
         ref={scroller}
-        className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4"
+        className="no-scrollbar min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4"
         aria-live="polite"
       >
         {messages.length === 0 ? (
