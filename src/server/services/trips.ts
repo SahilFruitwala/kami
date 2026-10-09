@@ -21,6 +21,7 @@ import {
   daysBetween,
   lastUsedDay,
   MAX_TRIP_DAYS,
+  moveWithin,
   parseIsoDate,
 } from "@/lib/trip-days.ts";
 import { badRequest, notFound } from "@/server/http";
@@ -74,12 +75,31 @@ export const updateTripInput = z.object({
   preferences: text(2000),
 });
 
+const lat = z.number().min(-90).max(90).nullable().optional();
+const lng = z.number().min(-180).max(180).nullable().optional();
+const startTime = z
+  .string()
+  .trim()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use a 24-hour time like 09:30.")
+  .nullable()
+  .optional()
+  .or(z.literal("").transform(() => null));
+const durationMin = z
+  .number()
+  .int()
+  .min(5, "Make it at least 5 minutes.")
+  .max(1440, "Keep a plan to one day or less.")
+  .nullable()
+  .optional();
+
 const hotelFields = {
   area: text(120),
   url: text(2000),
   priceNote: text(200),
   ratingNote: text(200),
   why: text(1000),
+  lat,
+  lng,
 };
 
 export const createHotelInput = z.object({
@@ -97,6 +117,10 @@ const itemFields = {
   place: text(200),
   url: text(2000),
   notes: text(2000),
+  lat,
+  lng,
+  startTime,
+  durationMin,
 };
 
 export const createItemInput = z.object({
@@ -147,6 +171,8 @@ function toHotel(row: TripHotelRow): TripHotel {
     priceNote: row.priceNote,
     ratingNote: row.ratingNote,
     why: row.why,
+    lat: row.lat,
+    lng: row.lng,
     status: row.status,
     createdAt: row.createdAt.getTime(),
   };
@@ -161,6 +187,10 @@ function toItem(row: TripItemRow): TripItem {
     place: row.place,
     url: row.url,
     notes: row.notes,
+    lat: row.lat,
+    lng: row.lng,
+    startTime: row.startTime,
+    durationMin: row.durationMin,
     sort: row.sort,
     createdAt: row.createdAt.getTime(),
   };
@@ -182,6 +212,34 @@ function toTrip(row: TripRow, hotels: TripHotelRow[], items: TripItemRow[]): Tri
     items: items.map(toItem).sort(compareItems),
   };
 }
+
+/**
+ * Coordinates to write for a patch: explicit ones win. A plan whose place
+ * text changes without new coordinates loses its old pin, so the map never
+ * shows the previous place.
+ */
+function coords(
+  input: { lat?: number | null; lng?: number | null; place?: string | null },
+  currentPlace?: string | null,
+): { lat?: number | null; lng?: number | null } {
+  if (input.lat !== undefined || input.lng !== undefined) {
+    if ((input.lat == null) !== (input.lng == null)) {
+      throw badRequest("Give both latitude and longitude, or neither.");
+    }
+    return { lat: input.lat ?? null, lng: input.lng ?? null };
+  }
+  const place = clean(input.place);
+  if (currentPlace !== undefined && place !== undefined && place !== currentPlace) {
+    return { lat: null, lng: null };
+  }
+  return {};
+}
+
+/** Coordinates for a new row (validated as a pair). */
+const pinned = (input: { lat?: number | null; lng?: number | null }) => {
+  const c = coords(input);
+  return { lat: c.lat ?? null, lng: c.lng ?? null };
+};
 
 /** Resolve the trip length from an explicit count or an end date. */
 function resolveDayCount(
@@ -385,6 +443,7 @@ export async function addTripHotel(
     priceNote: clean(input.priceNote) ?? null,
     ratingNote: clean(input.ratingNote) ?? null,
     why: clean(input.why) ?? null,
+    ...pinned(input),
     sort: (stats?.maxSort ?? -1) + 1,
   });
   return touchAndLoad(db, userId, tripId);
@@ -426,6 +485,7 @@ export async function updateTripHotel(
         priceNote: clean(input.priceNote),
         ratingNote: clean(input.ratingNote),
         why: clean(input.why),
+        ...coords(input),
         status: input.status,
       })
       .where(scope)
@@ -496,6 +556,9 @@ export async function addTripItem(
     place: clean(input.place) ?? null,
     url: cleanUrl(input.url) ?? null,
     notes: clean(input.notes) ?? null,
+    ...pinned(input),
+    startTime: input.startTime ?? null,
+    durationMin: input.durationMin ?? null,
     sort: await nextSort(db, tripId, input.dayIndex, input.slot),
   });
   return touchAndLoad(db, userId, tripId);
@@ -532,6 +595,9 @@ export async function updateTripItem(
       place: clean(input.place),
       url: cleanUrl(input.url),
       notes: clean(input.notes),
+      ...coords(input, current.place),
+      startTime: input.startTime,
+      durationMin: input.durationMin,
       sort: moved ? await nextSort(db, tripId, dayIndex, slot) : undefined,
     })
     .where(scope);
@@ -552,6 +618,51 @@ export async function removeTripItem(
     )
     .returning({ id: tripItems.id });
   if (!deleted.length) throw notFound("That plan is no longer on this trip.");
+  return touchAndLoad(db, userId, tripId);
+}
+
+export const moveItemInput = z.object({ direction: z.enum(["up", "down"]) });
+
+/** Swap a plan with its neighbour inside the same day + slot. */
+export async function moveTripItem(
+  userId: string,
+  tripId: string,
+  itemId: string,
+  direction: "up" | "down",
+): Promise<Trip> {
+  const db = await getDb();
+  await ownedTrip(db, userId, tripId);
+  const [current] = await db
+    .select()
+    .from(tripItems)
+    .where(and(eq(tripItems.id, itemId), eq(tripItems.tripId, tripId)))
+    .limit(1);
+  if (!current) throw notFound("That plan is no longer on this trip.");
+
+  const siblings = await db
+    .select({ id: tripItems.id })
+    .from(tripItems)
+    .where(
+      and(
+        eq(tripItems.tripId, tripId),
+        eq(tripItems.dayIndex, current.dayIndex),
+        eq(tripItems.slot, current.slot),
+      ),
+    )
+    .orderBy(asc(tripItems.sort), asc(tripItems.id));
+  const order = moveWithin(
+    siblings.map((s) => s.id),
+    itemId,
+    direction,
+  );
+  // Already first / last: nothing to change.
+  if (!order) return loadTrip(db, await ownedTrip(db, userId, tripId));
+
+  await db.transaction(async (tx) => {
+    for (const [sort, id] of order.entries()) {
+      await tx.update(tripItems).set({ sort }).where(eq(tripItems.id, id));
+    }
+  });
   return touchAndLoad(db, userId, tripId);
 }
 
@@ -585,6 +696,9 @@ export async function replaceTripDay(
     place: clean(item.place) ?? null,
     url: cleanUrl(item.url) ?? null,
     notes: clean(item.notes) ?? null,
+    ...pinned(item),
+    startTime: item.startTime ?? null,
+    durationMin: item.durationMin ?? null,
     sort: i,
   }));
   const [count] = await db
