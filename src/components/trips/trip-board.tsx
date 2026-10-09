@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -31,6 +31,7 @@ import {
   MAX_TRIP_DAYS,
   SLOT_ORDER,
 } from "@/lib/trip-days.ts";
+import { dayColor } from "@/lib/trip-colors.ts";
 import { tripToIcs } from "@/lib/trip-ics.ts";
 import {
   dayHops,
@@ -51,7 +52,7 @@ import {
   TextArea,
   TextInput,
 } from "./trip-fields.tsx";
-import { TripMap } from "./trip-map.tsx";
+import { TripMap, type MapDay } from "./trip-map.tsx";
 
 type Actions = ReturnType<typeof useTripActions>;
 
@@ -597,10 +598,74 @@ function HotelForm({
 
 // ---------- Itinerary ----------
 
+type MapSelection = "all" | number;
+
 function Itinerary({ trip, actions }: { trip: Trip; actions: Actions }) {
   const days = groupByDay(trip.items, trip.dayCount);
   const [open, setOpen] = useState(true);
+  const [mapDay, setMapDay] = useState<MapSelection>("all");
+  const mapRef = useRef<HTMLElement>(null);
   const bodyId = `trip-${trip.id}-itinerary`;
+
+  function showDayOnMap(index: number) {
+    setMapDay(index);
+    mapRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  return (
+    <section aria-label="Itinerary" className="space-y-4">
+      <ToggleButton
+        open={open}
+        onToggle={() => setOpen((v) => !v)}
+        controls={bodyId}
+        className="px-1"
+      >
+        <span className="kami-label text-ink-muted">
+          Itinerary · {trip.dayCount} {trip.dayCount === 1 ? "day" : "days"}
+        </span>
+      </ToggleButton>
+      <div id={bodyId} hidden={!open} className="space-y-4">
+        <TripMapPanel
+          ref={mapRef}
+          trip={trip}
+          days={days}
+          actions={actions}
+          selected={mapDay}
+          onSelect={setMapDay}
+        />
+        <ol className="space-y-4">
+          {days.map((items, index) => (
+            <Day
+              key={index}
+              trip={trip}
+              index={index}
+              items={items}
+              actions={actions}
+              onShowOnMap={() => showDayOnMap(index)}
+            />
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+/** One map for the whole trip: every day in its own color, or a single picked day. */
+function TripMapPanel({
+  ref,
+  trip,
+  days,
+  actions,
+  selected,
+  onSelect,
+}: {
+  ref: React.Ref<HTMLElement>;
+  trip: Trip;
+  days: TripItem[][];
+  actions: Actions;
+  selected: MapSelection;
+  onSelect: (value: MapSelection) => void;
+}) {
   // Places the geocoder couldn't find this visit; skipped so the rest get a turn.
   const [missed, setMissed] = useState<string[]>([]);
   const unpinned = [
@@ -611,8 +676,7 @@ function Itinerary({ trip, actions }: { trip: Trip; actions: Actions }) {
   function locate() {
     actions.locate.mutate(missed, {
       onSuccess: (res) => {
-        const all = [...missed, ...res.missedIds];
-        setMissed(all);
+        setMissed([...missed, ...res.missedIds]);
         const parts = [
           res.found ? `Pinned ${res.found} ${res.found === 1 ? "place" : "places"}` : null,
           res.missedIds.length ? `couldn't find ${res.missedIds.length}` : null,
@@ -623,20 +687,51 @@ function Itinerary({ trip, actions }: { trip: Trip; actions: Actions }) {
     });
   }
 
+  const all = selected === "all";
+  // Stop numbers match the itinerary list; "all days" labels pins by day instead.
+  const mapDays: MapDay[] = days.flatMap((items, index) => {
+    if (!all && index !== selected) return [];
+    const stops = items.flatMap((item, i) =>
+      hasCoords(item)
+        ? [
+            {
+              lat: item.lat,
+              lng: item.lng,
+              label: all ? String(index + 1) : String(i + 1),
+              title: `${all ? `Day ${index + 1} · ` : ""}${i + 1}. ${item.title}`,
+            },
+          ]
+        : [],
+    );
+    return stops.length ? [{ key: String(index), color: dayColor(index), stops }] : [];
+  });
+  const pinnedByDay = days.map((items) => items.filter(hasCoords).length);
+  const anyPinned = pinnedByDay.some(Boolean);
+  const chosen = trip.hotels.find((h) => h.status === "chosen");
+  const hotel =
+    chosen && hasCoords(chosen) ? { lat: chosen.lat, lng: chosen.lng, title: chosen.name } : null;
+
+  const chip = (active: boolean) =>
+    cn(
+      "flex h-7 shrink-0 items-center gap-1.5 rounded-md border px-2 font-sans text-xs transition-colors disabled:opacity-40",
+      active
+        ? "border-ink/30 bg-paper-warm text-ink"
+        : "border-line text-ink-soft hover:border-ink/20 hover:text-ink",
+    );
+
   return (
-    <section aria-label="Itinerary" className="space-y-4">
-      <div className="flex items-center justify-between gap-2 px-1">
-        <ToggleButton open={open} onToggle={() => setOpen((v) => !v)} controls={bodyId}>
-          <span className="kami-label text-ink-muted">
-            Itinerary · {trip.dayCount} {trip.dayCount === 1 ? "day" : "days"}
-          </span>
-        </ToggleButton>
+    <section ref={ref} aria-label="Trip map" className="kami-sheet scroll-mt-4 overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line bg-paper px-4 py-2">
+        <p className="flex items-center gap-1.5 font-sans text-sm font-semibold text-ink">
+          <MapIcon className="size-4 text-hanko" aria-hidden="true" />
+          Trip map
+        </p>
         {unpinned ? (
           <button
             type="button"
             onClick={locate}
             disabled={actions.locate.isPending}
-            title="Look up places on OpenStreetMap to pin them on the day maps"
+            title="Look up places so they show on the map"
             className="flex items-center gap-1 font-sans text-xs text-ink-soft hover:text-hanko disabled:opacity-50"
           >
             {actions.locate.isPending ? (
@@ -644,15 +739,65 @@ function Itinerary({ trip, actions }: { trip: Trip; actions: Actions }) {
             ) : (
               <MapPin className="size-3.5" aria-hidden="true" />
             )}
-            Pin {unpinned} {unpinned === 1 ? "place" : "places"} on the map
+            Pin {unpinned} {unpinned === 1 ? "place" : "places"}
           </button>
         ) : null}
       </div>
-      <ol id={bodyId} hidden={!open} className="space-y-4">
-        {days.map((items, index) => (
-          <Day key={index} trip={trip} index={index} items={items} actions={actions} />
-        ))}
-      </ol>
+
+      {anyPinned ? (
+        <>
+          {/* Day picker; each chip's swatch doubles as the map legend. */}
+          <div
+            role="group"
+            aria-label="Show on map"
+            className="no-scrollbar flex gap-1.5 overflow-x-auto px-4 py-2"
+          >
+            <button
+              type="button"
+              aria-pressed={all}
+              onClick={() => onSelect("all")}
+              className={chip(all)}
+            >
+              All days
+            </button>
+            {pinnedByDay.map((count, index) => (
+              <button
+                key={index}
+                type="button"
+                aria-pressed={selected === index}
+                disabled={!count}
+                onClick={() => onSelect(index)}
+                title={count ? `${count} pinned` : "Nothing pinned on this day"}
+                className={chip(selected === index)}
+              >
+                <span
+                  aria-hidden="true"
+                  className="size-2.5 rounded-full"
+                  style={{ background: dayColor(index).fill }}
+                />
+                Day {index + 1}
+              </button>
+            ))}
+          </div>
+          {mapDays.length ? (
+            <TripMap
+              days={mapDays}
+              hotel={hotel}
+              label={all ? "Map of every day of the trip" : `Map of day ${Number(selected) + 1}`}
+            />
+          ) : (
+            <p className="px-4 pb-4 font-body text-sm text-ink-muted">
+              Nothing on this day is pinned yet.
+            </p>
+          )}
+        </>
+      ) : (
+        <p className="px-4 py-3 font-body text-sm text-ink-muted">
+          {unpinned
+            ? "Pin your plans' places to see the trip on a map, day by day."
+            : "Add a place to your plans to see them on a map."}
+        </p>
+      )}
     </section>
   );
 }
@@ -662,27 +807,22 @@ function Day({
   index,
   items,
   actions,
+  onShowOnMap,
 }: {
   trip: Trip;
   index: number;
   items: TripItem[];
   actions: Actions;
+  onShowOnMap: () => void;
 }) {
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState(true);
-  const [showMap, setShowMap] = useState(false);
   const date = dayDate(trip.startDate, index);
   const bodyId = `trip-${trip.id}-day-${index}`;
   const hops = dayHops(items);
   const warnings = dayWarnings(items);
-  const stops = items.flatMap((item, i) =>
-    hasCoords(item)
-      ? [{ lat: item.lat, lng: item.lng, label: String(i + 1), title: item.title }]
-      : [],
-  );
-  const chosen = trip.hotels.find((h) => h.status === "chosen");
-  const hotel =
-    chosen && hasCoords(chosen) ? { lat: chosen.lat, lng: chosen.lng, title: chosen.name } : null;
+  const pinned = items.some(hasCoords);
+  const color = dayColor(index);
 
   return (
     <li className="kami-sheet list-none overflow-hidden">
@@ -694,6 +834,11 @@ function Day({
       >
         <ToggleButton open={open} onToggle={() => setOpen((v) => !v)} controls={bodyId}>
           <span className="font-sans text-sm">
+            <span
+              aria-hidden="true"
+              className="mr-2 inline-block size-2.5 rounded-full align-middle"
+              style={{ background: color.fill }}
+            />
             <span className="font-semibold text-ink">Day {index + 1}</span>
             {date ? <span className="ml-2 text-ink-muted">{formatDay(date)}</span> : null}
             {!open && items.length ? (
@@ -702,18 +847,14 @@ function Day({
           </span>
         </ToggleButton>
         <div className="flex items-center gap-3">
-          {stops.length ? (
+          {pinned ? (
             <button
               type="button"
-              onClick={() => {
-                setOpen(true);
-                setShowMap((v) => !v);
-              }}
-              aria-expanded={showMap}
+              onClick={onShowOnMap}
               className="flex items-center gap-1 font-sans text-xs text-ink-soft hover:text-hanko"
             >
               <MapIcon className="size-3.5" aria-hidden="true" />
-              {showMap ? "Hide map" : "Map"}
+              Show on map
             </button>
           ) : null}
           {!adding ? (
@@ -732,11 +873,6 @@ function Day({
         </div>
       </div>
       <div id={bodyId} hidden={!open}>
-        {showMap && stops.length ? (
-          <div className="border-b border-line">
-            <TripMap stops={stops} hotel={hotel} />
-          </div>
-        ) : null}
         {warnings.length ? (
           <ul className="space-y-1 border-b border-line bg-shu-tint/60 px-4 py-2">
             {warnings.map((w, i) => (
@@ -762,7 +898,7 @@ function Day({
                 actions={actions}
                 canMoveUp={items[i - 1]?.slot === item.slot}
                 canMoveDown={items[i + 1]?.slot === item.slot}
-                pinNumber={hasCoords(item) ? i + 1 : null}
+                pin={hasCoords(item) ? { number: i + 1, color } : null}
                 hop={hops[i]}
               />
             ))}
@@ -789,7 +925,7 @@ function ItemRow({
   actions,
   canMoveUp,
   canMoveDown,
-  pinNumber,
+  pin,
   hop,
 }: {
   trip: Trip;
@@ -797,8 +933,8 @@ function ItemRow({
   actions: Actions;
   canMoveUp: boolean;
   canMoveDown: boolean;
-  /** Number shown on the day map, or null when the plan has no pin. */
-  pinNumber: number | null;
+  /** Number and color shown on the trip map, or null when the plan has no pin. */
+  pin: { number: number; color: { fill: string; ink: string } } | null;
   /** Travel from the previous pinned stop. */
   hop: Hop | null;
 }) {
@@ -834,12 +970,13 @@ function ItemRow({
       <div className="min-w-0 space-y-0.5">
         {hop ? <HopHint hop={hop} /> : null}
         <p className="flex items-start gap-1.5 font-sans text-sm font-semibold break-words text-ink">
-          {pinNumber ? (
+          {pin ? (
             <span
-              className="mt-px inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-hanko text-[9px] text-white"
-              title="Pinned on the day map"
+              className="mt-px inline-flex size-4 shrink-0 items-center justify-center rounded-full text-[9px]"
+              style={{ background: pin.color.fill, color: pin.color.ink }}
+              title="Pinned on the trip map"
             >
-              {pinNumber}
+              {pin.number}
             </span>
           ) : null}
           <span className="min-w-0">{item.title}</span>

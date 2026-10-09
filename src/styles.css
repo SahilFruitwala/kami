@@ -923,18 +923,16 @@
   --sidebar-border: #2e2922;
   --sidebar-ring: #d08a5e;
 }
-/* ——— Trip map pins (Leaflet divIcons) ——— */
-.kami-map-pin {
+
+/* ——— Trip map pins (Leaflet divIcons; colors set inline per day) ——— */
+.kami-map-pin > span {
   display: flex;
+  width: 100%;
+  height: 100%;
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  background: var(--color-hanko);
-  color: #fff;
   font: 600 11px/1 var(--font-sans, system-ui, sans-serif);
   border: 2px solid #fff;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
-}
-.kami-map-pin-hotel {
-  background: #201b14;
 }
