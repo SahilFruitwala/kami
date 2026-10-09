@@ -77,6 +77,7 @@ import { Route as ApiShelvesBookImportRouteImport } from './routes/api/shelves/b
 import { Route as ApiTripsIdChatRouteImport } from './routes/api/trips/$id/chat'
 import { Route as ApiTripsIdHotelsRouteImport } from './routes/api/trips/$id/hotels'
 import { Route as ApiTripsIdItemsRouteImport } from './routes/api/trips/$id/items'
+import { Route as ApiTripsIdLocateRouteImport } from './routes/api/trips/$id/locate'
 import { Route as ApiTripsIdUndoRouteImport } from './routes/api/trips/$id/undo'
 import { Route as ApiExtractsResultsIdAcceptRouteImport } from './routes/api/extracts/results/$id/accept'
 import { Route as ApiFeedsEntriesIdArticleRouteImport } from './routes/api/feeds/entries/$id/article'
@@ -431,6 +432,11 @@ const ApiTripsIdItemsRoute = ApiTripsIdItemsRouteImport.update({
   path: '/items',
   getParentRoute: () => ApiTripsIdRoute,
 } as any)
+const ApiTripsIdLocateRoute = ApiTripsIdLocateRouteImport.update({
+  id: '/locate',
+  path: '/locate',
+  getParentRoute: () => ApiTripsIdRoute,
+} as any)
 const ApiTripsIdUndoRoute = ApiTripsIdUndoRouteImport.update({
   id: '/undo',
   path: '/undo',
@@ -565,6 +571,7 @@ export interface FileRoutesByFullPath {
   '/api/trips/$id/chat': typeof ApiTripsIdChatRoute
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
+  '/api/trips/$id/locate': typeof ApiTripsIdLocateRoute
   '/api/trips/$id/undo': typeof ApiTripsIdUndoRoute
   '/api/feeds/entries/': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
@@ -646,6 +653,7 @@ export interface FileRoutesByTo {
   '/api/trips/$id/chat': typeof ApiTripsIdChatRoute
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
+  '/api/trips/$id/locate': typeof ApiTripsIdLocateRoute
   '/api/trips/$id/undo': typeof ApiTripsIdUndoRoute
   '/api/feeds/entries': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders': typeof ApiLibraryFoldersIndexRoute
@@ -729,6 +737,7 @@ export interface FileRoutesById {
   '/api/trips/$id/chat': typeof ApiTripsIdChatRoute
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
+  '/api/trips/$id/locate': typeof ApiTripsIdLocateRoute
   '/api/trips/$id/undo': typeof ApiTripsIdUndoRoute
   '/api/feeds/entries/': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
@@ -813,6 +822,7 @@ export interface FileRouteTypes {
     | '/api/trips/$id/chat'
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
+    | '/api/trips/$id/locate'
     | '/api/trips/$id/undo'
     | '/api/feeds/entries/'
     | '/api/library/folders/'
@@ -894,6 +904,7 @@ export interface FileRouteTypes {
     | '/api/trips/$id/chat'
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
+    | '/api/trips/$id/locate'
     | '/api/trips/$id/undo'
     | '/api/feeds/entries'
     | '/api/library/folders'
@@ -976,6 +987,7 @@ export interface FileRouteTypes {
     | '/api/trips/$id/chat'
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
+    | '/api/trips/$id/locate'
     | '/api/trips/$id/undo'
     | '/api/feeds/entries/'
     | '/api/library/folders/'
@@ -1537,6 +1549,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTripsIdItemsRouteImport
       parentRoute: typeof ApiTripsIdRoute
     }
+    '/api/trips/$id/locate': {
+      id: '/api/trips/$id/locate'
+      path: '/locate'
+      fullPath: '/api/trips/$id/locate'
+      preLoaderRoute: typeof ApiTripsIdLocateRouteImport
+      parentRoute: typeof ApiTripsIdRoute
+    }
     '/api/trips/$id/undo': {
       id: '/api/trips/$id/undo'
       path: '/undo'
@@ -1704,6 +1723,7 @@ interface ApiTripsIdRouteChildren {
   ApiTripsIdChatRoute: typeof ApiTripsIdChatRoute
   ApiTripsIdHotelsRoute: typeof ApiTripsIdHotelsRouteWithChildren
   ApiTripsIdItemsRoute: typeof ApiTripsIdItemsRouteWithChildren
+  ApiTripsIdLocateRoute: typeof ApiTripsIdLocateRoute
   ApiTripsIdUndoRoute: typeof ApiTripsIdUndoRoute
 }
 
@@ -1711,6 +1731,7 @@ const ApiTripsIdRouteChildren: ApiTripsIdRouteChildren = {
   ApiTripsIdChatRoute: ApiTripsIdChatRoute,
   ApiTripsIdHotelsRoute: ApiTripsIdHotelsRouteWithChildren,
   ApiTripsIdItemsRoute: ApiTripsIdItemsRouteWithChildren,
+  ApiTripsIdLocateRoute: ApiTripsIdLocateRoute,
   ApiTripsIdUndoRoute: ApiTripsIdUndoRoute,
 }
 

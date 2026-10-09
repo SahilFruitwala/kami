@@ -179,6 +179,24 @@ const slot = z.enum(TRIP_SLOTS);
 const optionalText = (max: number, description: string) =>
   z.string().max(max).optional().describe(description);
 
+const latField = z
+  .number()
+  .min(-90)
+  .max(90)
+  .optional()
+  .describe("Latitude, only if a source gives it");
+const lngField = z
+  .number()
+  .min(-180)
+  .max(180)
+  .optional()
+  .describe("Longitude, only if a source gives it");
+const startTimeField = z
+  .string()
+  .optional()
+  .describe('Start time, 24-hour "HH:MM" local to the destination');
+const durationField = z.number().int().min(5).max(1440).optional().describe("Length in minutes");
+
 const RESEARCH_TOOLS = ["web_search", "read_page"] as const;
 
 /** Firecrawl calls spent so far in one chat turn. */
@@ -272,6 +290,8 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
         priceNote: optionalText(200, 'e.g. "≈ €140/night (seen on a booking site)"'),
         ratingNote: optionalText(200, 'e.g. "9.1 · 800 reviews"'),
         why: optionalText(1000, "One-line reason it fits this trip"),
+        lat: latField,
+        lng: lngField,
       }),
       execute: (input) =>
         attemptWrite(async () =>
@@ -290,6 +310,8 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
         priceNote: optionalText(200, "Price note"),
         ratingNote: optionalText(200, "Rating note"),
         why: optionalText(1000, "Reason it fits"),
+        lat: latField,
+        lng: lngField,
         status: z.enum(["shortlisted", "chosen"]).optional(),
       }),
       execute: ({ hotelId, ...patch }) =>
@@ -318,6 +340,10 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
               place: optionalText(200, "Venue or area"),
               url: optionalText(2000, "Source or official page"),
               notes: optionalText(2000, "Practical notes: hours, booking, transport"),
+              startTime: startTimeField,
+              durationMin: durationField,
+              lat: latField,
+              lng: lngField,
             }),
           )
           .max(20),
@@ -343,6 +369,10 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
         place: optionalText(200, "Venue or area"),
         url: optionalText(2000, "Source or official page"),
         notes: optionalText(2000, "Practical notes"),
+        startTime: startTimeField,
+        durationMin: durationField,
+        lat: latField,
+        lng: lngField,
       }),
       execute: ({ day, ...item }) =>
         attemptWrite(async () =>
@@ -366,6 +396,10 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
         place: optionalText(200, "Venue or area"),
         url: optionalText(2000, "Source or official page"),
         notes: optionalText(2000, "Practical notes"),
+        startTime: startTimeField,
+        durationMin: durationField,
+        lat: latField,
+        lng: lngField,
       }),
       execute: ({ itemId, day, ...patch }) =>
         attemptWrite(async () =>
