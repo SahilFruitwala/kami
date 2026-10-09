@@ -20,6 +20,7 @@ import { TRIP_SLOTS, tripMessages, trips } from "@/lib/schema";
 import { uid } from "@/lib/store";
 import { buildTripInstructions, tripSnapshot } from "@/lib/trip-agent-prompt.ts";
 import { HttpError, notFound } from "@/server/http";
+import { hasTripSnapshot, saveTripSnapshot } from "@/server/services/trip-undo";
 import {
   addTripHotel,
   addTripItem,
@@ -143,6 +144,7 @@ export async function getTripChat(userId: string, tripId: string): Promise<TripC
     models: menu.map(({ id, label, available }) => ({ id, label, available })),
     defaultModel: resolveTripModel()?.id ?? null,
     research: firecrawlApiKey() !== null,
+    canUndo: await hasTripSnapshot(userId, tripId),
   };
 }
 
@@ -176,6 +178,24 @@ const dayNumber = z.number().int().min(1).describe("1-based day of the trip");
 const slot = z.enum(TRIP_SLOTS);
 const optionalText = (max: number, description: string) =>
   z.string().max(max).optional().describe(description);
+
+const latField = z
+  .number()
+  .min(-90)
+  .max(90)
+  .optional()
+  .describe("Latitude, only if a source gives it");
+const lngField = z
+  .number()
+  .min(-180)
+  .max(180)
+  .optional()
+  .describe("Longitude, only if a source gives it");
+const startTimeField = z
+  .string()
+  .optional()
+  .describe('Start time, 24-hour "HH:MM" local to the destination');
+const durationField = z.number().int().min(5).max(1440).optional().describe("Length in minutes");
 
 const RESEARCH_TOOLS = ["web_search", "read_page"] as const;
 
@@ -211,6 +231,15 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
     return pending;
   }
 
+  // The first write of a turn saves the trip so "Undo" can put it back.
+  let snapshot: Promise<void> | null = null;
+  const attemptWrite = <T>(run: () => Promise<T>) =>
+    attempt(async () => {
+      snapshot ??= saveTripSnapshot(userId, tripId);
+      await snapshot;
+      return run();
+    });
+
   /** Write tools answer with the fresh trip so the model always has current ids. */
   const done = (trip: Awaited<ReturnType<typeof getTrip>>) => ({
     ok: true,
@@ -232,7 +261,7 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
         preferences: optionalText(2000, "What the travellers like, dislike, their pace"),
       }),
       execute: (input) =>
-        attempt(async () =>
+        attemptWrite(async () =>
           done(
             await updateTrip(
               userId,
@@ -261,9 +290,11 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
         priceNote: optionalText(200, 'e.g. "≈ €140/night (seen on a booking site)"'),
         ratingNote: optionalText(200, 'e.g. "9.1 · 800 reviews"'),
         why: optionalText(1000, "One-line reason it fits this trip"),
+        lat: latField,
+        lng: lngField,
       }),
       execute: (input) =>
-        attempt(async () =>
+        attemptWrite(async () =>
           done(await addTripHotel(userId, tripId, createHotelInput.parse(input))),
         ),
     }),
@@ -279,10 +310,12 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
         priceNote: optionalText(200, "Price note"),
         ratingNote: optionalText(200, "Rating note"),
         why: optionalText(1000, "Reason it fits"),
+        lat: latField,
+        lng: lngField,
         status: z.enum(["shortlisted", "chosen"]).optional(),
       }),
       execute: ({ hotelId, ...patch }) =>
-        attempt(async () =>
+        attemptWrite(async () =>
           done(await updateTripHotel(userId, tripId, hotelId, updateHotelInput.parse(patch))),
         ),
     }),
@@ -291,7 +324,7 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
       description: "Remove a hotel from the shortlist.",
       inputSchema: z.object({ hotelId: z.string() }),
       execute: ({ hotelId }) =>
-        attempt(async () => done(await removeTripHotel(userId, tripId, hotelId))),
+        attemptWrite(async () => done(await removeTripHotel(userId, tripId, hotelId))),
     }),
 
     set_day: tool({
@@ -307,12 +340,16 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
               place: optionalText(200, "Venue or area"),
               url: optionalText(2000, "Source or official page"),
               notes: optionalText(2000, "Practical notes: hours, booking, transport"),
+              startTime: startTimeField,
+              durationMin: durationField,
+              lat: latField,
+              lng: lngField,
             }),
           )
           .max(20),
       }),
       execute: ({ day, items }) =>
-        attempt(async () =>
+        attemptWrite(async () =>
           done(
             await replaceTripDay(
               userId,
@@ -332,9 +369,13 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
         place: optionalText(200, "Venue or area"),
         url: optionalText(2000, "Source or official page"),
         notes: optionalText(2000, "Practical notes"),
+        startTime: startTimeField,
+        durationMin: durationField,
+        lat: latField,
+        lng: lngField,
       }),
       execute: ({ day, ...item }) =>
-        attempt(async () =>
+        attemptWrite(async () =>
           done(
             await addTripItem(
               userId,
@@ -355,9 +396,13 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
         place: optionalText(200, "Venue or area"),
         url: optionalText(2000, "Source or official page"),
         notes: optionalText(2000, "Practical notes"),
+        startTime: startTimeField,
+        durationMin: durationField,
+        lat: latField,
+        lng: lngField,
       }),
       execute: ({ itemId, day, ...patch }) =>
-        attempt(async () =>
+        attemptWrite(async () =>
           done(
             await updateTripItem(
               userId,
@@ -376,7 +421,7 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
       description: "Remove one plan from the itinerary.",
       inputSchema: z.object({ itemId: z.string() }),
       execute: ({ itemId }) =>
-        attempt(async () => done(await removeTripItem(userId, tripId, itemId))),
+        attemptWrite(async () => done(await removeTripItem(userId, tripId, itemId))),
     }),
   };
 

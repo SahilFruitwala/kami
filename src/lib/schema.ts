@@ -3,6 +3,7 @@ import {
   bigint,
   boolean,
   date,
+  doublePrecision,
   index,
   integer,
   jsonb,
@@ -568,6 +569,8 @@ export const tripHotels = pgTable(
     priceNote: text("price_note"),
     ratingNote: text("rating_note"),
     why: text("why"),
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
     status: text("status").$type<TripHotelStatus>().notNull().default("shortlisted"),
     sort: integer("sort").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -591,6 +594,11 @@ export const tripItems = pgTable(
     place: text("place"),
     url: text("url"),
     notes: text("notes"),
+    lat: doublePrecision("lat"),
+    lng: doublePrecision("lng"),
+    /** "HH:MM", local to the destination. */
+    startTime: text("start_time"),
+    durationMin: integer("duration_min"),
     sort: integer("sort").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -616,6 +624,18 @@ export const tripMessages = pgTable(
   },
   (t) => [index("trip_messages_trip_idx").on(t.tripId, t.seq)],
 );
+
+/** The trip agent's undo point: one row per trip, replaced on each agent turn that writes. */
+export const tripSnapshots = pgTable("trip_snapshots", {
+  tripId: text("trip_id")
+    .primaryKey()
+    .references(() => trips.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  snapshot: jsonb("snapshot").$type<unknown>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export type TripRow = typeof trips.$inferSelect;
 export type TripHotelRow = typeof tripHotels.$inferSelect;
@@ -655,4 +675,5 @@ export const schema = {
   tripHotels,
   tripItems,
   tripMessages,
+  tripSnapshots,
 };

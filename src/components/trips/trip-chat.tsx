@@ -9,6 +9,7 @@ import {
   Globe,
   LoaderCircle,
   RotateCcw,
+  Undo2,
   Sparkles,
   Square,
   X,
@@ -118,6 +119,27 @@ function ChatPanel({ tripId, data }: { tripId: string; data: TripChatData }) {
   });
   const busy = status === "submitted" || status === "streaming";
 
+  // The agent's latest edits can be undone while a snapshot exists.
+  const [canUndo, setCanUndo] = useState(data.canUndo);
+  const [undoing, setUndoing] = useState(false);
+  async function undo() {
+    if (busy || undoing || !window.confirm("Undo the agent's latest changes to the trip board?")) {
+      return;
+    }
+    setUndoing(true);
+    try {
+      const trip = await tripsApi.undoAgent(tripId);
+      client.setQueryData(queryKeys.trips.detail(tripId), trip);
+      void client.invalidateQueries({ queryKey: queryKeys.trips.list() });
+      setCanUndo(false);
+      toast.success("Restored the trip from before the agent's changes");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not undo the agent's changes.");
+    } finally {
+      setUndoing(false);
+    }
+  }
+
   // Refresh the board whenever a write tool finishes successfully.
   const applied = useRef<Set<string> | null>(null);
   useEffect(() => {
@@ -133,6 +155,7 @@ function ChatPanel({ tripId, data }: { tripId: string; data: TripChatData }) {
     const before = applied.current;
     applied.current = done;
     if (before && [...done].some((id) => !before.has(id))) {
+      setCanUndo(true);
       void client.invalidateQueries({ queryKey: queryKeys.trips.detail(tripId) });
       void client.invalidateQueries({ queryKey: queryKeys.trips.list() });
     }
@@ -202,6 +225,19 @@ function ChatPanel({ tripId, data }: { tripId: string; data: TripChatData }) {
               </option>
             ))}
           </select>
+          {canUndo ? (
+            <button
+              type="button"
+              onClick={() => void undo()}
+              disabled={busy || undoing}
+              title="Undo the agent's latest changes"
+              aria-label="Undo the agent's latest changes"
+              className="flex h-7 items-center gap-1 rounded-md px-1.5 font-sans text-[11px] text-ink-muted hover:bg-paper-warm hover:text-ink disabled:opacity-50"
+            >
+              <Undo2 className="size-3.5" aria-hidden="true" />
+              Undo
+            </button>
+          ) : null}
           {messages.length > 0 ? (
             <button
               type="button"

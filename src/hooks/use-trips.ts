@@ -94,11 +94,45 @@ export function useTripActions(tripId: string) {
     onError: fail("Could not update that plan."),
   });
 
+  const moveItem = useMutation({
+    mutationFn: ({ itemId, direction }: { itemId: string; direction: "up" | "down" }) =>
+      tripsApi.moveItem(tripId, itemId, direction),
+    onSuccess: apply,
+    onError: fail("Could not move that plan."),
+  });
+
+  const locate = useMutation({
+    mutationFn: (skip: string[]) => tripsApi.locate(tripId, skip),
+    onSuccess: (res) => apply(res.trip),
+    onError: fail("Could not pin places on the map."),
+  });
+
+  const undoAgent = useMutation({
+    mutationFn: () => tripsApi.undoAgent(tripId),
+    onSuccess: (trip) => {
+      apply(trip);
+      toast.success("Restored the trip from before the agent's changes");
+    },
+    onError: fail("Could not undo the agent's changes."),
+  });
+
   const removeItem = useMutation({
     mutationFn: (itemId: string) => tripsApi.removeItem(tripId, itemId),
     onSuccess: apply,
     onError: fail("Could not remove that plan."),
   });
 
-  return { update, remove, addHotel, updateHotel, removeHotel, addItem, updateItem, removeItem };
+  return {
+    update,
+    remove,
+    addHotel,
+    updateHotel,
+    removeHotel,
+    addItem,
+    updateItem,
+    moveItem,
+    locate,
+    undoAgent,
+    removeItem,
+  };
 }

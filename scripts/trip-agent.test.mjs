@@ -105,7 +105,46 @@ describe("trip snapshot", () => {
       status: "chosen",
       price: "≈ €160",
       url: null,
+      pinned: false,
     });
+  });
+
+  it("adds times, pins, distances and day warnings", () => {
+    const snap = tripSnapshot({
+      ...trip,
+      items: [
+        {
+          id: "a",
+          dayIndex: 0,
+          slot: "morning",
+          sort: 0,
+          title: "Rossio",
+          place: "Rossio",
+          lat: 38.7139,
+          lng: -9.1394,
+          startTime: "10:00",
+          durationMin: 60,
+        },
+        {
+          id: "b",
+          dayIndex: 0,
+          slot: "afternoon",
+          sort: 0,
+          title: "Pena Palace",
+          place: "Sintra",
+          lat: 38.7876,
+          lng: -9.3906,
+        },
+      ],
+    });
+    const [a, b] = snap.itinerary[0].items;
+    assert.deepEqual(
+      [a.start, a.minutes, a.pinned, a.kmFromPrevious],
+      ["10:00", 60, true, undefined],
+    );
+    assert.ok(b.kmFromPrevious > 20 && b.kmFromPrevious < 25);
+    assert.match(snap.itinerary[0].warnings[0], /Long trip to “Pena Palace”/);
+    assert.equal(snap.itinerary[1].warnings, undefined);
   });
 
   it("builds instructions with today, the trip, and research rules", () => {
