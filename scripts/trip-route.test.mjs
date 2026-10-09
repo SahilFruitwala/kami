@@ -12,6 +12,7 @@ import {
   travelEstimate,
 } from "../src/lib/trip-route.ts";
 import { tripToIcs } from "../src/lib/trip-ics.ts";
+import { DAY_COLORS, dayColor, OVERFLOW_DAY_COLOR } from "../src/lib/trip-colors.ts";
 
 const item = (over) => ({
   id: "i",
@@ -171,5 +172,18 @@ describe("tripToIcs with times", () => {
       new Date("2027-01-01T00:00:00Z"),
     );
     assert.match(ics, /DTSTART:20270515T154500\r\nDTEND:20270515T171500/);
+  });
+});
+
+describe("dayColor", () => {
+  it("gives each of the first eight days a fixed, distinct color", () => {
+    const fills = DAY_COLORS.map((_, i) => dayColor(i).fill);
+    assert.equal(new Set(fills).size, 8);
+    assert.equal(dayColor(0).fill, "#2a78d6");
+  });
+
+  it("puts later days in neutral gray instead of reusing a hue", () => {
+    assert.deepEqual(dayColor(8), OVERFLOW_DAY_COLOR);
+    assert.deepEqual(dayColor(29), OVERFLOW_DAY_COLOR);
   });
 });
