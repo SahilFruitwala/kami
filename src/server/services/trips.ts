@@ -21,6 +21,7 @@ import {
   daysBetween,
   lastUsedDay,
   MAX_TRIP_DAYS,
+  moveWithin,
   parseIsoDate,
 } from "@/lib/trip-days.ts";
 import { badRequest, notFound } from "@/server/http";
@@ -552,6 +553,51 @@ export async function removeTripItem(
     )
     .returning({ id: tripItems.id });
   if (!deleted.length) throw notFound("That plan is no longer on this trip.");
+  return touchAndLoad(db, userId, tripId);
+}
+
+export const moveItemInput = z.object({ direction: z.enum(["up", "down"]) });
+
+/** Swap a plan with its neighbour inside the same day + slot. */
+export async function moveTripItem(
+  userId: string,
+  tripId: string,
+  itemId: string,
+  direction: "up" | "down",
+): Promise<Trip> {
+  const db = await getDb();
+  await ownedTrip(db, userId, tripId);
+  const [current] = await db
+    .select()
+    .from(tripItems)
+    .where(and(eq(tripItems.id, itemId), eq(tripItems.tripId, tripId)))
+    .limit(1);
+  if (!current) throw notFound("That plan is no longer on this trip.");
+
+  const siblings = await db
+    .select({ id: tripItems.id })
+    .from(tripItems)
+    .where(
+      and(
+        eq(tripItems.tripId, tripId),
+        eq(tripItems.dayIndex, current.dayIndex),
+        eq(tripItems.slot, current.slot),
+      ),
+    )
+    .orderBy(asc(tripItems.sort), asc(tripItems.id));
+  const order = moveWithin(
+    siblings.map((s) => s.id),
+    itemId,
+    direction,
+  );
+  // Already first / last: nothing to change.
+  if (!order) return loadTrip(db, await ownedTrip(db, userId, tripId));
+
+  await db.transaction(async (tx) => {
+    for (const [sort, id] of order.entries()) {
+      await tx.update(tripItems).set({ sort }).where(eq(tripItems.id, id));
+    }
+  });
   return touchAndLoad(db, userId, tripId);
 }
 

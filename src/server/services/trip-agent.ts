@@ -20,6 +20,7 @@ import { TRIP_SLOTS, tripMessages, trips } from "@/lib/schema";
 import { uid } from "@/lib/store";
 import { buildTripInstructions, tripSnapshot } from "@/lib/trip-agent-prompt.ts";
 import { HttpError, notFound } from "@/server/http";
+import { hasTripSnapshot, saveTripSnapshot } from "@/server/services/trip-undo";
 import {
   addTripHotel,
   addTripItem,
@@ -143,6 +144,7 @@ export async function getTripChat(userId: string, tripId: string): Promise<TripC
     models: menu.map(({ id, label, available }) => ({ id, label, available })),
     defaultModel: resolveTripModel()?.id ?? null,
     research: firecrawlApiKey() !== null,
+    canUndo: await hasTripSnapshot(userId, tripId),
   };
 }
 
@@ -211,6 +213,15 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
     return pending;
   }
 
+  // The first write of a turn saves the trip so "Undo" can put it back.
+  let snapshot: Promise<void> | null = null;
+  const attemptWrite = <T>(run: () => Promise<T>) =>
+    attempt(async () => {
+      snapshot ??= saveTripSnapshot(userId, tripId);
+      await snapshot;
+      return run();
+    });
+
   /** Write tools answer with the fresh trip so the model always has current ids. */
   const done = (trip: Awaited<ReturnType<typeof getTrip>>) => ({
     ok: true,
@@ -232,7 +243,7 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
         preferences: optionalText(2000, "What the travellers like, dislike, their pace"),
       }),
       execute: (input) =>
-        attempt(async () =>
+        attemptWrite(async () =>
           done(
             await updateTrip(
               userId,
@@ -263,7 +274,7 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
         why: optionalText(1000, "One-line reason it fits this trip"),
       }),
       execute: (input) =>
-        attempt(async () =>
+        attemptWrite(async () =>
           done(await addTripHotel(userId, tripId, createHotelInput.parse(input))),
         ),
     }),
@@ -282,7 +293,7 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
         status: z.enum(["shortlisted", "chosen"]).optional(),
       }),
       execute: ({ hotelId, ...patch }) =>
-        attempt(async () =>
+        attemptWrite(async () =>
           done(await updateTripHotel(userId, tripId, hotelId, updateHotelInput.parse(patch))),
         ),
     }),
@@ -291,7 +302,7 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
       description: "Remove a hotel from the shortlist.",
       inputSchema: z.object({ hotelId: z.string() }),
       execute: ({ hotelId }) =>
-        attempt(async () => done(await removeTripHotel(userId, tripId, hotelId))),
+        attemptWrite(async () => done(await removeTripHotel(userId, tripId, hotelId))),
     }),
 
     set_day: tool({
@@ -312,7 +323,7 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
           .max(20),
       }),
       execute: ({ day, items }) =>
-        attempt(async () =>
+        attemptWrite(async () =>
           done(
             await replaceTripDay(
               userId,
@@ -334,7 +345,7 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
         notes: optionalText(2000, "Practical notes"),
       }),
       execute: ({ day, ...item }) =>
-        attempt(async () =>
+        attemptWrite(async () =>
           done(
             await addTripItem(
               userId,
@@ -357,7 +368,7 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
         notes: optionalText(2000, "Practical notes"),
       }),
       execute: ({ itemId, day, ...patch }) =>
-        attempt(async () =>
+        attemptWrite(async () =>
           done(
             await updateTripItem(
               userId,
@@ -376,7 +387,7 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget) {
       description: "Remove one plan from the itinerary.",
       inputSchema: z.object({ itemId: z.string() }),
       execute: ({ itemId }) =>
-        attempt(async () => done(await removeTripItem(userId, tripId, itemId))),
+        attemptWrite(async () => done(await removeTripItem(userId, tripId, itemId))),
     }),
   };
 

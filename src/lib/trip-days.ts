@@ -110,3 +110,16 @@ export function groupByDay<T extends Orderable>(items: T[], dayCount: number): T
 export function lastUsedDay(items: Array<{ dayIndex: number }>): number {
   return items.reduce((max, item) => Math.max(max, item.dayIndex), -1);
 }
+
+/**
+ * New order of `ids` after moving `id` one step up or down. Returns null when
+ * the id isn't in the list or is already at that end.
+ */
+export function moveWithin(ids: string[], id: string, direction: "up" | "down"): string[] | null {
+  const from = ids.indexOf(id);
+  const to = direction === "up" ? from - 1 : from + 1;
+  if (from < 0 || to < 0 || to >= ids.length) return null;
+  const next = [...ids];
+  [next[from], next[to]] = [next[to], next[from]];
+  return next;
+}

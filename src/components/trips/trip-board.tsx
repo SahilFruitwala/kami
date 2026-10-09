@@ -1,6 +1,10 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import {
+  ArrowDown,
+  ArrowUp,
   CalendarDays,
+  CalendarPlus,
   Check,
   ChevronDown,
   ExternalLink,
@@ -23,6 +27,7 @@ import {
   MAX_TRIP_DAYS,
   SLOT_ORDER,
 } from "@/lib/trip-days.ts";
+import { tripToIcs } from "@/lib/trip-ics.ts";
 import { cn } from "@/lib/utils.ts";
 import {
   IconButton,
@@ -43,6 +48,25 @@ const SLOT_LABEL: Record<TripSlot, string> = {
 };
 /** "" → null so cleared fields clear on the server. */
 const orNull = (value: string) => value.trim() || null;
+
+/** Download the itinerary as an .ics file (null date / no plans → explain instead). */
+function downloadCalendar(trip: Trip) {
+  const ics = tripToIcs(trip);
+  if (!ics) {
+    toast.info(
+      trip.startDate
+        ? "Add some plans first, then export them to your calendar."
+        : "Set a start date to export the itinerary to your calendar.",
+    );
+    return;
+  }
+  const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar;charset=utf-8" }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${trip.title.replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "trip"}.ics`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 const SLOT_OPTIONS = SLOT_ORDER.map((s) => ({ value: s, label: SLOT_LABEL[s] }));
 
@@ -101,6 +125,12 @@ function TripDetails({
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1">
+          <IconButton
+            title="Add itinerary to calendar (.ics)"
+            onClick={() => downloadCalendar(trip)}
+          >
+            <CalendarPlus className="size-3.5" aria-hidden="true" />
+          </IconButton>
           <IconButton title="Edit trip details" onClick={() => setEditing(true)}>
             <PencilLine className="size-3.5" aria-hidden="true" />
           </IconButton>
@@ -629,8 +659,15 @@ function Day({
           <p className="px-4 py-3 font-body text-sm text-ink-muted">Nothing planned yet.</p>
         ) : (
           <ul className="divide-y divide-dashed divide-line">
-            {items.map((item) => (
-              <ItemRow key={item.id} trip={trip} item={item} actions={actions} />
+            {items.map((item, i) => (
+              <ItemRow
+                key={item.id}
+                trip={trip}
+                item={item}
+                actions={actions}
+                canMoveUp={items[i - 1]?.slot === item.slot}
+                canMoveDown={items[i + 1]?.slot === item.slot}
+              />
             ))}
           </ul>
         )}
@@ -649,9 +686,22 @@ function Day({
   );
 }
 
-function ItemRow({ trip, item, actions }: { trip: Trip; item: TripItem; actions: Actions }) {
+function ItemRow({
+  trip,
+  item,
+  actions,
+  canMoveUp,
+  canMoveDown,
+}: {
+  trip: Trip;
+  item: TripItem;
+  actions: Actions;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+}) {
   const [editing, setEditing] = useState(false);
   const busy =
+    actions.moveItem.isPending ||
     (actions.updateItem.isPending && actions.updateItem.variables?.itemId === item.id) ||
     (actions.removeItem.isPending && actions.removeItem.variables === item.id);
 
@@ -690,6 +740,24 @@ function ItemRow({ trip, item, actions }: { trip: Trip; item: TripItem; actions:
         {item.url ? <SourceLink url={item.url} /> : null}
       </div>
       <div className="flex items-start gap-0.5">
+        {canMoveUp || canMoveDown ? (
+          <>
+            <IconButton
+              title="Move earlier"
+              disabled={busy || !canMoveUp}
+              onClick={() => actions.moveItem.mutate({ itemId: item.id, direction: "up" })}
+            >
+              <ArrowUp className="size-3.5" aria-hidden="true" />
+            </IconButton>
+            <IconButton
+              title="Move later"
+              disabled={busy || !canMoveDown}
+              onClick={() => actions.moveItem.mutate({ itemId: item.id, direction: "down" })}
+            >
+              <ArrowDown className="size-3.5" aria-hidden="true" />
+            </IconButton>
+          </>
+        ) : null}
         <IconButton title="Edit plan" disabled={busy} onClick={() => setEditing(true)}>
           <PencilLine className="size-3.5" aria-hidden="true" />
         </IconButton>

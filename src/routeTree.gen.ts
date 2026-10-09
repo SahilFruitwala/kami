@@ -77,6 +77,7 @@ import { Route as ApiShelvesBookImportRouteImport } from './routes/api/shelves/b
 import { Route as ApiTripsIdChatRouteImport } from './routes/api/trips/$id/chat'
 import { Route as ApiTripsIdHotelsRouteImport } from './routes/api/trips/$id/hotels'
 import { Route as ApiTripsIdItemsRouteImport } from './routes/api/trips/$id/items'
+import { Route as ApiTripsIdUndoRouteImport } from './routes/api/trips/$id/undo'
 import { Route as ApiExtractsResultsIdAcceptRouteImport } from './routes/api/extracts/results/$id/accept'
 import { Route as ApiFeedsEntriesIdArticleRouteImport } from './routes/api/feeds/entries/$id/article'
 import { Route as ApiShelvesBookIdPageCountRouteImport } from './routes/api/shelves/book/$id/page-count'
@@ -87,6 +88,7 @@ import { Route as ApiTripsIdItemsItemIdRouteImport } from './routes/api/trips/$i
 import { Route as ApiShelvesTvIdEpisodesToggleRouteImport } from './routes/api/shelves/tv/$id/episodes/toggle'
 import { Route as ApiShelvesTvIdSeasonsIndexRouteImport } from './routes/api/shelves/tv/$id/seasons/index'
 import { Route as ApiShelvesTvIdSeasonsSeasonRouteImport } from './routes/api/shelves/tv/$id/seasons/$season'
+import { Route as ApiTripsIdItemsItemIdMoveRouteImport } from './routes/api/trips/$id/items/$itemId/move'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -429,6 +431,11 @@ const ApiTripsIdItemsRoute = ApiTripsIdItemsRouteImport.update({
   path: '/items',
   getParentRoute: () => ApiTripsIdRoute,
 } as any)
+const ApiTripsIdUndoRoute = ApiTripsIdUndoRouteImport.update({
+  id: '/undo',
+  path: '/undo',
+  getParentRoute: () => ApiTripsIdRoute,
+} as any)
 const ApiExtractsResultsIdAcceptRoute =
   ApiExtractsResultsIdAcceptRouteImport.update({
     id: '/accept',
@@ -485,6 +492,12 @@ const ApiShelvesTvIdSeasonsSeasonRoute =
     id: '/api/shelves/tv/$id/seasons/$season',
     path: '/api/shelves/tv/$id/seasons/$season',
     getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiTripsIdItemsItemIdMoveRoute =
+  ApiTripsIdItemsItemIdMoveRouteImport.update({
+    id: '/move',
+    path: '/move',
+    getParentRoute: () => ApiTripsIdItemsItemIdRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -552,6 +565,7 @@ export interface FileRoutesByFullPath {
   '/api/trips/$id/chat': typeof ApiTripsIdChatRoute
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
+  '/api/trips/$id/undo': typeof ApiTripsIdUndoRoute
   '/api/feeds/entries/': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
@@ -562,9 +576,10 @@ export interface FileRoutesByFullPath {
   '/api/shelves/book/$id/progress': typeof ApiShelvesBookIdProgressRoute
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
   '/api/trips/$id/hotels/$hotelId': typeof ApiTripsIdHotelsHotelIdRoute
-  '/api/trips/$id/items/$itemId': typeof ApiTripsIdItemsItemIdRoute
+  '/api/trips/$id/items/$itemId': typeof ApiTripsIdItemsItemIdRouteWithChildren
   '/api/shelves/tv/$id/episodes/toggle': typeof ApiShelvesTvIdEpisodesToggleRoute
   '/api/shelves/tv/$id/seasons/$season': typeof ApiShelvesTvIdSeasonsSeasonRoute
+  '/api/trips/$id/items/$itemId/move': typeof ApiTripsIdItemsItemIdMoveRoute
   '/api/shelves/tv/$id/seasons/': typeof ApiShelvesTvIdSeasonsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -631,6 +646,7 @@ export interface FileRoutesByTo {
   '/api/trips/$id/chat': typeof ApiTripsIdChatRoute
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
+  '/api/trips/$id/undo': typeof ApiTripsIdUndoRoute
   '/api/feeds/entries': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items': typeof ApiLibraryItemsIndexRoute
@@ -641,9 +657,10 @@ export interface FileRoutesByTo {
   '/api/shelves/book/$id/progress': typeof ApiShelvesBookIdProgressRoute
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
   '/api/trips/$id/hotels/$hotelId': typeof ApiTripsIdHotelsHotelIdRoute
-  '/api/trips/$id/items/$itemId': typeof ApiTripsIdItemsItemIdRoute
+  '/api/trips/$id/items/$itemId': typeof ApiTripsIdItemsItemIdRouteWithChildren
   '/api/shelves/tv/$id/episodes/toggle': typeof ApiShelvesTvIdEpisodesToggleRoute
   '/api/shelves/tv/$id/seasons/$season': typeof ApiShelvesTvIdSeasonsSeasonRoute
+  '/api/trips/$id/items/$itemId/move': typeof ApiTripsIdItemsItemIdMoveRoute
   '/api/shelves/tv/$id/seasons': typeof ApiShelvesTvIdSeasonsIndexRoute
 }
 export interface FileRoutesById {
@@ -712,6 +729,7 @@ export interface FileRoutesById {
   '/api/trips/$id/chat': typeof ApiTripsIdChatRoute
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
+  '/api/trips/$id/undo': typeof ApiTripsIdUndoRoute
   '/api/feeds/entries/': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
@@ -722,9 +740,10 @@ export interface FileRoutesById {
   '/api/shelves/book/$id/progress': typeof ApiShelvesBookIdProgressRoute
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
   '/api/trips/$id/hotels/$hotelId': typeof ApiTripsIdHotelsHotelIdRoute
-  '/api/trips/$id/items/$itemId': typeof ApiTripsIdItemsItemIdRoute
+  '/api/trips/$id/items/$itemId': typeof ApiTripsIdItemsItemIdRouteWithChildren
   '/api/shelves/tv/$id/episodes/toggle': typeof ApiShelvesTvIdEpisodesToggleRoute
   '/api/shelves/tv/$id/seasons/$season': typeof ApiShelvesTvIdSeasonsSeasonRoute
+  '/api/trips/$id/items/$itemId/move': typeof ApiTripsIdItemsItemIdMoveRoute
   '/api/shelves/tv/$id/seasons/': typeof ApiShelvesTvIdSeasonsIndexRoute
 }
 export interface FileRouteTypes {
@@ -794,6 +813,7 @@ export interface FileRouteTypes {
     | '/api/trips/$id/chat'
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
+    | '/api/trips/$id/undo'
     | '/api/feeds/entries/'
     | '/api/library/folders/'
     | '/api/library/items/'
@@ -807,6 +827,7 @@ export interface FileRouteTypes {
     | '/api/trips/$id/items/$itemId'
     | '/api/shelves/tv/$id/episodes/toggle'
     | '/api/shelves/tv/$id/seasons/$season'
+    | '/api/trips/$id/items/$itemId/move'
     | '/api/shelves/tv/$id/seasons/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -873,6 +894,7 @@ export interface FileRouteTypes {
     | '/api/trips/$id/chat'
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
+    | '/api/trips/$id/undo'
     | '/api/feeds/entries'
     | '/api/library/folders'
     | '/api/library/items'
@@ -886,6 +908,7 @@ export interface FileRouteTypes {
     | '/api/trips/$id/items/$itemId'
     | '/api/shelves/tv/$id/episodes/toggle'
     | '/api/shelves/tv/$id/seasons/$season'
+    | '/api/trips/$id/items/$itemId/move'
     | '/api/shelves/tv/$id/seasons'
   id:
     | '__root__'
@@ -953,6 +976,7 @@ export interface FileRouteTypes {
     | '/api/trips/$id/chat'
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
+    | '/api/trips/$id/undo'
     | '/api/feeds/entries/'
     | '/api/library/folders/'
     | '/api/library/items/'
@@ -966,6 +990,7 @@ export interface FileRouteTypes {
     | '/api/trips/$id/items/$itemId'
     | '/api/shelves/tv/$id/episodes/toggle'
     | '/api/shelves/tv/$id/seasons/$season'
+    | '/api/trips/$id/items/$itemId/move'
     | '/api/shelves/tv/$id/seasons/'
   fileRoutesById: FileRoutesById
 }
@@ -1512,6 +1537,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTripsIdItemsRouteImport
       parentRoute: typeof ApiTripsIdRoute
     }
+    '/api/trips/$id/undo': {
+      id: '/api/trips/$id/undo'
+      path: '/undo'
+      fullPath: '/api/trips/$id/undo'
+      preLoaderRoute: typeof ApiTripsIdUndoRouteImport
+      parentRoute: typeof ApiTripsIdRoute
+    }
     '/api/extracts/results/$id/accept': {
       id: '/api/extracts/results/$id/accept'
       path: '/accept'
@@ -1582,6 +1614,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiShelvesTvIdSeasonsSeasonRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/trips/$id/items/$itemId/move': {
+      id: '/api/trips/$id/items/$itemId/move'
+      path: '/move'
+      fullPath: '/api/trips/$id/items/$itemId/move'
+      preLoaderRoute: typeof ApiTripsIdItemsItemIdMoveRouteImport
+      parentRoute: typeof ApiTripsIdItemsItemIdRoute
+    }
   }
 }
 
@@ -1636,12 +1675,25 @@ const ApiTripsIdHotelsRouteChildren: ApiTripsIdHotelsRouteChildren = {
 const ApiTripsIdHotelsRouteWithChildren =
   ApiTripsIdHotelsRoute._addFileChildren(ApiTripsIdHotelsRouteChildren)
 
+interface ApiTripsIdItemsItemIdRouteChildren {
+  ApiTripsIdItemsItemIdMoveRoute: typeof ApiTripsIdItemsItemIdMoveRoute
+}
+
+const ApiTripsIdItemsItemIdRouteChildren: ApiTripsIdItemsItemIdRouteChildren = {
+  ApiTripsIdItemsItemIdMoveRoute: ApiTripsIdItemsItemIdMoveRoute,
+}
+
+const ApiTripsIdItemsItemIdRouteWithChildren =
+  ApiTripsIdItemsItemIdRoute._addFileChildren(
+    ApiTripsIdItemsItemIdRouteChildren,
+  )
+
 interface ApiTripsIdItemsRouteChildren {
-  ApiTripsIdItemsItemIdRoute: typeof ApiTripsIdItemsItemIdRoute
+  ApiTripsIdItemsItemIdRoute: typeof ApiTripsIdItemsItemIdRouteWithChildren
 }
 
 const ApiTripsIdItemsRouteChildren: ApiTripsIdItemsRouteChildren = {
-  ApiTripsIdItemsItemIdRoute: ApiTripsIdItemsItemIdRoute,
+  ApiTripsIdItemsItemIdRoute: ApiTripsIdItemsItemIdRouteWithChildren,
 }
 
 const ApiTripsIdItemsRouteWithChildren = ApiTripsIdItemsRoute._addFileChildren(
@@ -1652,12 +1704,14 @@ interface ApiTripsIdRouteChildren {
   ApiTripsIdChatRoute: typeof ApiTripsIdChatRoute
   ApiTripsIdHotelsRoute: typeof ApiTripsIdHotelsRouteWithChildren
   ApiTripsIdItemsRoute: typeof ApiTripsIdItemsRouteWithChildren
+  ApiTripsIdUndoRoute: typeof ApiTripsIdUndoRoute
 }
 
 const ApiTripsIdRouteChildren: ApiTripsIdRouteChildren = {
   ApiTripsIdChatRoute: ApiTripsIdChatRoute,
   ApiTripsIdHotelsRoute: ApiTripsIdHotelsRouteWithChildren,
   ApiTripsIdItemsRoute: ApiTripsIdItemsRouteWithChildren,
+  ApiTripsIdUndoRoute: ApiTripsIdUndoRoute,
 }
 
 const ApiTripsIdRouteWithChildren = ApiTripsIdRoute._addFileChildren(

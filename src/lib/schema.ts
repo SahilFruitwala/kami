@@ -617,6 +617,18 @@ export const tripMessages = pgTable(
   (t) => [index("trip_messages_trip_idx").on(t.tripId, t.seq)],
 );
 
+/** The trip agent's undo point: one row per trip, replaced on each agent turn that writes. */
+export const tripSnapshots = pgTable("trip_snapshots", {
+  tripId: text("trip_id")
+    .primaryKey()
+    .references(() => trips.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  snapshot: jsonb("snapshot").$type<unknown>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type TripRow = typeof trips.$inferSelect;
 export type TripHotelRow = typeof tripHotels.$inferSelect;
 export type TripItemRow = typeof tripItems.$inferSelect;
@@ -655,4 +667,5 @@ export const schema = {
   tripHotels,
   tripItems,
   tripMessages,
+  tripSnapshots,
 };
