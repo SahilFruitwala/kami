@@ -75,12 +75,31 @@ export const updateTripInput = z.object({
   preferences: text(2000),
 });
 
+const lat = z.number().min(-90).max(90).nullable().optional();
+const lng = z.number().min(-180).max(180).nullable().optional();
+const startTime = z
+  .string()
+  .trim()
+  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use a 24-hour time like 09:30.")
+  .nullable()
+  .optional()
+  .or(z.literal("").transform(() => null));
+const durationMin = z
+  .number()
+  .int()
+  .min(5, "Make it at least 5 minutes.")
+  .max(1440, "Keep a plan to one day or less.")
+  .nullable()
+  .optional();
+
 const hotelFields = {
   area: text(120),
   url: text(2000),
   priceNote: text(200),
   ratingNote: text(200),
   why: text(1000),
+  lat,
+  lng,
 };
 
 export const createHotelInput = z.object({
@@ -98,6 +117,10 @@ const itemFields = {
   place: text(200),
   url: text(2000),
   notes: text(2000),
+  lat,
+  lng,
+  startTime,
+  durationMin,
 };
 
 export const createItemInput = z.object({
@@ -148,6 +171,8 @@ function toHotel(row: TripHotelRow): TripHotel {
     priceNote: row.priceNote,
     ratingNote: row.ratingNote,
     why: row.why,
+    lat: row.lat,
+    lng: row.lng,
     status: row.status,
     createdAt: row.createdAt.getTime(),
   };
@@ -162,6 +187,10 @@ function toItem(row: TripItemRow): TripItem {
     place: row.place,
     url: row.url,
     notes: row.notes,
+    lat: row.lat,
+    lng: row.lng,
+    startTime: row.startTime,
+    durationMin: row.durationMin,
     sort: row.sort,
     createdAt: row.createdAt.getTime(),
   };
@@ -183,6 +212,34 @@ function toTrip(row: TripRow, hotels: TripHotelRow[], items: TripItemRow[]): Tri
     items: items.map(toItem).sort(compareItems),
   };
 }
+
+/**
+ * Coordinates to write for a patch: explicit ones win. A plan whose place
+ * text changes without new coordinates loses its old pin, so the map never
+ * shows the previous place.
+ */
+function coords(
+  input: { lat?: number | null; lng?: number | null; place?: string | null },
+  currentPlace?: string | null,
+): { lat?: number | null; lng?: number | null } {
+  if (input.lat !== undefined || input.lng !== undefined) {
+    if ((input.lat == null) !== (input.lng == null)) {
+      throw badRequest("Give both latitude and longitude, or neither.");
+    }
+    return { lat: input.lat ?? null, lng: input.lng ?? null };
+  }
+  const place = clean(input.place);
+  if (currentPlace !== undefined && place !== undefined && place !== currentPlace) {
+    return { lat: null, lng: null };
+  }
+  return {};
+}
+
+/** Coordinates for a new row (validated as a pair). */
+const pinned = (input: { lat?: number | null; lng?: number | null }) => {
+  const c = coords(input);
+  return { lat: c.lat ?? null, lng: c.lng ?? null };
+};
 
 /** Resolve the trip length from an explicit count or an end date. */
 function resolveDayCount(
@@ -386,6 +443,7 @@ export async function addTripHotel(
     priceNote: clean(input.priceNote) ?? null,
     ratingNote: clean(input.ratingNote) ?? null,
     why: clean(input.why) ?? null,
+    ...pinned(input),
     sort: (stats?.maxSort ?? -1) + 1,
   });
   return touchAndLoad(db, userId, tripId);
@@ -427,6 +485,7 @@ export async function updateTripHotel(
         priceNote: clean(input.priceNote),
         ratingNote: clean(input.ratingNote),
         why: clean(input.why),
+        ...coords(input),
         status: input.status,
       })
       .where(scope)
@@ -497,6 +556,9 @@ export async function addTripItem(
     place: clean(input.place) ?? null,
     url: cleanUrl(input.url) ?? null,
     notes: clean(input.notes) ?? null,
+    ...pinned(input),
+    startTime: input.startTime ?? null,
+    durationMin: input.durationMin ?? null,
     sort: await nextSort(db, tripId, input.dayIndex, input.slot),
   });
   return touchAndLoad(db, userId, tripId);
@@ -533,6 +595,9 @@ export async function updateTripItem(
       place: clean(input.place),
       url: cleanUrl(input.url),
       notes: clean(input.notes),
+      ...coords(input, current.place),
+      startTime: input.startTime,
+      durationMin: input.durationMin,
       sort: moved ? await nextSort(db, tripId, dayIndex, slot) : undefined,
     })
     .where(scope);
@@ -631,6 +696,9 @@ export async function replaceTripDay(
     place: clean(item.place) ?? null,
     url: cleanUrl(item.url) ?? null,
     notes: clean(item.notes) ?? null,
+    ...pinned(item),
+    startTime: item.startTime ?? null,
+    durationMin: item.durationMin ?? null,
     sort: i,
   }));
   const [count] = await db

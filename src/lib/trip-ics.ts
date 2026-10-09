@@ -3,10 +3,11 @@
  * framework imports) so it can be unit-tested (scripts/trip-ics.test.mjs).
  *
  * Events use floating local times (no timezone), so they show at the same
- * wall-clock time wherever the traveller's calendar is. Each slot maps to a
- * start time and duration.
+ * wall-clock time wherever the traveller's calendar is. A plan's own start
+ * time and duration win; otherwise its slot's defaults are used.
  */
 import { dayDate, SLOT_ORDER, type Slot } from "./trip-days.ts";
+import { itemTiming } from "./trip-route.ts";
 
 type IcsTrip = {
   id: string;
@@ -21,14 +22,9 @@ type IcsTrip = {
     place: string | null;
     url: string | null;
     notes: string | null;
+    startTime?: string | null;
+    durationMin?: number | null;
   }>;
-};
-
-const SLOT_TIME: Record<Slot, { hour: number; minutes: number }> = {
-  morning: { hour: 9, minutes: 180 },
-  afternoon: { hour: 14, minutes: 180 },
-  evening: { hour: 19, minutes: 120 },
-  night: { hour: 22, minutes: 120 },
 };
 
 /** Escape text per RFC 5545 §3.3.11. */
@@ -62,19 +58,13 @@ export function icsFold(line: string): string {
   return out.join("\r\n ");
 }
 
-const stamp = (iso: string, hour: number, minute = 0) =>
-  `${iso.replaceAll("-", "")}T${String(hour).padStart(2, "0")}${String(minute).padStart(2, "0")}00`;
+const pad = (n: number) => String(n).padStart(2, "0");
 
-/** DTSTART / DTEND for one item; the end may roll into the next day (night slot). */
-function eventTimes(iso: string, slot: Slot): { start: string; end: string } {
-  const { hour, minutes } = SLOT_TIME[slot];
-  const endTotal = hour * 60 + minutes;
-  const endHour = Math.floor(endTotal / 60);
-  if (endHour >= 24) {
-    const next = new Date(Date.parse(`${iso}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
-    return { start: stamp(iso, hour), end: stamp(next, endHour - 24, endTotal % 60) };
-  }
-  return { start: stamp(iso, hour), end: stamp(iso, endHour, endTotal % 60) };
+/** `YYYYMMDDTHHMMSS` for a day plus minutes after its midnight (may roll into later days). */
+function stamp(iso: string, minutes: number): string {
+  const day = new Date(Date.parse(`${iso}T00:00:00Z`) + Math.floor(minutes / 1440) * 86_400_000);
+  const m = minutes % 1440;
+  return `${day.toISOString().slice(0, 10).replaceAll("-", "")}T${pad(Math.floor(m / 60))}${pad(m % 60)}00`;
 }
 
 /**
@@ -105,14 +95,18 @@ export function tripToIcs(trip: IcsTrip, now: Date = new Date()): string | null 
     `X-WR-CALNAME:${icsEscape(trip.title)}`,
   ];
   for (const { item, iso } of events) {
-    const { start, end } = eventTimes(iso, item.slot);
+    const timing = itemTiming({
+      slot: item.slot,
+      startTime: item.startTime ?? null,
+      durationMin: item.durationMin ?? null,
+    });
     const description = [item.notes, item.url].filter(Boolean).join("\n");
     lines.push(
       "BEGIN:VEVENT",
       `UID:${item.id}@${trip.id}.kami`,
       `DTSTAMP:${created}`,
-      `DTSTART:${start}`,
-      `DTEND:${end}`,
+      `DTSTART:${stamp(iso, timing.start)}`,
+      `DTEND:${stamp(iso, timing.start + timing.minutes)}`,
       `SUMMARY:${icsEscape(item.title)}`,
       `LOCATION:${icsEscape(item.place ?? trip.destination)}`,
     );

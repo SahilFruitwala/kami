@@ -161,10 +161,10 @@ See [Trips](./ARCHITECTURE.md#trips).
 | Table | Role |
 |-------|------|
 | `trips` | Per-user trip: `title`, `destination`, optional `start_date`, `day_count` (1–30; end date is derived), `travelers`, `budget`, `preferences` |
-| `trip_hotels` | Hotel shortlist. `status` is `shortlisted` or `chosen` (at most one per trip, partial unique index). `price_note` / `rating_note` are free text, not live data |
+| `trip_hotels` | Hotel shortlist. `status` is `shortlisted` or `chosen` (at most one per trip, partial unique index). `price_note` / `rating_note` are free text, not live data. Optional `lat`/`lng` map pin |
 | `trip_messages` | Trip agent chat history: one AI SDK UIMessage per row (`role`, `parts` jsonb with text and tool calls/results, `model` for replies), ordered by an identity `seq`; newest 200 kept per trip |
 | `trip_snapshots` | The agent's undo point: one row per trip (`snapshot` jsonb of the whole trip), written before the agent's first edit in a turn and deleted by undo |
-| `trip_items` | Itinerary entries: `day_index` (0-based), `slot` (`morning` / `afternoon` / `evening` / `night`), `title`, `place`, `url`, `notes`, `sort` |
+| `trip_items` | Itinerary entries: `day_index` (0-based), `slot` (`morning` / `afternoon` / `evening` / `night`), `title`, `place`, `url`, `notes`, `sort`, optional `lat`/`lng` map pin, `start_time` ("HH:MM") and `duration_min` |
 
 Highlight notes (inside `articles.highlights` jsonb) are capped at 1000 chars (`HIGHLIGHT_NOTE_MAX`).
 

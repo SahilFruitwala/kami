@@ -13,6 +13,8 @@ export type TripHotel = {
   priceNote: string | null;
   ratingNote: string | null;
   why: string | null;
+  lat: number | null;
+  lng: number | null;
   status: TripHotelStatus;
   createdAt: number;
 };
@@ -26,6 +28,11 @@ export type TripItem = {
   place: string | null;
   url: string | null;
   notes: string | null;
+  lat: number | null;
+  lng: number | null;
+  /** "HH:MM" local to the destination; null falls back to the slot's time. */
+  startTime: string | null;
+  durationMin: number | null;
   sort: number;
   createdAt: number;
 };
@@ -84,6 +91,8 @@ export type TripHotelInput = {
   priceNote?: string | null;
   ratingNote?: string | null;
   why?: string | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export type TripHotelPatch = Partial<TripHotelInput> & { status?: TripHotelStatus };
@@ -95,9 +104,23 @@ export type TripItemInput = {
   place?: string | null;
   url?: string | null;
   notes?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  startTime?: string | null;
+  durationMin?: number | null;
 };
 
 export type TripItemPatch = Partial<TripItemInput>;
+
+export type TripLocateResult = {
+  trip: Trip;
+  /** Places pinned by this call. */
+  found: number;
+  /** Places looked up but not found; pass them back as `skip` on the next call. */
+  missedIds: string[];
+  /** Places still waiting for a lookup (call again to continue). */
+  remaining: number;
+};
 
 export type TripChatModel = { id: string; label: string; available: boolean };
 
@@ -164,6 +187,10 @@ export const tripsApi = {
   /** Swap a plan with its neighbour in the same day and slot. */
   moveItem: (id: string, itemId: string, direction: "up" | "down") =>
     http.post<Trip>(`${trip(id)}/items/${seg(itemId)}/move`, { direction }),
+
+  /** Geocode plans and hotels that have a place but no pin yet (a few per call). */
+  locate: (id: string, skip: string[] = []) =>
+    http.post<TripLocateResult>(`${trip(id)}/locate`, { skip }),
 
   /** Restore the trip as it was before the agent's latest edits. */
   undoAgent: (id: string) => http.post<Trip>(`${trip(id)}/undo`),

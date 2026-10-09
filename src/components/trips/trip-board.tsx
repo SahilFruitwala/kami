@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import {
+  AlertTriangle,
   ArrowDown,
   ArrowUp,
   CalendarDays,
@@ -8,11 +9,14 @@ import {
   Check,
   ChevronDown,
   ExternalLink,
+  Footprints,
   LoaderCircle,
+  Map as MapIcon,
   MapPin,
   PencilLine,
   Plus,
   Star,
+  TramFront,
   Trash2,
   Users,
   Wallet,
@@ -28,6 +32,16 @@ import {
   SLOT_ORDER,
 } from "@/lib/trip-days.ts";
 import { tripToIcs } from "@/lib/trip-ics.ts";
+import {
+  dayHops,
+  dayWarnings,
+  formatDuration,
+  hasCoords,
+  itemTiming,
+  parseTime,
+  slotForTime,
+  type Hop,
+} from "@/lib/trip-route.ts";
 import { cn } from "@/lib/utils.ts";
 import {
   IconButton,
@@ -37,6 +51,7 @@ import {
   TextArea,
   TextInput,
 } from "./trip-fields.tsx";
+import { TripMap } from "./trip-map.tsx";
 
 type Actions = ReturnType<typeof useTripActions>;
 
@@ -586,18 +601,53 @@ function Itinerary({ trip, actions }: { trip: Trip; actions: Actions }) {
   const days = groupByDay(trip.items, trip.dayCount);
   const [open, setOpen] = useState(true);
   const bodyId = `trip-${trip.id}-itinerary`;
+  // Places the geocoder couldn't find this visit; skipped so the rest get a turn.
+  const [missed, setMissed] = useState<string[]>([]);
+  const unpinned = [
+    ...trip.hotels.filter((h) => !hasCoords(h)),
+    ...trip.items.filter((i) => i.place && !hasCoords(i)),
+  ].filter((p) => !missed.includes(p.id)).length;
+
+  function locate() {
+    actions.locate.mutate(missed, {
+      onSuccess: (res) => {
+        const all = [...missed, ...res.missedIds];
+        setMissed(all);
+        const parts = [
+          res.found ? `Pinned ${res.found} ${res.found === 1 ? "place" : "places"}` : null,
+          res.missedIds.length ? `couldn't find ${res.missedIds.length}` : null,
+          res.remaining ? `${res.remaining} still to go` : null,
+        ].filter(Boolean);
+        if (parts.length) toast.info(`${parts.join(", ")}.`);
+      },
+    });
+  }
+
   return (
     <section aria-label="Itinerary" className="space-y-4">
-      <ToggleButton
-        open={open}
-        onToggle={() => setOpen((v) => !v)}
-        controls={bodyId}
-        className="px-1"
-      >
-        <span className="kami-label text-ink-muted">
-          Itinerary · {trip.dayCount} {trip.dayCount === 1 ? "day" : "days"}
-        </span>
-      </ToggleButton>
+      <div className="flex items-center justify-between gap-2 px-1">
+        <ToggleButton open={open} onToggle={() => setOpen((v) => !v)} controls={bodyId}>
+          <span className="kami-label text-ink-muted">
+            Itinerary · {trip.dayCount} {trip.dayCount === 1 ? "day" : "days"}
+          </span>
+        </ToggleButton>
+        {unpinned ? (
+          <button
+            type="button"
+            onClick={locate}
+            disabled={actions.locate.isPending}
+            title="Look up places on OpenStreetMap to pin them on the day maps"
+            className="flex items-center gap-1 font-sans text-xs text-ink-soft hover:text-hanko disabled:opacity-50"
+          >
+            {actions.locate.isPending ? (
+              <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <MapPin className="size-3.5" aria-hidden="true" />
+            )}
+            Pin {unpinned} {unpinned === 1 ? "place" : "places"} on the map
+          </button>
+        ) : null}
+      </div>
       <ol id={bodyId} hidden={!open} className="space-y-4">
         {days.map((items, index) => (
           <Day key={index} trip={trip} index={index} items={items} actions={actions} />
@@ -620,8 +670,19 @@ function Day({
 }) {
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState(true);
+  const [showMap, setShowMap] = useState(false);
   const date = dayDate(trip.startDate, index);
   const bodyId = `trip-${trip.id}-day-${index}`;
+  const hops = dayHops(items);
+  const warnings = dayWarnings(items);
+  const stops = items.flatMap((item, i) =>
+    hasCoords(item)
+      ? [{ lat: item.lat, lng: item.lng, label: String(i + 1), title: item.title }]
+      : [],
+  );
+  const chosen = trip.hotels.find((h) => h.status === "chosen");
+  const hotel =
+    chosen && hasCoords(chosen) ? { lat: chosen.lat, lng: chosen.lng, title: chosen.name } : null;
 
   return (
     <li className="kami-sheet list-none overflow-hidden">
@@ -640,21 +701,55 @@ function Day({
             ) : null}
           </span>
         </ToggleButton>
-        {!adding ? (
-          <button
-            type="button"
-            onClick={() => {
-              setOpen(true);
-              setAdding(true);
-            }}
-            className="flex items-center gap-1 font-sans text-xs text-ink-soft hover:text-hanko"
-          >
-            <Plus className="size-3.5" aria-hidden="true" />
-            Add plan
-          </button>
-        ) : null}
+        <div className="flex items-center gap-3">
+          {stops.length ? (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(true);
+                setShowMap((v) => !v);
+              }}
+              aria-expanded={showMap}
+              className="flex items-center gap-1 font-sans text-xs text-ink-soft hover:text-hanko"
+            >
+              <MapIcon className="size-3.5" aria-hidden="true" />
+              {showMap ? "Hide map" : "Map"}
+            </button>
+          ) : null}
+          {!adding ? (
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(true);
+                setAdding(true);
+              }}
+              className="flex items-center gap-1 font-sans text-xs text-ink-soft hover:text-hanko"
+            >
+              <Plus className="size-3.5" aria-hidden="true" />
+              Add plan
+            </button>
+          ) : null}
+        </div>
       </div>
       <div id={bodyId} hidden={!open}>
+        {showMap && stops.length ? (
+          <div className="border-b border-line">
+            <TripMap stops={stops} hotel={hotel} />
+          </div>
+        ) : null}
+        {warnings.length ? (
+          <ul className="space-y-1 border-b border-line bg-shu-tint/60 px-4 py-2">
+            {warnings.map((w, i) => (
+              <li
+                key={i}
+                className="flex list-none items-start gap-1.5 font-sans text-xs text-hanko"
+              >
+                <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden="true" />
+                {w.message}
+              </li>
+            ))}
+          </ul>
+        ) : null}
         {items.length === 0 && !adding ? (
           <p className="px-4 py-3 font-body text-sm text-ink-muted">Nothing planned yet.</p>
         ) : (
@@ -667,6 +762,8 @@ function Day({
                 actions={actions}
                 canMoveUp={items[i - 1]?.slot === item.slot}
                 canMoveDown={items[i + 1]?.slot === item.slot}
+                pinNumber={hasCoords(item) ? i + 1 : null}
+                hop={hops[i]}
               />
             ))}
           </ul>
@@ -692,14 +789,21 @@ function ItemRow({
   actions,
   canMoveUp,
   canMoveDown,
+  pinNumber,
+  hop,
 }: {
   trip: Trip;
   item: TripItem;
   actions: Actions;
   canMoveUp: boolean;
   canMoveDown: boolean;
+  /** Number shown on the day map, or null when the plan has no pin. */
+  pinNumber: number | null;
+  /** Travel from the previous pinned stop. */
+  hop: Hop | null;
 }) {
   const [editing, setEditing] = useState(false);
+  const timing = itemTiming(item);
   const busy =
     actions.moveItem.isPending ||
     (actions.updateItem.isPending && actions.updateItem.variables?.itemId === item.id) ||
@@ -721,11 +825,25 @@ function ItemRow({
 
   return (
     <li className="grid list-none grid-cols-[5.5rem_minmax(0,1fr)_auto] gap-3 px-4 py-3">
-      <span className="pt-0.5 font-sans text-[11px] tracking-wide text-ink-muted uppercase">
-        {SLOT_LABEL[item.slot]}
+      <span className="flex flex-col gap-0.5 pt-0.5 font-sans text-[11px] tracking-wide text-ink-muted">
+        <span className="uppercase">
+          {timing.explicit ? item.startTime : SLOT_LABEL[item.slot]}
+        </span>
+        {item.durationMin ? <span>{formatDuration(item.durationMin)}</span> : null}
       </span>
       <div className="min-w-0 space-y-0.5">
-        <p className="font-sans text-sm font-semibold break-words text-ink">{item.title}</p>
+        {hop ? <HopHint hop={hop} /> : null}
+        <p className="flex items-start gap-1.5 font-sans text-sm font-semibold break-words text-ink">
+          {pinNumber ? (
+            <span
+              className="mt-px inline-flex size-4 shrink-0 items-center justify-center rounded-full bg-hanko text-[9px] text-white"
+              title="Pinned on the day map"
+            >
+              {pinNumber}
+            </span>
+          ) : null}
+          <span className="min-w-0">{item.title}</span>
+        </p>
         {item.place ? (
           <p className="flex items-center gap-1 font-sans text-xs text-ink-soft">
             <MapPin className="size-3 shrink-0" aria-hidden="true" />
@@ -773,6 +891,28 @@ function ItemRow({
   );
 }
 
+function HopHint({ hop }: { hop: Hop }) {
+  const Icon = hop.mode === "walk" ? Footprints : TramFront;
+  const km = hop.km < 1 ? `${Math.round(hop.km * 1000)} m` : `${hop.km.toFixed(1)} km`;
+  return (
+    <p
+      className="flex items-center gap-1 font-sans text-[11px] text-ink-muted"
+      title="Straight-line distance from the previous pinned stop, with a rough travel time"
+    >
+      <Icon className="size-3 shrink-0" aria-hidden="true" />
+      {km} · ~{formatDuration(hop.minutes)} {hop.mode === "walk" ? "walk" : "by transit or car"}
+    </p>
+  );
+}
+
+const DURATION_OPTIONS = [
+  { value: "", label: "—" },
+  ...[15, 30, 45, 60, 90, 120, 150, 180, 240, 300, 360, 480].map((m) => ({
+    value: String(m),
+    label: formatDuration(m),
+  })),
+];
+
 function ItemForm({
   trip,
   dayIndex,
@@ -792,7 +932,16 @@ function ItemForm({
   const [place, setPlace] = useState(item?.place ?? "");
   const [url, setUrl] = useState(item?.url ?? "");
   const [notes, setNotes] = useState(item?.notes ?? "");
+  const [startTime, setStartTime] = useState(item?.startTime ?? "");
+  const [duration, setDuration] = useState(item?.durationMin ? String(item.durationMin) : "");
   const busy = item ? actions.updateItem.isPending : actions.addItem.isPending;
+
+  function pickTime(value: string) {
+    setStartTime(value);
+    // A time decides the slot, so the plan lands where it happens.
+    const minutes = parseTime(value);
+    if (minutes !== null) setSlot(slotForTime(minutes));
+  }
   const p = item ? `item-${item.id}` : `new-item-${trip.id}-${dayIndex}`;
 
   const dayOptions = Array.from({ length: trip.dayCount }, (_, i) => {
@@ -810,6 +959,8 @@ function ItemForm({
       place: orNull(place),
       url: orNull(url),
       notes: orNull(notes),
+      startTime: orNull(startTime),
+      durationMin: duration ? Number(duration) : null,
     };
     if (item) {
       actions.updateItem.mutate({ itemId: item.id, patch: fields }, { onSuccess: onDone });
@@ -840,6 +991,20 @@ function ItemForm({
           value={slot}
           options={SLOT_OPTIONS}
           onChange={setSlot}
+        />
+        <TextInput
+          id={`${p}-start`}
+          label="Start time (optional)"
+          type="time"
+          value={startTime}
+          onChange={pickTime}
+        />
+        <SelectInput
+          id={`${p}-duration`}
+          label="Takes"
+          value={duration}
+          options={DURATION_OPTIONS}
+          onChange={setDuration}
         />
       </div>
       <TextInput
