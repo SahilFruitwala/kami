@@ -110,6 +110,8 @@ export type TripChat = {
   defaultModel: string | null;
   /** Firecrawl is configured, so the agent can search and read the web. */
   research: boolean;
+  /** The agent changed the trip and its previous state can be restored. */
+  canUndo: boolean;
 };
 
 /** Agent tools that change the trip; the board refreshes after each one finishes. */
@@ -158,6 +160,13 @@ export const tripsApi = {
 
   /** Streaming endpoint used by `useChat`. */
   chatUrl: (id: string) => `${trip(id)}/chat`,
+
+  /** Swap a plan with its neighbour in the same day and slot. */
+  moveItem: (id: string, itemId: string, direction: "up" | "down") =>
+    http.post<Trip>(`${trip(id)}/items/${seg(itemId)}/move`, { direction }),
+
+  /** Restore the trip as it was before the agent's latest edits. */
+  undoAgent: (id: string) => http.post<Trip>(`${trip(id)}/undo`),
 
   removeItem: (id: string, itemId: string) => http.delete<Trip>(`${trip(id)}/items/${seg(itemId)}`),
 };

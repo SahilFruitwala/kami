@@ -398,7 +398,7 @@ board through the same service a person uses.
 | Concern | Approach |
 |---|---|
 | Dates | A trip stores `start_date` (optional) and `day_count` (1–30); the end date is derived, so the two can't disagree. Date math is UTC on `YYYY-MM-DD` strings (`src/lib/trip-days.ts`, tested). |
-| Itinerary | Items carry a 0-based `day_index` and a `slot` (`morning` → `night`), ordered by day, slot, then `sort`. Moving an item to another day or slot puts it at the end there. A trip can't be shortened past a day that still has plans. |
+| Itinerary | Items carry a 0-based `day_index` and a `slot` (`morning` → `night`), ordered by day, slot, then `sort`. Moving an item to another day or slot puts it at the end there; the up/down buttons swap it with its neighbour inside the same day + slot (`POST /api/trips/:id/items/:itemId/move`). A trip can't be shortened past a day that still has plans. |
 | Hotels | `shortlisted` or `chosen`; choosing one demotes the previous pick in the same transaction, and a partial unique index allows only one `chosen` per trip. Prices and ratings are free-text notes, never live data. |
 | Writes | Every write returns the whole updated trip; the client swaps it into the React Query cache. Each write also bumps `trips.updated_at` so the list sorts by recent activity. |
 | Limits | 50 trips per user, 30 hotels and 300 items per trip. Links go through `assertPublicHttpUrl`. |
@@ -434,13 +434,16 @@ sequenceDiagram
 |---|---|
 | Models | Vercel AI SDK v7 (`streamText`). `src/lib/llm.server.ts` is the only provider-aware file: `google:<model>` via `@ai-sdk/google`, `openrouter:<vendor/model>` via `@openrouter/ai-sdk-provider`. `TRIPS_MODELS` lists what the picker offers (default `google:gemini-3.8-flash`, then `openrouter:anthropic/claude-haiku-5.5`); entries without a provider key show as unavailable, and an unusable request falls back to the first usable model. The user's pick is remembered per browser. |
 | Tools | Research: `web_search`, `read_page` (Firecrawl, only when `FIRECRAWL_API_KEY` is set). Writes: `update_trip`, `shortlist_hotel`, `update_hotel`, `remove_hotel`, `set_day`, `add_item`, `update_item`, `remove_item`, each bound to the signed-in user + this trip and calling `src/server/services/trips.ts`. Write tools answer with the fresh trip snapshot so the model always has current ids. Failures come back as `{ error }` for the model to recover from. |
+| Undo | Before the agent's first write in a turn, `trip-undo.ts` saves the whole trip to `trip_snapshots` (one row per trip, replaced each turn). `POST /api/trips/:id/undo` restores details, hotels and itinerary with their original ids in one transaction and deletes the snapshot, so only the latest agent turn can be undone. |
 | Safety | No booking, payment or messaging tools; the worst a misleading page can do is edit this one trip, which the user can undo. Page text is returned as `untrusted_page_content` and the instructions say never to follow it. URLs pass `assertPublicHttpUrl`. Only plain text from the client's message is used; the server builds the stored user message itself. Replies render through a small React Markdown renderer that only links http(s) URLs. |
 | Cost | `agent` rate-limit bucket (40 messages/hour/user); 8 model steps and 6 Firecrawl calls per message (research tools are withdrawn once the 6 are spent, repeated searches and page reads in a turn are served from a per-turn cache, and only the text of the last 16 messages is re-sent as history, never old tool results); each Firecrawl call also counts against the shared `firecrawl` bucket. |
 | History | `trip_messages` stores AI SDK UIMessages (newest 200 per trip). The model gets the last 30 plus a fresh trip snapshot in its instructions each turn. History that no longer validates against the tools is skipped rather than failing the turn. `consumeStream()` lets a turn finish and save even if the browser disconnects. |
 
 | Path | Role |
 |---|---|
-| `src/lib/trip-days.ts` | Date math, day grouping, item order (pure, tested) |
+| `src/lib/trip-days.ts` | Date math, day grouping, item order, move-within-slot (pure, tested) |
+| `src/lib/trip-ics.ts` | Itinerary → `.ics` calendar text, built in the browser for the "Add to calendar" button (pure, tested) |
+| `src/server/services/trip-undo.ts` | Agent undo snapshot: save, check, restore |
 | `src/server/services/trips.ts` | Trips, hotels, itinerary items |
 | `src/lib/trip-models.ts`, `src/lib/llm.server.ts` | Model menu parsing (pure, tested) and provider wiring |
 | `src/lib/trip-agent-prompt.ts` | Agent instructions + trip snapshot (pure, tested) |
