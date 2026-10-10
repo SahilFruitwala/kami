@@ -8,7 +8,7 @@ import { getDb } from "@/lib/db";
 import { clipText } from "@/lib/model-fallback.ts";
 import { articleAi, articles, folders } from "@/lib/schema";
 import { normalizeTag } from "@/lib/store";
-import { asDocument, generateJson } from "@/server/ai";
+import { asDocument, chatHistory, generateJson, streamChat, type chatTurnInput } from "@/server/ai";
 import { badRequest, notFound } from "@/server/http";
 
 /**
@@ -212,4 +212,25 @@ export async function summarizeArticle(userId: string, articleId: string): Promi
     })
     .returning();
   return toSummary(row, article.contentHash);
+}
+
+/** One chat turn about an article; the article itself rides in the instructions. */
+export async function chatAboutArticle(
+  userId: string,
+  articleId: string,
+  body: z.output<typeof chatTurnInput>,
+): Promise<Response> {
+  const history = chatHistory(body);
+  const article = await loadArticleForAi(userId, articleId);
+  return streamChat({
+    instructions: [
+      "You help someone think about an article they are reading. The article is below.",
+      "Answer from the article first and quote short phrases from it when useful.",
+      "If the article doesn't cover something, say so plainly; you may then add general knowledge, clearly marked as not from the article.",
+      "Be concise: a few short paragraphs or a short list. Use the reader's language.",
+      "",
+      articleDocument(article),
+    ].join("\n"),
+    history,
+  });
 }
