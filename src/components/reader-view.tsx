@@ -558,7 +558,11 @@ export function ReaderView({
                 </span>
               </div>
 
-              <ReaderAi item={item} askSeed={askSeed} />
+              <ReaderAi
+                item={item}
+                askSeed={askSeed}
+                onListen={tts.canSpeak ? tts.speakText : undefined}
+              />
 
               {item.highlights.length === 0 && !item.note ? (
                 <p className="rounded-xl bg-ink/5 p-4 font-body text-sm italic opacity-70">
