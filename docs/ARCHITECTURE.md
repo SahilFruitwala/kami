@@ -482,6 +482,16 @@ article, with a sha256 of the body it was made from. When the text changes
 (a link stub upgraded to a clean copy), the card shows the old summary as
 stale until it is regenerated.
 
+### Article chat
+
+Below the Gist card, **Ask this article** opens a chat grounded in the
+article (`POST /api/ai/articles/:id/chat`, an AI SDK UI message stream).
+Selecting a passage adds an **Ask** button to the ink toolbar that drops the
+passage into the chat. Chats aren't stored: the browser sends the
+conversation, the server re-sends its last 12 text messages plus the
+article (in the instructions) to the model. `AiChat`
+(`src/components/ai/ai-chat.tsx`) is the shared chat UI.
+
 | Path | Role |
 |---|---|
 | `src/lib/model-fallback.ts` | Fallback model chain, embedding fitting, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |
@@ -489,7 +499,8 @@ stale until it is regenerated.
 | `src/server/ai.ts` | Shared generation helpers and error mapping |
 | `src/server/services/ai-articles.ts` | Summaries, tag vocabulary, article-to-prompt helpers |
 | `src/routes/api/ai/**` | HTTP routes |
-| `src/components/reader/reader-ai.tsx` | Reader card |
+| `src/components/reader/reader-ai.tsx` | Reader cards (Gist, Ask this article) |
+| `src/components/ai/ai-chat.tsx` | Shared unsaved chat UI (`useChat`) |
 | `migrations/0016_article_ai.sql` | `article_ai` |
 
 ---
