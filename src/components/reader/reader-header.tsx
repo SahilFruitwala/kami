@@ -8,8 +8,7 @@ import {
   Star,
   Type,
 } from "lucide-react";
-import type { TtsStatus } from "@/lib/tts.ts";
-import { voiceLabel } from "@/lib/tts.ts";
+import { resolveVoice, type TtsStatus, type TtsVoice } from "@/lib/tts.ts";
 import { RATES } from "@/hooks/use-reader-tts.ts";
 import { KAMI_GLYPH } from "@/components/kami.tsx";
 import { Button } from "@/components/ui/button.tsx";
@@ -23,7 +22,7 @@ type ReaderHeaderProps = {
   tts: TtsStatus;
   listenOpen: boolean;
   word: string;
-  voices: SpeechSynthesisVoice[];
+  voices: TtsVoice[];
   ttsRate: number;
   ttsVoiceURI: string;
   prefsOpen: boolean;
@@ -160,13 +159,12 @@ export function ReaderHeader({
           <select
             id="tts-voice"
             className="h-10 max-w-40 rounded-lg bg-surface px-2 text-sm font-medium text-ink shadow-[var(--shadow-border)]"
-            value={ttsVoiceURI}
+            value={resolveVoice(ttsVoiceURI)}
             onChange={(e) => onTtsVoice(e.target.value)}
           >
-            <option value="">Default voice</option>
-            {voices.map((voice) => (
-              <option key={voice.voiceURI} value={voice.voiceURI}>
-                {voiceLabel(voice)}
+                        {voices.map((voice) => (
+              <option key={voice.id} value={voice.id}>
+                {voice.label}
               </option>
             ))}
           </select>

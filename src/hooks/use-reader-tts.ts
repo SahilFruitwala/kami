@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { listVoices, speakArticle, ttsAvailable, type TtsStatus, type TtsWord } from "@/lib/tts.ts";
+import { speakArticle, ttsAvailable, warmTts, TTS_VOICES, resolveVoice, type TtsStatus, type TtsWord } from "@/lib/tts.ts";
 import { clearSpokenWord, collectSpokenText, paintSpokenWord } from "@/lib/spoken-range.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 
@@ -18,11 +18,10 @@ export function useReaderTts(canonicalUrl: string, bodyRef: React.RefObject<HTML
     stop: () => void;
     pause: () => void;
     resume: () => void;
-    setOptions: (next: { rate?: number; voiceURI?: string }) => void;
+    setOptions: (next: { rate?: number; voiceId?: string }) => void;
   } | null>(null);
   const [tts, setTts] = useState<TtsStatus>("idle");
   const [word, setWord] = useState("");
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [listenOpen, setListenOpen] = useState(false);
   const canSpeak = ttsAvailable();
 
@@ -32,14 +31,7 @@ export function useReaderTts(canonicalUrl: string, bodyRef: React.RefObject<HTML
   const setTtsVoiceURI = useLibraryStore((s) => s.setTtsVoiceURI);
 
   useEffect(() => {
-    const load = () => setVoices(listVoices(ttsVoiceURI));
-    load();
-    window.speechSynthesis?.addEventListener("voiceschanged", load);
-    return () => window.speechSynthesis?.removeEventListener("voiceschanged", load);
-  }, [ttsVoiceURI]);
-
-  useEffect(() => {
-    ttsRef.current?.setOptions({ rate: ttsRate, voiceURI: ttsVoiceURI });
+    ttsRef.current?.setOptions({ rate: ttsRate, voiceId: ttsVoiceURI });
   }, [ttsRate, ttsVoiceURI]);
 
   useEffect(() => {
@@ -66,9 +58,10 @@ export function useReaderTts(canonicalUrl: string, bodyRef: React.RefObject<HTML
 
   function toggleListen() {
     if (!canSpeak) {
-      toast.error("This browser cannot read aloud.");
+      toast.error("This browser cannot play generated audio.");
       return;
     }
+    if (tts === "loading") return;
     if (tts === "playing") {
       ttsRef.current?.pause();
       return;
@@ -84,10 +77,12 @@ export function useReaderTts(canonicalUrl: string, bodyRef: React.RefObject<HTML
         return;
       }
       setListenOpen(true);
-      setWord("Listening");
+      setWord("Loading voice…");
       ttsRef.current = speakArticle(plain, {
         rate: ttsRate,
-        voiceURI: ttsVoiceURI,
+        voiceId: resolveVoice(ttsVoiceURI),
+        onProgress: (pct) => setWord(`Loading voice… ${Math.round(pct)}%`),
+        onError: () => toast.error("Could not generate audio."),
         onStatus: (status) => {
           setTts(status);
           if (status === "idle") setListenOpen(false);
@@ -103,7 +98,8 @@ export function useReaderTts(canonicalUrl: string, bodyRef: React.RefObject<HTML
     canSpeak,
     tts,
     word,
-    voices,
+    voices: TTS_VOICES,
+    warmTts,
     listenOpen,
     ttsRate,
     ttsVoiceURI,
