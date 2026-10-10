@@ -71,6 +71,28 @@ export type WeeklyRecap = {
   createdAt: number;
 };
 
+/** A tidied copy of an article (not saved until the reader applies it). */
+export type TidyResult = { contentHtml: string; removed: string[] };
+
+/** A digest of unread feed entries. */
+export type FeedDigest = {
+  feedId: string | null;
+  entryCount: number;
+  overview: string;
+  picks: Array<{ entryId: string; title: string; feedTitle: string; why: string }>;
+  topics: Array<{
+    title: string;
+    summary: string;
+    entries: Array<{ entryId: string; title: string }>;
+  }>;
+  /** Entries the model judged safe to skip. */
+  skipIds: string[];
+  model: string | null;
+  createdAt: number;
+};
+
+export type EntrySummary = { tldr: string; keyPoints: string[] };
+
 export const aiApi = {
   status: () => http.get<AiStatus>("/api/ai/status"),
 
@@ -102,6 +124,18 @@ export const aiApi = {
   weeklyRecap: () => http.get<WeeklyRecap | null>("/api/ai/recap"),
   /** Make a fresh recap of the past seven days. */
   makeWeeklyRecap: () => http.post<WeeklyRecap>("/api/ai/recap"),
+
+  /** Strip sponsor blocks, prompts and footers from a saved copy (returns HTML, saves nothing). */
+  tidy: (articleId: string) => http.post<TidyResult>(`/api/ai/articles/${seg(articleId)}/tidy`),
+
+  /** The stored digest for a feed (or all feeds), or null. */
+  feedDigest: (feedId: string | null) =>
+    http.get<FeedDigest | null>("/api/ai/feeds/digest", { feedId: feedId ?? undefined }),
+  makeFeedDigest: (feedId: string | null) =>
+    http.post<FeedDigest>("/api/ai/feeds/digest", { feedId: feedId ?? undefined }),
+  /** A short summary of one feed entry (cached). */
+  entrySummary: (entryId: string) =>
+    http.post<EntrySummary>(`/api/ai/feeds/entries/${seg(entryId)}/summary`),
 
   /** Generate (or regenerate) and cache the summary. */
   summarize: (articleId: string) =>

@@ -65,6 +65,7 @@ import { Route as ShelvesMoviesIndexRouteImport } from './routes/shelves/movies/
 import { Route as ShelvesMoviesIdRouteImport } from './routes/shelves/movies/$id'
 import { Route as ShelvesSeriesIndexRouteImport } from './routes/shelves/series/index'
 import { Route as ShelvesSeriesIdRouteImport } from './routes/shelves/series/$id'
+import { Route as ApiAiFeedsDigestRouteImport } from './routes/api/ai/feeds/digest'
 import { Route as ApiAiVaultFlashcardsRouteImport } from './routes/api/ai/vault/flashcards'
 import { Route as ApiAiVaultNoteRouteImport } from './routes/api/ai/vault/note'
 import { Route as ApiAiVaultThemesRouteImport } from './routes/api/ai/vault/themes'
@@ -89,6 +90,7 @@ import { Route as ApiTripsIdLocateRouteImport } from './routes/api/trips/$id/loc
 import { Route as ApiTripsIdUndoRouteImport } from './routes/api/trips/$id/undo'
 import { Route as ApiAiArticlesIdChatRouteImport } from './routes/api/ai/articles/$id/chat'
 import { Route as ApiAiArticlesIdSummaryRouteImport } from './routes/api/ai/articles/$id/summary'
+import { Route as ApiAiArticlesIdTidyRouteImport } from './routes/api/ai/articles/$id/tidy'
 import { Route as ApiExtractsResultsIdAcceptRouteImport } from './routes/api/extracts/results/$id/accept'
 import { Route as ApiFeedsEntriesIdArticleRouteImport } from './routes/api/feeds/entries/$id/article'
 import { Route as ApiShelvesBookIdPageCountRouteImport } from './routes/api/shelves/book/$id/page-count'
@@ -96,6 +98,7 @@ import { Route as ApiShelvesBookIdProgressRouteImport } from './routes/api/shelv
 import { Route as ApiShelvesTvIdWatchedRouteImport } from './routes/api/shelves/tv/$id/watched'
 import { Route as ApiTripsIdHotelsHotelIdRouteImport } from './routes/api/trips/$id/hotels/$hotelId'
 import { Route as ApiTripsIdItemsItemIdRouteImport } from './routes/api/trips/$id/items/$itemId'
+import { Route as ApiAiFeedsEntriesIdSummaryRouteImport } from './routes/api/ai/feeds/entries/$id/summary'
 import { Route as ApiShelvesTvIdEpisodesToggleRouteImport } from './routes/api/shelves/tv/$id/episodes/toggle'
 import { Route as ApiShelvesTvIdSeasonsIndexRouteImport } from './routes/api/shelves/tv/$id/seasons/index'
 import { Route as ApiShelvesTvIdSeasonsSeasonRouteImport } from './routes/api/shelves/tv/$id/seasons/$season'
@@ -381,6 +384,11 @@ const ShelvesSeriesIdRoute = ShelvesSeriesIdRouteImport.update({
   path: '/series/$id',
   getParentRoute: () => ShelvesRouteRoute,
 } as any)
+const ApiAiFeedsDigestRoute = ApiAiFeedsDigestRouteImport.update({
+  id: '/api/ai/feeds/digest',
+  path: '/api/ai/feeds/digest',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAiVaultFlashcardsRoute = ApiAiVaultFlashcardsRouteImport.update({
   id: '/api/ai/vault/flashcards',
   path: '/api/ai/vault/flashcards',
@@ -502,6 +510,11 @@ const ApiAiArticlesIdSummaryRoute = ApiAiArticlesIdSummaryRouteImport.update({
   path: '/api/ai/articles/$id/summary',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiArticlesIdTidyRoute = ApiAiArticlesIdTidyRouteImport.update({
+  id: '/api/ai/articles/$id/tidy',
+  path: '/api/ai/articles/$id/tidy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiExtractsResultsIdAcceptRoute =
   ApiExtractsResultsIdAcceptRouteImport.update({
     id: '/accept',
@@ -541,6 +554,12 @@ const ApiTripsIdItemsItemIdRoute = ApiTripsIdItemsItemIdRouteImport.update({
   path: '/$itemId',
   getParentRoute: () => ApiTripsIdItemsRoute,
 } as any)
+const ApiAiFeedsEntriesIdSummaryRoute =
+  ApiAiFeedsEntriesIdSummaryRouteImport.update({
+    id: '/api/ai/feeds/entries/$id/summary',
+    path: '/api/ai/feeds/entries/$id/summary',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiShelvesTvIdEpisodesToggleRoute =
   ApiShelvesTvIdEpisodesToggleRouteImport.update({
     id: '/api/shelves/tv/$id/episodes/toggle',
@@ -623,6 +642,7 @@ export interface FileRoutesByFullPath {
   '/shelves/books/': typeof ShelvesBooksIndexRoute
   '/shelves/movies/': typeof ShelvesMoviesIndexRoute
   '/shelves/series/': typeof ShelvesSeriesIndexRoute
+  '/api/ai/feeds/digest': typeof ApiAiFeedsDigestRoute
   '/api/ai/vault/flashcards': typeof ApiAiVaultFlashcardsRoute
   '/api/ai/vault/note': typeof ApiAiVaultNoteRoute
   '/api/ai/vault/themes': typeof ApiAiVaultThemesRoute
@@ -647,6 +667,7 @@ export interface FileRoutesByFullPath {
   '/api/shelves/$type/': typeof ApiShelvesTypeIndexRoute
   '/api/ai/articles/$id/chat': typeof ApiAiArticlesIdChatRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
+  '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
   '/api/extracts/results/$id/accept': typeof ApiExtractsResultsIdAcceptRoute
   '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
@@ -654,6 +675,7 @@ export interface FileRoutesByFullPath {
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
   '/api/trips/$id/hotels/$hotelId': typeof ApiTripsIdHotelsHotelIdRoute
   '/api/trips/$id/items/$itemId': typeof ApiTripsIdItemsItemIdRouteWithChildren
+  '/api/ai/feeds/entries/$id/summary': typeof ApiAiFeedsEntriesIdSummaryRoute
   '/api/shelves/tv/$id/episodes/toggle': typeof ApiShelvesTvIdEpisodesToggleRoute
   '/api/shelves/tv/$id/seasons/$season': typeof ApiShelvesTvIdSeasonsSeasonRoute
   '/api/trips/$id/items/$itemId/move': typeof ApiTripsIdItemsItemIdMoveRoute
@@ -715,6 +737,7 @@ export interface FileRoutesByTo {
   '/shelves/books': typeof ShelvesBooksIndexRoute
   '/shelves/movies': typeof ShelvesMoviesIndexRoute
   '/shelves/series': typeof ShelvesSeriesIndexRoute
+  '/api/ai/feeds/digest': typeof ApiAiFeedsDigestRoute
   '/api/ai/vault/flashcards': typeof ApiAiVaultFlashcardsRoute
   '/api/ai/vault/note': typeof ApiAiVaultNoteRoute
   '/api/ai/vault/themes': typeof ApiAiVaultThemesRoute
@@ -739,6 +762,7 @@ export interface FileRoutesByTo {
   '/api/shelves/$type': typeof ApiShelvesTypeIndexRoute
   '/api/ai/articles/$id/chat': typeof ApiAiArticlesIdChatRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
+  '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
   '/api/extracts/results/$id/accept': typeof ApiExtractsResultsIdAcceptRoute
   '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
@@ -746,6 +770,7 @@ export interface FileRoutesByTo {
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
   '/api/trips/$id/hotels/$hotelId': typeof ApiTripsIdHotelsHotelIdRoute
   '/api/trips/$id/items/$itemId': typeof ApiTripsIdItemsItemIdRouteWithChildren
+  '/api/ai/feeds/entries/$id/summary': typeof ApiAiFeedsEntriesIdSummaryRoute
   '/api/shelves/tv/$id/episodes/toggle': typeof ApiShelvesTvIdEpisodesToggleRoute
   '/api/shelves/tv/$id/seasons/$season': typeof ApiShelvesTvIdSeasonsSeasonRoute
   '/api/trips/$id/items/$itemId/move': typeof ApiTripsIdItemsItemIdMoveRoute
@@ -809,6 +834,7 @@ export interface FileRoutesById {
   '/shelves/books/': typeof ShelvesBooksIndexRoute
   '/shelves/movies/': typeof ShelvesMoviesIndexRoute
   '/shelves/series/': typeof ShelvesSeriesIndexRoute
+  '/api/ai/feeds/digest': typeof ApiAiFeedsDigestRoute
   '/api/ai/vault/flashcards': typeof ApiAiVaultFlashcardsRoute
   '/api/ai/vault/note': typeof ApiAiVaultNoteRoute
   '/api/ai/vault/themes': typeof ApiAiVaultThemesRoute
@@ -833,6 +859,7 @@ export interface FileRoutesById {
   '/api/shelves/$type/': typeof ApiShelvesTypeIndexRoute
   '/api/ai/articles/$id/chat': typeof ApiAiArticlesIdChatRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
+  '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
   '/api/extracts/results/$id/accept': typeof ApiExtractsResultsIdAcceptRoute
   '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
@@ -840,6 +867,7 @@ export interface FileRoutesById {
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
   '/api/trips/$id/hotels/$hotelId': typeof ApiTripsIdHotelsHotelIdRoute
   '/api/trips/$id/items/$itemId': typeof ApiTripsIdItemsItemIdRouteWithChildren
+  '/api/ai/feeds/entries/$id/summary': typeof ApiAiFeedsEntriesIdSummaryRoute
   '/api/shelves/tv/$id/episodes/toggle': typeof ApiShelvesTvIdEpisodesToggleRoute
   '/api/shelves/tv/$id/seasons/$season': typeof ApiShelvesTvIdSeasonsSeasonRoute
   '/api/trips/$id/items/$itemId/move': typeof ApiTripsIdItemsItemIdMoveRoute
@@ -904,6 +932,7 @@ export interface FileRouteTypes {
     | '/shelves/books/'
     | '/shelves/movies/'
     | '/shelves/series/'
+    | '/api/ai/feeds/digest'
     | '/api/ai/vault/flashcards'
     | '/api/ai/vault/note'
     | '/api/ai/vault/themes'
@@ -928,6 +957,7 @@ export interface FileRouteTypes {
     | '/api/shelves/$type/'
     | '/api/ai/articles/$id/chat'
     | '/api/ai/articles/$id/summary'
+    | '/api/ai/articles/$id/tidy'
     | '/api/extracts/results/$id/accept'
     | '/api/feeds/entries/$id/article'
     | '/api/shelves/book/$id/page-count'
@@ -935,6 +965,7 @@ export interface FileRouteTypes {
     | '/api/shelves/tv/$id/watched'
     | '/api/trips/$id/hotels/$hotelId'
     | '/api/trips/$id/items/$itemId'
+    | '/api/ai/feeds/entries/$id/summary'
     | '/api/shelves/tv/$id/episodes/toggle'
     | '/api/shelves/tv/$id/seasons/$season'
     | '/api/trips/$id/items/$itemId/move'
@@ -996,6 +1027,7 @@ export interface FileRouteTypes {
     | '/shelves/books'
     | '/shelves/movies'
     | '/shelves/series'
+    | '/api/ai/feeds/digest'
     | '/api/ai/vault/flashcards'
     | '/api/ai/vault/note'
     | '/api/ai/vault/themes'
@@ -1020,6 +1052,7 @@ export interface FileRouteTypes {
     | '/api/shelves/$type'
     | '/api/ai/articles/$id/chat'
     | '/api/ai/articles/$id/summary'
+    | '/api/ai/articles/$id/tidy'
     | '/api/extracts/results/$id/accept'
     | '/api/feeds/entries/$id/article'
     | '/api/shelves/book/$id/page-count'
@@ -1027,6 +1060,7 @@ export interface FileRouteTypes {
     | '/api/shelves/tv/$id/watched'
     | '/api/trips/$id/hotels/$hotelId'
     | '/api/trips/$id/items/$itemId'
+    | '/api/ai/feeds/entries/$id/summary'
     | '/api/shelves/tv/$id/episodes/toggle'
     | '/api/shelves/tv/$id/seasons/$season'
     | '/api/trips/$id/items/$itemId/move'
@@ -1089,6 +1123,7 @@ export interface FileRouteTypes {
     | '/shelves/books/'
     | '/shelves/movies/'
     | '/shelves/series/'
+    | '/api/ai/feeds/digest'
     | '/api/ai/vault/flashcards'
     | '/api/ai/vault/note'
     | '/api/ai/vault/themes'
@@ -1113,6 +1148,7 @@ export interface FileRouteTypes {
     | '/api/shelves/$type/'
     | '/api/ai/articles/$id/chat'
     | '/api/ai/articles/$id/summary'
+    | '/api/ai/articles/$id/tidy'
     | '/api/extracts/results/$id/accept'
     | '/api/feeds/entries/$id/article'
     | '/api/shelves/book/$id/page-count'
@@ -1120,6 +1156,7 @@ export interface FileRouteTypes {
     | '/api/shelves/tv/$id/watched'
     | '/api/trips/$id/hotels/$hotelId'
     | '/api/trips/$id/items/$itemId'
+    | '/api/ai/feeds/entries/$id/summary'
     | '/api/shelves/tv/$id/episodes/toggle'
     | '/api/shelves/tv/$id/seasons/$season'
     | '/api/trips/$id/items/$itemId/move'
@@ -1175,6 +1212,7 @@ export interface RootRouteChildren {
   ApiJournalIndexRoute: typeof ApiJournalIndexRoute
   ApiLibraryIndexRoute: typeof ApiLibraryIndexRoute
   ApiTripsIndexRoute: typeof ApiTripsIndexRoute
+  ApiAiFeedsDigestRoute: typeof ApiAiFeedsDigestRoute
   ApiAiVaultFlashcardsRoute: typeof ApiAiVaultFlashcardsRoute
   ApiAiVaultNoteRoute: typeof ApiAiVaultNoteRoute
   ApiAiVaultThemesRoute: typeof ApiAiVaultThemesRoute
@@ -1192,10 +1230,12 @@ export interface RootRouteChildren {
   ApiShelvesTypeIndexRoute: typeof ApiShelvesTypeIndexRoute
   ApiAiArticlesIdChatRoute: typeof ApiAiArticlesIdChatRoute
   ApiAiArticlesIdSummaryRoute: typeof ApiAiArticlesIdSummaryRoute
+  ApiAiArticlesIdTidyRoute: typeof ApiAiArticlesIdTidyRoute
   ApiFeedsEntriesIdArticleRoute: typeof ApiFeedsEntriesIdArticleRoute
   ApiShelvesBookIdPageCountRoute: typeof ApiShelvesBookIdPageCountRoute
   ApiShelvesBookIdProgressRoute: typeof ApiShelvesBookIdProgressRoute
   ApiShelvesTvIdWatchedRoute: typeof ApiShelvesTvIdWatchedRoute
+  ApiAiFeedsEntriesIdSummaryRoute: typeof ApiAiFeedsEntriesIdSummaryRoute
   ApiShelvesTvIdEpisodesToggleRoute: typeof ApiShelvesTvIdEpisodesToggleRoute
   ApiShelvesTvIdSeasonsSeasonRoute: typeof ApiShelvesTvIdSeasonsSeasonRoute
   ApiShelvesTvIdSeasonsIndexRoute: typeof ApiShelvesTvIdSeasonsIndexRoute
@@ -1595,6 +1635,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShelvesSeriesIdRouteImport
       parentRoute: typeof ShelvesRouteRoute
     }
+    '/api/ai/feeds/digest': {
+      id: '/api/ai/feeds/digest'
+      path: '/api/ai/feeds/digest'
+      fullPath: '/api/ai/feeds/digest'
+      preLoaderRoute: typeof ApiAiFeedsDigestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/vault/flashcards': {
       id: '/api/ai/vault/flashcards'
       path: '/api/ai/vault/flashcards'
@@ -1763,6 +1810,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiArticlesIdSummaryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/articles/$id/tidy': {
+      id: '/api/ai/articles/$id/tidy'
+      path: '/api/ai/articles/$id/tidy'
+      fullPath: '/api/ai/articles/$id/tidy'
+      preLoaderRoute: typeof ApiAiArticlesIdTidyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/extracts/results/$id/accept': {
       id: '/api/extracts/results/$id/accept'
       path: '/accept'
@@ -1811,6 +1865,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/trips/$id/items/$itemId'
       preLoaderRoute: typeof ApiTripsIdItemsItemIdRouteImport
       parentRoute: typeof ApiTripsIdItemsRoute
+    }
+    '/api/ai/feeds/entries/$id/summary': {
+      id: '/api/ai/feeds/entries/$id/summary'
+      path: '/api/ai/feeds/entries/$id/summary'
+      fullPath: '/api/ai/feeds/entries/$id/summary'
+      preLoaderRoute: typeof ApiAiFeedsEntriesIdSummaryRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/shelves/tv/$id/episodes/toggle': {
       id: '/api/shelves/tv/$id/episodes/toggle'
@@ -1999,6 +2060,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiJournalIndexRoute: ApiJournalIndexRoute,
   ApiLibraryIndexRoute: ApiLibraryIndexRoute,
   ApiTripsIndexRoute: ApiTripsIndexRoute,
+  ApiAiFeedsDigestRoute: ApiAiFeedsDigestRoute,
   ApiAiVaultFlashcardsRoute: ApiAiVaultFlashcardsRoute,
   ApiAiVaultNoteRoute: ApiAiVaultNoteRoute,
   ApiAiVaultThemesRoute: ApiAiVaultThemesRoute,
@@ -2016,10 +2078,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiShelvesTypeIndexRoute: ApiShelvesTypeIndexRoute,
   ApiAiArticlesIdChatRoute: ApiAiArticlesIdChatRoute,
   ApiAiArticlesIdSummaryRoute: ApiAiArticlesIdSummaryRoute,
+  ApiAiArticlesIdTidyRoute: ApiAiArticlesIdTidyRoute,
   ApiFeedsEntriesIdArticleRoute: ApiFeedsEntriesIdArticleRoute,
   ApiShelvesBookIdPageCountRoute: ApiShelvesBookIdPageCountRoute,
   ApiShelvesBookIdProgressRoute: ApiShelvesBookIdProgressRoute,
   ApiShelvesTvIdWatchedRoute: ApiShelvesTvIdWatchedRoute,
+  ApiAiFeedsEntriesIdSummaryRoute: ApiAiFeedsEntriesIdSummaryRoute,
   ApiShelvesTvIdEpisodesToggleRoute: ApiShelvesTvIdEpisodesToggleRoute,
   ApiShelvesTvIdSeasonsSeasonRoute: ApiShelvesTvIdSeasonsSeasonRoute,
   ApiShelvesTvIdSeasonsIndexRoute: ApiShelvesTvIdSeasonsIndexRoute,

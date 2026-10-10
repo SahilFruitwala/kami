@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Eraser,
   Folder,
   LoaderCircle,
   MessageCircleQuestion,
@@ -148,7 +149,58 @@ function SummaryCard({ item }: { item: LibraryItem }) {
           </button>
         </>
       )}
+      <TidyButton item={item} />
     </section>
+  );
+}
+
+/**
+ * Remove sponsor blocks, prompts and footers from the saved copy (handy for
+ * newsletters). The model picks blocks; the change is saved with an undo.
+ */
+function TidyButton({ item }: { item: LibraryItem }) {
+  const client = useQueryClient();
+  const upsertItem = useLibraryStore((s) => s.upsertItem);
+  const tidy = useMutation({
+    mutationFn: () => aiApi.tidy(item.id),
+    onSuccess: (result) => {
+      if (!result.removed.length) {
+        toast.success("Nothing to tidy: this copy is all the piece itself.");
+        return;
+      }
+      const before = item;
+      upsertItem({ ...item, contentHtml: result.contentHtml });
+      void client.invalidateQueries({ queryKey: queryKeys.ai.summary(item.id) });
+      toast.success(
+        `Removed ${result.removed.length} block${result.removed.length === 1 ? "" : "s"} of clutter`,
+        {
+          action: {
+            label: "Undo",
+            onClick: () => {
+              upsertItem(before);
+              void client.invalidateQueries({ queryKey: queryKeys.ai.summary(item.id) });
+            },
+          },
+        },
+      );
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not tidy this copy."),
+  });
+  return (
+    <button
+      type="button"
+      onClick={() => tidy.mutate()}
+      disabled={tidy.isPending}
+      title="Remove ads, sponsor slots, subscribe prompts and footers"
+      className="flex items-center gap-1.5 font-sans text-[11px] opacity-60 transition-opacity hover:opacity-100 disabled:opacity-40"
+    >
+      {tidy.isPending ? (
+        <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+      ) : (
+        <Eraser className="size-3.5" aria-hidden="true" />
+      )}
+      {tidy.isPending ? "Tidying…" : "Tidy this copy"}
+    </button>
   );
 }
 
