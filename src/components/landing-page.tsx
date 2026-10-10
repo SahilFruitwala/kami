@@ -15,7 +15,6 @@ import {
   SunMoon,
   Tags,
   Type,
-  Volume2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
@@ -25,7 +24,7 @@ import { Hanko, KAMI_GLYPH, WashiTag } from "@/components/kami.tsx";
 // Every claim below maps to a real capability in src/:
 // capture (paste / link-only / manual paste / bookmarklet + extension → /capture, share target),
 // library (inbox-archive tabs, deferred search, folders, tags, stars, bulk ops),
-// reader (5 fonts, 7 sizes, 3 paper tones, TTS, scroll memory),
+// reader (5 fonts, 7 sizes, 3 paper tones, scroll memory),
 // highlights (3 inks, notes, vault CSV), journal (calendar, 50k chars/day,
 // micro-season label), shelves (movies/TV/books/wishlist, TMDB+book search,
 // episode tracker), settings (JSON/OPML/CSV export + import).
@@ -71,7 +70,7 @@ const STEPS = [
   {
     n: "2",
     title: "Read Without Noise",
-    copy: "Open the distilled Dokusho view: five typefaces, seven sizes, three paper tones, listen-along audio, and per-article scroll memory.",
+    copy: "Open the distilled Dokusho view: five typefaces, seven sizes, three paper tones, and per-article scroll memory.",
   },
   {
     n: "3",
@@ -88,10 +87,6 @@ const READER_POINTS = [
   {
     icon: BookOpen,
     copy: "Three paper tones per sheet — Pale Washi, Aged Rice Paper, Sumi Dark — independent of the app theme.",
-  },
-  {
-    icon: Volume2,
-    copy: "Listen along with system voices, adjustable rate, and word-by-word follow highlighting.",
   },
   {
     icon: History,
@@ -384,8 +379,7 @@ export function LandingPage() {
                 Read Like It’s Printed for You
               </h2>
               <p className="kami-body mt-3 max-w-lg text-base leading-[1.85] text-ink-soft">
-                The browser dissolves into warm paper. Calibrate the sheet, then read —
-                or listen — at your own cadence.
+                The browser dissolves into warm paper. Calibrate the sheet, then read at your own cadence.
               </p>
               <ul className="kami-body mt-5 space-y-2.5 text-sm text-ink-soft">
                 {READER_POINTS.map((r) => (

@@ -47,7 +47,7 @@ function Settings() {
               {[
                 ["#account", "Account"],
                 ["#appearance", "Appearance"],
-                ["#reading", "Reading & audio"],
+                ["#reading", "Reading"],
                 ["#capture", "Capture"],
                 ["#organize", "Organize"],
                 ["#data", "Data"],
