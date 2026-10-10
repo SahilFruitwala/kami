@@ -545,6 +545,35 @@ names highlights and unread pieces by short ids (`h1`, `r1`) that are mapped
 back to articles. This stands in for journal reflections while the journal
 is paused.
 
+### Feeds: digest and summaries
+
+On `/feeds` (Unread view) a **Digest** panel triages up to 60 unread
+entries in scope (one feed or all, `POST /api/ai/feeds/digest`): a short
+overview, up to five picks for this reader (judged against their own tags
+and recently finished, highlighted or favorited titles), topic groups that
+fold several posts or newsletter issues into one summary, and the entries
+safe to skip, with one tap to mark those read. Entries go to the model as
+`e1`, `e2`… and are mapped back; a pick is never suggested as a skip. The
+digest is kept in `ai_notes` (kind `feed-digest`, key = feed id or `all`).
+
+Each entry card has a **Summary** toggle (`POST
+/api/ai/feeds/entries/:id/summary`): a TL;DR and key points from the
+entry's own text, ignoring newsletter sponsor blocks and footers. Teasers
+under 60 words are refused (open the entry instead). Cached in `ai_notes`
+(kind `entry-summary`, newest 300).
+
+### Tidy this copy
+
+The reader's Gist card has **Tidy this copy** (`POST
+/api/ai/articles/:id/tidy`) for newsletters and cluttered pages. The saved
+HTML is split into numbered top-level blocks (descending through lone
+layout wrappers, `src/lib/tidy-html.server.ts`), the model gets a short
+preview of each and returns the numbers of ads, sponsor slots, subscribe /
+share / referral prompts, footers and navigation. The text itself is never
+rewritten, and a result that would drop 60% or more of the blocks is
+refused. The browser saves the tidied copy through the normal library
+upsert, with Undo.
+
 | Path | Role |
 |---|---|
 | `src/lib/model-fallback.ts` | Fallback model chain, embedding fitting, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |
@@ -556,6 +585,8 @@ is paused.
 | `src/components/ai/ai-chat.tsx` | Shared unsaved chat UI (`useChat`) |
 | `src/lib/ai-text.ts` | Chunking, highlight lines, pgvector literals (pure, tested) |
 | `src/server/services/ai-library.ts` | Indexing, semantic + keyword retrieval, Ask, status |
+| `src/server/services/ai-feeds.ts`, `src/components/feeds/feed-ai.tsx` | Feed digest, entry summaries |
+| `src/lib/tidy-html.server.ts` | Block splitting for Tidy (tested) |
 | `src/server/services/ai-recap.ts`, `src/server/services/ai-notes.ts`, `src/components/library/weekly-recap.tsx` | Weekly recap and the `ai_notes` store |
 | `src/server/services/ai-vault.ts`, `src/components/library/vault-ai.tsx` | Vault themes, flashcards, note drafts |
 | `src/components/library/library-ask.tsx`, `src/hooks/use-ai.ts` | Ask / Find panel, status + background indexer hooks |

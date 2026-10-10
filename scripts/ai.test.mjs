@@ -161,3 +161,22 @@ describe("AI chunking", async () => {
     assert.equal(vectorLiteral([0.5, -1, Number.NaN]), "[0.5,-1,0]");
   });
 });
+
+describe("tidy blocks", async () => {
+  const { joinBlocks, splitBlocks } = await import("../src/lib/tidy-html.server.ts");
+
+  it("descends through lone wrappers and numbers top-level blocks", () => {
+    const html =
+      "<div><table><tbody><tr><td><p>Hello there</p><p>Sponsored by <a href='x'>Acme</a></p>tail text</td></tr></tbody></table></div>";
+    const { blocks, previews } = splitBlocks(html);
+    assert.equal(blocks.length, 3);
+    assert.match(previews[1], /^<p> Sponsored by Acme \[1 link\]$/);
+    assert.equal(blocks[2], "<p>tail text</p>");
+    assert.equal(joinBlocks(blocks, new Set([1])), "<p>Hello there</p>\n<p>tail text</p>");
+  });
+
+  it("keeps a lone content block whole", () => {
+    const { blocks } = splitBlocks("<blockquote><p>a</p><p>b</p></blockquote>");
+    assert.equal(blocks.length, 1);
+  });
+});

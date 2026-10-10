@@ -10,6 +10,7 @@ import {
   PencilLine,
   RefreshCcw,
   Rss,
+  Sparkles,
   Trash2,
 } from "lucide-react";
 import { Hanko } from "@/components/kami.tsx";
@@ -20,6 +21,8 @@ import {
   NewsletterCard,
   OpmlTools,
 } from "@/components/feeds/feeds-sidebar.tsx";
+import { EntrySummary, FeedDigest } from "@/components/feeds/feed-ai.tsx";
+import { useAiStatus } from "@/hooks/use-ai.ts";
 import { useFeedActions, useFeedEntries, useFeedsOverview } from "@/hooks/use-feeds.ts";
 import type { FeedEntry, FeedEntryView, FeedSummary } from "@/lib/api/feeds";
 import { previewImageSrc } from "@/lib/image-url.ts";
@@ -51,6 +54,7 @@ export function FeedsView({
   const hasFeeds = feeds.length > 0;
   const actions = useFeedActions();
   const selected = feedId ? (feeds.find((f) => f.id === feedId) ?? null) : null;
+  const ai = useAiStatus();
 
   return (
     <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
@@ -132,6 +136,13 @@ export function FeedsView({
                 </ToolbarButton>
               </div>
             </div>
+            {ai.enabled && view === "unread" ? (
+              <FeedDigest
+                key={feedId ?? "all"}
+                feedId={feedId}
+                onMarkRead={(ids) => actions.markRead.mutate(ids)}
+              />
+            ) : null}
             <EntryList
               key={`${view}:${feedId ?? "all"}`}
               view={view}
@@ -332,6 +343,7 @@ function EntryList({
   const query = useFeedEntries(view, feedId);
   const entries = useMemo(() => query.data?.pages.flatMap((p) => p.entries) ?? [], [query.data]);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const ai = useAiStatus();
 
   if (query.isPending) return <EntrySkeleton />;
   if (query.isError) {
@@ -385,6 +397,7 @@ function EntryList({
             entry={entry}
             busy={pendingId === entry.id}
             showFeed={!feedId}
+            canSummarize={ai.enabled}
             onRead={() => run(entry, true)}
             onSave={() => run(entry, false)}
             onDismiss={() => actions.markRead.mutate([entry.id])}
@@ -412,6 +425,7 @@ function EntryCard({
   entry,
   busy,
   showFeed,
+  canSummarize,
   onRead,
   onSave,
   onDismiss,
@@ -419,15 +433,19 @@ function EntryCard({
   entry: FeedEntry;
   busy: boolean;
   showFeed: boolean;
+  canSummarize: boolean;
   onRead: () => void;
   onSave: () => void;
   onDismiss: () => void;
 }) {
   const read = entry.state !== null;
+  const [summaryOpen, setSummaryOpen] = useState(false);
   return (
     <li
+      // Digest picks link here (feed-ai.tsx).
+      id={`feed-entry-${entry.id}`}
       className={cn(
-        "kami-sheet group flex gap-4 p-4 transition-shadow hover:shadow-[var(--shadow-border-hover)] sm:p-5",
+        "kami-sheet group flex scroll-mt-24 gap-4 p-4 transition-shadow hover:shadow-[var(--shadow-border-hover)] sm:p-5",
         read && "opacity-70",
       )}
     >
@@ -500,7 +518,14 @@ function EntryCard({
               Mark read
             </EntryAction>
           ) : null}
+          {canSummarize ? (
+            <EntryAction onClick={() => setSummaryOpen((v) => !v)}>
+              <Sparkles className="size-3.5" aria-hidden="true" />
+              {summaryOpen ? "Hide summary" : "Summary"}
+            </EntryAction>
+          ) : null}
         </div>
+        {summaryOpen ? <EntrySummary entryId={entry.id} /> : null}
       </div>
       {entry.imageUrl ? (
         <img

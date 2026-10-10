@@ -1,5 +1,5 @@
 import "@tanstack/react-start/server-only";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { aiNotes } from "@/lib/schema";
 
@@ -44,16 +44,33 @@ export async function saveNote<T>(
       target: [aiNotes.userId, aiNotes.kind, aiNotes.key],
       set: { content, model, createdAt },
     });
-  const stale = await db
-    .select({ key: aiNotes.key })
-    .from(aiNotes)
-    .where(and(eq(aiNotes.userId, userId), eq(aiNotes.kind, kind)))
-    .orderBy(desc(aiNotes.createdAt))
-    .offset(keep);
-  for (const row of stale) {
-    await db
-      .delete(aiNotes)
-      .where(and(eq(aiNotes.userId, userId), eq(aiNotes.kind, kind), eq(aiNotes.key, row.key)));
-  }
+  // Keep the newest `keep` of this kind.
+  await db.execute(sql`
+    delete from ai_notes where user_id = ${userId} and kind = ${kind} and key in (
+      select key from ai_notes where user_id = ${userId} and kind = ${kind}
+      order by created_at desc offset ${keep}
+    )`);
   return { key, content, model, createdAt: createdAt.getTime() };
+}
+
+/** One note by its key, or null. */
+export async function getNote<T>(
+  userId: string,
+  kind: string,
+  key: string,
+): Promise<StoredNote<T> | null> {
+  const db = await getDb();
+  const [row] = await db
+    .select()
+    .from(aiNotes)
+    .where(and(eq(aiNotes.userId, userId), eq(aiNotes.kind, kind), eq(aiNotes.key, key)))
+    .limit(1);
+  return row
+    ? {
+        key: row.key,
+        content: row.content as T,
+        model: row.model,
+        createdAt: row.createdAt.getTime(),
+      }
+    : null;
 }

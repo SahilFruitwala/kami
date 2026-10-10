@@ -34,6 +34,9 @@ export const queryKeys = {
     status: () => [...queryKeys.ai.all, "status"] as const,
     summary: (articleId: string) => [...queryKeys.ai.all, "summary", articleId] as const,
     recap: () => [...queryKeys.ai.all, "recap"] as const,
+    feedDigest: (feedId: string | null) =>
+      [...queryKeys.ai.all, "feed-digest", feedId ?? "all"] as const,
+    entrySummary: (entryId: string) => [...queryKeys.ai.all, "entry-summary", entryId] as const,
   },
   extracts: {
     all: ["extracts"] as const,

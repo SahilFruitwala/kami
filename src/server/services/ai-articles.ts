@@ -2,7 +2,7 @@ import "@tanstack/react-start/server-only";
 import { createHash } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import type { ArticleSummary } from "@/lib/api/ai";
+import type { ArticleSummary, TidyResult } from "@/lib/api/ai";
 import { textFromHtml } from "@/lib/article-build.server.ts";
 import { getDb } from "@/lib/db";
 import { clipText } from "@/lib/model-fallback.ts";
@@ -233,4 +233,54 @@ export async function chatAboutArticle(
     ].join("\n"),
     history,
   });
+}
+
+// ---------- Tidy ----------
+
+const tidySchema = z.object({
+  remove: z
+    .array(z.number().int())
+    .describe("Numbers of the blocks to remove. Empty when everything is part of the piece."),
+});
+
+/**
+ * Find the clutter in a saved copy — newsletter sponsor slots, ads,
+ * subscribe/share/referral prompts, footers — and return the HTML without
+ * it. The model only picks block numbers; the text itself is never
+ * rewritten. Nothing is saved: the reader applies it (with undo).
+ */
+export async function tidyArticle(userId: string, articleId: string): Promise<TidyResult> {
+  const { splitBlocks, joinBlocks } = await import("@/lib/tidy-html.server.ts");
+  const db = await getDb();
+  const [row] = await db
+    .select({ html: articles.contentHtml, title: articles.title })
+    .from(articles)
+    .where(and(eq(articles.id, articleId), eq(articles.userId, userId)))
+    .limit(1);
+  if (!row) throw notFound("That article is no longer in your library.");
+  const { blocks, previews } = splitBlocks(row.html);
+  if (blocks.length < 3) throw badRequest("This copy is already as tidy as it gets.");
+
+  const { output } = await generateJson(tidySchema, {
+    instructions: [
+      "You clean up a saved copy of an article or email newsletter for a reading app.",
+      "Below are its top-level blocks, numbered, each shown as a short preview.",
+      "List the blocks that are not part of the piece itself: ads, sponsor messages, 'subscribe', 'share', 'refer a friend' or 'view in browser' prompts, unsubscribe and legal footers, social links, and navigation.",
+      "Keep anything that is the author's writing, including intros and sign-offs. When unsure, keep the block.",
+    ].join("\n"),
+    prompt: asDocument(previews.map((p, i) => `${i}. ${p}`).join("\n"), { title: row.title }),
+    maxOutputTokens: 400,
+    temperature: 0,
+  });
+  const drop = new Set(
+    output.remove.filter((n) => Number.isInteger(n) && n >= 0 && n < previews.length),
+  );
+  // Refuse a "cleanup" that would gut the piece.
+  if (drop.size >= blocks.length * 0.6) {
+    throw badRequest("That would remove most of this piece, so nothing was changed.");
+  }
+  return {
+    contentHtml: drop.size ? joinBlocks(blocks, drop) : row.html,
+    removed: [...drop].sort((a, b) => a - b).map((i) => previews[i]),
+  };
 }
