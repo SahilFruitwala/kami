@@ -1,4 +1,5 @@
 import { http, seg } from "./client";
+import type { LookupResult } from "./types";
 
 /** Which AI features this server can run (each needs a provider key). */
 export type AiStatus = { enabled: boolean; semanticSearch: boolean };
@@ -93,6 +94,15 @@ export type FeedDigest = {
 
 export type EntrySummary = { tldr: string; keyPoints: string[] };
 
+/** A suggested movie, show or book, matched to TMDB / Open Library when possible. */
+export type ShelfRec = {
+  title: string;
+  subtitle: string | null;
+  why: string;
+  /** Lookup match (cover, link, metadata) for a one-tap add; null when none was found. */
+  match: LookupResult | null;
+};
+
 export const aiApi = {
   status: () => http.get<AiStatus>("/api/ai/status"),
 
@@ -136,6 +146,16 @@ export const aiApi = {
   /** A short summary of one feed entry (cached). */
   entrySummary: (entryId: string) =>
     http.post<EntrySummary>(`/api/ai/feeds/entries/${seg(entryId)}/summary`),
+
+  /** Draft a trip on the trips board from a saved travel piece. */
+  tripFromArticle: (articleId: string) =>
+    http.post<{ tripId: string; items: number; hotels: number }>(
+      `/api/ai/articles/${seg(articleId)}/trip`,
+    ),
+
+  /** Suggestions for a movie, TV or book shelf. */
+  recommend: (type: "movie" | "tv" | "book") =>
+    http.post<{ recs: ShelfRec[] }>("/api/ai/shelves/recommend", { type }),
 
   /** Generate (or regenerate) and cache the summary. */
   summarize: (articleId: string) =>
