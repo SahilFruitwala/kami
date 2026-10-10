@@ -40,7 +40,7 @@ pnpm dev              # http://0.0.0.0:8080
 | [`src/routes/api/`](src/routes/api/) | REST endpoints (`/api/*`) — thin HTTP wrappers over services. See [API reference](docs/API.md) |
 | [`src/server/`](src/server/) | Server-only: `http.ts` (auth, validation, errors) + `services/` (business logic, DB) |
 | [`src/lib/`](src/lib/) | API client (`api/`), client sync (`*-remote.ts`), schema, auth, extract, cache |
-| [`src/hooks/`](src/hooks/) | React hooks (capture, TTS, shelf queries, filters) |
+| [`src/hooks/`](src/hooks/) | React hooks (capture, shelf queries, filters) |
 | [`migrations/`](migrations/) | Hand-written SQL applied via `pnpm db:migrate` |
 | [`scripts/`](scripts/) | Env loader, migrator, shelf import |
 | [`docs/`](docs/) | Architecture, API, data model, development, contributing |
@@ -54,7 +54,7 @@ pnpm dev              # http://0.0.0.0:8080
 |-------|---------|
 | `/` | Landing (signed out) or desk home with URL capture (signed in) |
 | `/library` | Inbox / archive, folders, tags, search |
-| `/read?id=` | Distraction-free reader — highlights, fonts, paper tone, TTS |
+| `/read?id=` | Distraction-free reader — highlights, fonts, paper tone |
 | `/shelves` | Movies, TV, books, wishlist (TMDB / Open Library lookups) |
 | `/journal` | Daily entries with highlight “slips” |
 | `/feeds` | RSS / Atom / JSON feeds + email newsletters; save entries to the library ([docs](docs/ARCHITECTURE.md#feeds--newsletters)) |

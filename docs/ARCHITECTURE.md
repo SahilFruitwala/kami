@@ -106,7 +106,7 @@ sequenceDiagram
 |-------|----------|----------------|
 | Routes | `src/routes/*.tsx` | URL, search params, compose shell + page |
 | UI | `src/components/**` | Presentation; call hooks / stores / `src/lib/api` |
-| Hooks | `src/hooks/**` | Capture, filters, TTS, shelf queries |
+| Hooks | `src/hooks/**` | Capture, filters, shelf queries |
 | Client state | `store.ts`, `journal.ts`, `*-remote.ts` | Optimistic library/journal + offline outbox |
 | API client | `src/lib/api/**` | Typed `fetch` wrappers + shared request/response types |
 | HTTP routes | `src/routes/api/**` | Method + path → service call; no business logic |
