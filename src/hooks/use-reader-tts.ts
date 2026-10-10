@@ -70,12 +70,31 @@ export function useReaderTts(canonicalUrl: string, bodyRef: React.RefObject<HTML
       ttsRef.current?.resume();
       return;
     }
+    const plain = collectSpokenText(bodyRef.current);
+    if (!plain.trim()) {
+      toast.error("Nothing to read in this article.");
+      return;
+    }
+    start(plain, true);
+  }
+
+  /**
+   * Read other text aloud (e.g. the AI audio brief). Its words don't map onto
+   * the article on screen, so they're shown in the bar but not painted.
+   */
+  function speakText(text: string) {
+    if (!canSpeak) {
+      toast.error("This browser cannot play generated audio.");
+      return;
+    }
+    if (!text.trim()) return;
+    ttsRef.current?.stop();
+    clearSpokenWord();
+    start(text, false);
+  }
+
+  function start(plain: string, paint: boolean) {
     try {
-      const plain = collectSpokenText(bodyRef.current);
-      if (!plain.trim()) {
-        toast.error("Nothing to read in this article.");
-        return;
-      }
       setListenOpen(true);
       setWord("Loading voice…");
       ttsRef.current = speakArticle(plain, {
@@ -90,7 +109,7 @@ export function useReaderTts(canonicalUrl: string, bodyRef: React.RefObject<HTML
           setTts(status);
           if (status === "idle") setListenOpen(false);
         },
-        onWord: onSpokenWord,
+        onWord: paint ? onSpokenWord : (next) => setWord(next.word),
       });
     } catch {
       toast.error("Could not start reading aloud.");
@@ -110,5 +129,6 @@ export function useReaderTts(canonicalUrl: string, bodyRef: React.RefObject<HTML
     setTtsVoiceURI,
     stopTts,
     toggleListen,
+    speakText,
   };
 }

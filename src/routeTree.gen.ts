@@ -89,6 +89,7 @@ import { Route as ApiTripsIdHotelsRouteImport } from './routes/api/trips/$id/hot
 import { Route as ApiTripsIdItemsRouteImport } from './routes/api/trips/$id/items'
 import { Route as ApiTripsIdLocateRouteImport } from './routes/api/trips/$id/locate'
 import { Route as ApiTripsIdUndoRouteImport } from './routes/api/trips/$id/undo'
+import { Route as ApiAiArticlesIdBriefRouteImport } from './routes/api/ai/articles/$id/brief'
 import { Route as ApiAiArticlesIdChatRouteImport } from './routes/api/ai/articles/$id/chat'
 import { Route as ApiAiArticlesIdSummaryRouteImport } from './routes/api/ai/articles/$id/summary'
 import { Route as ApiAiArticlesIdTidyRouteImport } from './routes/api/ai/articles/$id/tidy'
@@ -507,6 +508,11 @@ const ApiTripsIdUndoRoute = ApiTripsIdUndoRouteImport.update({
   path: '/undo',
   getParentRoute: () => ApiTripsIdRoute,
 } as any)
+const ApiAiArticlesIdBriefRoute = ApiAiArticlesIdBriefRouteImport.update({
+  id: '/api/ai/articles/$id/brief',
+  path: '/api/ai/articles/$id/brief',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAiArticlesIdChatRoute = ApiAiArticlesIdChatRouteImport.update({
   id: '/api/ai/articles/$id/chat',
   path: '/api/ai/articles/$id/chat',
@@ -678,6 +684,7 @@ export interface FileRoutesByFullPath {
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
   '/api/shelves/$type/': typeof ApiShelvesTypeIndexRoute
+  '/api/ai/articles/$id/brief': typeof ApiAiArticlesIdBriefRoute
   '/api/ai/articles/$id/chat': typeof ApiAiArticlesIdChatRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
@@ -775,6 +782,7 @@ export interface FileRoutesByTo {
   '/api/library/folders': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items': typeof ApiLibraryItemsIndexRoute
   '/api/shelves/$type': typeof ApiShelvesTypeIndexRoute
+  '/api/ai/articles/$id/brief': typeof ApiAiArticlesIdBriefRoute
   '/api/ai/articles/$id/chat': typeof ApiAiArticlesIdChatRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
@@ -874,6 +882,7 @@ export interface FileRoutesById {
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
   '/api/shelves/$type/': typeof ApiShelvesTypeIndexRoute
+  '/api/ai/articles/$id/brief': typeof ApiAiArticlesIdBriefRoute
   '/api/ai/articles/$id/chat': typeof ApiAiArticlesIdChatRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
@@ -974,6 +983,7 @@ export interface FileRouteTypes {
     | '/api/library/folders/'
     | '/api/library/items/'
     | '/api/shelves/$type/'
+    | '/api/ai/articles/$id/brief'
     | '/api/ai/articles/$id/chat'
     | '/api/ai/articles/$id/summary'
     | '/api/ai/articles/$id/tidy'
@@ -1071,6 +1081,7 @@ export interface FileRouteTypes {
     | '/api/library/folders'
     | '/api/library/items'
     | '/api/shelves/$type'
+    | '/api/ai/articles/$id/brief'
     | '/api/ai/articles/$id/chat'
     | '/api/ai/articles/$id/summary'
     | '/api/ai/articles/$id/tidy'
@@ -1169,6 +1180,7 @@ export interface FileRouteTypes {
     | '/api/library/folders/'
     | '/api/library/items/'
     | '/api/shelves/$type/'
+    | '/api/ai/articles/$id/brief'
     | '/api/ai/articles/$id/chat'
     | '/api/ai/articles/$id/summary'
     | '/api/ai/articles/$id/tidy'
@@ -1253,6 +1265,7 @@ export interface RootRouteChildren {
   ApiLibraryFoldersIndexRoute: typeof ApiLibraryFoldersIndexRoute
   ApiLibraryItemsIndexRoute: typeof ApiLibraryItemsIndexRoute
   ApiShelvesTypeIndexRoute: typeof ApiShelvesTypeIndexRoute
+  ApiAiArticlesIdBriefRoute: typeof ApiAiArticlesIdBriefRoute
   ApiAiArticlesIdChatRoute: typeof ApiAiArticlesIdChatRoute
   ApiAiArticlesIdSummaryRoute: typeof ApiAiArticlesIdSummaryRoute
   ApiAiArticlesIdTidyRoute: typeof ApiAiArticlesIdTidyRoute
@@ -1829,6 +1842,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTripsIdUndoRouteImport
       parentRoute: typeof ApiTripsIdRoute
     }
+    '/api/ai/articles/$id/brief': {
+      id: '/api/ai/articles/$id/brief'
+      path: '/api/ai/articles/$id/brief'
+      fullPath: '/api/ai/articles/$id/brief'
+      preLoaderRoute: typeof ApiAiArticlesIdBriefRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/articles/$id/chat': {
       id: '/api/ai/articles/$id/chat'
       path: '/api/ai/articles/$id/chat'
@@ -2117,6 +2137,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLibraryFoldersIndexRoute: ApiLibraryFoldersIndexRoute,
   ApiLibraryItemsIndexRoute: ApiLibraryItemsIndexRoute,
   ApiShelvesTypeIndexRoute: ApiShelvesTypeIndexRoute,
+  ApiAiArticlesIdBriefRoute: ApiAiArticlesIdBriefRoute,
   ApiAiArticlesIdChatRoute: ApiAiArticlesIdChatRoute,
   ApiAiArticlesIdSummaryRoute: ApiAiArticlesIdSummaryRoute,
   ApiAiArticlesIdTidyRoute: ApiAiArticlesIdTidyRoute,

@@ -608,6 +608,16 @@ including the reader's link-stub upgrade, and saving a feed entry), not bulk
 saves; counts one call against the `ai` bucket; and steps aside (to the old
 behaviour) when AI is off, over budget, or the page isn't an article.
 
+### Audio brief
+
+The Gist card has **Listen to a 3-min brief** when the browser can play
+the reader's Kokoro voice. `POST /api/ai/articles/:id/brief` writes a
+400 to 500 word version for the ear (short sentences; no links, lists,
+tables or symbols), cached in `ai_notes` (kind `audio-brief`) until the
+article's text changes. The reader's TTS speaks it through `speakText`,
+which shows each word in the audio bar but doesn't paint it in the article,
+since the brief's words aren't on screen.
+
 | Path | Role |
 |---|---|
 | `src/lib/model-fallback.ts` | Fallback model chain, embedding fitting, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |

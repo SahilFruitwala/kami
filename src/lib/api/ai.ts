@@ -147,6 +147,10 @@ export const aiApi = {
   entrySummary: (entryId: string) =>
     http.post<EntrySummary>(`/api/ai/feeds/entries/${seg(entryId)}/summary`),
 
+  /** A three-minute version of an article written for listening. */
+  audioBrief: (articleId: string) =>
+    http.post<{ text: string }>(`/api/ai/articles/${seg(articleId)}/brief`),
+
   /** Draft a trip on the trips board from a saved travel piece. */
   tripFromArticle: (articleId: string) =>
     http.post<{ tripId: string; items: number; hotels: number }>(
