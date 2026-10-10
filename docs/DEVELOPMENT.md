@@ -42,6 +42,13 @@ DATABASE_URL=postgresql://quarto:quarto@127.0.0.1:5432/quarto
 `DATABASE_URL` is required. Local dev uses Docker Postgres; there is no
 embedded fallback.
 
+Semantic search ("Ask your library") needs the pgvector extension, which
+the default `postgres:16-alpine` image doesn't ship. Everything else works
+without it, and Ask falls back to keyword search. To try it locally, switch
+`docker-compose.yml` to `image: pgvector/pgvector:pg16` on a fresh volume
+(see the Docker reset below) before `pnpm db:migrate`. Neon has pgvector
+built in.
+
 ---
 
 ## Environment variables

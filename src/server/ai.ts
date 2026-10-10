@@ -12,7 +12,7 @@ import {
   type UIMessage,
 } from "ai";
 import { z } from "zod";
-import { aiConfigured, aiEmbeddingModels, aiLanguageModel } from "@/lib/llm.server.ts";
+import { aiEmbeddingModels, aiLanguageModel } from "@/lib/llm.server.ts";
 import { fitEmbedding } from "@/lib/model-fallback.ts";
 import { HttpError } from "@/server/http";
 
@@ -37,12 +37,6 @@ export class AiUnavailableError extends HttpError {
     super(503, "AI features aren't set up on this server yet.");
     this.name = "AiUnavailableError";
   }
-}
-
-export type AiStatus = { enabled: boolean; semanticSearch: boolean };
-
-export function aiStatus(): AiStatus {
-  return { enabled: aiConfigured(), semanticSearch: aiEmbeddingModels().length > 0 };
 }
 
 export function requireAiModel(): LanguageModel {
