@@ -376,7 +376,7 @@ function amazonFallback(html: string): { title?: string; imageUrl?: string } {
 async function fetchPreviewHtml(
   rawUrl: string,
 ): Promise<{ html: string; finalUrl: string } | null> {
-  const { assertPublicFetchUrl } = await import("@/lib/safe-url.server");
+  const { assertPublicFetchUrl, publicFetch } = await import("@/lib/safe-url.server");
   let current: string;
   try {
     current = (await assertPublicFetchUrl(rawUrl)).href;
@@ -386,7 +386,7 @@ async function fetchPreviewHtml(
   for (let hop = 0; hop <= 5; hop += 1) {
     let res: Response;
     try {
-      res = await fetch(current, {
+      res = await publicFetch(current, {
         redirect: "manual",
         signal: AbortSignal.timeout(8000),
         headers: BROWSER_HEADERS,
@@ -411,7 +411,13 @@ async function fetchPreviewHtml(
     } catch {
       return null;
     }
-    const html = (await res.text()).slice(0, 500_000);
+    let html: string;
+    try {
+      const { readCapped } = await import("@/lib/read-capped.server");
+      html = new TextDecoder("utf-8").decode(await readCapped(res, 2_000_000)).slice(0, 500_000);
+    } catch {
+      return null;
+    }
     return { html, finalUrl: current };
   }
   return null;

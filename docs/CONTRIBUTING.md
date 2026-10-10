@@ -145,7 +145,7 @@ Reuse existing patterns: `kami-desk`, paper/ink CSS variables, `Button` from `ui
 Server-only: `src/lib/extract.server.ts` + thin wrappers in `src/server/services/articles.ts`.
 
 - Keep SSRF checks and public-URL validation.
-- New third-party hosts may need CSP `connect-src` updates in `vercel.json`.
+- New third-party hosts may need CSP `connect-src` updates in `src/lib/csp.ts`. Inline scripts must go through `ScriptOnce` (or carry `router.options.ssr.nonce`) or the CSP blocks them.
 - Prefer fallbacks (Readability → Jina → link-only) over failing hard.
 
 ### 7. Auth / gates

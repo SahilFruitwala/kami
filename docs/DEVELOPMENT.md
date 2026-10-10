@@ -146,6 +146,6 @@ pnpm db:up && pnpm db:migrate
 - Target: **Vercel** via Nitro `vercel` preset (see `vite.config.ts`).
 - Build runs migrations on Production (and non-Vercel) builds; Vercel Preview builds skip them unless `MIGRATE_ON_BUILD=1` — keep SQL forward-compatible.
 - Production expects Neon (or similar) + Clerk; Upstash recommended.
-- CSP / headers: `vercel.json` — update when adding new third-party script/connect origins. Production Clerk JS is served from `https://clerk.kami.sahilfruitwala.com` (custom Frontend API), which `https://*.clerk.com` does not cover.
+- CSP: `src/lib/csp.ts` (sent per HTML response with a fresh script nonce by `src/start.ts`; no `'unsafe-inline'` for scripts) — update when adding new third-party script/connect origins. Other security headers live in `vercel.json`. Production Clerk JS is served from `https://clerk.kami.sahilfruitwala.com` (custom Frontend API), which `https://*.clerk.com` does not cover.
 
 See also [Architecture](./ARCHITECTURE.md) and [Contributing](./CONTRIBUTING.md).

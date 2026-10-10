@@ -4,23 +4,13 @@ import {
   CAPTURE_MESSAGE,
   CAPTURE_READY,
   CAPTURE_RECEIVED,
-  decodeImportPayload,
   parseCapturePayload,
   type BookmarkletPayload,
 } from "@/lib/bookmarklet.ts";
 import { stashCapturePayload } from "@/lib/session-article.ts";
 
-type CaptureSearch = {
-  /** Legacy base64 payload from bookmarklets created before the handoff. */
-  import?: string;
-};
-
 export const Route = createFileRoute("/capture")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>): CaptureSearch => ({
-    import:
-      typeof search.import === "string" && search.import.length > 0 ? search.import : undefined,
-  }),
   component: CapturePage,
 });
 
@@ -52,7 +42,6 @@ function acceptCapture(event: MessageEvent): BookmarkletPayload | null {
 }
 
 function CapturePage() {
-  const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const [status, setStatus] = useState<Status>("waiting");
 
@@ -68,11 +57,6 @@ function CapturePage() {
       }
       setStatus("received");
       void navigate({ to: "/app", replace: true });
-    }
-
-    if (search.import) {
-      finish(decodeImportPayload(search.import));
-      return;
     }
 
     let done = false;
