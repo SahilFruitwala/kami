@@ -36,16 +36,3 @@ describe("production CSP stays minimal", () => {
     }
   });
 });
-
-describe("production CSP allows in-browser TTS (Kokoro)", () => {
-  it("allows model downloads from Hugging Face and its CDN", () => {
-    assert.match(directive("connect-src"), /https:\/\/huggingface\.co/);
-    assert.match(directive("connect-src"), /https:\/\/\*\.hf\.co/);
-  });
-
-  it("allows the ONNX runtime wasm and its loader from jsDelivr", () => {
-    assert.match(directive("connect-src"), /https:\/\/cdn\.jsdelivr\.net/);
-    assert.match(directive("script-src"), /https:\/\/cdn\.jsdelivr\.net/);
-    assert.match(directive("script-src"), /'wasm-unsafe-eval'/);
-  });
-});

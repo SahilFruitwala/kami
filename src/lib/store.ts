@@ -178,8 +178,6 @@ export type LibraryState = {
    * preference survives a dark-mode detour.
    */
   preferredLightTone: PaperTone;
-  ttsRate: number;
-  ttsVoiceURI: string;
   progressById: Record<string, number>;
   resumeEnabled: boolean;
   setProgress: (id: string, progress: number) => void;
@@ -191,8 +189,6 @@ export type LibraryState = {
   setReaderFont: (font: ReaderFontId) => void;
   setHighlightColor: (color: HighlightColorId) => void;
   setPaperTone: (tone: PaperTone) => void;
-  setTtsRate: (rate: number) => void;
-  setTtsVoiceURI: (uri: string) => void;
   addFolder: (name: string) => string;
   renameFolder: (id: string, name: string) => void;
   removeFolder: (id: string) => void;
@@ -234,8 +230,6 @@ type Persisted = {
   highlightColor?: string;
   paperTone?: string;
   preferredLightTone?: string;
-  ttsRate?: number;
-  ttsVoiceURI?: string;
   progressById?: Record<string, number>;
   resumeEnabled?: boolean;
 };
@@ -292,8 +286,6 @@ export const useLibraryStore = create<LibraryState>()(
       highlightColor: "vermilion",
       paperTone: "pale",
       preferredLightTone: "pale",
-      ttsRate: 1,
-      ttsVoiceURI: "",
       progressById: {},
       resumeEnabled: true,
       setProgress: (id, progress) =>
@@ -344,8 +336,6 @@ export const useLibraryStore = create<LibraryState>()(
         if (next === "sumi") set({ paperTone: next });
         else set({ paperTone: next, preferredLightTone: next });
       },
-      setTtsRate: (rate) => set({ ttsRate: Math.min(1.75, Math.max(0.7, rate)) }),
-      setTtsVoiceURI: (uri) => set({ ttsVoiceURI: uri }),
       addFolder: (name) => {
         const trimmed = name.trim().slice(0, 32);
         if (!trimmed) return "";
@@ -609,8 +599,6 @@ export const useLibraryStore = create<LibraryState>()(
         highlightColor: state.highlightColor,
         paperTone: state.paperTone,
         preferredLightTone: state.preferredLightTone,
-        ttsRate: state.ttsRate,
-        ttsVoiceURI: state.ttsVoiceURI,
         progressById: state.progressById,
         resumeEnabled: state.resumeEnabled,
       }),
@@ -630,8 +618,6 @@ export const useLibraryStore = create<LibraryState>()(
             raw.preferredLightTone === "aged" || raw.preferredLightTone === "pale"
               ? (raw.preferredLightTone as PaperTone)
               : "pale",
-          ttsRate: typeof raw.ttsRate === "number" ? raw.ttsRate : 1,
-          ttsVoiceURI: raw.ttsVoiceURI || "",
           progressById:
             raw.progressById && typeof raw.progressById === "object" ? raw.progressById : {},
           resumeEnabled: raw.resumeEnabled === false ? false : true,
