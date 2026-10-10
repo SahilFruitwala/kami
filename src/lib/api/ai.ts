@@ -162,10 +162,6 @@ export const aiApi = {
   peek: (page: { url?: string; title: string; html: string }) =>
     http.post<PagePeek>("/api/ai/peek", page),
 
-  /** A three-minute version of an article written for listening. */
-  audioBrief: (articleId: string) =>
-    http.post<{ text: string }>(`/api/ai/articles/${seg(articleId)}/brief`),
-
   /** Draft a trip on the trips board from a saved travel piece. */
   tripFromArticle: (articleId: string) =>
     http.post<{ tripId: string; items: number; hotels: number }>(
