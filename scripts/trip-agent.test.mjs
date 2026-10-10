@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { buildTripInstructions, tripSnapshot } from "../src/lib/trip-agent-prompt.ts";
+import {
+  buildTripInstructions,
+  readableUrlKey,
+  readableUrlsIn,
+  tripSnapshot,
+} from "../src/lib/trip-agent-prompt.ts";
 import {
   DEFAULT_TRIP_MODELS,
   parseModelId,
@@ -157,5 +162,25 @@ describe("trip snapshot", () => {
     const without = buildTripInstructions(trip, { today: "2026-10-08", research: false });
     assert.match(without, /Web research is not available/);
     assert.doesNotMatch(without, /use web_search/);
+  });
+});
+
+describe("read_page allowlist keys", () => {
+  it("normalizes http(s) URLs and drops fragments", () => {
+    assert.equal(readableUrlKey(" https://Example.com/a#top "), "https://example.com/a");
+    assert.equal(readableUrlKey("javascript:alert(1)"), null);
+    assert.equal(readableUrlKey("not a url"), null);
+  });
+
+  it("finds links the user wrote, trimming punctuation", () => {
+    assert.deepEqual(
+      readableUrlsIn("Look at https://hotel.example/rooms. Also (https://b.example/x?y=1), thanks"),
+      ["https://hotel.example/rooms", "https://b.example/x?y=1"],
+    );
+  });
+
+  it("keeps a page-injected exfil URL distinct from the trusted one", () => {
+    const trusted = new Set(readableUrlsIn("https://hotel.example/rooms"));
+    assert.ok(!trusted.has(readableUrlKey("https://hotel.example/rooms?leak=2026-05-01")));
   });
 });

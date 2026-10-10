@@ -1,5 +1,6 @@
 import { preferReadableImage } from "./image-url.ts";
-import { assertPublicFetchUrl } from "./safe-url.server.ts";
+import { BodyTooLargeError, readCapped } from "./read-capped.server.ts";
+import { assertPublicFetchUrl, publicFetch } from "./safe-url.server.ts";
 
 export const USER_AGENT =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
@@ -64,7 +65,7 @@ async function getImage(href: string, maxRedirects = 5): Promise<FetchedImage> {
     let current = parsed.href;
     let res: Response | null = null;
     for (let hop = 0; hop <= maxRedirects; hop += 1) {
-      const attempt = await fetch(current, {
+      const attempt = await publicFetch(current, {
         method: "GET",
         redirect: "manual",
         signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
@@ -116,12 +117,17 @@ async function getImage(href: string, maxRedirects = 5): Promise<FetchedImage> {
     if (mime === "image/svg+xml" || mime.includes("svg")) {
       return { ok: false, error: "svg images are not proxied", status: 415 };
     }
-    const bytes = new Uint8Array(await res.arrayBuffer());
+    let bytes: Uint8Array;
+    try {
+      bytes = await readCapped(res, MAX_IMAGE_BYTES);
+    } catch (err) {
+      if (err instanceof BodyTooLargeError) {
+        return { ok: false, error: "image too large", status: 413 };
+      }
+      throw err;
+    }
     if (bytes.byteLength === 0) {
       return { ok: false, error: "empty image", status: 502 };
-    }
-    if (bytes.byteLength > MAX_IMAGE_BYTES) {
-      return { ok: false, error: "image too large", status: 413 };
     }
     const sniffed = sniffMime(bytes, mime);
     if (sniffed === "image/svg+xml") {

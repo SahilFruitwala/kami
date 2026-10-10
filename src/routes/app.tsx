@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell.tsx";
@@ -24,7 +24,11 @@ import { persistArticleItem } from "@/lib/library-remote.ts";
 import { articleToItem, type LibraryItem } from "@/lib/store.ts";
 
 type HomeSearch = {
-  /** URL handed over by the share sheet (`/share`) — saved on arrival. */
+  /**
+   * URL handed over by the share sheet (`/share`) or the extension's "Save
+   * link" menu. It is only *pre-filled*: any site can link here, so saving
+   * always takes the reader's own tap on Save.
+   */
   save?: string;
 };
 
@@ -32,11 +36,6 @@ export const Route = createFileRoute("/app")({
   validateSearch: (search: Record<string, unknown>): HomeSearch => ({
     save: typeof search.save === "string" && search.save.length > 0 ? search.save : undefined,
   }),
-  // Bookmarklets created before the /capture handoff opened `/app?import=…`.
-  beforeLoad: ({ location }) => {
-    const legacy = new URLSearchParams(location.searchStr).get("import");
-    if (legacy) throw redirect({ to: "/capture", search: { import: legacy }, replace: true });
-  },
   component: HomePage,
 });
 
@@ -52,7 +51,7 @@ function HomePage() {
   const navigate = Route.useNavigate();
 
   // Runs outside AppGate so a shared URL survives a detour through sign-in:
-  // park it as the draft, which <PendingCapturePickup /> saves once signed in.
+  // park it as the draft, which <PendingCapturePickup /> pre-fills once signed in.
   useEffect(() => {
     if (search.save) {
       writeDraftUrl(search.save);
@@ -66,8 +65,9 @@ function HomePage() {
 
 /**
  * Picks up work handed to Home from elsewhere — a page captured by the
- * bookmarklet/extension (stashed by `/capture`), or a URL from the share
- * sheet or an interrupted save. Rendered inside <AppShell>, so it only mounts
+ * bookmarklet/extension (stashed by `/capture`, which only accepts it from
+ * the article's own origin or the extension), or a URL from the share sheet
+ * or an interrupted save (pre-filled, never saved without a tap). Rendered inside <AppShell>, so it only mounts
  * once the session is confirmed: a signed-out visitor keeps the stash for
  * after sign-in instead of spending it on a request that can't succeed.
  */
@@ -189,7 +189,7 @@ function Home() {
         onCapture={(payload) => void autoImportCapture(payload)}
         onUrl={(url) => {
           save.setUrl(url);
-          void save.save(url, true);
+          toast.message("Link ready — tap Save to add it to your list.");
         }}
       />
       <div className="mx-auto flex min-h-[70dvh] w-full max-w-3xl flex-col items-center justify-center px-4 py-10 sm:px-6">

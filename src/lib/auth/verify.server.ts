@@ -107,7 +107,10 @@ export async function requireUserId(): Promise<string> {
         "refusing to serve requests without sign-in.",
     );
   }
-  const session = await auth();
+  // Session tokens only — the web cookie or a native app's
+  // `Authorization: Bearer <session token>`. Clerk's middleware also parses
+  // API keys / machine tokens; those never identify a library owner here.
+  const session = await auth({ acceptsToken: "session_token" });
   if (!session.userId) throw new UnauthorizedError();
   await ensureLocalUser(session.userId);
   return session.userId;

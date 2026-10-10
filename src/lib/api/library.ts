@@ -7,6 +7,7 @@ import {
   type LibraryCursor,
   type LibraryPage,
   type LibrarySnapshot,
+  type SaveUrlResult,
 } from "./types";
 
 export type LibraryItemPatch = {
@@ -41,6 +42,10 @@ export const libraryApi = {
 
   /** Delete every article and folder on the account. */
   wipe: () => http.delete<void>("/api/library"),
+
+  /** Fetch, extract and store one link server-side (existing saves are returned as-is). */
+  saveUrl: (url: string, opts: { linkOnly?: boolean } = {}) =>
+    http.post<SaveUrlResult>("/api/library/save", { url, linkOnly: opts.linkOnly }),
 
   /** Extract + save up to 50 links in one go. */
   bulkSave: (urls: string[]) => http.post<BulkSaveLinksResult>("/api/library/bulk", { urls }),
