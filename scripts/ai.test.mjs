@@ -9,8 +9,7 @@ import {
 
 function fake(id, behaviour) {
   const calls = [];
-  return {
-    calls,
+  const model = {
     specificationVersion: "v4",
     provider: id.split(":")[0],
     modelId: id.split(":")[1],
@@ -18,14 +17,30 @@ function fake(id, behaviour) {
     doGenerate: async (options) => {
       calls.push(options);
       if (behaviour instanceof Error) throw behaviour;
-      return { text: behaviour };
+      return { text: behaviour, response: { id: "r1" } };
     },
     doStream: async (options) => {
       calls.push(options);
       if (behaviour instanceof Error) throw behaviour;
-      return { stream: behaviour };
+      return {
+        stream: new ReadableStream({
+          start(c) {
+            c.enqueue({ type: "stream-start", warnings: [] });
+            c.enqueue({ type: "text-delta", id: "t", delta: behaviour });
+            c.enqueue({ type: "response-metadata", modelId: "provider-name" });
+            c.close();
+          },
+        }),
+      };
     },
   };
+  return { id, model, calls };
+}
+
+async function readAll(stream) {
+  const parts = [];
+  for await (const part of stream) parts.push(part);
+  return parts;
 }
 
 describe("AI model chain", () => {
@@ -48,7 +63,10 @@ describe("AI model chain", () => {
     const google = fake("google:g", "from google");
     const haiku = fake("openrouter:h", "from haiku");
     const model = fallbackModel([google, haiku]);
-    assert.deepEqual(await model.doGenerate({}), { text: "from google" });
+    assert.deepEqual(await model.doGenerate({}), {
+      text: "from google",
+      response: { id: "r1", modelId: "google:g" },
+    });
     assert.equal(haiku.calls.length, 0);
   });
 
@@ -57,8 +75,18 @@ describe("AI model chain", () => {
     const google = fake("google:g", Object.assign(new Error("quota"), { statusCode: 429 }));
     const haiku = fake("openrouter:h", "from haiku");
     const model = fallbackModel([google, haiku], (e) => events.push(e));
-    assert.deepEqual(await model.doGenerate({}), { text: "from haiku" });
-    assert.deepEqual(await model.doStream({}), { stream: "from haiku" });
+    assert.equal((await model.doGenerate({})).text, "from haiku");
+    assert.equal((await model.doGenerate({})).response.modelId, "openrouter:h");
+    const parts = await readAll((await model.doStream({})).stream);
+    assert.deepEqual(
+      parts.map((p) => [p.type, p.modelId ?? p.delta]),
+      [
+        ["stream-start", undefined],
+        ["response-metadata", "openrouter:h"],
+        ["text-delta", "from haiku"],
+        ["response-metadata", "openrouter:h"],
+      ],
+    );
     assert.equal(events[0].failed, "google:g");
     assert.equal(events[0].next, "openrouter:h");
   });
@@ -77,9 +105,7 @@ describe("AI model chain", () => {
     assert.equal(haiku.calls.length, 0);
   });
 
-  it("returns a single model unwrapped", () => {
-    const only = fake("google:g", "x");
-    assert.equal(fallbackModel([only]), only);
+  it("needs at least one model", () => {
     assert.throws(() => fallbackModel([]));
   });
 });

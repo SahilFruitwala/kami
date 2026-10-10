@@ -24,6 +24,7 @@ import { TONES } from "@/lib/paper-tones.ts";
 import { cn } from "@/lib/utils.ts";
 import { FocusWave } from "@/components/reader/focus-wave.tsx";
 import { MarginaliaHighlights } from "@/components/reader/marginalia-highlights.tsx";
+import { ReaderAi } from "@/components/reader/reader-ai.tsx";
 
 export function ReaderView({
   item,
@@ -542,6 +543,8 @@ export function ReaderView({
                   {item.highlights.length + (item.note ? 1 : 0)} Reflections
                 </span>
               </div>
+
+              <ReaderAi item={item} />
 
               {item.highlights.length === 0 && !item.note ? (
                 <p className="rounded-xl bg-ink/5 p-4 font-body text-sm italic opacity-70">

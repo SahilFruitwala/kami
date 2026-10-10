@@ -86,7 +86,7 @@ type CallInput = {
 export async function generateJson<S extends z.ZodType>(
   schema: S,
   input: CallInput,
-): Promise<z.output<S>> {
+): Promise<{ output: z.output<S>; model: string }> {
   const model = requireAiModel();
   try {
     const result = await generateText({
@@ -98,14 +98,14 @@ export async function generateJson<S extends z.ZodType>(
       temperature: input.temperature ?? 0.2,
       maxRetries: 1,
     });
-    return result.output as z.output<S>;
+    return { output: result.output as z.output<S>, model: result.response.modelId };
   } catch (err) {
     throw aiError(err);
   }
 }
 
 /** One model call that returns plain text (Markdown). */
-export async function generateProse(input: CallInput): Promise<string> {
+export async function generateProse(input: CallInput): Promise<{ text: string; model: string }> {
   const model = requireAiModel();
   try {
     const result = await generateText({
@@ -116,7 +116,7 @@ export async function generateProse(input: CallInput): Promise<string> {
       temperature: input.temperature ?? 0.3,
       maxRetries: 1,
     });
-    return result.text.trim();
+    return { text: result.text.trim(), model: result.response.modelId };
   } catch (err) {
     throw aiError(err);
   }

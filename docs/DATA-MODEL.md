@@ -166,6 +166,14 @@ See [Trips](./ARCHITECTURE.md#trips).
 | `trip_snapshots` | The agent's undo point: one row per trip (`snapshot` jsonb of the whole trip), written before the agent's first edit in a turn and deleted by undo |
 | `trip_items` | Itinerary entries: `day_index` (0-based), `slot` (`morning` / `afternoon` / `evening` / `night`), `title`, `place`, `url`, `notes`, `sort`, optional `lat`/`lng` map pin, `start_time` ("HH:MM") and `duration_min` |
 
+### AI — `article_ai`
+
+See [AI features](./ARCHITECTURE.md#ai-features).
+
+| Table | Role |
+|-------|------|
+| `article_ai` | One row per article: `summary` jsonb (`tldr`, `keyPoints`, suggested `tags` and `folderId`), `content_hash` (sha256 of the body it was made from, to flag stale summaries), `model` that wrote it |
+
 Highlight notes (inside `articles.highlights` jsonb) are capped at 1000 chars (`HIGHLIGHT_NOTE_MAX`).
 
 ### Misc
