@@ -82,7 +82,10 @@ export function useReaderTts(canonicalUrl: string, bodyRef: React.RefObject<HTML
         rate: ttsRate,
         voiceId: resolveVoice(ttsVoiceURI),
         onProgress: (pct) => setWord(`Loading voice… ${Math.round(pct)}%`),
-        onError: () => toast.error("Could not generate audio."),
+        onError: (message) => {
+          console.error("TTS error:", message);
+          toast.error(message ? `Could not generate audio: ${message}` : "Could not generate audio.");
+        },
         onStatus: (status) => {
           setTts(status);
           if (status === "idle") setListenOpen(false);
