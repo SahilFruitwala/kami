@@ -103,6 +103,17 @@ export type ShelfRec = {
   match: LookupResult | null;
 };
 
+/** A quick look at a captured page before saving it. */
+export type PagePeek = {
+  title: string;
+  siteName: string;
+  url: string;
+  readingMinutes: number;
+  tldr: string;
+  keyPoints: string[];
+  verdict: string;
+};
+
 export const aiApi = {
   status: () => http.get<AiStatus>("/api/ai/status"),
 
@@ -146,6 +157,10 @@ export const aiApi = {
   /** A short summary of one feed entry (cached). */
   entrySummary: (entryId: string) =>
     http.post<EntrySummary>(`/api/ai/feeds/entries/${seg(entryId)}/summary`),
+
+  /** Summarize a page captured by the extension, without saving it. */
+  peek: (page: { url?: string; title: string; html: string }) =>
+    http.post<PagePeek>("/api/ai/peek", page),
 
   /** A three-minute version of an article written for listening. */
   audioBrief: (articleId: string) =>

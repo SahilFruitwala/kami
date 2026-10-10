@@ -16,6 +16,7 @@ import { Route as ExtractsRouteImport } from './routes/extracts'
 import { Route as FeedsRouteImport } from './routes/feeds'
 import { Route as JournalRouteImport } from './routes/journal'
 import { Route as LibraryRouteImport } from './routes/library'
+import { Route as PeekRouteImport } from './routes/peek'
 import { Route as ReadRouteImport } from './routes/read'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as ShareRouteImport } from './routes/share'
@@ -30,6 +31,7 @@ import { Route as TripsIndexRouteImport } from './routes/trips/index'
 import { Route as TripsIdRouteImport } from './routes/trips/$id'
 import { Route as ApiAiAskRouteImport } from './routes/api/ai/ask'
 import { Route as ApiAiEmbedRouteImport } from './routes/api/ai/embed'
+import { Route as ApiAiPeekRouteImport } from './routes/api/ai/peek'
 import { Route as ApiAiRecapRouteImport } from './routes/api/ai/recap'
 import { Route as ApiAiSearchRouteImport } from './routes/api/ai/search'
 import { Route as ApiAiStatusRouteImport } from './routes/api/ai/status'
@@ -142,6 +144,11 @@ const LibraryRoute = LibraryRouteImport.update({
   path: '/library',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PeekRoute = PeekRouteImport.update({
+  id: '/peek',
+  path: '/peek',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReadRoute = ReadRouteImport.update({
   id: '/read',
   path: '/read',
@@ -210,6 +217,11 @@ const ApiAiAskRoute = ApiAiAskRouteImport.update({
 const ApiAiEmbedRoute = ApiAiEmbedRouteImport.update({
   id: '/api/ai/embed',
   path: '/api/ai/embed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiPeekRoute = ApiAiPeekRouteImport.update({
+  id: '/api/ai/peek',
+  path: '/api/ai/peek',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAiRecapRoute = ApiAiRecapRouteImport.update({
@@ -612,6 +624,7 @@ export interface FileRoutesByFullPath {
   '/feeds': typeof FeedsRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
+  '/peek': typeof PeekRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
@@ -625,6 +638,7 @@ export interface FileRoutesByFullPath {
   '/trips/': typeof TripsIndexRoute
   '/api/ai/ask': typeof ApiAiAskRoute
   '/api/ai/embed': typeof ApiAiEmbedRoute
+  '/api/ai/peek': typeof ApiAiPeekRoute
   '/api/ai/recap': typeof ApiAiRecapRoute
   '/api/ai/search': typeof ApiAiSearchRoute
   '/api/ai/status': typeof ApiAiStatusRoute
@@ -710,6 +724,7 @@ export interface FileRoutesByTo {
   '/feeds': typeof FeedsRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
+  '/peek': typeof PeekRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
@@ -723,6 +738,7 @@ export interface FileRoutesByTo {
   '/trips': typeof TripsIndexRoute
   '/api/ai/ask': typeof ApiAiAskRoute
   '/api/ai/embed': typeof ApiAiEmbedRoute
+  '/api/ai/peek': typeof ApiAiPeekRoute
   '/api/ai/recap': typeof ApiAiRecapRoute
   '/api/ai/search': typeof ApiAiSearchRoute
   '/api/ai/status': typeof ApiAiStatusRoute
@@ -810,6 +826,7 @@ export interface FileRoutesById {
   '/feeds': typeof FeedsRoute
   '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
+  '/peek': typeof PeekRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
   '/share': typeof ShareRoute
@@ -823,6 +840,7 @@ export interface FileRoutesById {
   '/trips/': typeof TripsIndexRoute
   '/api/ai/ask': typeof ApiAiAskRoute
   '/api/ai/embed': typeof ApiAiEmbedRoute
+  '/api/ai/peek': typeof ApiAiPeekRoute
   '/api/ai/recap': typeof ApiAiRecapRoute
   '/api/ai/search': typeof ApiAiSearchRoute
   '/api/ai/status': typeof ApiAiStatusRoute
@@ -911,6 +929,7 @@ export interface FileRouteTypes {
     | '/feeds'
     | '/journal'
     | '/library'
+    | '/peek'
     | '/read'
     | '/settings'
     | '/share'
@@ -924,6 +943,7 @@ export interface FileRouteTypes {
     | '/trips/'
     | '/api/ai/ask'
     | '/api/ai/embed'
+    | '/api/ai/peek'
     | '/api/ai/recap'
     | '/api/ai/search'
     | '/api/ai/status'
@@ -1009,6 +1029,7 @@ export interface FileRouteTypes {
     | '/feeds'
     | '/journal'
     | '/library'
+    | '/peek'
     | '/read'
     | '/settings'
     | '/share'
@@ -1022,6 +1043,7 @@ export interface FileRouteTypes {
     | '/trips'
     | '/api/ai/ask'
     | '/api/ai/embed'
+    | '/api/ai/peek'
     | '/api/ai/recap'
     | '/api/ai/search'
     | '/api/ai/status'
@@ -1108,6 +1130,7 @@ export interface FileRouteTypes {
     | '/feeds'
     | '/journal'
     | '/library'
+    | '/peek'
     | '/read'
     | '/settings'
     | '/share'
@@ -1121,6 +1144,7 @@ export interface FileRouteTypes {
     | '/trips/'
     | '/api/ai/ask'
     | '/api/ai/embed'
+    | '/api/ai/peek'
     | '/api/ai/recap'
     | '/api/ai/search'
     | '/api/ai/status'
@@ -1208,6 +1232,7 @@ export interface RootRouteChildren {
   FeedsRoute: typeof FeedsRoute
   JournalRoute: typeof JournalRoute
   LibraryRoute: typeof LibraryRoute
+  PeekRoute: typeof PeekRoute
   ReadRoute: typeof ReadRoute
   SettingsRoute: typeof SettingsRoute
   ShareRoute: typeof ShareRoute
@@ -1219,6 +1244,7 @@ export interface RootRouteChildren {
   TripsIndexRoute: typeof TripsIndexRoute
   ApiAiAskRoute: typeof ApiAiAskRoute
   ApiAiEmbedRoute: typeof ApiAiEmbedRoute
+  ApiAiPeekRoute: typeof ApiAiPeekRoute
   ApiAiRecapRoute: typeof ApiAiRecapRoute
   ApiAiSearchRoute: typeof ApiAiSearchRoute
   ApiAiStatusRoute: typeof ApiAiStatusRoute
@@ -1331,6 +1357,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LibraryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/peek': {
+      id: '/peek'
+      path: '/peek'
+      fullPath: '/peek'
+      preLoaderRoute: typeof PeekRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/read': {
       id: '/read'
       path: '/read'
@@ -1427,6 +1460,13 @@ declare module '@tanstack/react-router' {
       path: '/api/ai/embed'
       fullPath: '/api/ai/embed'
       preLoaderRoute: typeof ApiAiEmbedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/peek': {
+      id: '/api/ai/peek'
+      path: '/api/ai/peek'
+      fullPath: '/api/ai/peek'
+      preLoaderRoute: typeof ApiAiPeekRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/ai/recap': {
@@ -2080,6 +2120,7 @@ const rootRouteChildren: RootRouteChildren = {
   FeedsRoute: FeedsRoute,
   JournalRoute: JournalRoute,
   LibraryRoute: LibraryRoute,
+  PeekRoute: PeekRoute,
   ReadRoute: ReadRoute,
   SettingsRoute: SettingsRoute,
   ShareRoute: ShareRoute,
@@ -2091,6 +2132,7 @@ const rootRouteChildren: RootRouteChildren = {
   TripsIndexRoute: TripsIndexRoute,
   ApiAiAskRoute: ApiAiAskRoute,
   ApiAiEmbedRoute: ApiAiEmbedRoute,
+  ApiAiPeekRoute: ApiAiPeekRoute,
   ApiAiRecapRoute: ApiAiRecapRoute,
   ApiAiSearchRoute: ApiAiSearchRoute,
   ApiAiStatusRoute: ApiAiStatusRoute,

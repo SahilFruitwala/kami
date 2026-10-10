@@ -618,6 +618,17 @@ article's text changes. The reader's TTS speaks it through `speakText`,
 which shows each word in the audio bar but doesn't paint it in the article,
 since the brief's words aren't on screen.
 
+### Summarize before saving (extension)
+
+The browser extension adds **Summarize page with KAMI** (page context menu,
+**Alt+Shift+S**). It captures the tab exactly like Save, but opens
+`/capture?intent=peek`, which routes to `/peek` instead of Home. `/peek`
+(inside the app shell, so after sign-in) takes the stashed page and calls
+`POST /api/ai/peek`: the page goes through the same extraction as a capture
+and the model returns a TL;DR, key points and a one-line verdict. Nothing is
+stored. **Save to library** re-stashes the page and hands it to Home's normal
+capture flow; **Skip** closes the tab.
+
 | Path | Role |
 |---|---|
 | `src/lib/model-fallback.ts` | Fallback model chain, embedding fitting, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |
@@ -631,7 +642,7 @@ since the brief's words aren't on screen.
 | `src/server/services/ai-library.ts` | Indexing, semantic + keyword retrieval, Ask, status |
 | `src/server/services/ai-feeds.ts`, `src/components/feeds/feed-ai.tsx` | Feed digest, entry summaries |
 | `src/lib/tidy-html.server.ts` | Block splitting for Tidy and page block collection for the extraction fallback (tested) |
-| `src/server/services/ai-extract.ts` | Extraction fallback |
+| `src/server/services/ai-extract.ts`, `src/routes/peek.tsx` | Extraction fallback; page peek for the extension |
 | `src/server/services/ai-shelves.ts`, `src/components/library/shelf-recs.tsx` | Shelf suggestions |
 | `src/server/services/ai-trips.ts` | Trip from article |
 | `src/server/services/ai-recap.ts`, `src/server/services/ai-notes.ts`, `src/components/library/weekly-recap.tsx` | Weekly recap and the `ai_notes` store |
