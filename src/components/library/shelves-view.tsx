@@ -1,6 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useDeferredValue, useEffect, useRef, useState } from "react";
-import { LoaderCircle, Plus, Search } from "lucide-react";
+import { LoaderCircle, Plus, Search, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { KamiEyebrow } from "@/components/kami.tsx";
 import type { SitePane } from "@/components/site-header.tsx";
@@ -19,7 +19,9 @@ import { statusLabels } from "@/lib/shelf-labels.ts";
 import { cn } from "@/lib/utils.ts";
 import { AddShelfDialog } from "@/components/library/add-shelf-dialog.tsx";
 import { ShelfFolio } from "@/components/library/shelf-folio.tsx";
+import { ShelfRecs } from "@/components/library/shelf-recs.tsx";
 import { ShelfTile } from "@/components/library/shelf-tile.tsx";
+import { useAiStatus } from "@/hooks/use-ai.ts";
 import type { ShelvesSearch } from "@/lib/shelves-search.ts";
 
 /** UI filter: `all` means no status predicate on the server. */
@@ -75,6 +77,9 @@ export function ShelvesView({ tab, search }: { tab: ShelfTab; search: ShelvesSea
   const deferredQuery = useDeferredValue(query);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const ai = useAiStatus();
+  const [recsFor, setRecsFor] = useState<ShelfTab | null>(null);
+  const canSuggest = ai.enabled && tab !== "wishlist";
   const syncedFromUrl = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -170,15 +175,33 @@ export function ShelvesView({ tab, search }: { tab: ShelfTab; search: ShelvesSea
                 />
               </div>
             </div>
-            <Button
-              type="button"
-              onClick={() => setAddOpen(true)}
-              className="shrink-0 bg-hanko text-white hover:bg-shu"
-            >
-              <Plus className="size-4" aria-hidden="true" />
-              Add to shelf
-            </Button>
+            <div className="flex shrink-0 items-center gap-2">
+              {canSuggest ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setRecsFor(recsFor === tab ? null : tab)}
+                  aria-expanded={recsFor === tab}
+                  className="shrink-0 gap-1.5 bg-surface shadow-[var(--shadow-border)]"
+                >
+                  <Sparkles className="size-4 text-hanko" aria-hidden="true" />
+                  Suggest
+                </Button>
+              ) : null}
+              <Button
+                type="button"
+                onClick={() => setAddOpen(true)}
+                className="shrink-0 bg-hanko text-white hover:bg-shu"
+              >
+                <Plus className="size-4" aria-hidden="true" />
+                Add to shelf
+              </Button>
+            </div>
           </div>
+
+          {recsFor === tab && tab !== "wishlist" && ai.enabled ? (
+            <ShelfRecs key={tab} type={tab} onClose={() => setRecsFor(null)} />
+          ) : null}
 
           <div className="mt-6 flex items-center gap-2 overflow-x-auto pb-1">
             {statusMeta(tab).map((s) => (

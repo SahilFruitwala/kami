@@ -574,6 +574,27 @@ rewritten, and a result that would drop 60% or more of the blocks is
 refused. The browser saves the tidied copy through the normal library
 upsert, with Undo.
 
+### Shelf suggestions
+
+Movie, TV and book shelves have **Suggest** (`POST
+/api/ai/shelves/recommend`): the model sees up to 150 shelf items with
+their status (finished items show taste, "gave up" what to avoid, queued
+ones aren't repeated) and suggests ten titles with a reason naming
+something on the shelf. Titles already on the shelf are dropped, and the
+first eight are matched against TMDB / Open Library (same search as the add
+dialog) so **Add to shelf** saves a cover and metadata in one tap. Nothing
+is stored.
+
+### Plan a trip from an article
+
+The reader's Gist card has **Plan a trip from this** (`POST
+/api/ai/articles/:id/trip`). For a travel piece, the model extracts the
+destination, a day count (up to 14), the style of the trip, plans per day
+and slot (only places from the article), and any hotels it recommends. The
+trip is created through the trips service (`createTrip`, `addTripItem`,
+`addTripHotel`), so the board's validation and limits apply, and the
+reader is taken to it. Non-travel pieces are refused.
+
 | Path | Role |
 |---|---|
 | `src/lib/model-fallback.ts` | Fallback model chain, embedding fitting, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |
@@ -587,6 +608,8 @@ upsert, with Undo.
 | `src/server/services/ai-library.ts` | Indexing, semantic + keyword retrieval, Ask, status |
 | `src/server/services/ai-feeds.ts`, `src/components/feeds/feed-ai.tsx` | Feed digest, entry summaries |
 | `src/lib/tidy-html.server.ts` | Block splitting for Tidy (tested) |
+| `src/server/services/ai-shelves.ts`, `src/components/library/shelf-recs.tsx` | Shelf suggestions |
+| `src/server/services/ai-trips.ts` | Trip from article |
 | `src/server/services/ai-recap.ts`, `src/server/services/ai-notes.ts`, `src/components/library/weekly-recap.tsx` | Weekly recap and the `ai_notes` store |
 | `src/server/services/ai-vault.ts`, `src/components/library/vault-ai.tsx` | Vault themes, flashcards, note drafts |
 | `src/components/library/library-ask.tsx`, `src/hooks/use-ai.ts` | Ask / Find panel, status + background indexer hooks |
