@@ -125,3 +125,39 @@ describe("AI text helpers", () => {
     assert.ok(clipped.endsWith(". …"));
   });
 });
+
+describe("AI chunking", async () => {
+  const { chunkText, highlightChunks, highlightLine, vectorLiteral } =
+    await import("../src/lib/ai-text.ts");
+
+  it("chunks between sentences and respects limits", () => {
+    const text = "Alpha one. Beta two! Gamma three? Delta four.";
+    assert.deepEqual(chunkText(text, 22, 10), [
+      "Alpha one. Beta two!",
+      "Gamma three?",
+      "Delta four.",
+    ]);
+    assert.deepEqual(chunkText(text, 22, 2), ["Alpha one. Beta two!", "Gamma three?"]);
+    assert.deepEqual(chunkText("   ", 10, 3), []);
+  });
+
+  it("hard-cuts a run without punctuation", () => {
+    const chunks = chunkText("x".repeat(25), 10, 5);
+    assert.deepEqual(
+      chunks.map((c) => c.length),
+      [10, 10, 5],
+    );
+  });
+
+  it("formats highlights with notes and groups them", () => {
+    assert.equal(highlightLine({ text: " a  b ", note: "why" }), "“a b” — note: why");
+    assert.equal(highlightLine({ text: "a", note: "" }), "“a”");
+    const chunks = highlightChunks([{ text: "one" }, { text: "two" }, { text: "three" }], 12, 5);
+    assert.deepEqual(chunks, ["“one”\n“two”", "“three”"]);
+    assert.equal(highlightChunks([{ text: "one" }, { text: "two" }], 5, 1).length, 1);
+  });
+
+  it("writes pgvector literals", () => {
+    assert.equal(vectorLiteral([0.5, -1, Number.NaN]), "[0.5,-1,0]");
+  });
+});

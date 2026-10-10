@@ -28,6 +28,9 @@ import { Route as ShelvesWishlistRouteImport } from './routes/shelves/wishlist'
 import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
 import { Route as TripsIndexRouteImport } from './routes/trips/index'
 import { Route as TripsIdRouteImport } from './routes/trips/$id'
+import { Route as ApiAiAskRouteImport } from './routes/api/ai/ask'
+import { Route as ApiAiEmbedRouteImport } from './routes/api/ai/embed'
+import { Route as ApiAiSearchRouteImport } from './routes/api/ai/search'
 import { Route as ApiAiStatusRouteImport } from './routes/api/ai/status'
 import { Route as ApiArticlesExtractRouteImport } from './routes/api/articles/extract'
 import { Route as ApiArticlesImportRouteImport } from './routes/api/articles/import'
@@ -187,6 +190,21 @@ const TripsIndexRoute = TripsIndexRouteImport.update({
 const TripsIdRoute = TripsIdRouteImport.update({
   id: '/trips/$id',
   path: '/trips/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiAskRoute = ApiAiAskRouteImport.update({
+  id: '/api/ai/ask',
+  path: '/api/ai/ask',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiEmbedRoute = ApiAiEmbedRouteImport.update({
+  id: '/api/ai/embed',
+  path: '/api/ai/embed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiSearchRoute = ApiAiSearchRouteImport.update({
+  id: '/api/ai/search',
+  path: '/api/ai/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAiStatusRoute = ApiAiStatusRouteImport.update({
@@ -544,6 +562,9 @@ export interface FileRoutesByFullPath {
   '/trips/$id': typeof TripsIdRoute
   '/shelves/': typeof ShelvesIndexRoute
   '/trips/': typeof TripsIndexRoute
+  '/api/ai/ask': typeof ApiAiAskRoute
+  '/api/ai/embed': typeof ApiAiEmbedRoute
+  '/api/ai/search': typeof ApiAiSearchRoute
   '/api/ai/status': typeof ApiAiStatusRoute
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
@@ -629,6 +650,9 @@ export interface FileRoutesByTo {
   '/trips/$id': typeof TripsIdRoute
   '/shelves': typeof ShelvesIndexRoute
   '/trips': typeof TripsIndexRoute
+  '/api/ai/ask': typeof ApiAiAskRoute
+  '/api/ai/embed': typeof ApiAiEmbedRoute
+  '/api/ai/search': typeof ApiAiSearchRoute
   '/api/ai/status': typeof ApiAiStatusRoute
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
@@ -716,6 +740,9 @@ export interface FileRoutesById {
   '/trips/$id': typeof TripsIdRoute
   '/shelves/': typeof ShelvesIndexRoute
   '/trips/': typeof TripsIndexRoute
+  '/api/ai/ask': typeof ApiAiAskRoute
+  '/api/ai/embed': typeof ApiAiEmbedRoute
+  '/api/ai/search': typeof ApiAiSearchRoute
   '/api/ai/status': typeof ApiAiStatusRoute
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
@@ -804,6 +831,9 @@ export interface FileRouteTypes {
     | '/trips/$id'
     | '/shelves/'
     | '/trips/'
+    | '/api/ai/ask'
+    | '/api/ai/embed'
+    | '/api/ai/search'
     | '/api/ai/status'
     | '/api/articles/extract'
     | '/api/articles/import'
@@ -889,6 +919,9 @@ export interface FileRouteTypes {
     | '/trips/$id'
     | '/shelves'
     | '/trips'
+    | '/api/ai/ask'
+    | '/api/ai/embed'
+    | '/api/ai/search'
     | '/api/ai/status'
     | '/api/articles/extract'
     | '/api/articles/import'
@@ -975,6 +1008,9 @@ export interface FileRouteTypes {
     | '/trips/$id'
     | '/shelves/'
     | '/trips/'
+    | '/api/ai/ask'
+    | '/api/ai/embed'
+    | '/api/ai/search'
     | '/api/ai/status'
     | '/api/articles/extract'
     | '/api/articles/import'
@@ -1060,6 +1096,9 @@ export interface RootRouteChildren {
   SignUpSplatRoute: typeof SignUpSplatRoute
   TripsIdRoute: typeof TripsIdRoute
   TripsIndexRoute: typeof TripsIndexRoute
+  ApiAiAskRoute: typeof ApiAiAskRoute
+  ApiAiEmbedRoute: typeof ApiAiEmbedRoute
+  ApiAiSearchRoute: typeof ApiAiSearchRoute
   ApiAiStatusRoute: typeof ApiAiStatusRoute
   ApiArticlesExtractRoute: typeof ApiArticlesExtractRoute
   ApiArticlesImportRoute: typeof ApiArticlesImportRoute
@@ -1243,6 +1282,27 @@ declare module '@tanstack/react-router' {
       path: '/trips/$id'
       fullPath: '/trips/$id'
       preLoaderRoute: typeof TripsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/ask': {
+      id: '/api/ai/ask'
+      path: '/api/ai/ask'
+      fullPath: '/api/ai/ask'
+      preLoaderRoute: typeof ApiAiAskRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/embed': {
+      id: '/api/ai/embed'
+      path: '/api/ai/embed'
+      fullPath: '/api/ai/embed'
+      preLoaderRoute: typeof ApiAiEmbedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/search': {
+      id: '/api/ai/search'
+      path: '/api/ai/search'
+      fullPath: '/api/ai/search'
+      preLoaderRoute: typeof ApiAiSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/ai/status': {
@@ -1828,6 +1888,9 @@ const rootRouteChildren: RootRouteChildren = {
   SignUpSplatRoute: SignUpSplatRoute,
   TripsIdRoute: TripsIdRoute,
   TripsIndexRoute: TripsIndexRoute,
+  ApiAiAskRoute: ApiAiAskRoute,
+  ApiAiEmbedRoute: ApiAiEmbedRoute,
+  ApiAiSearchRoute: ApiAiSearchRoute,
   ApiAiStatusRoute: ApiAiStatusRoute,
   ApiArticlesExtractRoute: ApiArticlesExtractRoute,
   ApiArticlesImportRoute: ApiArticlesImportRoute,

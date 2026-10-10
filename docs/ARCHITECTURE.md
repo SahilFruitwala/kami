@@ -492,6 +492,28 @@ conversation, the server re-sends its last 12 text messages plus the
 article (in the instructions) to the model. `AiChat`
 (`src/components/ai/ai-chat.tsx`) is the shared chat UI.
 
+### Ask your library
+
+**Ask your library** on `/library` opens a panel with two modes:
+
+- **Ask**: a chat (`POST /api/ai/ask`) that retrieves the ten best-matching
+  passages for each question and answers from them with numbered
+  citations. The reply's metadata lists the sources, shown as links to the
+  reader.
+- **Find by meaning**: `GET /api/ai/search?q=`, one hit per article or
+  highlight set, best first.
+
+Retrieval uses `ai_embeddings` (pgvector, migration 0017): article bodies
+in ~1500-character chunks (up to 8 per article, each prefixed with the
+title) and each article's highlights and notes. Indexing is incremental and
+pulled by the browser: while the library is open, `useLibraryIndexer` calls
+`POST /api/ai/embed` until nothing is left. Each call embeds up to 12 new or
+changed docs (one embedding request, at most 96 chunks), detects changes by
+the md5 of the source, and prunes chunks of deleted articles or cleared
+highlights. Without pgvector or an embedding key, both modes fall back to
+Postgres full-text search over titles and bodies. The journal (paused) is
+not indexed.
+
 | Path | Role |
 |---|---|
 | `src/lib/model-fallback.ts` | Fallback model chain, embedding fitting, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |
@@ -501,7 +523,10 @@ article (in the instructions) to the model. `AiChat`
 | `src/routes/api/ai/**` | HTTP routes |
 | `src/components/reader/reader-ai.tsx` | Reader cards (Gist, Ask this article) |
 | `src/components/ai/ai-chat.tsx` | Shared unsaved chat UI (`useChat`) |
-| `migrations/0016_article_ai.sql` | `article_ai` |
+| `src/lib/ai-text.ts` | Chunking, highlight lines, pgvector literals (pure, tested) |
+| `src/server/services/ai-library.ts` | Indexing, semantic + keyword retrieval, Ask, status |
+| `src/components/library/library-ask.tsx`, `src/hooks/use-ai.ts` | Ask / Find panel, status + background indexer hooks |
+| `migrations/0016_article_ai.sql`, `migrations/0017_ai_embeddings.sql` | `article_ai`, `ai_embeddings` (only when pgvector is available) |
 
 ---
 
