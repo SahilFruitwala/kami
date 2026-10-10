@@ -4,7 +4,6 @@ import { useNavigate } from "@tanstack/react-router";
 import {
   Eraser,
   Folder,
-  Headphones,
   MapPinned,
   LoaderCircle,
   MessageCircleQuestion,
@@ -31,18 +30,15 @@ export type AskSeed = { text: string; nonce: number };
 export function ReaderAi({
   item,
   askSeed,
-  onListen,
 }: {
   item: LibraryItem;
   askSeed?: AskSeed | null;
-  /** Read text aloud with the reader's voice (absent when the browser can't). */
-  onListen?: (text: string) => void;
 }) {
   const { enabled } = useAiStatus();
   if (!enabled) return null;
   return (
     <>
-      <SummaryCard item={item} onListen={onListen} />
+      <SummaryCard item={item} />
       <AskCard key={item.id} item={item} seed={askSeed ?? null} />
     </>
   );
@@ -95,7 +91,7 @@ function AskCard({ item, seed }: { item: LibraryItem; seed: AskSeed | null }) {
   );
 }
 
-function SummaryCard({ item, onListen }: { item: LibraryItem; onListen?: (text: string) => void }) {
+function SummaryCard({ item }: { item: LibraryItem }) {
   const client = useQueryClient();
   const key = queryKeys.ai.summary(item.id);
   const query = useQuery({
@@ -162,7 +158,6 @@ function SummaryCard({ item, onListen }: { item: LibraryItem; onListen?: (text: 
         </>
       )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-        {onListen ? <BriefButton item={item} onListen={onListen} /> : null}
         <TidyButton item={item} />
         <TripButton item={item} />
       </div>
@@ -216,32 +211,6 @@ function TidyButton({ item }: { item: LibraryItem }) {
         <Eraser className="size-3.5" aria-hidden="true" />
       )}
       {tidy.isPending ? "Tidying…" : "Tidy this copy"}
-    </button>
-  );
-}
-
-/** Listen to a three-minute version of the article written for the ear. */
-function BriefButton({ item, onListen }: { item: LibraryItem; onListen: (text: string) => void }) {
-  const brief = useMutation({
-    mutationFn: () => aiApi.audioBrief(item.id),
-    onSuccess: ({ text }) => onListen(text),
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Could not make an audio brief."),
-  });
-  return (
-    <button
-      type="button"
-      onClick={() => brief.mutate()}
-      disabled={brief.isPending}
-      title="A three-minute spoken version of this piece"
-      className="flex items-center gap-1.5 font-sans text-[11px] opacity-60 transition-opacity hover:opacity-100 disabled:opacity-40"
-    >
-      {brief.isPending ? (
-        <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
-      ) : (
-        <Headphones className="size-3.5" aria-hidden="true" />
-      )}
-      {brief.isPending ? "Writing the brief…" : "Listen to a 3-min brief"}
     </button>
   );
 }

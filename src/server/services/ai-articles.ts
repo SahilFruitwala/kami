@@ -12,12 +12,10 @@ import {
   asDocument,
   chatHistory,
   generateJson,
-  generateProse,
   streamChat,
   type chatTurnInput,
 } from "@/server/ai";
 import { badRequest, notFound } from "@/server/http";
-import { getNote, saveNote } from "@/server/services/ai-notes";
 
 /**
  * Article summaries: a TL;DR, key points and organisation suggestions (tags
@@ -291,43 +289,4 @@ export async function tidyArticle(userId: string, articleId: string): Promise<Ti
     contentHtml: drop.size ? joinBlocks(blocks, drop) : row.html,
     removed: [...drop].sort((a, b) => a - b).map((i) => previews[i]),
   };
-}
-
-// ---------- Audio brief ----------
-
-const BRIEF_KIND = "audio-brief";
-
-/**
- * A three-minute version of the article written for listening (no links,
- * tables or captions; numbers and names said plainly), read by the reader's
- * voice. Cached in `ai_notes` until the article's text changes.
- */
-export async function audioBrief(userId: string, articleId: string): Promise<{ text: string }> {
-  const article = await loadArticleForAi(userId, articleId);
-  const cached = await getNote<{ text: string; hash: string }>(userId, BRIEF_KIND, articleId);
-  if (cached && cached.content.hash === article.contentHash) return { text: cached.content.text };
-
-  const { text, model } = await generateProse({
-    instructions: [
-      "You turn an article into a short audio brief that will be read aloud by a text-to-speech voice.",
-      "About 400 to 500 words (three minutes). Open with what the piece is and who wrote it, then its main ideas in order, then the takeaway.",
-      "Write for the ear: short sentences, no headings, lists, links, URLs, tables, emojis or parentheses; spell out symbols and say numbers naturally.",
-      "Stay faithful to the article and use its language.",
-    ].join("\n"),
-    prompt: articleDocument(article),
-    maxOutputTokens: 1200,
-  });
-  const clean = text
-    .replace(/^\s*(?:[-•]|\d+[.)])\s+/gm, "")
-    .replace(/[*#_`>]/g, "")
-    .trim();
-  await saveNote(
-    userId,
-    BRIEF_KIND,
-    articleId,
-    { text: clean, hash: article.contentHash },
-    model,
-    100,
-  );
-  return { text: clean };
 }

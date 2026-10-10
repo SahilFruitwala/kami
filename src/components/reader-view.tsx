@@ -19,7 +19,6 @@ import { ReaderPrefsPanel } from "@/components/reader/reader-prefs.tsx";
 import { WashiTag } from "@/components/kami.tsx";
 import { highlightMenu, type EditMenu } from "@/lib/selection-menu.ts";
 import { useReaderProgress, useSelectionMenu } from "@/hooks/use-reader-selection.ts";
-import { useReaderTts } from "@/hooks/use-reader-tts.ts";
 import { TONES } from "@/lib/paper-tones.ts";
 import { cn } from "@/lib/utils.ts";
 import { FocusWave } from "@/components/reader/focus-wave.tsx";
@@ -82,7 +81,6 @@ export function ReaderView({
 
   const progress = useReaderProgress(article.canonicalUrl, item.id);
   const { menu, onSelectEnd: onSelectEndRaw, clearMenu } = useSelectionMenu(article.canonicalUrl, bodyRef);
-  const tts = useReaderTts(article.canonicalUrl, bodyRef);
 
   /** New text selection wins — dismiss the tap-to-edit menu. */
   function handleSelectEnd() {
@@ -364,29 +362,15 @@ export function ReaderView({
         <ReaderHeader
           favorited={item.favorited}
           archived={item.archived}
-          canSpeak={tts.canSpeak}
-          tts={tts.tts}
-          listenOpen={tts.listenOpen}
-          word={tts.word}
-          voices={tts.voices}
-          ttsRate={tts.ttsRate}
-          ttsVoiceURI={tts.ttsVoiceURI}
           prefsOpen={prefsOpen}
           prefsRef={prefsRef}
-          onBack={() => {
-            tts.stopTts();
-            onBack();
-          }}
-          onToggleListen={tts.toggleListen}
-          onStopTts={tts.stopTts}
+          onBack={onBack}
           onToggleFavorite={() => {
             setFavorited(item.id, !item.favorited);
             toast.success(item.favorited ? "Removed from favorites" : "Favorited");
           }}
           onTogglePrefs={() => setPrefsOpen((open) => !open)}
           onArchive={onArchive}
-          onTtsRate={tts.setTtsRate}
-          onTtsVoice={tts.setTtsVoiceURI}
           prefsPanel={
             <ReaderPrefsPanel
               readerFontSize={readerFontSize}
@@ -558,11 +542,7 @@ export function ReaderView({
                 </span>
               </div>
 
-              <ReaderAi
-                item={item}
-                askSeed={askSeed}
-                onListen={tts.canSpeak ? tts.speakText : undefined}
-              />
+              <ReaderAi item={item} askSeed={askSeed} />
 
               {item.highlights.length === 0 && !item.note ? (
                 <p className="rounded-xl bg-ink/5 p-4 font-body text-sm italic opacity-70">

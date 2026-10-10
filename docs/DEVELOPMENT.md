@@ -100,7 +100,7 @@ src/
     http.ts        # apiHandler: auth, same-site, rate limit, Zod, errors
     services/      # Business logic + DB access, one module per domain
   components/      # UI (library/, reader/, ui/, kami.tsx, …)
-  hooks/           # Capture, TTS, shelf queries, filters
+  hooks/           # Capture, shelf queries, filters
   lib/
     api/           # Typed fetch client + shared request/response types
     *-remote.ts    # Client sync
