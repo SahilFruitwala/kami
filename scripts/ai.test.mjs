@@ -180,3 +180,26 @@ describe("tidy blocks", async () => {
     assert.equal(blocks.length, 1);
   });
 });
+
+describe("content blocks", async () => {
+  const { collectContentBlocks, joinContentBlocks } =
+    await import("../src/lib/tidy-html.server.ts");
+
+  it("collects readable blocks in order, skipping chrome and nested blocks", () => {
+    const html = `<html><head><title> A  Page </title><script>x()</script></head><body>
+      <nav><p>Home</p></nav>
+      <div><h1>Title</h1><p>First <b>para</b>.</p><blockquote><p>Quoted</p></blockquote>
+      <ul><li>One</li><li>Two</li></ul><p>   </p></div><footer><p>© me</p></footer></body></html>`;
+    const { title, blocks, previews } = collectContentBlocks(html);
+    assert.equal(title, "A Page");
+    assert.deepEqual(
+      blocks.map((b) => b.tag),
+      ["h1", "p", "blockquote", "li", "li"],
+    );
+    assert.equal(previews[1], "<p> First para.");
+    assert.equal(
+      joinContentBlocks(blocks.slice(2)),
+      "<blockquote><p>Quoted</p></blockquote>\n<ul><li>One</li><li>Two</li></ul>",
+    );
+  });
+});

@@ -66,3 +66,58 @@ export function splitBlocks(html: string): HtmlBlocks {
 export function joinBlocks(blocks: string[], drop: Set<number>): string {
   return blocks.filter((_, i) => !drop.has(i)).join("\n");
 }
+
+const CONTENT_SELECTOR = "h1,h2,h3,h4,h5,h6,p,li,blockquote,pre,figure,table";
+const NOISE_SELECTOR =
+  "script,style,noscript,template,svg,nav,header,footer,aside,form,iframe,button";
+const MAX_CONTENT_BLOCKS = 400;
+
+export type ContentBlock = { tag: string; html: string };
+
+/**
+ * Collect a whole page's readable blocks (headings, paragraphs, list items,
+ * quotes, code, figures, tables) in document order, skipping page chrome and
+ * blocks nested inside another collected block. Used when Readability can't
+ * find the article: a model then picks which numbered blocks are the piece.
+ */
+export function collectContentBlocks(html: string): {
+  title: string;
+  blocks: ContentBlock[];
+  previews: string[];
+} {
+  const { document } = parseHTML(html);
+  const title = (document.querySelector("title")?.textContent ?? "").replace(/\s+/g, " ").trim();
+  for (const el of [...document.querySelectorAll(NOISE_SELECTOR)]) el.remove();
+  const body = document.body ?? document.documentElement;
+  const blocks: ContentBlock[] = [];
+  const previews: string[] = [];
+  for (const el of [...body.querySelectorAll(CONTENT_SELECTOR)] as Element[]) {
+    if (el.parentElement?.closest(CONTENT_SELECTOR)) continue;
+    const text = (el.textContent ?? "").replace(/\s+/g, " ").trim();
+    if (!text && el.tagName !== "FIGURE") continue;
+    blocks.push({ tag: el.tagName.toLowerCase(), html: el.outerHTML });
+    previews.push(previewOf(el));
+    if (blocks.length >= MAX_CONTENT_BLOCKS) break;
+  }
+  return { title, blocks, previews };
+}
+
+/** Rebuild HTML from chosen blocks, wrapping runs of list items back into a list. */
+export function joinContentBlocks(blocks: ContentBlock[]): string {
+  const out: string[] = [];
+  let list: string[] = [];
+  const flush = () => {
+    if (list.length) out.push(`<ul>${list.join("")}</ul>`);
+    list = [];
+  };
+  for (const block of blocks) {
+    if (block.tag === "li") {
+      list.push(block.html);
+      continue;
+    }
+    flush();
+    out.push(block.html);
+  }
+  flush();
+  return out.join("\n");
+}
