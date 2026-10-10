@@ -64,6 +64,9 @@ import { Route as ShelvesMoviesIndexRouteImport } from './routes/shelves/movies/
 import { Route as ShelvesMoviesIdRouteImport } from './routes/shelves/movies/$id'
 import { Route as ShelvesSeriesIndexRouteImport } from './routes/shelves/series/index'
 import { Route as ShelvesSeriesIdRouteImport } from './routes/shelves/series/$id'
+import { Route as ApiAiVaultFlashcardsRouteImport } from './routes/api/ai/vault/flashcards'
+import { Route as ApiAiVaultNoteRouteImport } from './routes/api/ai/vault/note'
+import { Route as ApiAiVaultThemesRouteImport } from './routes/api/ai/vault/themes'
 import { Route as ApiExtractsIdResultsRouteImport } from './routes/api/extracts/$id/results'
 import { Route as ApiExtractsIdRunRouteImport } from './routes/api/extracts/$id/run'
 import { Route as ApiExtractsResultsIdRouteImport } from './routes/api/extracts/results/$id'
@@ -372,6 +375,21 @@ const ShelvesSeriesIdRoute = ShelvesSeriesIdRouteImport.update({
   path: '/series/$id',
   getParentRoute: () => ShelvesRouteRoute,
 } as any)
+const ApiAiVaultFlashcardsRoute = ApiAiVaultFlashcardsRouteImport.update({
+  id: '/api/ai/vault/flashcards',
+  path: '/api/ai/vault/flashcards',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiVaultNoteRoute = ApiAiVaultNoteRouteImport.update({
+  id: '/api/ai/vault/note',
+  path: '/api/ai/vault/note',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiVaultThemesRoute = ApiAiVaultThemesRouteImport.update({
+  id: '/api/ai/vault/themes',
+  path: '/api/ai/vault/themes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiExtractsIdResultsRoute = ApiExtractsIdResultsRouteImport.update({
   id: '/results',
   path: '/results',
@@ -598,6 +616,9 @@ export interface FileRoutesByFullPath {
   '/shelves/books/': typeof ShelvesBooksIndexRoute
   '/shelves/movies/': typeof ShelvesMoviesIndexRoute
   '/shelves/series/': typeof ShelvesSeriesIndexRoute
+  '/api/ai/vault/flashcards': typeof ApiAiVaultFlashcardsRoute
+  '/api/ai/vault/note': typeof ApiAiVaultNoteRoute
+  '/api/ai/vault/themes': typeof ApiAiVaultThemesRoute
   '/api/extracts/$id/results': typeof ApiExtractsIdResultsRoute
   '/api/extracts/$id/run': typeof ApiExtractsIdRunRoute
   '/api/extracts/results/$id': typeof ApiExtractsResultsIdRouteWithChildren
@@ -686,6 +707,9 @@ export interface FileRoutesByTo {
   '/shelves/books': typeof ShelvesBooksIndexRoute
   '/shelves/movies': typeof ShelvesMoviesIndexRoute
   '/shelves/series': typeof ShelvesSeriesIndexRoute
+  '/api/ai/vault/flashcards': typeof ApiAiVaultFlashcardsRoute
+  '/api/ai/vault/note': typeof ApiAiVaultNoteRoute
+  '/api/ai/vault/themes': typeof ApiAiVaultThemesRoute
   '/api/extracts/$id/results': typeof ApiExtractsIdResultsRoute
   '/api/extracts/$id/run': typeof ApiExtractsIdRunRoute
   '/api/extracts/results/$id': typeof ApiExtractsResultsIdRouteWithChildren
@@ -776,6 +800,9 @@ export interface FileRoutesById {
   '/shelves/books/': typeof ShelvesBooksIndexRoute
   '/shelves/movies/': typeof ShelvesMoviesIndexRoute
   '/shelves/series/': typeof ShelvesSeriesIndexRoute
+  '/api/ai/vault/flashcards': typeof ApiAiVaultFlashcardsRoute
+  '/api/ai/vault/note': typeof ApiAiVaultNoteRoute
+  '/api/ai/vault/themes': typeof ApiAiVaultThemesRoute
   '/api/extracts/$id/results': typeof ApiExtractsIdResultsRoute
   '/api/extracts/$id/run': typeof ApiExtractsIdRunRoute
   '/api/extracts/results/$id': typeof ApiExtractsResultsIdRouteWithChildren
@@ -867,6 +894,9 @@ export interface FileRouteTypes {
     | '/shelves/books/'
     | '/shelves/movies/'
     | '/shelves/series/'
+    | '/api/ai/vault/flashcards'
+    | '/api/ai/vault/note'
+    | '/api/ai/vault/themes'
     | '/api/extracts/$id/results'
     | '/api/extracts/$id/run'
     | '/api/extracts/results/$id'
@@ -955,6 +985,9 @@ export interface FileRouteTypes {
     | '/shelves/books'
     | '/shelves/movies'
     | '/shelves/series'
+    | '/api/ai/vault/flashcards'
+    | '/api/ai/vault/note'
+    | '/api/ai/vault/themes'
     | '/api/extracts/$id/results'
     | '/api/extracts/$id/run'
     | '/api/extracts/results/$id'
@@ -1044,6 +1077,9 @@ export interface FileRouteTypes {
     | '/shelves/books/'
     | '/shelves/movies/'
     | '/shelves/series/'
+    | '/api/ai/vault/flashcards'
+    | '/api/ai/vault/note'
+    | '/api/ai/vault/themes'
     | '/api/extracts/$id/results'
     | '/api/extracts/$id/run'
     | '/api/extracts/results/$id'
@@ -1126,6 +1162,9 @@ export interface RootRouteChildren {
   ApiJournalIndexRoute: typeof ApiJournalIndexRoute
   ApiLibraryIndexRoute: typeof ApiLibraryIndexRoute
   ApiTripsIndexRoute: typeof ApiTripsIndexRoute
+  ApiAiVaultFlashcardsRoute: typeof ApiAiVaultFlashcardsRoute
+  ApiAiVaultNoteRoute: typeof ApiAiVaultNoteRoute
+  ApiAiVaultThemesRoute: typeof ApiAiVaultThemesRoute
   ApiExtractsResultsIdRoute: typeof ApiExtractsResultsIdRouteWithChildren
   ApiFeedsEntriesReadRoute: typeof ApiFeedsEntriesReadRoute
   ApiFeedsEntriesReadAllRoute: typeof ApiFeedsEntriesReadAllRoute
@@ -1536,6 +1575,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShelvesSeriesIdRouteImport
       parentRoute: typeof ShelvesRouteRoute
     }
+    '/api/ai/vault/flashcards': {
+      id: '/api/ai/vault/flashcards'
+      path: '/api/ai/vault/flashcards'
+      fullPath: '/api/ai/vault/flashcards'
+      preLoaderRoute: typeof ApiAiVaultFlashcardsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/vault/note': {
+      id: '/api/ai/vault/note'
+      path: '/api/ai/vault/note'
+      fullPath: '/api/ai/vault/note'
+      preLoaderRoute: typeof ApiAiVaultNoteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/vault/themes': {
+      id: '/api/ai/vault/themes'
+      path: '/api/ai/vault/themes'
+      fullPath: '/api/ai/vault/themes'
+      preLoaderRoute: typeof ApiAiVaultThemesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/extracts/$id/results': {
       id: '/api/extracts/$id/results'
       path: '/results'
@@ -1918,6 +1978,9 @@ const rootRouteChildren: RootRouteChildren = {
   ApiJournalIndexRoute: ApiJournalIndexRoute,
   ApiLibraryIndexRoute: ApiLibraryIndexRoute,
   ApiTripsIndexRoute: ApiTripsIndexRoute,
+  ApiAiVaultFlashcardsRoute: ApiAiVaultFlashcardsRoute,
+  ApiAiVaultNoteRoute: ApiAiVaultNoteRoute,
+  ApiAiVaultThemesRoute: ApiAiVaultThemesRoute,
   ApiExtractsResultsIdRoute: ApiExtractsResultsIdRouteWithChildren,
   ApiFeedsEntriesReadRoute: ApiFeedsEntriesReadRoute,
   ApiFeedsEntriesReadAllRoute: ApiFeedsEntriesReadAllRoute,
