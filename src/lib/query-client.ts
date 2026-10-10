@@ -29,6 +29,10 @@ export function getAppQueryClient() {
 }
 
 export const queryKeys = {
+  ai: {
+    all: ["ai"] as const,
+    status: () => [...queryKeys.ai.all, "status"] as const,
+  },
   extracts: {
     all: ["extracts"] as const,
     overview: () => [...queryKeys.extracts.all, "overview"] as const,

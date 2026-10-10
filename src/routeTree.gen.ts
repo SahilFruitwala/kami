@@ -28,6 +28,7 @@ import { Route as ShelvesWishlistRouteImport } from './routes/shelves/wishlist'
 import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
 import { Route as TripsIndexRouteImport } from './routes/trips/index'
 import { Route as TripsIdRouteImport } from './routes/trips/$id'
+import { Route as ApiAiStatusRouteImport } from './routes/api/ai/status'
 import { Route as ApiArticlesExtractRouteImport } from './routes/api/articles/extract'
 import { Route as ApiArticlesImportRouteImport } from './routes/api/articles/import'
 import { Route as ApiArticlesLinkRouteImport } from './routes/api/articles/link'
@@ -184,6 +185,11 @@ const TripsIndexRoute = TripsIndexRouteImport.update({
 const TripsIdRoute = TripsIdRouteImport.update({
   id: '/trips/$id',
   path: '/trips/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiStatusRoute = ApiAiStatusRouteImport.update({
+  id: '/api/ai/status',
+  path: '/api/ai/status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiArticlesExtractRoute = ApiArticlesExtractRouteImport.update({
@@ -526,6 +532,7 @@ export interface FileRoutesByFullPath {
   '/trips/$id': typeof TripsIdRoute
   '/shelves/': typeof ShelvesIndexRoute
   '/trips/': typeof TripsIndexRoute
+  '/api/ai/status': typeof ApiAiStatusRoute
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
   '/api/articles/link': typeof ApiArticlesLinkRoute
@@ -608,6 +615,7 @@ export interface FileRoutesByTo {
   '/trips/$id': typeof TripsIdRoute
   '/shelves': typeof ShelvesIndexRoute
   '/trips': typeof TripsIndexRoute
+  '/api/ai/status': typeof ApiAiStatusRoute
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
   '/api/articles/link': typeof ApiArticlesLinkRoute
@@ -692,6 +700,7 @@ export interface FileRoutesById {
   '/trips/$id': typeof TripsIdRoute
   '/shelves/': typeof ShelvesIndexRoute
   '/trips/': typeof TripsIndexRoute
+  '/api/ai/status': typeof ApiAiStatusRoute
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
   '/api/articles/link': typeof ApiArticlesLinkRoute
@@ -777,6 +786,7 @@ export interface FileRouteTypes {
     | '/trips/$id'
     | '/shelves/'
     | '/trips/'
+    | '/api/ai/status'
     | '/api/articles/extract'
     | '/api/articles/import'
     | '/api/articles/link'
@@ -859,6 +869,7 @@ export interface FileRouteTypes {
     | '/trips/$id'
     | '/shelves'
     | '/trips'
+    | '/api/ai/status'
     | '/api/articles/extract'
     | '/api/articles/import'
     | '/api/articles/link'
@@ -942,6 +953,7 @@ export interface FileRouteTypes {
     | '/trips/$id'
     | '/shelves/'
     | '/trips/'
+    | '/api/ai/status'
     | '/api/articles/extract'
     | '/api/articles/import'
     | '/api/articles/link'
@@ -1024,6 +1036,7 @@ export interface RootRouteChildren {
   SignUpSplatRoute: typeof SignUpSplatRoute
   TripsIdRoute: typeof TripsIdRoute
   TripsIndexRoute: typeof TripsIndexRoute
+  ApiAiStatusRoute: typeof ApiAiStatusRoute
   ApiArticlesExtractRoute: typeof ApiArticlesExtractRoute
   ApiArticlesImportRoute: typeof ApiArticlesImportRoute
   ApiArticlesLinkRoute: typeof ApiArticlesLinkRoute
@@ -1204,6 +1217,13 @@ declare module '@tanstack/react-router' {
       path: '/trips/$id'
       fullPath: '/trips/$id'
       preLoaderRoute: typeof TripsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/status': {
+      id: '/api/ai/status'
+      path: '/api/ai/status'
+      fullPath: '/api/ai/status'
+      preLoaderRoute: typeof ApiAiStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/articles/extract': {
@@ -1768,6 +1788,7 @@ const rootRouteChildren: RootRouteChildren = {
   SignUpSplatRoute: SignUpSplatRoute,
   TripsIdRoute: TripsIdRoute,
   TripsIndexRoute: TripsIndexRoute,
+  ApiAiStatusRoute: ApiAiStatusRoute,
   ApiArticlesExtractRoute: ApiArticlesExtractRoute,
   ApiArticlesImportRoute: ApiArticlesImportRoute,
   ApiArticlesLinkRoute: ApiArticlesLinkRoute,
