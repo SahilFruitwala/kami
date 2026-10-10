@@ -5,8 +5,8 @@ import { extractArticle, extractInput } from "@/server/services/articles";
 export const Route = createFileRoute("/api/articles/extract")({
   server: {
     handlers: {
-      POST: apiHandler({ body: extractInput, rateLimit: "extract" }, ({ body }) =>
-        extractArticle(body),
+      POST: apiHandler({ body: extractInput, rateLimit: "extract" }, ({ userId, body }) =>
+        extractArticle(userId, body),
       ),
     },
   },

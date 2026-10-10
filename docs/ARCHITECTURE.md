@@ -595,6 +595,19 @@ trip is created through the trips service (`createTrip`, `addTripItem`,
 `addTripHotel`), so the board's validation and limits apply, and the
 reader is taken to it. Non-travel pieces are refused.
 
+### Extraction fallback
+
+When Readability finds nothing on a fetched page, extraction used to keep
+the page's first 4,000 characters of text (menus and all). With AI set up,
+`extractArticleFromUrl` first tries `aiExtractFallback`: the page's
+readable blocks (headings, paragraphs, list items, quotes, code, figures,
+tables; page chrome dropped) are numbered, and the model returns the ranges
+that form the piece. The article is rebuilt from those blocks as-is, so the
+model never writes its text. It runs for single saves (`/api/articles/extract`,
+including the reader's link-stub upgrade, and saving a feed entry), not bulk
+saves; counts one call against the `ai` bucket; and steps aside (to the old
+behaviour) when AI is off, over budget, or the page isn't an article.
+
 | Path | Role |
 |---|---|
 | `src/lib/model-fallback.ts` | Fallback model chain, embedding fitting, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |
@@ -607,7 +620,8 @@ reader is taken to it. Non-travel pieces are refused.
 | `src/lib/ai-text.ts` | Chunking, highlight lines, pgvector literals (pure, tested) |
 | `src/server/services/ai-library.ts` | Indexing, semantic + keyword retrieval, Ask, status |
 | `src/server/services/ai-feeds.ts`, `src/components/feeds/feed-ai.tsx` | Feed digest, entry summaries |
-| `src/lib/tidy-html.server.ts` | Block splitting for Tidy (tested) |
+| `src/lib/tidy-html.server.ts` | Block splitting for Tidy and page block collection for the extraction fallback (tested) |
+| `src/server/services/ai-extract.ts` | Extraction fallback |
 | `src/server/services/ai-shelves.ts`, `src/components/library/shelf-recs.tsx` | Shelf suggestions |
 | `src/server/services/ai-trips.ts` | Trip from article |
 | `src/server/services/ai-recap.ts`, `src/server/services/ai-notes.ts`, `src/components/library/weekly-recap.tsx` | Weekly recap and the `ai_notes` store |
