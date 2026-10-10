@@ -533,6 +533,18 @@ filter by tag, author or search first; up to 150 slips):
 The browser sends the slips it shows (text, note, title, author), so
 highlights that haven't synced yet are included. Nothing is stored.
 
+### Weekly reading recap
+
+The desk (`/app`) shows **Your week in reading** under the capture box: a
+recap of the past seven days (what was saved and finished, the passages
+highlighted), up to four themes, a standout highlight, a reflection prompt,
+and a pick from older unread inbox items. Made on demand
+(`POST /api/ai/recap`) and kept in `ai_notes` (kind `weekly-recap`, keyed by
+the day it was made, newest 12 kept); `GET` returns the latest. The model
+names highlights and unread pieces by short ids (`h1`, `r1`) that are mapped
+back to articles. This stands in for journal reflections while the journal
+is paused.
+
 | Path | Role |
 |---|---|
 | `src/lib/model-fallback.ts` | Fallback model chain, embedding fitting, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |
@@ -544,9 +556,10 @@ highlights that haven't synced yet are included. Nothing is stored.
 | `src/components/ai/ai-chat.tsx` | Shared unsaved chat UI (`useChat`) |
 | `src/lib/ai-text.ts` | Chunking, highlight lines, pgvector literals (pure, tested) |
 | `src/server/services/ai-library.ts` | Indexing, semantic + keyword retrieval, Ask, status |
+| `src/server/services/ai-recap.ts`, `src/server/services/ai-notes.ts`, `src/components/library/weekly-recap.tsx` | Weekly recap and the `ai_notes` store |
 | `src/server/services/ai-vault.ts`, `src/components/library/vault-ai.tsx` | Vault themes, flashcards, note drafts |
 | `src/components/library/library-ask.tsx`, `src/hooks/use-ai.ts` | Ask / Find panel, status + background indexer hooks |
-| `migrations/0016_article_ai.sql`, `migrations/0017_ai_embeddings.sql` | `article_ai`, `ai_embeddings` (only when pgvector is available) |
+| `migrations/0016_article_ai.sql`, `0017_ai_embeddings.sql`, `0018_ai_notes.sql` | `article_ai`, `ai_embeddings` (only when pgvector is available), `ai_notes` |
 
 ---
 

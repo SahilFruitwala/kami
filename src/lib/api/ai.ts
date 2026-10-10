@@ -56,6 +56,21 @@ export type VaultThemes = {
 
 export type VaultFlashcard = { front: string; back: string; slipId: string };
 
+/** "Your week in reading" on the desk. */
+export type WeeklyRecap = {
+  /** Range covered (YYYY-MM-DD, UTC). */
+  from: string;
+  to: string;
+  stats: { saved: number; finished: number; highlights: number };
+  recap: string;
+  themes: string[];
+  standout: { text: string; articleId: string; title: string } | null;
+  prompt: string;
+  nextRead: { articleId: string; title: string; reason: string } | null;
+  model: string | null;
+  createdAt: number;
+};
+
 export const aiApi = {
   status: () => http.get<AiStatus>("/api/ai/status"),
 
@@ -82,6 +97,11 @@ export const aiApi = {
   /** A draft margin note for one highlight. */
   draftNote: (articleId: string, text: string) =>
     http.post<{ note: string }>("/api/ai/vault/note", { articleId, text }),
+
+  /** The latest weekly recap, or null. */
+  weeklyRecap: () => http.get<WeeklyRecap | null>("/api/ai/recap"),
+  /** Make a fresh recap of the past seven days. */
+  makeWeeklyRecap: () => http.post<WeeklyRecap>("/api/ai/recap"),
 
   /** Generate (or regenerate) and cache the summary. */
   summarize: (articleId: string) =>

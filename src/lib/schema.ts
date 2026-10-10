@@ -658,6 +658,25 @@ export const articleAi = pgTable(
   (t) => [index("article_ai_user_idx").on(t.userId)],
 );
 
+/** Generated write-ups per period: weekly recap, feed digest (0018_ai_notes.sql). */
+export const aiNotes = pgTable(
+  "ai_notes",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    key: text("key").notNull(),
+    content: jsonb("content").$type<unknown>().notNull(),
+    model: text("model"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.userId, t.kind, t.key] }),
+    index("ai_notes_recent_idx").on(t.userId, t.kind, desc(t.createdAt)),
+  ],
+);
+
 export type TripRow = typeof trips.$inferSelect;
 export type TripHotelRow = typeof tripHotels.$inferSelect;
 export type TripItemRow = typeof tripItems.$inferSelect;
@@ -698,4 +717,5 @@ export const schema = {
   tripMessages,
   tripSnapshots,
   articleAi,
+  aiNotes,
 };

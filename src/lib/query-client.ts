@@ -33,6 +33,7 @@ export const queryKeys = {
     all: ["ai"] as const,
     status: () => [...queryKeys.ai.all, "status"] as const,
     summary: (articleId: string) => [...queryKeys.ai.all, "summary", articleId] as const,
+    recap: () => [...queryKeys.ai.all, "recap"] as const,
   },
   extracts: {
     all: ["extracts"] as const,
