@@ -514,6 +514,25 @@ highlights. Without pgvector or an embedding key, both modes fall back to
 Postgres full-text search over titles and bodies. The journal (paused) is
 not indexed.
 
+### Vault patterns
+
+On `/vault`, a **Patterns** panel works on the slips currently in view (so
+filter by tag, author or search first; up to 150 slips):
+
+- **Find themes** (`POST /api/ai/vault/themes`): three to six themes with
+  the slips behind each, connections between different sources, and open
+  questions. Slips are sent as `s1`, `s2`… so the model cites short ids
+  that are mapped back to highlights (unknown ids are dropped).
+- **Make flashcards** (`POST /api/ai/vault/flashcards`): up to 40
+  question/answer cards, flip to reveal, export as CSV (Anki: front, back,
+  source) or Markdown.
+- **Draft** on a slip without a note (`POST /api/ai/vault/note`): drafts a
+  two-to-four sentence note from the passage and the article text around
+  it, opened in the note editor for the reader to edit or discard.
+
+The browser sends the slips it shows (text, note, title, author), so
+highlights that haven't synced yet are included. Nothing is stored.
+
 | Path | Role |
 |---|---|
 | `src/lib/model-fallback.ts` | Fallback model chain, embedding fitting, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |
@@ -525,6 +544,7 @@ not indexed.
 | `src/components/ai/ai-chat.tsx` | Shared unsaved chat UI (`useChat`) |
 | `src/lib/ai-text.ts` | Chunking, highlight lines, pgvector literals (pure, tested) |
 | `src/server/services/ai-library.ts` | Indexing, semantic + keyword retrieval, Ask, status |
+| `src/server/services/ai-vault.ts`, `src/components/library/vault-ai.tsx` | Vault themes, flashcards, note drafts |
 | `src/components/library/library-ask.tsx`, `src/hooks/use-ai.ts` | Ask / Find panel, status + background indexer hooks |
 | `migrations/0016_article_ai.sql`, `migrations/0017_ai_embeddings.sql` | `article_ai`, `ai_embeddings` (only when pgvector is available) |
 

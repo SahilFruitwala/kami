@@ -38,6 +38,24 @@ export type IndexProgress = { enabled: boolean; indexed: number; remaining: numb
 /** Metadata on an Ask reply: the numbered sources it may cite. */
 export type AskMetadata = { sources?: Array<LibrarySource & { n: number }> };
 
+/** A highlight sent to the vault helpers. */
+export type VaultSlipInput = {
+  /** The highlight id; results refer back to it. */
+  id: string;
+  text: string;
+  note: string;
+  title: string;
+  author: string;
+};
+
+export type VaultThemes = {
+  themes: Array<{ title: string; insight: string; slipIds: string[] }>;
+  connections: Array<{ insight: string; slipIds: string[] }>;
+  questions: string[];
+};
+
+export type VaultFlashcard = { front: string; back: string; slipId: string };
+
 export const aiApi = {
   status: () => http.get<AiStatus>("/api/ai/status"),
 
@@ -54,6 +72,16 @@ export const aiApi = {
     http.get<ArticleSummary | null>(`/api/ai/articles/${seg(articleId)}/summary`),
   /** Streaming chat endpoint for an article (used with the AI SDK's useChat). */
   articleChatUrl: (articleId: string) => `/api/ai/articles/${seg(articleId)}/chat`,
+
+  /** Themes and connections across the given highlights. */
+  vaultThemes: (slips: VaultSlipInput[]) =>
+    http.post<VaultThemes>("/api/ai/vault/themes", { slips }),
+  /** Study flashcards from the given highlights. */
+  vaultFlashcards: (slips: VaultSlipInput[]) =>
+    http.post<{ cards: VaultFlashcard[] }>("/api/ai/vault/flashcards", { slips }),
+  /** A draft margin note for one highlight. */
+  draftNote: (articleId: string, text: string) =>
+    http.post<{ note: string }>("/api/ai/vault/note", { articleId, text }),
 
   /** Generate (or regenerate) and cache the summary. */
   summarize: (articleId: string) =>
