@@ -63,9 +63,13 @@ export function aiLanguageModel(): LanguageModel | null {
   const chain = aiModelChain();
   if (!chain.length) return null;
   return fallbackModel(
-    chain.map((m) => languageModel(m) as ProviderModel),
-    ({ failed, next, error }) =>
-      console.warn(`[ai] ${failed} failed, trying ${next}:`, (error as Error)?.message ?? error),
+    chain.map((m) => ({ id: m.id, model: languageModel(m) as ProviderModel })),
+    ({ failed, next, error }) => {
+      const e = error as { statusCode?: number; message?: string };
+      console.warn(
+        `[ai] ${failed} failed (${e?.statusCode ?? e?.message ?? "error"}), trying ${next}`,
+      );
+    },
   );
 }
 

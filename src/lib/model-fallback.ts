@@ -23,40 +23,75 @@ function isAbort(err: unknown, options: CallOptions): boolean {
   return err instanceof Error && err.name === "AbortError";
 }
 
+/** One link in the chain; `id` (e.g. `google:gemini-3.8-flash`) names it in logs and results. */
+export type ChainModel = { id: string; model: ProviderModel };
+
+type StreamResult = Awaited<ReturnType<ProviderModel["doStream"]>>;
+type StreamPart = StreamResult["stream"] extends ReadableStream<infer P> ? P : never;
+
+/**
+ * Stamp the answering model's id on a stream: providers report their model
+ * in `response-metadata` parts (some never do), so set it on those and add
+ * one up front.
+ */
+function stampStream(result: StreamResult, id: string): StreamResult {
+  let first = true;
+  const stream = result.stream.pipeThrough(
+    new TransformStream<StreamPart, StreamPart>({
+      transform(part, controller) {
+        if (first) {
+          first = false;
+          if (part.type === "stream-start") {
+            controller.enqueue(part);
+            controller.enqueue({ type: "response-metadata", modelId: id });
+            return;
+          }
+          controller.enqueue({ type: "response-metadata", modelId: id });
+        }
+        controller.enqueue(part.type === "response-metadata" ? { ...part, modelId: id } : part);
+      },
+    }),
+  );
+  return { ...result, stream };
+}
+
 export function fallbackModel(
-  models: ProviderModel[],
+  chain: ChainModel[],
   onFallback?: (event: FallbackEvent) => void,
 ): ProviderModel {
-  if (!models.length) throw new Error("fallbackModel needs at least one model.");
-  if (models.length === 1) return models[0];
-  const [first] = models;
-  const label = (m: ProviderModel) => `${m.provider}:${m.modelId}`;
+  if (!chain.length) throw new Error("fallbackModel needs at least one model.");
+  const [first] = chain;
 
   async function attempt<T>(
     options: CallOptions,
-    call: (model: ProviderModel) => PromiseLike<T>,
+    call: (link: ChainModel) => PromiseLike<T>,
   ): Promise<T> {
     let lastError: unknown;
-    for (let i = 0; i < models.length; i++) {
+    for (let i = 0; i < chain.length; i++) {
       try {
-        return await call(models[i]);
+        return await call(chain[i]);
       } catch (err) {
         if (isAbort(err, options)) throw err;
         lastError = err;
-        const next = models[i + 1];
-        if (next) onFallback?.({ failed: label(models[i]), next: label(next), error: err });
+        const next = chain[i + 1];
+        if (next) onFallback?.({ failed: chain[i].id, next: next.id, error: err });
       }
     }
     throw lastError;
   }
 
   return {
-    specificationVersion: first.specificationVersion,
+    specificationVersion: first.model.specificationVersion,
     provider: "fallback",
-    modelId: models.map(label).join(" → "),
-    supportedUrls: first.supportedUrls,
-    doGenerate: (options) => attempt(options, (m) => m.doGenerate(options)),
-    doStream: (options) => attempt(options, (m) => m.doStream(options)),
+    modelId: chain.map((link) => link.id).join(" → "),
+    supportedUrls: first.model.supportedUrls,
+    doGenerate: (options) =>
+      attempt(options, async ({ id, model }) => {
+        const result = await model.doGenerate(options);
+        return { ...result, response: { ...result.response, modelId: id } };
+      }),
+    doStream: (options) =>
+      attempt(options, async ({ id, model }) => stampStream(await model.doStream(options), id)),
   } satisfies ProviderModel;
 }
 

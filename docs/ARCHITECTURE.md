@@ -459,6 +459,41 @@ sequenceDiagram
 
 ---
 
+## AI features
+
+Optional AI helpers across the library. They reuse the trip agent's provider
+keys and are hidden in the UI until `GET /api/ai/status` reports a usable
+model.
+
+| Concern | Choice |
+|---|---|
+| Models | `AI_MODELS` (default `google:gemini-3.8-flash`, then `openrouter:anthropic/claude-haiku-5.5`). `aiLanguageModel()` in `llm.server.ts` wraps the models that have a key in one `fallbackModel` (`src/lib/model-fallback.ts`): each call tries Google first and moves to Claude Haiku when Google errors (bad key, quota, outage). Streams fail over only while they are being set up, never mid-reply. The model that answered is recorded with each result. |
+| Calls | `src/server/ai.ts`: `generateJson` (zod schema → structured output), `generateProse`, `embedTexts`. Low temperature, one SDK retry per model, provider errors mapped to friendly 502/503s. |
+| Untrusted text | Articles, feed entries and journal text go into prompts wrapped in `<document>` tags, and every system prompt says to treat them as data, never instructions. |
+| Cost | `ai` rate-limit bucket (300 calls/hour/user). Results are cached in the database and regenerated only on request. Article text is clipped to ~24k characters. |
+
+### Article summaries
+
+The reader's margin has a **Gist** card: a TL;DR, three to six key points,
+and suggestions to add tags (from the user's own tag vocabulary, most used
+first) and file it in an existing folder. Generated on demand
+(`POST /api/ai/articles/:id/summary`) and cached in `article_ai`, keyed by
+article, with a sha256 of the body it was made from. When the text changes
+(a link stub upgraded to a clean copy), the card shows the old summary as
+stale until it is regenerated.
+
+| Path | Role |
+|---|---|
+| `src/lib/model-fallback.ts` | Fallback model chain, embedding fitting, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |
+| `src/lib/llm.server.ts` | Provider wiring for the chain and embeddings |
+| `src/server/ai.ts` | Shared generation helpers and error mapping |
+| `src/server/services/ai-articles.ts` | Summaries, tag vocabulary, article-to-prompt helpers |
+| `src/routes/api/ai/**` | HTTP routes |
+| `src/components/reader/reader-ai.tsx` | Reader card |
+| `migrations/0016_article_ai.sql` | `article_ai` |
+
+---
+
 ## Caching
 
 `src/lib/cache.server.ts` — enabled only when both Upstash env vars are set.

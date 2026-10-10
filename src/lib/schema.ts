@@ -637,6 +637,27 @@ export const tripSnapshots = pgTable("trip_snapshots", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// ---------- AI ----------
+
+/** AI summary + organisation suggestions for one article (0016_article_ai.sql). */
+export const articleAi = pgTable(
+  "article_ai",
+  {
+    articleId: text("article_id")
+      .primaryKey()
+      .references(() => articles.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    summary: jsonb("summary").$type<unknown>().notNull(),
+    /** sha256 of the article body the summary was made from. */
+    contentHash: text("content_hash").notNull(),
+    model: text("model"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("article_ai_user_idx").on(t.userId)],
+);
+
 export type TripRow = typeof trips.$inferSelect;
 export type TripHotelRow = typeof tripHotels.$inferSelect;
 export type TripItemRow = typeof tripItems.$inferSelect;
@@ -676,4 +697,5 @@ export const schema = {
   tripItems,
   tripMessages,
   tripSnapshots,
+  articleAi,
 };
