@@ -33,6 +33,14 @@ export const RATE_LIMITS = {
 
 export type RateLimitBucket = keyof typeof RATE_LIMITS;
 
+/**
+ * Buckets that spend paid third-party credits (Firecrawl, model tokens). If
+ * the limiter itself is down these fail *closed*: a database blip must not
+ * become an unmetered window on someone else's bill. Everything else fails
+ * open so normal reading/saving keeps working.
+ */
+const FAIL_CLOSED: ReadonlySet<RateLimitBucket> = new Set(["firecrawl", "agent", "ai"]);
+
 export class RateLimitError extends Error {
   readonly status = 429;
   constructor(readonly retryAfterSeconds: number) {
@@ -49,7 +57,8 @@ export function windowStart(nowSeconds: number, windowSeconds: number): number {
 /**
  * Count `cost` requests against `bucket` for `userId`; throws
  * `RateLimitError` once the window's budget is exceeded. Database errors fail
- * open (logged) so a transient blip never blocks normal use.
+ * open (logged) so a transient blip never blocks normal use — except for the
+ * paid buckets in `FAIL_CLOSED`.
  */
 export async function enforceRateLimit(
   userId: string,
@@ -78,6 +87,10 @@ export async function enforceRateLimit(
     `);
     used = Number(result.rows[0]?.count ?? 0);
   } catch (err) {
+    if (FAIL_CLOSED.has(bucket)) {
+      console.error(`[rate-limit] check failed, refusing paid "${bucket}" request:`, err);
+      throw new RateLimitError(60);
+    }
     console.warn("[rate-limit] check failed, allowing request:", err);
     return;
   }

@@ -101,6 +101,19 @@ async function capture(tab, intent = "save") {
   });
   try {
     await waitForLoad(kamiTab.id);
+    // The captured page can be private (signed-in pages, paywalls): only hand
+    // it over if the tab is still on KAMI's /capture — not a sign-in detour
+    // or anywhere else it may have been redirected.
+    const loaded = await api.tabs.get(kamiTab.id);
+    let landed = null;
+    try {
+      landed = new URL(loaded.url || "");
+    } catch {
+      // unreadable URL → treat as not KAMI
+    }
+    if (!landed || landed.origin !== origin || landed.pathname !== "/capture") {
+      throw new Error("KAMI didn't open its capture page (are you signed in?).");
+    }
     await api.scripting.executeScript({
       target: { tabId: kamiTab.id },
       func: deliver,

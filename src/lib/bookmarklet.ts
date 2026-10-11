@@ -35,16 +35,6 @@ export function parseCapturePayload(raw: unknown): BookmarkletPayload | null {
   };
 }
 
-/** Legacy `?import=<base64 json>` payloads from older bookmarklets. */
-export function decodeImportPayload(raw: string): BookmarkletPayload | null {
-  try {
-    const json = decodeURIComponent(escape(atob(raw)));
-    return parseCapturePayload(JSON.parse(json));
-  } catch {
-    return null;
-  }
-}
-
 /**
  * Serialize the current page without scripts/styles/embeds. Shared with the
  * browser extension (extension/background.js keeps a copy — it can't import

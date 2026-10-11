@@ -217,7 +217,20 @@ The bookmarklet and the `extension/` browser extension capture the page in the u
 2. The sender answers with `kami:capture` + `{ url, title, html }` (scripts/styles stripped, ≤ 1.4 MB).
 3. `/capture` accepts it only from its opener **for the opener's own origin**, or from same-origin/extension script; stashes it in `sessionStorage` and routes to `/app`, which imports it once the session is confirmed (`POST /api/articles/import` with `capture: true` → full extraction).
 
-Legacy `?import=` links (`/` and `/app`) redirect to `/capture`. `/share` is the PWA Web Share Target (`site.webmanifest`): it takes the first URL from `url`/`text` and hands it to Home's normal save flow.
+There is no URL-carried capture: the old `?import=<base64>` links were removed because any site could link one and plant content (with a forged source URL) in a reader's library.
+
+`/share` is the PWA Web Share Target (`site.webmanifest`): it takes the first URL from `url`/`text` and **pre-fills** Home's save box (`/app?save=`). Saving always takes the reader's tap — any site can link to `/share`, so arriving there must not change the library.
+
+### Saving a link (web and native clients)
+
+`POST /api/library/save` `{ url, linkOnly? }` is the one save-by-URL path. The server fetches and extracts the page (SSRF-guarded, `extract` rate limit) and stores the clean copy, returning `{ ok: true, item, existed }` or `{ ok: false, error }`. A URL already in the library comes back untouched (`existed: true`) — tags, highlights and notes are never reset by a re-save. Clients send only the URL, never article HTML.
+
+A future phone app uses the same endpoints as the web app:
+
+- **Auth:** send the Clerk session token as `Authorization: Bearer <token>`. `requireUserId` accepts session tokens only (not API keys or machine tokens).
+- **CSRF:** Bearer requests skip the cookie CSRF middleware (a browser can't attach that header cross-site without a preflight), and native clients send no `Sec-Fetch-*` headers, so the same-site check passes.
+- **Share sheet:** a native share extension should call `POST /api/library/save` directly instead of opening `/share`.
+- **Images:** `/api/img?u=` accepts the same Bearer token.
 
 ---
 
@@ -695,7 +708,7 @@ flowchart LR
   Migrate --> Vercel[Vercel serverless]
 ```
 
-`vercel.json` sets security headers and a CSP that allows Clerk (including the production Frontend API host `clerk.kami.sahilfruitwala.com`, Clerk CDN, Cloudflare Turnstile, and `*.protect.clerk.com`), fonts, and extraction helpers (`r.jina.ai`, fxtwitter/vxtwitter). `/api/img` gets a stricter CSP.
+`vercel.json` sets the static security headers (`X-Frame-Options`, `nosniff`, referrer and permissions policies; `/api/img` gets its own locked-down CSP). The page CSP is built in `src/lib/csp.ts` and attached to every HTML response by `cspMiddleware` in `src/start.ts` with a fresh nonce; the router passes that nonce (`ssr.nonce`) to TanStack's hydration scripts, Clerk's init state and the theme script, so `script-src` needs no `'unsafe-inline'`. It allows Clerk (including the production Frontend API host `clerk.kami.sahilfruitwala.com`, Clerk CDN, Cloudflare Turnstile, and `*.protect.clerk.com`). Outbound fetches of user URLs go through `publicFetch` (`src/lib/safe-url.server.ts`), which pins each connection to a DNS answer that passed the public-IP check, so a hostname can't rebind to an internal address between check and connect.
 
 ---
 

@@ -1,5 +1,22 @@
 import { clerkMiddleware } from "@clerk/tanstack-react-start/server";
-import { createCsrfMiddleware, createStart } from "@tanstack/react-start";
+import { createCsrfMiddleware, createMiddleware, createStart } from "@tanstack/react-start";
+import { contentSecurityPolicy, newCspNonce } from "@/lib/csp";
+
+/**
+ * Per-request CSP nonce. The nonce rides the start context to `getRouter`
+ * (`ssr.nonce`), which stamps it on every inline script the page emits; the
+ * matching policy is attached to HTML responses here. Production only — Vite's
+ * dev server injects its own un-nonced inline scripts.
+ */
+const cspMiddleware = createMiddleware().server(async ({ next }) => {
+  const cspNonce = newCspNonce();
+  const result = await next({ context: { cspNonce } });
+  const type = result.response.headers.get("content-type") ?? "";
+  if (import.meta.env.PROD && type.includes("text/html")) {
+    result.response.headers.set("content-security-policy", contentSecurityPolicy(cspNonce));
+  }
+  return result;
+});
 
 /**
  * Origin/Fetch-Metadata CSRF check for the JSON API (`/api/*`). Defense in
@@ -23,6 +40,6 @@ const csrfMiddleware = createCsrfMiddleware({
 export const startInstance = createStart(() => {
   return {
     defaultSsr: false,
-    requestMiddleware: [csrfMiddleware, clerkMiddleware()],
+    requestMiddleware: [cspMiddleware, csrfMiddleware, clerkMiddleware()],
   };
 });

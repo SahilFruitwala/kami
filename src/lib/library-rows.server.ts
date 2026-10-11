@@ -12,6 +12,7 @@ import { articles, folders } from "@/lib/schema";
 import type { Highlight, HighlightColorId, LibraryItem } from "@/lib/store";
 import { HIGHLIGHT_COLORS, normalizeTag } from "@/lib/store";
 import { HIGHLIGHT_NOTE_MAX } from "@/lib/item-ops";
+import { isHttpUrl } from "@/lib/safe-url";
 import type { LibrarySnapshot } from "@/lib/api/types";
 
 /** Shared server-side helpers for the library server functions: input
@@ -31,6 +32,17 @@ export const highlightSchema = z.object({
 });
 
 const tagSchema = z.string().max(28).transform(normalizeTag);
+
+/**
+ * Stored links must be plain http(s). The web reader is shielded by React
+ * (which neuters `javascript:` hrefs), but native/mobile clients open these
+ * with the OS (`Linking.openURL`, intents) and get no such protection.
+ */
+const httpUrlField = z
+  .string()
+  .min(1)
+  .max(2000)
+  .refine(isHttpUrl, "Only http(s) links can be saved.");
 
 export const tagOpSchema = z.discriminatedUnion("op", [
   z.object({ op: z.literal("add"), tag: tagSchema }),
@@ -54,8 +66,8 @@ export const libraryItemSchema = z.object({
   // replace it with a generated id when that global PK is already used by a
   // different user.
   id: z.string().min(1).max(2000),
-  url: z.string().min(1).max(2000),
-  canonicalUrl: z.string().min(1).max(2000),
+  url: httpUrlField,
+  canonicalUrl: httpUrlField,
   title: z.string().min(1).max(500),
   author: z.string().max(300).default(""),
   siteName: z.string().max(200).default(""),
@@ -94,7 +106,12 @@ export function clampLibraryItemInput(input: unknown): unknown {
     excerpt: typeof o.excerpt === "string" ? o.excerpt.slice(0, 4000) : o.excerpt,
     contentHtml:
       typeof o.contentHtml === "string" ? o.contentHtml.slice(0, 1_500_000) : o.contentHtml,
-    heroImage: typeof hero === "string" ? (hero.length <= 2000 ? hero : null) : o.heroImage,
+    heroImage:
+      typeof hero === "string"
+        ? hero.length <= 2000 && isHttpUrl(hero)
+          ? hero
+          : null
+        : o.heroImage,
     published: typeof o.published === "string" ? o.published.slice(0, 100) : o.published,
     note: typeof o.note === "string" ? o.note.slice(0, 2000) : o.note,
     tags: Array.isArray(o.tags) ? o.tags.slice(0, 12) : o.tags,
