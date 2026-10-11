@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { useOrganizeAfterSave } from "@/hooks/use-ai.ts";
 import { articlesApi } from "@/lib/api/articles";
 import { persistArticleItem } from "@/lib/library-remote.ts";
 import { normalizeSourceUrl, writeDraftUrl } from "@/lib/session-article.ts";
@@ -11,6 +12,7 @@ export function useSaveArticle(goOpen: (id: string | null, replace?: boolean) =>
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const inFlight = useRef<string | null>(null);
+  const organizeAfterSave = useOrganizeAfterSave();
 
   /**
    * Optimistic save with server confirmation: the row is in the store
@@ -28,6 +30,7 @@ export function useSaveArticle(goOpen: (id: string | null, replace?: boolean) =>
     setError("");
     try {
       const saved = await persistArticleItem(item);
+      organizeAfterSave();
       if (!thenOpen) goOpen(null, true);
       else {
         goOpen(saved.id);

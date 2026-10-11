@@ -18,6 +18,15 @@ export type ArticleSummary = {
   stale: boolean;
 };
 
+/** One auto-organise batch: what was filed, and how many untouched articles remain. */
+export type OrganizeProgress = {
+  enabled: boolean;
+  done: Array<{ id: string; tags: string[]; folderId: string | null }>;
+  /** Every article this batch looked at, filed or not; send back as `exclude`. */
+  attempted: string[];
+  remaining: number;
+};
+
 /** Where a library search hit or an Ask citation comes from. */
 export type LibrarySource = {
   kind: "article" | "highlights";
@@ -171,6 +180,10 @@ export const aiApi = {
   /** Suggestions for a movie, TV or book shelf. */
   recommend: (type: "movie" | "tv" | "book") =>
     http.post<{ recs: ShelfRec[] }>("/api/ai/shelves/recommend", { type }),
+
+  /** File the next few untagged, unfiled articles; `exclude` lists ids already tried. */
+  organize: (exclude: string[] = []) =>
+    http.post<OrganizeProgress>("/api/ai/organize", { exclude }),
 
   /** Generate (or regenerate) and cache the summary. */
   summarize: (articleId: string) =>
