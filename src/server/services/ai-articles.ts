@@ -7,7 +7,7 @@ import { textFromHtml } from "@/lib/article-build.server.ts";
 import { getDb } from "@/lib/db";
 import { clipText } from "@/lib/model-fallback.ts";
 import { articleAi, articles, folders } from "@/lib/schema";
-import { normalizeTag } from "@/lib/store";
+import { TAG_CATEGORIES } from "@/lib/tag-categories.ts";
 import {
   asDocument,
   chatHistory,
@@ -35,11 +35,6 @@ const summarySchema = z.object({
     .array(z.string())
     .describe(
       "Three to six short key points, each one sentence, in the order the piece makes them.",
-    ),
-  tags: z
-    .array(z.string())
-    .describe(
-      "Up to five short topic tags. Prefer tags from the existing list; only invent one when none fits.",
     ),
   folder: z
     .string()
@@ -155,22 +150,18 @@ export async function getArticleSummary(
 export async function summarizeArticle(userId: string, articleId: string): Promise<ArticleSummary> {
   const article = await loadArticleForAi(userId, articleId);
   const db = await getDb();
-  const [vocabulary, folderRows] = await Promise.all([
-    userTagVocabulary(userId),
-    db
-      .select({ id: folders.id, name: folders.name })
-      .from(folders)
-      .where(eq(folders.userId, userId)),
-  ]);
+  const folderRows = await db
+    .select({ id: folders.id, name: folders.name })
+    .from(folders)
+    .where(eq(folders.userId, userId));
 
   const { output, model } = await generateJson(summarySchema, {
     instructions: [
       "You summarise articles for a calm personal reading library.",
       "Write plainly and neutrally in the article's language. No hype, no emojis, no 'This article…' openers.",
-      "Suggest tags and a folder that would help the reader find this piece again.",
+      "Suggest a folder that would help the reader find this piece again.",
     ].join("\n"),
     prompt: [
-      `Existing tags: ${vocabulary.length ? vocabulary.join(", ") : "(none yet)"}`,
       `Existing folders: ${folderRows.length ? folderRows.map((f) => f.name).join(", ") : "(none)"}`,
       "",
       articleDocument(article),
@@ -178,17 +169,6 @@ export async function summarizeArticle(userId: string, articleId: string): Promi
     maxOutputTokens: 900,
   });
 
-  const existing = new Map(vocabulary.map((t) => [t.toLowerCase(), t]));
-  const seen = new Set(article.tags.map((t) => t.toLowerCase()));
-  const tags: string[] = [];
-  for (const raw of output.tags) {
-    const clean = normalizeTag(raw.replace(/^#/, ""));
-    const key = clean.toLowerCase();
-    if (!clean || seen.has(key)) continue;
-    seen.add(key);
-    tags.push(existing.get(key) ?? clean);
-    if (tags.length === 5) break;
-  }
   const folderName = output.folder?.trim().toLowerCase();
   const folder = folderName
     ? folderRows.find((f) => f.name.toLowerCase() === folderName)
@@ -200,7 +180,7 @@ export async function summarizeArticle(userId: string, articleId: string): Promi
       .map((p) => p.trim())
       .filter(Boolean)
       .slice(0, 6),
-    tags,
+    tags: [],
     folderId: folder?.id ?? null,
   };
   const [row] = await db
@@ -289,4 +269,36 @@ export async function tidyArticle(userId: string, articleId: string): Promise<Ti
     contentHtml: drop.size ? joinBlocks(blocks, drop) : row.html,
     removed: [...drop].sort((a, b) => a - b).map((i) => previews[i]),
   };
+}
+
+// ---------- Auto-tag ----------
+
+const autoTagSchema = z.object({
+  categories: z
+    .array(z.enum(TAG_CATEGORIES))
+    .min(1)
+    .max(3)
+    .describe("One to three categories that best describe the piece, most fitting first."),
+});
+
+/** Tag an article with one to three categories from the fixed list. */
+export async function autoTagArticle(userId: string, articleId: string): Promise<{ tags: string[] }> {
+  const { patchLibraryItem } = await import("@/server/services/library");
+  const article = await loadArticleForAi(userId, articleId);
+  const { output } = await generateJson(autoTagSchema, {
+    instructions: [
+      "You file articles in a personal reading library using a fixed set of categories.",
+      `Categories: ${TAG_CATEGORIES.join(", ")}.`,
+      "Pick the one to three that fit best. Use 'other' only when nothing else fits.",
+    ].join("\n"),
+    prompt: articleDocument(article, 6_000),
+    maxOutputTokens: 100,
+  });
+  const have = new Set(article.tags.map((t) => t.toLowerCase()));
+  const add = [...new Set(output.categories)].filter((c) => !have.has(c));
+  if (!add.length) return { tags: article.tags };
+  const item = await patchLibraryItem(userId, articleId, {
+    tagOps: add.map((tag) => ({ op: "add" as const, tag })),
+  });
+  return { tags: item.tags };
 }
