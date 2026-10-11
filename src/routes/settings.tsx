@@ -7,6 +7,7 @@ import { AccountCard } from "@/components/settings/account-card.tsx";
 import { AppearanceCard } from "@/components/settings/appearance-card.tsx";
 import { ReadingCard } from "@/components/settings/reading-card.tsx";
 import { CaptureCard } from "@/components/settings/capture-card.tsx";
+import { AutoOrganizeCard } from "@/components/settings/auto-organize-card.tsx";
 import { OrganizeCard } from "@/components/settings/organize-card.tsx";
 import { DataCard } from "@/components/settings/data-card.tsx";
 import { HelpCard } from "@/components/settings/help-card.tsx";
@@ -67,6 +68,7 @@ function Settings() {
           <ReadingCard />
           <CaptureCard />
           <OrganizeCard />
+          <AutoOrganizeCard />
           <DataCard />
           <HelpCard />
         </div>

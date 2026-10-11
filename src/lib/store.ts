@@ -180,6 +180,8 @@ export type LibraryState = {
   preferredLightTone: PaperTone;
   progressById: Record<string, number>;
   resumeEnabled: boolean;
+  /** File new, untagged articles with AI tags and a folder (needs server AI). */
+  autoOrganize: boolean;
   setProgress: (id: string, progress: number) => void;
   upsertItem: (item: LibraryItem, opts?: { sync?: boolean }) => void;  archiveItem: (id: string, archived: boolean) => void;
   removeItem: (id: string) => void;
@@ -207,6 +209,11 @@ export type LibraryState = {
   setFavorited: (itemId: string, favorited: boolean) => void;
   setItemNote: (itemId: string, note: string) => void;
   setResumeEnabled: (enabled: boolean) => void;
+  setAutoOrganize: (enabled: boolean) => void;
+  /** Mirror tags/folders the server already saved (auto-organise), without syncing back. */
+  applyOrganized: (
+    done: Array<{ id: string; tags: string[]; folderId: string | null }>,
+  ) => void;
   clearLibrary: () => void;
   /** Replace the whole library (boot page 1 or a full snapshot). */
   setLibrarySnapshot: (
@@ -232,6 +239,7 @@ type Persisted = {
   preferredLightTone?: string;
   progressById?: Record<string, number>;
   resumeEnabled?: boolean;
+  autoOrganize?: boolean;
 };
 
 function clampFontSize(value: number): number {
@@ -288,6 +296,7 @@ export const useLibraryStore = create<LibraryState>()(
       preferredLightTone: "pale",
       progressById: {},
       resumeEnabled: true,
+      autoOrganize: true,
       setProgress: (id, progress) =>
         set((state) => {
           const clamped = Math.min(1, Math.max(0, progress));
@@ -575,6 +584,17 @@ export const useLibraryStore = create<LibraryState>()(
         debouncedRemoteSync(`item-note:${itemId}`, (m) => m.syncPatchItem(itemId, { note: cleaned }));
       },
       setResumeEnabled: (enabled) => set({ resumeEnabled: enabled }),
+      setAutoOrganize: (enabled) => set({ autoOrganize: enabled }),
+      applyOrganized: (done) => {
+        if (done.length === 0) return;
+        const byId = new Map(done.map((d) => [d.id, d]));
+        set((state) => ({
+          library: state.library.map((row) => {
+            const hit = byId.get(row.id);
+            return hit ? { ...row, tags: hit.tags, folderId: hit.folderId ?? row.folderId } : row;
+          }),
+        }));
+      },
       clearLibrary: () => set({ library: [], openId: null }),
       setLibrarySnapshot: (library, folders, total, complete) =>
         set({ library, folders, libraryTotal: total, libraryComplete: complete }),
@@ -601,6 +621,7 @@ export const useLibraryStore = create<LibraryState>()(
         preferredLightTone: state.preferredLightTone,
         progressById: state.progressById,
         resumeEnabled: state.resumeEnabled,
+        autoOrganize: state.autoOrganize,
       }),
       migrate: (persisted) => {
         const raw = (persisted || {}) as Persisted;
@@ -621,6 +642,7 @@ export const useLibraryStore = create<LibraryState>()(
           progressById:
             raw.progressById && typeof raw.progressById === "object" ? raw.progressById : {},
           resumeEnabled: raw.resumeEnabled === false ? false : true,
+          autoOrganize: raw.autoOrganize === false ? false : true,
         };
       },
     },
