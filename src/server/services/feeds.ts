@@ -668,14 +668,13 @@ export async function importOpml(
   let skipped = 0;
   for (const item of items) {
     try {
+      // Feed rows are shared by every subscriber, so the OPML's title (user
+      // input) goes on this user's subscription; the feed row's own title
+      // comes from the feed document on first poll.
       const feedId =
         (await existingFeedId(db, item.url)) ??
-        (await upsertFeed(
-          db,
-          { feedUrl: item.url, parsed: null, etag: null, lastModified: null },
-          item.title,
-        ));
-      if (await subscribe(db, userId, feedId)) added += 1;
+        (await upsertFeed(db, { feedUrl: item.url, parsed: null, etag: null, lastModified: null }));
+      if (await subscribe(db, userId, feedId, item.title)) added += 1;
       else skipped += 1;
     } catch (err) {
       if (err instanceof HttpError && err.status === 400) {

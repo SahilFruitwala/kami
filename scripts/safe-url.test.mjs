@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertPublicHttpUrl, isBlockedIpLiteral } from "../src/lib/safe-url.ts";
+import { assertPublicHttpUrl, isBlockedIpLiteral, isHttpUrl } from "../src/lib/safe-url.ts";
 
 describe("assertPublicHttpUrl", () => {
   it("allows public https URLs", () => {
@@ -88,6 +88,16 @@ describe("isBlockedIpLiteral", () => {
   it("allows public IPv6 and public embedded IPv4", () => {
     for (const ip of ["2606:4700::1111", "64:ff9b::808:808", "2002:808:808::1", "::ffff:8.8.8.8"]) {
       assert.equal(isBlockedIpLiteral(ip), false, ip);
+    }
+  });
+});
+
+describe("isHttpUrl", () => {
+  it("accepts only http(s) links", () => {
+    assert.equal(isHttpUrl("https://example.com/a"), true);
+    assert.equal(isHttpUrl("http://example.com"), true);
+    for (const bad of ["javascript:alert(1)", "intent://x#Intent;end", "data:text/html,x", "file:///etc/passwd", "nope"]) {
+      assert.equal(isHttpUrl(bad), false, bad);
     }
   });
 });
