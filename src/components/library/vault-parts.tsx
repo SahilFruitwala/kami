@@ -1,7 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { BookOpen, Copy, Droplets, Heart, PenLine, StickyNote, Trash2 } from "lucide-react";
+import {
+  BookOpen,
+  Copy,
+  Droplets,
+  Heart,
+  LoaderCircle,
+  PenLine,
+  Sparkles,
+  StickyNote,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Hanko } from "@/components/kami.tsx";
+import { useAiStatus } from "@/hooks/use-ai.ts";
+import { aiApi } from "@/lib/api/ai";
 import { HIGHLIGHT_NOTE_MAX } from "@/lib/item-ops.ts";
 import type { Highlight, LibraryItem } from "@/lib/store.ts";
 import { useLibraryStore } from "@/lib/store.ts";
@@ -94,10 +106,29 @@ export function SlipCard({
   const restoreHighlight = useLibraryStore((s) => s.restoreHighlight);
   const favorited = item.favorited;
   const [editingNote, setEditingNote] = useState(false);
+  const ai = useAiStatus();
+  /** An AI-drafted note, opened in the editor for the reader to keep or change. */
+  const [draft, setDraft] = useState<string | null>(null);
+  const [drafting, setDrafting] = useState(false);
+
+  async function draftNote() {
+    if (drafting) return;
+    setDrafting(true);
+    try {
+      const { note } = await aiApi.draftNote(item.id, highlight.text.slice(0, 1500));
+      setDraft(note);
+      setEditingNote(true);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not draft a note.");
+    } finally {
+      setDrafting(false);
+    }
+  }
 
   function saveNote(next: string) {
     const trimmed = next.trim();
     setEditingNote(false);
+    setDraft(null);
     if (trimmed === highlight.note) return;
     setHighlightNote(item.id, highlight.id, trimmed);
     if (!trimmed && highlight.note) {
@@ -161,9 +192,12 @@ export function SlipCard({
         </div>
         {editingNote ? (
           <NoteEditor
-            initial={highlight.note}
+            initial={draft ?? highlight.note}
             onSave={saveNote}
-            onCancel={() => setEditingNote(false)}
+            onCancel={() => {
+              setEditingNote(false);
+              setDraft(null);
+            }}
             onDelete={highlight.note ? deleteNote : undefined}
           />
         ) : highlight.note ? (
@@ -233,6 +267,16 @@ export function SlipCard({
             <SlipAction onClick={() => setEditingNote(true)}>
               <StickyNote className="size-4" aria-hidden="true" />
               Note
+            </SlipAction>
+          ) : null}
+          {ai.enabled && !highlight.note && !editingNote ? (
+            <SlipAction onClick={() => void draftNote()}>
+              {drafting ? (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Sparkles className="size-4" aria-hidden="true" />
+              )}
+              Draft
             </SlipAction>
           ) : null}
         </div>

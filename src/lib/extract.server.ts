@@ -90,6 +90,18 @@ function readabilityFromHtml(
   pageUrl: string,
   source: Article["source"],
 ): Article | null {
+  return readabilityResult(html, pageUrl, source).article;
+}
+
+/**
+ * The article from a page, plus whether a real extractor found it
+ * (`readable`) rather than the fallback that dumps the page's opening text.
+ */
+function readabilityResult(
+  html: string,
+  pageUrl: string,
+  source: Article["source"],
+): { article: Article | null; readable: boolean } {
   const { document } = parseHTML(html);
   const base = document.createElement("base");
   base.setAttribute("href", pageUrl);
@@ -138,7 +150,7 @@ function readabilityFromHtml(
         })
       : null;
     // Too short (e.g. a hard paywall) — let Readability have a go below.
-    if (article) return article;
+    if (article) return { article, readable: true };
   }
 
   let parsed: {
@@ -158,7 +170,7 @@ function readabilityFromHtml(
   const contentHtml = parsed?.content || "";
   const title = (parsed?.title || ld.title || ogTitle || "").trim();
   const author = (parsed?.byline || ld.author || ogAuthor || "").trim();
-  return buildArticle({
+  const article = buildArticle({
     url: pageUrl,
     canonicalUrl: pageUrl,
     title,
@@ -170,6 +182,7 @@ function readabilityFromHtml(
     source,
     heroImage,
   });
+  return { article, readable: Boolean(contentHtml) && article !== null };
 }
 
 async function extractViaJina(url: string): Promise<Article | null> {
@@ -309,7 +322,20 @@ export function articleFromCapturedPage(input: { url?: string; title: string; ht
   return articleFromManualImport({ url: href || undefined, title: input.title, contentHtml: input.html });
 }
 
-export async function extractArticleFromUrl(rawUrl: string): Promise<ExtractResult> {
+/**
+ * Last-resort extractor for a fetched page that Readability couldn't parse
+ * (the AI block picker, when configured). Returns null to fall through.
+ */
+export type ExtractFallback = (page: {
+  html: string;
+  url: string;
+  source: Article["source"];
+}) => Promise<Article | null>;
+
+export async function extractArticleFromUrl(
+  rawUrl: string,
+  fallback?: ExtractFallback,
+): Promise<ExtractResult> {
   let pageUrl: URL;
   try {
     pageUrl = assertPublicHttpUrl(rawUrl);
@@ -342,12 +368,27 @@ export async function extractArticleFromUrl(rawUrl: string): Promise<ExtractResu
   const source: Article["source"] = classified.kind === "web" ? "blog" : "x";
   const challenge = looksLikeChallengePage(fetched.text);
 
+  const finalUrl = fetched.finalUrl || pageUrl.href;
+  const tryFallback = async () => {
+    if (!fallback || challenge || classified.kind !== "web") return null;
+    try {
+      return await fallback({ html: fetched.text, url: finalUrl, source });
+    } catch (err) {
+      console.warn("[extract] fallback failed:", err instanceof Error ? err.message : err);
+      return null;
+    }
+  };
+
   if (!challenge) {
-    const fromDom = readabilityFromHtml(fetched.text, fetched.finalUrl || pageUrl.href, source);
-    if (fromDom) return { ok: true, article: fromDom };
+    const fromDom = readabilityResult(fetched.text, finalUrl, source);
+    if (fromDom.article && fromDom.readable) return { ok: true, article: fromDom.article };
+    // Readability found nothing: prefer the fallback over a dump of the page's text.
+    const picked = await tryFallback();
+    if (picked) return { ok: true, article: picked };
+    if (fromDom.article) return { ok: true, article: fromDom.article };
   }
 
-  const viaJina = await extractViaJina(fetched.finalUrl || pageUrl.href);
+  const viaJina = await extractViaJina(finalUrl);
   if (viaJina) return { ok: true, article: viaJina };
 
   return {

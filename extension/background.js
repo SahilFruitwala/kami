@@ -1,4 +1,6 @@
 // Save to KAMI — toolbar button / Alt+Shift+K.
+// "Summarize page with KAMI" (page context menu / Alt+Shift+S) captures the
+// same way but opens a quick AI summary first, with Save / Skip.
 //
 // 1. Snapshot the active tab's DOM (scripts/styles stripped) via activeTab.
 // 2. Open `<KAMI>/capture` in a new tab.
@@ -68,7 +70,8 @@ async function flag(tabId, text, title) {
   }
 }
 
-async function capture(tab) {
+/** `intent` is "save" (default) or "peek" (summarize first, see /peek). */
+async function capture(tab, intent = "save") {
   if (!tab || tab.id == null) return;
   const origin = await kamiOrigin();
   if (!(await api.permissions.contains({ origins: [`${origin}/*`] }))) {
@@ -93,7 +96,7 @@ async function capture(tab) {
   }
 
   const kamiTab = await api.tabs.create({
-    url: `${origin}/capture?via=extension`,
+    url: `${origin}/capture?via=extension${intent === "peek" ? "&intent=peek" : ""}`,
     index: tab.index + 1,
   });
   try {
@@ -125,16 +128,32 @@ api.action.onClicked.addListener((tab) => {
   void capture(tab);
 });
 
+api.commands.onCommand.addListener(async (command, tab) => {
+  if (command !== "kami-peek") return;
+  const active = tab ?? (await api.tabs.query({ active: true, currentWindow: true }))[0];
+  void capture(active, "peek");
+});
+
 // Right-click a link → save it by URL (server-side fetch, like the share sheet).
+// Right-click a page → summarize it before saving.
 api.runtime.onInstalled.addListener(() => {
   api.contextMenus.create({
     id: "kami-save-link",
     title: "Save link to KAMI",
     contexts: ["link"],
   });
+  api.contextMenus.create({
+    id: "kami-peek",
+    title: "Summarize page with KAMI",
+    contexts: ["page"],
+  });
 });
 
 api.contextMenus.onClicked.addListener(async (info, tab) => {
+  if (info.menuItemId === "kami-peek") {
+    void capture(tab, "peek");
+    return;
+  }
   if (info.menuItemId !== "kami-save-link" || !info.linkUrl) return;
   const origin = await kamiOrigin();
   await api.tabs.create({

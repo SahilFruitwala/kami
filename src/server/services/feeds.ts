@@ -567,7 +567,8 @@ export async function entryArticle(userId: string, entryId: string): Promise<Ent
   if (pageUrl && words < FULL_TEXT_MIN_WORDS) {
     await enforceRateLimit(userId, "extract");
     const { extractArticleFromUrl } = await import("@/lib/extract.server.ts");
-    const extracted = await extractArticleFromUrl(pageUrl);
+    const { aiExtractFallback } = await import("@/server/services/ai-extract");
+    const extracted = await extractArticleFromUrl(pageUrl, aiExtractFallback(userId));
     if (extracted.ok) result = extracted;
   }
 
