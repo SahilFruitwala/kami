@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { useOrganizeAfterSave } from "@/hooks/use-ai.ts";
 import { libraryApi } from "@/lib/api/library";
 import type { SaveUrlResult } from "@/lib/api/types";
 import { normalizeSourceUrl, writeDraftUrl } from "@/lib/session-article.ts";
@@ -10,6 +11,7 @@ export function useSaveArticle(goOpen: (id: string | null, replace?: boolean) =>
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const inFlight = useRef<string | null>(null);
+  const organizeAfterSave = useOrganizeAfterSave();
 
   /**
    * The server fetched, extracted and stored the work (`/api/library/save`),
@@ -24,6 +26,7 @@ export function useSaveArticle(goOpen: (id: string | null, replace?: boolean) =>
     writeDraftUrl("");
     setUrl("");
     setError("");
+    organizeAfterSave();
     if (!thenOpen) goOpen(null, true);
     else {
       goOpen(result.item.id);
