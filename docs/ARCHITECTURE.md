@@ -459,6 +459,189 @@ sequenceDiagram
 
 ---
 
+## AI features
+
+Optional AI helpers across the library. They reuse the trip agent's provider
+keys and are hidden in the UI until `GET /api/ai/status` reports a usable
+model.
+
+| Concern | Choice |
+|---|---|
+| Models | `AI_MODELS` (default `google:gemini-3.8-flash`, then `openrouter:anthropic/claude-haiku-5.5`). `aiLanguageModel()` in `llm.server.ts` wraps the models that have a key in one `fallbackModel` (`src/lib/model-fallback.ts`): each call tries Google first and moves to Claude Haiku when Google errors (bad key, quota, outage). Streams fail over only while they are being set up, never mid-reply. The model that answered is recorded with each result. |
+| Calls | `src/server/ai.ts`: `generateJson` (zod schema → structured output), `generateProse`, `embedTexts`. Low temperature, one SDK retry per model, provider errors mapped to friendly 502/503s. |
+| Untrusted text | Articles, feed entries and journal text go into prompts wrapped in `<document>` tags, and every system prompt says to treat them as data, never instructions. |
+| Cost | `ai` rate-limit bucket (300 calls/hour/user). Results are cached in the database and regenerated only on request. Article text is clipped to ~24k characters. |
+
+### Article summaries
+
+The reader's margin has a **Gist** card: a TL;DR, three to six key points,
+and suggestions to add tags (from the user's own tag vocabulary, most used
+first) and file it in an existing folder. Generated on demand
+(`POST /api/ai/articles/:id/summary`) and cached in `article_ai`, keyed by
+article, with a sha256 of the body it was made from. When the text changes
+(a link stub upgraded to a clean copy), the card shows the old summary as
+stale until it is regenerated.
+
+### Article chat
+
+Below the Gist card, **Ask this article** opens a chat grounded in the
+article (`POST /api/ai/articles/:id/chat`, an AI SDK UI message stream).
+Selecting a passage adds an **Ask** button to the ink toolbar that drops the
+passage into the chat. Chats aren't stored: the browser sends the
+conversation, the server re-sends its last 12 text messages plus the
+article (in the instructions) to the model. `AiChat`
+(`src/components/ai/ai-chat.tsx`) is the shared chat UI.
+
+### Ask your library
+
+**Ask your library** on `/library` opens a panel with two modes:
+
+- **Ask**: a chat (`POST /api/ai/ask`) that retrieves the ten best-matching
+  passages for each question and answers from them with numbered
+  citations. The reply's metadata lists the sources, shown as links to the
+  reader.
+- **Find by meaning**: `GET /api/ai/search?q=`, one hit per article or
+  highlight set, best first.
+
+Retrieval uses `ai_embeddings` (pgvector, migration 0017): article bodies
+in ~1500-character chunks (up to 8 per article, each prefixed with the
+title) and each article's highlights and notes. Indexing is incremental and
+pulled by the browser: while the library is open, `useLibraryIndexer` calls
+`POST /api/ai/embed` until nothing is left. Each call embeds up to 12 new or
+changed docs (one embedding request, at most 96 chunks), detects changes by
+the md5 of the source, and prunes chunks of deleted articles or cleared
+highlights. Without pgvector or an embedding key, both modes fall back to
+Postgres full-text search over titles and bodies. The journal (paused) is
+not indexed.
+
+### Vault patterns
+
+On `/vault`, a **Patterns** panel works on the slips currently in view (so
+filter by tag, author or search first; up to 150 slips):
+
+- **Find themes** (`POST /api/ai/vault/themes`): three to six themes with
+  the slips behind each, connections between different sources, and open
+  questions. Slips are sent as `s1`, `s2`… so the model cites short ids
+  that are mapped back to highlights (unknown ids are dropped).
+- **Make flashcards** (`POST /api/ai/vault/flashcards`): up to 40
+  question/answer cards, flip to reveal, export as CSV (Anki: front, back,
+  source) or Markdown.
+- **Draft** on a slip without a note (`POST /api/ai/vault/note`): drafts a
+  two-to-four sentence note from the passage and the article text around
+  it, opened in the note editor for the reader to edit or discard.
+
+The browser sends the slips it shows (text, note, title, author), so
+highlights that haven't synced yet are included. Nothing is stored.
+
+### Weekly reading recap
+
+The desk (`/app`) shows **Your week in reading** under the capture box: a
+recap of the past seven days (what was saved and finished, the passages
+highlighted), up to four themes, a standout highlight, a reflection prompt,
+and a pick from older unread inbox items. Made on demand
+(`POST /api/ai/recap`) and kept in `ai_notes` (kind `weekly-recap`, keyed by
+the day it was made, newest 12 kept); `GET` returns the latest. The model
+names highlights and unread pieces by short ids (`h1`, `r1`) that are mapped
+back to articles. This stands in for journal reflections while the journal
+is paused.
+
+### Feeds: digest and summaries
+
+On `/feeds` (Unread view) a **Digest** panel triages up to 60 unread
+entries in scope (one feed or all, `POST /api/ai/feeds/digest`): a short
+overview, up to five picks for this reader (judged against their own tags
+and recently finished, highlighted or favorited titles), topic groups that
+fold several posts or newsletter issues into one summary, and the entries
+safe to skip, with one tap to mark those read. Entries go to the model as
+`e1`, `e2`… and are mapped back; a pick is never suggested as a skip. The
+digest is kept in `ai_notes` (kind `feed-digest`, key = feed id or `all`).
+
+Each entry card has a **Summary** toggle (`POST
+/api/ai/feeds/entries/:id/summary`): a TL;DR and key points from the
+entry's own text, ignoring newsletter sponsor blocks and footers. Teasers
+under 60 words are refused (open the entry instead). Cached in `ai_notes`
+(kind `entry-summary`, newest 300).
+
+### Tidy this copy
+
+The reader's Gist card has **Tidy this copy** (`POST
+/api/ai/articles/:id/tidy`) for newsletters and cluttered pages. The saved
+HTML is split into numbered top-level blocks (descending through lone
+layout wrappers, `src/lib/tidy-html.server.ts`), the model gets a short
+preview of each and returns the numbers of ads, sponsor slots, subscribe /
+share / referral prompts, footers and navigation. The text itself is never
+rewritten, and a result that would drop 60% or more of the blocks is
+refused. The browser saves the tidied copy through the normal library
+upsert, with Undo.
+
+### Shelf suggestions
+
+Movie, TV and book shelves have **Suggest** (`POST
+/api/ai/shelves/recommend`): the model sees up to 150 shelf items with
+their status (finished items show taste, "gave up" what to avoid, queued
+ones aren't repeated) and suggests ten titles with a reason naming
+something on the shelf. Titles already on the shelf are dropped, and the
+first eight are matched against TMDB / Open Library (same search as the add
+dialog) so **Add to shelf** saves a cover and metadata in one tap. Nothing
+is stored.
+
+### Plan a trip from an article
+
+The reader's Gist card has **Plan a trip from this** (`POST
+/api/ai/articles/:id/trip`). For a travel piece, the model extracts the
+destination, a day count (up to 14), the style of the trip, plans per day
+and slot (only places from the article), and any hotels it recommends. The
+trip is created through the trips service (`createTrip`, `addTripItem`,
+`addTripHotel`), so the board's validation and limits apply, and the
+reader is taken to it. Non-travel pieces are refused.
+
+### Extraction fallback
+
+When Readability finds nothing on a fetched page, extraction used to keep
+the page's first 4,000 characters of text (menus and all). With AI set up,
+`extractArticleFromUrl` first tries `aiExtractFallback`: the page's
+readable blocks (headings, paragraphs, list items, quotes, code, figures,
+tables; page chrome dropped) are numbered, and the model returns the ranges
+that form the piece. The article is rebuilt from those blocks as-is, so the
+model never writes its text. It runs for single saves (`/api/articles/extract`,
+including the reader's link-stub upgrade, and saving a feed entry), not bulk
+saves; counts one call against the `ai` bucket; and steps aside (to the old
+behaviour) when AI is off, over budget, or the page isn't an article.
+
+### Summarize before saving (extension)
+
+The browser extension adds **Summarize page with KAMI** (page context menu,
+**Alt+Shift+S**). It captures the tab exactly like Save, but opens
+`/capture?intent=peek`, which routes to `/peek` instead of Home. `/peek`
+(inside the app shell, so after sign-in) takes the stashed page and calls
+`POST /api/ai/peek`: the page goes through the same extraction as a capture
+and the model returns a TL;DR, key points and a one-line verdict. Nothing is
+stored. **Save to library** re-stashes the page and hands it to Home's normal
+capture flow; **Skip** closes the tab.
+
+| Path | Role |
+|---|---|
+| `src/lib/model-fallback.ts` | Fallback model chain, embedding fitting, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |
+| `src/lib/llm.server.ts` | Provider wiring for the chain and embeddings |
+| `src/server/ai.ts` | Shared generation helpers and error mapping |
+| `src/server/services/ai-articles.ts` | Summaries, tag vocabulary, article-to-prompt helpers |
+| `src/routes/api/ai/**` | HTTP routes |
+| `src/components/reader/reader-ai.tsx` | Reader cards (Gist, Ask this article) |
+| `src/components/ai/ai-chat.tsx` | Shared unsaved chat UI (`useChat`) |
+| `src/lib/ai-text.ts` | Chunking, highlight lines, pgvector literals (pure, tested) |
+| `src/server/services/ai-library.ts` | Indexing, semantic + keyword retrieval, Ask, status |
+| `src/server/services/ai-feeds.ts`, `src/components/feeds/feed-ai.tsx` | Feed digest, entry summaries |
+| `src/lib/tidy-html.server.ts` | Block splitting for Tidy and page block collection for the extraction fallback (tested) |
+| `src/server/services/ai-extract.ts`, `src/routes/peek.tsx` | Extraction fallback; page peek for the extension |
+| `src/server/services/ai-shelves.ts`, `src/components/library/shelf-recs.tsx` | Shelf suggestions |
+| `src/server/services/ai-trips.ts` | Trip from article |
+| `src/server/services/ai-recap.ts`, `src/server/services/ai-notes.ts`, `src/components/library/weekly-recap.tsx` | Weekly recap and the `ai_notes` store |
+| `src/server/services/ai-vault.ts`, `src/components/library/vault-ai.tsx` | Vault themes, flashcards, note drafts |
+| `src/components/library/library-ask.tsx`, `src/hooks/use-ai.ts` | Ask / Find panel, status + background indexer hooks |
+| `migrations/0016_article_ai.sql`, `0017_ai_embeddings.sql`, `0018_ai_notes.sql` | `article_ai`, `ai_embeddings` (only when pgvector is available), `ai_notes` |
+
+---
+
 ## Caching
 
 `src/lib/cache.server.ts` — enabled only when both Upstash env vars are set.

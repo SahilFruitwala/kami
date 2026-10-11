@@ -7,6 +7,10 @@ Substack posts), and nothing travels in a URL, so long articles aren't cut off.
 
 Right-click any link → **Save link to KAMI** saves it by URL instead.
 
+Right-click a page → **Summarize page with KAMI** (or **Alt+Shift+S**) captures
+it the same way but opens a quick AI summary first, with **Save to library**
+or **Skip**. Needs AI to be set up on your KAMI server.
+
 ## Install (unpacked)
 
 **Chrome / Edge / Brave**

@@ -1,11 +1,13 @@
 import { useDeferredValue, useMemo, useState, ViewTransition, type ReactNode } from "react";
-import { CheckSquare, Search } from "lucide-react";
+import { CheckSquare, Search, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { ArticleList } from "@/components/article-list.tsx";
+import { LibraryAsk } from "@/components/library/library-ask.tsx";
 import { LibraryTabs } from "@/components/library/library-tabs.tsx";
 import { LibraryFilters } from "@/components/library-filters.tsx";
 import { KamiEyebrow } from "@/components/kami.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { useAiStatus, useLibraryIndexer } from "@/hooks/use-ai.ts";
 import {
   countByArchive,
   filterLibraryItems,
@@ -62,6 +64,9 @@ export function LibraryHome({
   const removeItem = useLibraryStore((s) => s.removeItem);
 
   const counts = countByArchive(library);
+  const ai = useAiStatus();
+  useLibraryIndexer();
+  const [askOpen, setAskOpen] = useState(false);
 
   const baseVisible = filterLibraryItems(library, {
     tab: filters.tab,
@@ -107,7 +112,11 @@ export function LibraryHome({
 
   function bulkArchive(archived: boolean) {
     for (const id of selectedIds) archiveItem(id, archived);
-    toast.success(archived ? `Archived ${selectedIds.length} works` : `Moved ${selectedIds.length} works to inbox`);
+    toast.success(
+      archived
+        ? `Archived ${selectedIds.length} works`
+        : `Moved ${selectedIds.length} works to inbox`,
+    );
     exitSelect();
   }
 
@@ -142,6 +151,22 @@ export function LibraryHome({
               <KamiEyebrow>Bunko Desk</KamiEyebrow>
               <h2 className="mt-2 flex flex-wrap items-center gap-3 font-display text-3xl tracking-tight text-ink">
                 Library
+                {ai.enabled ? (
+                  <button
+                    type="button"
+                    onClick={() => setAskOpen((v) => !v)}
+                    aria-expanded={askOpen}
+                    className={cn(
+                      "inline-flex h-8 items-center gap-1.5 rounded-full px-3 font-sans text-xs font-medium tracking-normal transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                      askOpen
+                        ? "bg-hanko text-white"
+                        : "bg-surface text-ink-soft shadow-[var(--shadow-border)] hover:text-ink",
+                    )}
+                  >
+                    <Sparkles className="size-3.5" aria-hidden="true" />
+                    Ask your library
+                  </button>
+                ) : null}
               </h2>
             </div>
             <div className="relative w-full md:w-80">
@@ -169,6 +194,10 @@ export function LibraryHome({
               </div>
             </div>
           </div>
+
+          {askOpen && ai.enabled ? (
+            <LibraryAsk semantic={ai.semanticSearch} onClose={() => setAskOpen(false)} />
+          ) : null}
 
           {capture ? <div className="mt-6 max-w-2xl">{capture}</div> : null}
 
@@ -287,7 +316,8 @@ export function LibraryHome({
               disabled={selectedIds.length === 0}
               defaultValue=""
               onChange={(e) => {
-                if (e.target.value !== "") bulkFolder(e.target.value === "none" ? null : e.target.value);
+                if (e.target.value !== "")
+                  bulkFolder(e.target.value === "none" ? null : e.target.value);
                 e.target.value = "";
               }}
               className="h-8 rounded-[0.25rem] bg-paper-warm px-2 font-sans text-xs font-medium text-ink disabled:opacity-40"
