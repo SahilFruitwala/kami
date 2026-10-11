@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import {
   Eraser,
   Folder,
-  MapPinned,
   LoaderCircle,
   MessageCircleQuestion,
   Plus,
@@ -159,7 +157,6 @@ function SummaryCard({ item }: { item: LibraryItem }) {
       )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <TidyButton item={item} />
-        <TripButton item={item} />
       </div>
     </section>
   );
@@ -210,40 +207,7 @@ function TidyButton({ item }: { item: LibraryItem }) {
       ) : (
         <Eraser className="size-3.5" aria-hidden="true" />
       )}
-      {tidy.isPending ? "Tidying…" : "Tidy this copy"}
-    </button>
-  );
-}
-
-/** Draft a trip on the trips board from a travel piece, then open it. */
-function TripButton({ item }: { item: LibraryItem }) {
-  const navigate = useNavigate();
-  const client = useQueryClient();
-  const plan = useMutation({
-    mutationFn: () => aiApi.tripFromArticle(item.id),
-    onSuccess: ({ tripId, items, hotels }) => {
-      void client.invalidateQueries({ queryKey: queryKeys.trips.all });
-      toast.success(
-        `Drafted a trip with ${items} plan${items === 1 ? "" : "s"}${hotels ? ` and ${hotels} hotel${hotels === 1 ? "" : "s"}` : ""}`,
-      );
-      void navigate({ to: "/trips/$id", params: { id: tripId } });
-    },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not plan a trip."),
-  });
-  return (
-    <button
-      type="button"
-      onClick={() => plan.mutate()}
-      disabled={plan.isPending}
-      title="Turn this travel piece into a draft trip"
-      className="flex items-center gap-1.5 font-sans text-[11px] opacity-60 transition-opacity hover:opacity-100 disabled:opacity-40"
-    >
-      {plan.isPending ? (
-        <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
-      ) : (
-        <MapPinned className="size-3.5" aria-hidden="true" />
-      )}
-      {plan.isPending ? "Planning…" : "Plan a trip from this"}
+      {tidy.isPending ? "Cleaning…" : "Remove ads & clutter"}
     </button>
   );
 }
@@ -276,7 +240,7 @@ function SummaryBody({ item, summary }: { item: LibraryItem; summary: ArticleSum
       ) : null}
       {tags.length || folder ? (
         <div className="space-y-2 border-t border-line pt-3">
-          <p className="font-sans text-[11px] font-semibold opacity-60">Suggested</p>
+          <p className="font-sans text-[11px] font-semibold opacity-60">Suggested tags & folder — tap one to apply</p>
           <div className="flex flex-wrap gap-1.5">
             {folder ? (
               <button
