@@ -117,3 +117,30 @@ ${research}
 Current trip (JSON, refreshed every message):
 ${JSON.stringify(tripSnapshot(trip))}`;
 }
+
+// ---------- Readable pages ----------
+
+/**
+ * Comparison key for `read_page` URLs: an http(s) href without its fragment,
+ * or null when it isn't one.
+ */
+export function readableUrlKey(raw: string): string | null {
+  try {
+    const url = new URL(raw.trim());
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    url.hash = "";
+    return url.href;
+  } catch {
+    return null;
+  }
+}
+
+/** Keys of every http(s) URL written in `text` (trailing punctuation trimmed). */
+export function readableUrlsIn(text: string): string[] {
+  const keys: string[] = [];
+  for (const m of text.matchAll(/https?:\/\/[^\s<>"'`)\]]+/gi)) {
+    const key = readableUrlKey(m[0].replace(/[.,;:!?]+$/, ""));
+    if (key) keys.push(key);
+  }
+  return keys;
+}

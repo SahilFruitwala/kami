@@ -34,11 +34,10 @@ import {
   useLinkPreview,
   useTmdbSearch,
 } from "@/hooks/use-shelf-queries.ts";
-import { articleToItem, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
-import { articlesApi } from "@/lib/api/articles";
-import { persistArticleItem } from "@/lib/library-remote.ts";
+import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import { libraryApi } from "@/lib/api/library";
 import { shelfPath, type ShelfTab } from "@/lib/shelves.ts";
-import type { LookupResult } from "@/lib/api/types";
+import type { LookupResult, SaveUrlResult } from "@/lib/api/types";
 
 type AddPage = "home" | ShelfTab;
 
@@ -166,27 +165,14 @@ export function CommandPalette({ onOpenItem }: { onOpenItem: (item: LibraryItem)
     if (seedQuery != null) setQuery(seedQuery);
   }
 
-  /** Persist + open the canonical server row, so `/read?id=` resolves now and after refresh. */
-  async function persistAndOpen(item: LibraryItem, successLabel: string) {
-    try {
-      const saved = await persistArticleItem(item);
-      toast.success(successLabel);
-      close();
-      void navigate({ to: "/read", search: { id: saved.id } });
-    } catch (err) {
-      console.error("[command-palette] persist failed:", err);
-      if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        // Offline: keep the optimistic local copy so the reader still opens.
-        // The outbox keeps one retry queued.
-        toast.success("Saved here — will sync when back online");
-        close();
-        void navigate({ to: "/read", search: { id: item.id } });
-        return;
-      }
-      // Online failure: stay open and show the real reason — navigating to a
-      // row the next refresh can't see is worse than no navigation.
-      toast.error(err instanceof Error ? err.message : "Could not save that article.");
-    }
+  /** The server stored the work (`/api/library/save`); open its canonical row. */
+  function acceptSaved(result: SaveUrlResult, successLabel: string): boolean {
+    if (!result.ok) return false;
+    useLibraryStore.getState().upsertItem(result.item, { sync: false });
+    toast.success(result.existed ? "Already in your list" : successLabel);
+    close();
+    void navigate({ to: "/read", search: { id: result.item.id } });
+    return true;
   }
 
   async function saveArticleFromQuery(saveLinkOnly = false) {
@@ -194,29 +180,24 @@ export function CommandPalette({ onOpenItem }: { onOpenItem: (item: LibraryItem)
     if (!raw || savingUrl) return;
     setSavingUrl(true);
     try {
-      const result = saveLinkOnly ? await articlesApi.link(raw) : await articlesApi.extract(raw);
-      if (!result.ok) {
-        // Fall back to a link-only save so the URL is never lost.
-        if (!saveLinkOnly) {
-          try {
-            const fallback = await articlesApi.link(raw);
-            if (fallback.ok) {
-              await persistAndOpen(
-                articleToItem(fallback.article),
-                "Saved link — clean copy unavailable",
-              );
-              return;
-            }
-          } catch {
-            // fall through to the error toast below
-          }
+      const result = await libraryApi.saveUrl(raw, { linkOnly: saveLinkOnly });
+      if (acceptSaved(result, "Saved to your list")) return;
+      // Fall back to a link-only save so the URL is never lost.
+      if (!saveLinkOnly) {
+        try {
+          const fallback = await libraryApi.saveUrl(raw, { linkOnly: true });
+          if (acceptSaved(fallback, "Saved link — clean copy unavailable")) return;
+        } catch {
+          // fall through to the error toast below
         }
-        toast.error(result.error);
-        return;
       }
-      await persistAndOpen(articleToItem(result.article), "Saved to your list");
+      toast.error(result.ok ? "Could not save that link." : result.error);
     } catch {
-      toast.error("Could not save that link. Try again.");
+      toast.error(
+        typeof navigator !== "undefined" && navigator.onLine === false
+          ? "You're offline — connect and try again."
+          : "Could not save that link. Try again.",
+      );
     } finally {
       setSavingUrl(false);
     }

@@ -263,7 +263,10 @@ export function articleFromManualImport(input: {
   contentHtml?: string;
   contentText?: string;
 }): Article {
-  let href = "https://imported.local/article";
+  // Each URL-less paste gets its own placeholder: ids and the per-user
+  // URL uniqueness derive from it, so a shared one made every new paste
+  // overwrite the previous pasted article.
+  let href = `https://imported.local/article/${crypto.randomUUID()}`;
   let host = "imported";
   if (input.url?.trim()) {
     const pageUrl = assertPublicHttpUrl(input.url.trim());

@@ -6,19 +6,21 @@ export const Route = createFileRoute("/api/img")({
     handlers: {
       GET: async ({ request }) => {
         // Image proxy is an authenticated SSRF/egress surface: only serve it
-        // to signed-in users (or to anyone when auth is disabled for local dev).
-        let userId = "local-dev";
-        if (process.env.VITE_AUTH_ENABLED !== "false") {
-          try {
-            const { auth } = await import("@clerk/tanstack-react-start/server");
-            const session = await auth();
-            if (!session.userId) {
-              return new Response("unauthorized", { status: 401 });
-            }
-            userId = session.userId;
-          } catch {
+        // to signed-in users. With auth disabled every other endpoint fails
+        // closed (`requireUserId`), so this one does too.
+        if (process.env.VITE_AUTH_ENABLED === "false") {
+          return new Response("unauthorized", { status: 401 });
+        }
+        let userId: string;
+        try {
+          const { auth } = await import("@clerk/tanstack-react-start/server");
+          const session = await auth({ acceptsToken: "session_token" });
+          if (!session.userId) {
             return new Response("unauthorized", { status: 401 });
           }
+          userId = session.userId;
+        } catch {
+          return new Response("unauthorized", { status: 401 });
         }
         // Match server-fn sibling isolation: block scripted cross-site GETs
         // that would otherwise ride a session cookie.

@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Redis } from "@upstash/redis";
 
 /**
@@ -42,14 +43,14 @@ export function normalizeCacheQuery(q: string, max = 200): string {
   return q.trim().toLowerCase().slice(0, max);
 }
 
-/** FNV-1a hash for long key parts (URLs) to keep keys short. */
+/**
+ * Hash long key parts (URLs, queries) to keep keys short. Cryptographic on
+ * purpose: some caches are shared across users (link previews), and a weak
+ * 32-bit hash let anyone craft a URL whose key collides with a popular one in
+ * milliseconds — poisoning that entry for everyone for days.
+ */
 export function hashKeyPart(value: string): string {
-  let h = 0x811c9dc5;
-  for (let i = 0; i < value.length; i += 1) {
-    h ^= value.charCodeAt(i);
-    h = Math.imul(h, 0x01000193);
-  }
-  return (h >>> 0).toString(36);
+  return createHash("sha256").update(value).digest("base64url").slice(0, 32);
 }
 
 export async function cacheGet<T>(key: string): Promise<T | null> {
