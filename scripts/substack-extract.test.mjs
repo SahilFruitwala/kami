@@ -5,7 +5,6 @@ import { articleFromCapturedPage } from "../src/lib/extract.server.ts";
 import { parseSrcset, pickImageSrc } from "../src/lib/image-url.ts";
 import {
   buildBookmarklet,
-  decodeImportPayload,
   parseCapturePayload,
 } from "../src/lib/bookmarklet.ts";
 
@@ -114,11 +113,6 @@ describe("capture payloads", () => {
     assert.equal(parseCapturePayload({ title: "t", html: "   " }), null);
     const p = parseCapturePayload({ title: "t", url: 5, html: "<p>x</p>" });
     assert.deepEqual(p, { title: "t", url: "", html: "<p>x</p>" });
-  });
-
-  it("still decodes legacy ?import= payloads", () => {
-    const raw = Buffer.from(JSON.stringify({ title: "Ünïcode", url: "https://a.com/", html: "<p>hi</p>" }), "utf8").toString("base64");
-    assert.deepEqual(decodeImportPayload(raw), { title: "Ünïcode", url: "https://a.com/", html: "<p>hi</p>" });
   });
 
   it("builds a bookmarklet that parses and never puts the page in a URL", () => {

@@ -1,11 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { contentSecurityPolicy, newCspNonce } from "../src/lib/csp.ts";
 
-const vercel = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
-const csp = vercel.headers
-  .find((entry) => entry.source === "/(.*)")
-  .headers.find((h) => h.key === "Content-Security-Policy").value;
+const csp = contentSecurityPolicy("TESTNONCE");
 
 function directive(name) {
   const match = csp.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${name} `));
@@ -34,5 +32,27 @@ describe("production CSP stays minimal", () => {
     for (const host of ["r.jina.ai", "fxtwitter.com", "vxtwitter.com", "publish.twitter.com", "fonts.googleapis.com"]) {
       assert.ok(!csp.includes(host), `CSP should not list ${host}`);
     }
+  });
+});
+
+describe("nonce-based script policy", () => {
+  it("allows inline scripts only by nonce", () => {
+    assert.match(directive("script-src"), /'nonce-TESTNONCE'/);
+    assert.ok(!directive("script-src").includes("'unsafe-inline'"));
+    assert.ok(!directive("script-src").includes("'unsafe-eval'"));
+    assert.match(directive("object-src"), /'none'/);
+    assert.match(directive("frame-ancestors"), /'none'/);
+  });
+
+  it("mints a fresh 128-bit nonce each time", () => {
+    const a = newCspNonce();
+    assert.equal(Buffer.from(a, "base64").length, 16);
+    assert.notEqual(a, newCspNonce());
+  });
+
+  it("is set per response, not as a static vercel.json header", () => {
+    const vercel = JSON.parse(readFileSync(new URL("../vercel.json", import.meta.url), "utf8"));
+    const global = vercel.headers.find((entry) => entry.source === "/(.*)").headers;
+    assert.ok(!global.some((h) => h.key === "Content-Security-Policy"));
   });
 });

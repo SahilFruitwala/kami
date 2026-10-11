@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { assertPublicHttpUrl, isBlockedIpLiteral } from "../src/lib/safe-url.ts";
+import { assertPublicHttpUrl, isBlockedIpLiteral, isHttpUrl } from "../src/lib/safe-url.ts";
 
 describe("assertPublicHttpUrl", () => {
   it("allows public https URLs", () => {
@@ -51,5 +51,53 @@ describe("isBlockedIpLiteral", () => {
     assert.equal(isBlockedIpLiteral("8.8.8.8"), false);
     assert.equal(isBlockedIpLiteral("::1"), true);
     assert.equal(isBlockedIpLiteral("::ffff:127.0.0.1"), true);
+  });
+
+  it("blocks reserved IPv4 ranges", () => {
+    for (const ip of [
+      "198.18.0.1",
+      "198.19.255.255",
+      "192.0.0.170",
+      "192.0.2.1",
+      "224.0.0.1",
+      "240.0.0.1",
+      "255.255.255.255",
+    ]) {
+      assert.equal(isBlockedIpLiteral(ip), true, ip);
+    }
+  });
+
+  it("blocks IPv6 forms that embed a private IPv4 target", () => {
+    for (const ip of [
+      "::7f00:1", // IPv4-compatible, hex (what URL() normalizes ::127.0.0.1 to)
+      "::ffff:7f00:1",
+      "0:0:0:0:0:ffff:a00:1",
+      "64:ff9b::a9fe:a9fe", // NAT64 → 169.254.169.254
+      "64:ff9b:1::1", // local-use NAT64
+      "2002:7f00:1::", // 6to4 → 127.0.0.1
+      "2001:0:1:2::", // Teredo
+      "fe80::1%eth0",
+      "ff02::1",
+      "100::1",
+    ]) {
+      assert.equal(isBlockedIpLiteral(ip), true, ip);
+    }
+    assert.throws(() => assertPublicHttpUrl("http://[::127.0.0.1]/"), /cannot be fetched/);
+  });
+
+  it("allows public IPv6 and public embedded IPv4", () => {
+    for (const ip of ["2606:4700::1111", "64:ff9b::808:808", "2002:808:808::1", "::ffff:8.8.8.8"]) {
+      assert.equal(isBlockedIpLiteral(ip), false, ip);
+    }
+  });
+});
+
+describe("isHttpUrl", () => {
+  it("accepts only http(s) links", () => {
+    assert.equal(isHttpUrl("https://example.com/a"), true);
+    assert.equal(isHttpUrl("http://example.com"), true);
+    for (const bad of ["javascript:alert(1)", "intent://x#Intent;end", "data:text/html,x", "file:///etc/passwd", "nope"]) {
+      assert.equal(isHttpUrl(bad), false, bad);
+    }
   });
 });
