@@ -12,6 +12,21 @@ export type ModelProvider = (typeof MODEL_PROVIDERS)[number];
 /** Google first: it is the default when its key is set. */
 export const DEFAULT_TRIP_MODELS = "google:gemini-3.8-flash,openrouter:anthropic/claude-haiku-5.5";
 
+/**
+ * The fallback chain for the library's AI features (summaries, tags, chat,
+ * digests…): Google first, Claude Haiku through OpenRouter when Google fails
+ * or has no key. `AI_MODELS` overrides it.
+ */
+export const DEFAULT_AI_MODELS = DEFAULT_TRIP_MODELS;
+
+/**
+ * Embedding models for semantic search, in fallback order. Both serve the same
+ * Gemini model, so vectors from either one are comparable. `AI_EMBEDDING_MODELS`
+ * overrides it (keep every entry on one model family, or re-index after a change).
+ */
+export const DEFAULT_EMBEDDING_MODELS =
+  "google:gemini-embedding-001,openrouter:google/gemini-embedding-001";
+
 export type TripModel = {
   /** `provider:model`, e.g. `google:gemini-3.8-flash`. */
   id: string;
@@ -39,8 +54,11 @@ export function parseModelId(raw: string): TripModel | null {
 }
 
 /** Parse a comma-separated list, dropping invalid and duplicate entries. */
-export function parseModelList(raw: string | undefined): TripModel[] {
-  const source = raw?.trim() ? raw : DEFAULT_TRIP_MODELS;
+export function parseModelList(
+  raw: string | undefined,
+  fallback: string = DEFAULT_TRIP_MODELS,
+): TripModel[] {
+  const source = raw?.trim() ? raw : fallback;
   const seen = new Set<string>();
   const models: TripModel[] = [];
   for (const part of source.split(",")) {
