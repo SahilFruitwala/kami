@@ -224,6 +224,16 @@ export function assertPublicHttpUrl(raw: string): URL {
   return url;
 }
 
+/** True for a parseable http: or https: URL (no reachability checks). */
+export function isHttpUrl(value: string): boolean {
+  try {
+    const { protocol } = new URL(value);
+    return protocol === "http:" || protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 export function absoluteUrl(src: string, base: string): string | null {
   try {
     const resolved = new URL(src.trim(), base);

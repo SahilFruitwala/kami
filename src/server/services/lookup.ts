@@ -42,7 +42,11 @@ export const tmdbSearchQuery = z.object({
 });
 
 export const watchProvidersQuery = z.object({
-  tmdbId: z.string().min(1).max(32),
+  // Digits only: it is spliced into the TMDB path and a cross-user cache key.
+  tmdbId: z
+    .string()
+    .trim()
+    .regex(/^\d{1,12}$/, "Invalid TMDB id."),
   kind: z.enum(["movie", "tv"]),
 });
 
