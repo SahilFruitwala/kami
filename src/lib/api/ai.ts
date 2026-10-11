@@ -158,6 +158,10 @@ export const aiApi = {
   /** Strip sponsor blocks, prompts and footers from a saved copy (returns HTML, saves nothing). */
   tidy: (articleId: string) => http.post<TidyResult>(`/api/ai/articles/${seg(articleId)}/tidy`),
 
+  /** Tag an article with up to three fixed categories; returns its full tag list. */
+  autoTag: (articleId: string) =>
+    http.post<{ tags: string[] }>(`/api/ai/articles/${seg(articleId)}/autotag`),
+
   /** The stored digest for a feed (or all feeds), or null. */
   feedDigest: (feedId: string | null) =>
     http.get<FeedDigest | null>("/api/ai/feeds/digest", { feedId: feedId ?? undefined }),

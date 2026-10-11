@@ -1,13 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
 import {
   Eraser,
+  Tags,
   Folder,
-  MapPinned,
   LoaderCircle,
   MessageCircleQuestion,
-  Plus,
   RotateCcw,
   Sparkles,
 } from "lucide-react";
@@ -140,7 +138,7 @@ function SummaryCard({ item }: { item: LibraryItem }) {
       ) : (
         <>
           <p className="font-body text-sm italic opacity-70">
-            A short summary, the key points, and tags to file it under.
+            A short summary, the key points, and a folder to file it in.
           </p>
           <button
             type="button"
@@ -158,10 +156,40 @@ function SummaryCard({ item }: { item: LibraryItem }) {
         </>
       )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+        <AutoTagButton item={item} />
         <TidyButton item={item} />
-        <TripButton item={item} />
       </div>
     </section>
+  );
+}
+
+/** Tag the article with up to three categories from a fixed list. */
+function AutoTagButton({ item }: { item: LibraryItem }) {
+  const upsertItem = useLibraryStore((s) => s.upsertItem);
+  const autoTag = useMutation({
+    mutationFn: () => aiApi.autoTag(item.id),
+    onSuccess: ({ tags }) => {
+      const added = tags.filter((t) => !item.tags.includes(t));
+      upsertItem({ ...item, tags });
+      toast.success(added.length ? `Tagged: ${added.join(", ")}` : "Already tagged with the best-fit categories");
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not auto-tag this article."),
+  });
+  return (
+    <button
+      type="button"
+      onClick={() => autoTag.mutate()}
+      disabled={autoTag.isPending}
+      title="Add up to three categories (technology, science, business…) from a fixed list"
+      className="flex items-center gap-1.5 font-sans text-[11px] opacity-60 transition-opacity hover:opacity-100 disabled:opacity-40"
+    >
+      {autoTag.isPending ? (
+        <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+      ) : (
+        <Tags className="size-3.5" aria-hidden="true" />
+      )}
+      {autoTag.isPending ? "Tagging…" : "Auto-tag"}
+    </button>
   );
 }
 
@@ -210,50 +238,14 @@ function TidyButton({ item }: { item: LibraryItem }) {
       ) : (
         <Eraser className="size-3.5" aria-hidden="true" />
       )}
-      {tidy.isPending ? "Tidying…" : "Tidy this copy"}
-    </button>
-  );
-}
-
-/** Draft a trip on the trips board from a travel piece, then open it. */
-function TripButton({ item }: { item: LibraryItem }) {
-  const navigate = useNavigate();
-  const client = useQueryClient();
-  const plan = useMutation({
-    mutationFn: () => aiApi.tripFromArticle(item.id),
-    onSuccess: ({ tripId, items, hotels }) => {
-      void client.invalidateQueries({ queryKey: queryKeys.trips.all });
-      toast.success(
-        `Drafted a trip with ${items} plan${items === 1 ? "" : "s"}${hotels ? ` and ${hotels} hotel${hotels === 1 ? "" : "s"}` : ""}`,
-      );
-      void navigate({ to: "/trips/$id", params: { id: tripId } });
-    },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not plan a trip."),
-  });
-  return (
-    <button
-      type="button"
-      onClick={() => plan.mutate()}
-      disabled={plan.isPending}
-      title="Turn this travel piece into a draft trip"
-      className="flex items-center gap-1.5 font-sans text-[11px] opacity-60 transition-opacity hover:opacity-100 disabled:opacity-40"
-    >
-      {plan.isPending ? (
-        <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
-      ) : (
-        <MapPinned className="size-3.5" aria-hidden="true" />
-      )}
-      {plan.isPending ? "Planning…" : "Plan a trip from this"}
+      {tidy.isPending ? "Cleaning…" : "Remove ads & clutter"}
     </button>
   );
 }
 
 function SummaryBody({ item, summary }: { item: LibraryItem; summary: ArticleSummary }) {
   const folders = useLibraryStore((s) => s.folders);
-  const addTag = useLibraryStore((s) => s.addTag);
   const setItemFolder = useLibraryStore((s) => s.setItemFolder);
-  const has = new Set(item.tags.map((t) => t.toLowerCase()));
-  const tags = summary.tags.filter((t) => !has.has(t.toLowerCase()));
   const folder =
     summary.folderId && summary.folderId !== item.folderId
       ? folders.find((f) => f.id === summary.folderId)
@@ -274,9 +266,9 @@ function SummaryBody({ item, summary }: { item: LibraryItem; summary: ArticleSum
           ))}
         </ul>
       ) : null}
-      {tags.length || folder ? (
+      {folder ? (
         <div className="space-y-2 border-t border-line pt-3">
-          <p className="font-sans text-[11px] font-semibold opacity-60">Suggested</p>
+          <p className="font-sans text-[11px] font-semibold opacity-60">Suggested folder</p>
           <div className="flex flex-wrap gap-1.5">
             {folder ? (
               <button
@@ -291,17 +283,6 @@ function SummaryBody({ item, summary }: { item: LibraryItem; summary: ArticleSum
                 {folder.name}
               </button>
             ) : null}
-            {tags.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                className={chip}
-                aria-label={`Add tag ${tag}`}
-                onClick={() => addTag(item.id, tag)}
-              >
-                <Plus className="size-3" aria-hidden="true" />#{tag}
-              </button>
-            ))}
           </div>
         </div>
       ) : null}

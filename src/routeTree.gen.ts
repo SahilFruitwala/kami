@@ -96,6 +96,7 @@ import { Route as ApiTripsIdUndoRouteImport } from './routes/api/trips/$id/undo'
 import { Route as ApiAiArticlesIdChatRouteImport } from './routes/api/ai/articles/$id/chat'
 import { Route as ApiAiArticlesIdSummaryRouteImport } from './routes/api/ai/articles/$id/summary'
 import { Route as ApiAiArticlesIdTidyRouteImport } from './routes/api/ai/articles/$id/tidy'
+import { Route as ApiAiArticlesIdAutotagRouteImport } from './routes/api/ai/articles/$id/autotag'
 import { Route as ApiAiArticlesIdTripRouteImport } from './routes/api/ai/articles/$id/trip'
 import { Route as ApiExtractsResultsIdAcceptRouteImport } from './routes/api/extracts/results/$id/accept'
 import { Route as ApiFeedsEntriesIdArticleRouteImport } from './routes/api/feeds/entries/$id/article'
@@ -546,6 +547,11 @@ const ApiAiArticlesIdTidyRoute = ApiAiArticlesIdTidyRouteImport.update({
   path: '/api/ai/articles/$id/tidy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAiArticlesIdAutotagRoute = ApiAiArticlesIdAutotagRouteImport.update({
+  id: '/api/ai/articles/$id/autotag',
+  path: '/api/ai/articles/$id/autotag',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAiArticlesIdTripRoute = ApiAiArticlesIdTripRouteImport.update({
   id: '/api/ai/articles/$id/trip',
   path: '/api/ai/articles/$id/trip',
@@ -709,6 +715,7 @@ export interface FileRoutesByFullPath {
   '/api/ai/articles/$id/chat': typeof ApiAiArticlesIdChatRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
+  '/api/ai/articles/$id/autotag': typeof ApiAiArticlesIdAutotagRoute
   '/api/ai/articles/$id/trip': typeof ApiAiArticlesIdTripRoute
   '/api/extracts/results/$id/accept': typeof ApiExtractsResultsIdAcceptRoute
   '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
@@ -810,6 +817,7 @@ export interface FileRoutesByTo {
   '/api/ai/articles/$id/chat': typeof ApiAiArticlesIdChatRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
+  '/api/ai/articles/$id/autotag': typeof ApiAiArticlesIdAutotagRoute
   '/api/ai/articles/$id/trip': typeof ApiAiArticlesIdTripRoute
   '/api/extracts/results/$id/accept': typeof ApiExtractsResultsIdAcceptRoute
   '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
@@ -913,6 +921,7 @@ export interface FileRoutesById {
   '/api/ai/articles/$id/chat': typeof ApiAiArticlesIdChatRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
+  '/api/ai/articles/$id/autotag': typeof ApiAiArticlesIdAutotagRoute
   '/api/ai/articles/$id/trip': typeof ApiAiArticlesIdTripRoute
   '/api/extracts/results/$id/accept': typeof ApiExtractsResultsIdAcceptRoute
   '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
@@ -1017,6 +1026,7 @@ export interface FileRouteTypes {
     | '/api/ai/articles/$id/chat'
     | '/api/ai/articles/$id/summary'
     | '/api/ai/articles/$id/tidy'
+    | '/api/ai/articles/$id/autotag'
     | '/api/ai/articles/$id/trip'
     | '/api/extracts/results/$id/accept'
     | '/api/feeds/entries/$id/article'
@@ -1118,6 +1128,7 @@ export interface FileRouteTypes {
     | '/api/ai/articles/$id/chat'
     | '/api/ai/articles/$id/summary'
     | '/api/ai/articles/$id/tidy'
+    | '/api/ai/articles/$id/autotag'
     | '/api/ai/articles/$id/trip'
     | '/api/extracts/results/$id/accept'
     | '/api/feeds/entries/$id/article'
@@ -1220,6 +1231,7 @@ export interface FileRouteTypes {
     | '/api/ai/articles/$id/chat'
     | '/api/ai/articles/$id/summary'
     | '/api/ai/articles/$id/tidy'
+    | '/api/ai/articles/$id/autotag'
     | '/api/ai/articles/$id/trip'
     | '/api/extracts/results/$id/accept'
     | '/api/feeds/entries/$id/article'
@@ -1308,6 +1320,7 @@ export interface RootRouteChildren {
   ApiAiArticlesIdChatRoute: typeof ApiAiArticlesIdChatRoute
   ApiAiArticlesIdSummaryRoute: typeof ApiAiArticlesIdSummaryRoute
   ApiAiArticlesIdTidyRoute: typeof ApiAiArticlesIdTidyRoute
+  ApiAiArticlesIdAutotagRoute: typeof ApiAiArticlesIdAutotagRoute
   ApiAiArticlesIdTripRoute: typeof ApiAiArticlesIdTripRoute
   ApiFeedsEntriesIdArticleRoute: typeof ApiFeedsEntriesIdArticleRoute
   ApiShelvesBookIdPageCountRoute: typeof ApiShelvesBookIdPageCountRoute
@@ -1930,6 +1943,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiArticlesIdTidyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/ai/articles/$id/autotag': {
+      id: '/api/ai/articles/$id/autotag'
+      path: '/api/ai/articles/$id/autotag'
+      fullPath: '/api/ai/articles/$id/autotag'
+      preLoaderRoute: typeof ApiAiArticlesIdAutotagRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/ai/articles/$id/trip': {
       id: '/api/ai/articles/$id/trip'
       path: '/api/ai/articles/$id/trip'
@@ -2204,6 +2224,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiArticlesIdChatRoute: ApiAiArticlesIdChatRoute,
   ApiAiArticlesIdSummaryRoute: ApiAiArticlesIdSummaryRoute,
   ApiAiArticlesIdTidyRoute: ApiAiArticlesIdTidyRoute,
+  ApiAiArticlesIdAutotagRoute: ApiAiArticlesIdAutotagRoute,
   ApiAiArticlesIdTripRoute: ApiAiArticlesIdTripRoute,
   ApiFeedsEntriesIdArticleRoute: ApiFeedsEntriesIdArticleRoute,
   ApiShelvesBookIdPageCountRoute: ApiShelvesBookIdPageCountRoute,
