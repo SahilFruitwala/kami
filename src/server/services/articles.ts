@@ -31,10 +31,15 @@ export const importInput = z
   });
 
 // Extraction performs server-side fetches (SSRF/egress surface): the route
-// requires a signed-in user and the `extract` rate-limit bucket.
-export async function extractArticle(data: z.output<typeof extractInput>): Promise<ExtractResult> {
+// requires a signed-in user and the `extract` rate-limit bucket. When AI is
+// set up, pages Readability can't parse get the AI block picker.
+export async function extractArticle(
+  userId: string,
+  data: z.output<typeof extractInput>,
+): Promise<ExtractResult> {
   const { extractArticleFromUrl } = await import("@/lib/extract.server.ts");
-  return extractArticleFromUrl(data.url);
+  const { aiExtractFallback } = await import("@/server/services/ai-extract");
+  return extractArticleFromUrl(data.url, aiExtractFallback(userId));
 }
 
 export async function importArticle(data: z.output<typeof importInput>): Promise<ExtractResult> {
