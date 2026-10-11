@@ -5,14 +5,10 @@ import type { OrganizeProgress } from "@/lib/api/ai";
 import { getDb } from "@/lib/db";
 import { enforceRateLimit } from "@/lib/rate-limit.server.ts";
 import { articles, folders } from "@/lib/schema";
-import { normalizeTag } from "@/lib/store";
+import { TAG_CATEGORIES } from "@/lib/tag-categories.ts";
 import { aiConfigured } from "@/lib/llm.server.ts";
 import { generateJson } from "@/server/ai";
-import {
-  articleDocument,
-  loadArticleForAi,
-  userTagVocabulary,
-} from "@/server/services/ai-articles";
+import { articleDocument, loadArticleForAi } from "@/server/services/ai-articles";
 import { patchLibraryItem } from "@/server/services/library";
 
 /**
@@ -28,7 +24,7 @@ import { patchLibraryItem } from "@/server/services/library";
 const BATCH = 4;
 /** Enough of the piece to place it, far cheaper than a full summary. */
 const ORGANIZE_CHARS = 6_000;
-const MAX_TAGS = 4;
+const MAX_TAGS = 3;
 
 export const organizeBody = z.object({
   /** Ids already tried this session (failed or skipped) so they aren't retried. */
@@ -37,10 +33,9 @@ export const organizeBody = z.object({
 
 const organizeSchema = z.object({
   tags: z
-    .array(z.string())
-    .describe(
-      "Two to four short topic tags. Prefer tags from the existing list; only invent one when none fits.",
-    ),
+    .array(z.enum(TAG_CATEGORIES))
+    .max(MAX_TAGS)
+    .describe("One to three categories from the fixed list that best describe the piece."),
   folder: z
     .string()
     .nullable()
@@ -76,11 +71,10 @@ export async function organizeBatch(
 
   await enforceRateLimit(userId, "ai", rows.length);
 
-  const [vocabulary, folderRows] = await Promise.all([
-    userTagVocabulary(userId),
-    db.select({ id: folders.id, name: folders.name }).from(folders).where(eq(folders.userId, userId)),
-  ]);
-  const existing = new Map(vocabulary.map((t) => [t.toLowerCase(), t]));
+  const folderRows = await db
+    .select({ id: folders.id, name: folders.name })
+    .from(folders)
+    .where(eq(folders.userId, userId));
   const folderByName = new Map(folderRows.map((f) => [f.name.toLowerCase(), f.id]));
 
   const settled = await Promise.allSettled(
@@ -89,11 +83,10 @@ export async function organizeBatch(
       const { output } = await generateJson(organizeSchema, {
         instructions: [
           "You file articles in a calm personal reading library.",
-          "Choose a few short topic tags and, if one clearly fits, one existing folder.",
-          "Write tags in the article's language, lowercase, one or two words.",
+          `Tag it with one to three categories from this fixed list: ${TAG_CATEGORIES.join(", ")}.`,
+          "If one existing folder clearly fits, choose it too.",
         ].join("\n"),
         prompt: [
-          `Existing tags: ${vocabulary.length ? vocabulary.join(", ") : "(none yet)"}`,
           `Existing folders: ${folderRows.length ? folderRows.map((f) => f.name).join(", ") : "(none)"}`,
           "",
           articleDocument(article, ORGANIZE_CHARS),
@@ -101,16 +94,7 @@ export async function organizeBatch(
         maxOutputTokens: 200,
       });
 
-      const seen = new Set<string>();
-      const tags: string[] = [];
-      for (const raw of output.tags) {
-        const clean = normalizeTag(raw.replace(/^#/, ""));
-        const key = clean.toLowerCase();
-        if (!clean || seen.has(key)) continue;
-        seen.add(key);
-        tags.push(existing.get(key) ?? clean);
-        if (tags.length === MAX_TAGS) break;
-      }
+      const tags = [...new Set(output.tags)];
       const folderId = output.folder ? (folderByName.get(output.folder.trim().toLowerCase()) ?? null) : null;
       if (tags.length === 0 && !folderId) return null;
 
