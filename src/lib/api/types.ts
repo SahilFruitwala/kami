@@ -30,6 +30,14 @@ export type LibraryPage = {
 /** Rows per boot page: enough for an instant first paint, small to serialize. */
 export const LIBRARY_BOOT_LIMIT = 100;
 
+/**
+ * `POST /api/library/save` — one URL fetched, extracted and stored on the
+ * server. `existed` is true when the URL was already in the library (the
+ * stored row is returned untouched).
+ */
+export type SaveUrlResult =
+  { ok: true; item: LibraryItem; existed: boolean } | { ok: false; error: string };
+
 export type BulkSaveLinksResult = {
   saved: LibraryItem[];
   skipped: string[];

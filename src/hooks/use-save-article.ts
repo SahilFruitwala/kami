@@ -1,11 +1,10 @@
 import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { useOrganizeAfterSave } from "@/hooks/use-ai.ts";
-import { articlesApi } from "@/lib/api/articles";
-import { persistArticleItem } from "@/lib/library-remote.ts";
+import { libraryApi } from "@/lib/api/library";
+import type { SaveUrlResult } from "@/lib/api/types";
 import { normalizeSourceUrl, writeDraftUrl } from "@/lib/session-article.ts";
-import { articleToItem } from "@/lib/store.ts";
-import type { ExtractResult } from "@/lib/article-types.ts";
+import { useLibraryStore } from "@/lib/store.ts";
 
 export function useSaveArticle(goOpen: (id: string | null, replace?: boolean) => void) {
   const [url, setUrl] = useState("");
@@ -15,44 +14,31 @@ export function useSaveArticle(goOpen: (id: string | null, replace?: boolean) =>
   const organizeAfterSave = useOrganizeAfterSave();
 
   /**
-   * Optimistic save with server confirmation: the row is in the store
-   * instantly, then reconciled with the canonical server row before opening
-   * the reader — so `/read?id=` always resolves, including after refresh.
+   * The server fetched, extracted and stored the work (`/api/library/save`),
+   * so the returned row is canonical — `/read?id=` resolves, refresh or not.
    */
-  async function acceptResult(result: ExtractResult, thenOpen: boolean) {
+  function acceptResult(result: SaveUrlResult, thenOpen: boolean) {
     if (!result.ok) {
       setError(result.error);
       return false;
     }
-    const item = articleToItem(result.article);
+    useLibraryStore.getState().upsertItem(result.item, { sync: false });
     writeDraftUrl("");
     setUrl("");
     setError("");
-    try {
-      const saved = await persistArticleItem(item);
-      organizeAfterSave();
-      if (!thenOpen) goOpen(null, true);
-      else {
-        goOpen(saved.id);
-        toast.success("Saved to your list");
-      }
-    } catch (err) {
-      // Online failure: surface the real reason inline (and in the console)
-      // instead of opening a reader for a row the next refresh can't see.
-      // The outbox keeps one retry queued for transient/network failures.
-      console.error("[save-article] persist failed:", err);
-      if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        if (!thenOpen) goOpen(null, true);
-        else {
-          goOpen(item.id);
-          toast.success("Saved here — will sync when back online");
-        }
-        return true;
-      }
-      setError(err instanceof Error ? err.message : "Could not save that article.");
-      return false;
+    organizeAfterSave();
+    if (!thenOpen) goOpen(null, true);
+    else {
+      goOpen(result.item.id);
+      toast.success(result.existed ? "Already in your list" : "Saved to your list");
     }
     return true;
+  }
+
+  function failureMessage(fallback: string): string {
+    return typeof navigator !== "undefined" && navigator.onLine === false
+      ? "You're offline — connect and try again."
+      : fallback;
   }
 
   async function save(nextUrl = url, thenOpen = true) {
@@ -68,12 +54,13 @@ export function useSaveArticle(goOpen: (id: string | null, replace?: boolean) =>
     setBusy(true);
     setError("");
     try {
-      const result = await articlesApi.extract(trimmed);
+      const result = await libraryApi.saveUrl(trimmed);
       if (inFlight.current !== trimmed) return;
-      await acceptResult(result, thenOpen);
-    } catch {
+      acceptResult(result, thenOpen);
+    } catch (err) {
       if (inFlight.current !== trimmed) return;
-      setError("Something went wrong while reading that page. Try again.");
+      console.error("[save-article] save failed:", err);
+      setError(failureMessage("Something went wrong while reading that page. Try again."));
     } finally {
       if (inFlight.current === trimmed) {
         inFlight.current = null;
@@ -91,10 +78,9 @@ export function useSaveArticle(goOpen: (id: string | null, replace?: boolean) =>
     setBusy(true);
     setError("");
     try {
-      const result = await articlesApi.link(trimmed);
-      await acceptResult(result, true);
+      acceptResult(await libraryApi.saveUrl(trimmed, { linkOnly: true }), true);
     } catch {
-      setError("Could not save that link.");
+      setError(failureMessage("Could not save that link."));
     } finally {
       setBusy(false);
     }
