@@ -696,6 +696,7 @@ export function ReaderView({
           </button>
           <button
             type="button"
+            title="Favorite this work and find it again under Favorites"
             onClick={() => {
               setFavorited(item.id, !item.favorited);
               toast.success(item.favorited ? "Ribbon removed" : "Ribbon placed — find it under Favorites");

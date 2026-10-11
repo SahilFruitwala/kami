@@ -7,7 +7,7 @@ import { LibraryTabs } from "@/components/library/library-tabs.tsx";
 import { LibraryFilters } from "@/components/library-filters.tsx";
 import { KamiEyebrow } from "@/components/kami.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { useAiStatus, useLibraryIndexer } from "@/hooks/use-ai.ts";
+import { useAiStatus, useAutoOrganize, useLibraryIndexer } from "@/hooks/use-ai.ts";
 import {
   countByArchive,
   filterLibraryItems,
@@ -66,6 +66,7 @@ export function LibraryHome({
   const counts = countByArchive(library);
   const ai = useAiStatus();
   useLibraryIndexer();
+  useAutoOrganize();
   const [askOpen, setAskOpen] = useState(false);
 
   const baseVisible = filterLibraryItems(library, {

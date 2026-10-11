@@ -31,6 +31,7 @@ import { Route as TripsIndexRouteImport } from './routes/trips/index'
 import { Route as TripsIdRouteImport } from './routes/trips/$id'
 import { Route as ApiAiAskRouteImport } from './routes/api/ai/ask'
 import { Route as ApiAiEmbedRouteImport } from './routes/api/ai/embed'
+import { Route as ApiAiOrganizeRouteImport } from './routes/api/ai/organize'
 import { Route as ApiAiPeekRouteImport } from './routes/api/ai/peek'
 import { Route as ApiAiRecapRouteImport } from './routes/api/ai/recap'
 import { Route as ApiAiSearchRouteImport } from './routes/api/ai/search'
@@ -216,6 +217,11 @@ const ApiAiAskRoute = ApiAiAskRouteImport.update({
 const ApiAiEmbedRoute = ApiAiEmbedRouteImport.update({
   id: '/api/ai/embed',
   path: '/api/ai/embed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAiOrganizeRoute = ApiAiOrganizeRouteImport.update({
+  id: '/api/ai/organize',
+  path: '/api/ai/organize',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAiPeekRoute = ApiAiPeekRouteImport.update({
@@ -632,6 +638,7 @@ export interface FileRoutesByFullPath {
   '/trips/': typeof TripsIndexRoute
   '/api/ai/ask': typeof ApiAiAskRoute
   '/api/ai/embed': typeof ApiAiEmbedRoute
+  '/api/ai/organize': typeof ApiAiOrganizeRoute
   '/api/ai/peek': typeof ApiAiPeekRoute
   '/api/ai/recap': typeof ApiAiRecapRoute
   '/api/ai/search': typeof ApiAiSearchRoute
@@ -731,6 +738,7 @@ export interface FileRoutesByTo {
   '/trips': typeof TripsIndexRoute
   '/api/ai/ask': typeof ApiAiAskRoute
   '/api/ai/embed': typeof ApiAiEmbedRoute
+  '/api/ai/organize': typeof ApiAiOrganizeRoute
   '/api/ai/peek': typeof ApiAiPeekRoute
   '/api/ai/recap': typeof ApiAiRecapRoute
   '/api/ai/search': typeof ApiAiSearchRoute
@@ -832,6 +840,7 @@ export interface FileRoutesById {
   '/trips/': typeof TripsIndexRoute
   '/api/ai/ask': typeof ApiAiAskRoute
   '/api/ai/embed': typeof ApiAiEmbedRoute
+  '/api/ai/organize': typeof ApiAiOrganizeRoute
   '/api/ai/peek': typeof ApiAiPeekRoute
   '/api/ai/recap': typeof ApiAiRecapRoute
   '/api/ai/search': typeof ApiAiSearchRoute
@@ -934,6 +943,7 @@ export interface FileRouteTypes {
     | '/trips/'
     | '/api/ai/ask'
     | '/api/ai/embed'
+    | '/api/ai/organize'
     | '/api/ai/peek'
     | '/api/ai/recap'
     | '/api/ai/search'
@@ -1033,6 +1043,7 @@ export interface FileRouteTypes {
     | '/trips'
     | '/api/ai/ask'
     | '/api/ai/embed'
+    | '/api/ai/organize'
     | '/api/ai/peek'
     | '/api/ai/recap'
     | '/api/ai/search'
@@ -1133,6 +1144,7 @@ export interface FileRouteTypes {
     | '/trips/'
     | '/api/ai/ask'
     | '/api/ai/embed'
+    | '/api/ai/organize'
     | '/api/ai/peek'
     | '/api/ai/recap'
     | '/api/ai/search'
@@ -1232,6 +1244,7 @@ export interface RootRouteChildren {
   TripsIndexRoute: typeof TripsIndexRoute
   ApiAiAskRoute: typeof ApiAiAskRoute
   ApiAiEmbedRoute: typeof ApiAiEmbedRoute
+  ApiAiOrganizeRoute: typeof ApiAiOrganizeRoute
   ApiAiPeekRoute: typeof ApiAiPeekRoute
   ApiAiRecapRoute: typeof ApiAiRecapRoute
   ApiAiSearchRoute: typeof ApiAiSearchRoute
@@ -1447,6 +1460,13 @@ declare module '@tanstack/react-router' {
       path: '/api/ai/embed'
       fullPath: '/api/ai/embed'
       preLoaderRoute: typeof ApiAiEmbedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/ai/organize': {
+      id: '/api/ai/organize'
+      path: '/api/ai/organize'
+      fullPath: '/api/ai/organize'
+      preLoaderRoute: typeof ApiAiOrganizeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/ai/peek': {
@@ -2112,6 +2132,7 @@ const rootRouteChildren: RootRouteChildren = {
   TripsIndexRoute: TripsIndexRoute,
   ApiAiAskRoute: ApiAiAskRoute,
   ApiAiEmbedRoute: ApiAiEmbedRoute,
+  ApiAiOrganizeRoute: ApiAiOrganizeRoute,
   ApiAiPeekRoute: ApiAiPeekRoute,
   ApiAiRecapRoute: ApiAiRecapRoute,
   ApiAiSearchRoute: ApiAiSearchRoute,
