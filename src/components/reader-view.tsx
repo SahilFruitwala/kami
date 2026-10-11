@@ -694,18 +694,6 @@ export function ReaderView({
             <Eye className="size-[18px]" aria-hidden="true" />
             <span className="hidden sm:inline">Zen Focus</span>
           </button>
-          <button
-            type="button"
-            title="Favorite this work and find it again under Favorites"
-            onClick={() => {
-              setFavorited(item.id, !item.favorited);
-              toast.success(item.favorited ? "Ribbon removed" : "Ribbon placed — find it under Favorites");
-            }}
-            className="flex size-11 items-center justify-center rounded-full bg-hanko font-sans text-xs font-medium text-white shadow-sm transition-[background-color,transform] hover:bg-shu active:scale-95 sm:size-auto sm:min-h-8 sm:gap-1.5 sm:px-3.5 sm:py-1.5"
-          >
-            <BookmarkPlus className="size-[18px]" aria-hidden="true" />
-            <span className="hidden sm:inline">Place Ribbon</span>
-          </button>
         </div>
         </div>
       )}
