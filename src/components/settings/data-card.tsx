@@ -128,7 +128,7 @@ export function DataCard() {
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="rounded-[0.25rem] bg-paper-warm px-4 py-2 font-sans text-xs font-medium text-ink hover:bg-line"
+          className="rounded-lg bg-paper-warm px-4 py-2 font-sans text-xs font-medium text-ink hover:bg-line"
         >
           Import JSON / OPML…
         </button>
@@ -148,7 +148,7 @@ export function DataCard() {
           type="button"
           disabled={goodreadsBusy}
           onClick={() => goodreadsRef.current?.click()}
-          className="rounded-[0.25rem] bg-paper-warm px-4 py-2 font-sans text-xs font-medium text-ink hover:bg-line disabled:opacity-60"
+          className="rounded-lg bg-paper-warm px-4 py-2 font-sans text-xs font-medium text-ink hover:bg-line disabled:opacity-60"
         >
           {goodreadsBusy ? "Importing books…" : "Import Goodreads / StoryGraph CSV…"}
         </button>
@@ -174,13 +174,13 @@ export function DataCard() {
       <div>
         <FieldLabel>Possible duplicates ({dupes.length})</FieldLabel>
         {dupes.length === 0 ? (
-          <p className="mt-2 rounded-[0.25rem] bg-bg/60 px-3 py-2.5 font-body text-sm text-ink-muted italic">
+          <p className="mt-2 rounded-lg bg-bg/60 px-3 py-2.5 font-body text-sm text-ink-muted italic">
             No duplicates detected — URLs and titles all look distinct.
           </p>
         ) : (
           <ul className="mt-2 space-y-2">
             {dupes.slice(0, 10).map((group, i) => (
-              <li key={group.map((g) => g.id).join("|")} className="rounded-[0.25rem] bg-bg/60 p-3">
+              <li key={group.map((g) => g.id).join("|")} className="rounded-lg bg-bg/60 p-3">
                 <p className="font-sans text-xs font-semibold text-ink">
                   {group.length} copies of “{group[0]!.title.slice(0, 60)}”
                 </p>
@@ -219,7 +219,7 @@ export function DataCard() {
         )}
       </div>
 
-      <div className="rounded-[0.25rem] border border-danger/30 bg-danger/5 p-4">
+      <div className="rounded-lg border border-danger/30 bg-danger/5 p-4">
         <p className="font-sans text-sm font-semibold text-danger">Danger zone</p>
         <p className="mt-1 font-body text-sm text-ink-muted">
           Export first — this deletes every work, folder, and highlight from this device{" "}
@@ -246,7 +246,7 @@ export function DataCard() {
               }
             })();
           }}
-          className="mt-3 rounded-[0.25rem] bg-danger px-4 py-2 font-sans text-xs font-semibold text-white hover:brightness-110"
+          className="mt-3 rounded-lg bg-danger px-4 py-2 font-sans text-xs font-semibold text-white hover:brightness-110"
         >
           Delete all library data
         </button>

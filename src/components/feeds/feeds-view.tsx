@@ -81,24 +81,18 @@ export function FeedsView({
               onUnsubscribed={() => onSelectFeed(null)}
             />
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div role="group" aria-label="Entry views" className="flex items-center gap-1.5">
+              <div role="group" aria-label="Entry views" className="g-seg g-seg--sm">
                 {VIEWS.map((v) => (
                   <button
                     key={v.id}
                     type="button"
                     aria-pressed={view === v.id}
                     onClick={() => onView(v.id)}
-                    className={cn(
-                      "rounded-md px-3 py-1.5 font-sans text-xs font-medium transition-colors",
-                      view === v.id
-                        ? "bg-hanko text-white shadow-sm"
-                        : "bg-surface text-ink-soft shadow-[var(--shadow-border)] hover:text-ink",
-                    )}
                   >
                     {v.label}
                     {v.id === "unread" ? (
-                      <span className="ml-1 tabular-nums opacity-80">
-                        ({selected ? selected.unread : feeds.reduce((n, f) => n + f.unread, 0)})
+                      <span className="tabular-nums text-ink-muted">
+                        {selected ? selected.unread : feeds.reduce((n, f) => n + f.unread, 0)}
                       </span>
                     ) : null}
                   </button>
@@ -178,7 +172,7 @@ function ToolbarButton({
       onClick={onClick}
       title={title}
       disabled={busy || disabled}
-      className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-sans text-xs text-ink-soft transition-colors hover:bg-paper-warm hover:text-ink disabled:opacity-60"
+      className="flex h-8 items-center gap-1.5 rounded-full px-3 font-sans text-[13px] text-ink-soft transition-colors hover:bg-paper-warm hover:text-ink disabled:opacity-60"
     >
       {busy ? <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" /> : icon}
       {children}
@@ -214,7 +208,7 @@ function FeedHeader({
   if (!feed) {
     return (
       <div>
-        <h3 className="font-display text-2xl tracking-tight text-ink">All feeds</h3>
+        <h3 className="font-display text-3xl tracking-tight text-ink">All feeds</h3>
         <p className="mt-1 font-body text-sm text-ink-soft">
           Fresh entries from everything you follow. Save one to read it in the reader and highlight
           it like any other work.
@@ -250,13 +244,13 @@ function FeedHeader({
           />
           <button
             type="submit"
-            className="rounded bg-hanko px-3 py-1.5 font-sans text-xs font-medium text-white hover:bg-shu"
+            className="g-btn g-btn--ink h-9"
           >
             Save
           </button>
         </form>
       ) : (
-        <h3 className="flex items-center gap-2 font-display text-2xl tracking-tight text-ink">
+        <h3 className="flex items-center gap-2 font-display text-3xl tracking-tight text-ink">
           {feed.kind === "email" ? (
             <Mail className="size-5 text-ink-muted" aria-hidden="true" />
           ) : (
@@ -535,7 +529,7 @@ function EntryCard({
           height="80"
           loading="lazy"
           decoding="async"
-          className="hidden h-20 w-28 shrink-0 rounded-[0.25rem] object-cover sm:block"
+          className="hidden h-20 w-28 shrink-0 rounded-lg object-cover sm:block"
           onError={(e) => {
             e.currentTarget.style.display = "none";
           }}

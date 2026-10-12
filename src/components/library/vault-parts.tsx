@@ -367,7 +367,7 @@ export function NoteEditor({
             }
           }}
           placeholder="Why did this passage matter?"
-          className="mt-1.5 block w-full resize-none rounded-[0.25rem] border border-line bg-surface px-2.5 py-2 font-body text-sm tracking-normal text-ink normal-case outline-none placeholder:text-ink-muted placeholder:italic focus-visible:ring-2 focus-visible:ring-hanko/30"
+          className="mt-1.5 block w-full resize-none rounded-lg border border-line bg-surface px-2.5 py-2 font-body text-sm tracking-normal text-ink normal-case outline-none placeholder:text-ink-muted placeholder:italic focus-visible:ring-2 focus-visible:ring-hanko/30"
         />
       </label>
       <div className="flex items-center justify-between gap-2">
@@ -393,7 +393,7 @@ export function NoteEditor({
           </button>
           <button
             type="submit"
-            className="rounded bg-hanko px-2.5 py-1 font-sans text-[11px] font-medium text-white shadow-sm hover:bg-shu"
+            className="rounded bg-hanko px-2.5 py-1 font-sans text-[11px] font-medium text-paper shadow-sm hover:bg-shu"
           >
             Save
           </button>

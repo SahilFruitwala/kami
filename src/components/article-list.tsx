@@ -220,8 +220,8 @@ function ArticleCard({
               aria-label={`Select ${item.title}`}
               onClick={() => onToggleSelect?.(item.id)}
               className={cn(
-                "flex size-11 shrink-0 items-center justify-center rounded-[0.25rem] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 sm:size-8",
-                selected ? "border-hanko bg-hanko text-white" : "border-faint bg-surface text-transparent",
+                "flex size-11 shrink-0 items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 sm:size-8",
+                selected ? "border-hanko bg-hanko text-paper" : "border-faint bg-surface text-transparent",
               )}
             >
               <svg viewBox="0 0 12 12" className="size-3" fill="none" aria-hidden="true">
@@ -248,7 +248,7 @@ function ArticleCard({
       <button
         type="button"
         onClick={() => (selectMode ? onToggleSelect?.(item.id) : onOpen(item))}
-        className="mb-4 flex flex-1 flex-col rounded-[0.25rem] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+        className="mb-4 flex flex-1 flex-col rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
       >
         <ViewTransition name={`article-title-${item.id}`} share="text-morph" default="none">
           <span className="line-clamp-2 font-display text-xl leading-snug font-medium break-words text-ink transition-colors group-hover:text-hanko">
@@ -261,7 +261,7 @@ function ArticleCard({
           </span>
         ) : null}
         {item.heroImage ? (
-          <span className="mt-4 block h-32 w-full overflow-hidden rounded-[0.25rem]">
+          <span className="mt-4 block h-32 w-full overflow-hidden rounded-lg">
             <ViewTransition name={`article-image-${item.id}`} share="morph" default="none">
               <img
                 src={previewImageSrc(item.heroImage)}

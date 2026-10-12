@@ -67,7 +67,7 @@ function RecapCard() {
             type="button"
             onClick={() => make.mutate()}
             disabled={make.isPending}
-            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-hanko px-4 font-sans text-xs font-semibold text-white transition-colors hover:bg-shu disabled:opacity-60"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-hanko px-4 font-sans text-xs font-semibold text-paper transition-colors hover:bg-shu disabled:opacity-60"
           >
             {make.isPending ? (
               <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />

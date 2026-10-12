@@ -148,7 +148,7 @@ function FindByMeaning() {
         <button
           type="submit"
           disabled={draft.trim().length < 2}
-          className="h-10 rounded-lg bg-hanko px-4 font-sans text-xs font-semibold text-white transition-colors hover:bg-shu disabled:opacity-50"
+          className="h-10 rounded-lg bg-hanko px-4 font-sans text-xs font-semibold text-paper transition-colors hover:bg-shu disabled:opacity-50"
         >
           Find
         </button>

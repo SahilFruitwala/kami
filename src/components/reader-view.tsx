@@ -412,10 +412,10 @@ export function ReaderView({
         >
           {!zen ? (
             <div className="absolute top-0 right-12 flex flex-col items-center" aria-hidden="true">
-              <div className="flex h-12 w-6 items-center justify-center bg-hanko shadow-sm">
+              <div className="flex h-12 w-6 items-center justify-center bg-ink-accent shadow-sm">
                 <BookmarkPlus className="size-[14px] text-white" />
               </div>
-              <div className="size-0 border-x-[12px] border-t-[8px] border-x-transparent border-t-hanko" />
+              <div className="size-0 border-x-[12px] border-t-[8px] border-x-transparent border-t-ink-accent" />
             </div>
           ) : null}
 
@@ -644,7 +644,7 @@ export function ReaderView({
               onClick={() => setZen(false)}
               aria-label="Exit zen focus (Esc)"
               title="Exit zen (Esc)"
-              className="flex min-h-11 items-center gap-1.5 rounded-full bg-hanko px-3 font-sans text-xs font-medium text-white transition-colors hover:bg-shu md:min-h-8"
+              className="flex min-h-11 items-center gap-1.5 rounded-full bg-hanko px-3 font-sans text-xs font-medium text-paper transition-colors hover:bg-shu md:min-h-8"
             >
               <EyeOff className="size-4" aria-hidden="true" />
               <span>Exit Zen</span>
@@ -688,7 +688,7 @@ export function ReaderView({
             aria-pressed={zen}
             className={cn(
               "flex size-11 items-center justify-center rounded-full font-sans text-xs transition-colors sm:size-auto sm:min-h-8 sm:gap-1.5 sm:px-3 sm:py-1.5",
-              zen ? "bg-hanko text-white" : "bg-paper-warm text-ink-soft hover:text-ink",
+              zen ? "bg-hanko text-paper" : "bg-paper-warm text-ink-soft hover:text-ink",
             )}
           >
             <Eye className="size-[18px]" aria-hidden="true" />

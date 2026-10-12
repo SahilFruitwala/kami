@@ -52,7 +52,7 @@ export function AddFeedForm({ actions }: { actions: Actions }) {
           type="submit"
           disabled={busy || !url.trim()}
           aria-label="Follow"
-          className="flex h-9 shrink-0 items-center gap-1 rounded-lg bg-hanko px-3 font-sans text-xs font-semibold text-white shadow-sm transition-colors hover:bg-shu disabled:opacity-50"
+          className="flex h-9 shrink-0 items-center gap-1 rounded-lg bg-hanko px-3 font-sans text-xs font-semibold text-paper shadow-sm transition-colors hover:bg-shu disabled:opacity-50"
         >
           {busy ? (
             <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -161,7 +161,7 @@ function FeedRow({
         <span className={cn("shrink-0", active ? "text-hanko" : "text-ink-muted")}>{icon}</span>
         <span className="min-w-0 flex-1 truncate font-sans text-[13px]">{title}</span>
         {error ? (
-          <AlertCircle className="size-3.5 shrink-0 text-hanko" aria-label={`Failing: ${error}`}>
+          <AlertCircle className="size-3.5 shrink-0 text-danger" aria-label={`Failing: ${error}`}>
             <title>{error}</title>
           </AlertCircle>
         ) : null}
@@ -169,7 +169,7 @@ function FeedRow({
           <span
             className={cn(
               "shrink-0 rounded-full px-1.5 font-sans text-[10px] font-semibold tabular-nums",
-              active ? "bg-hanko text-white" : "bg-bg text-ink-soft",
+              active ? "bg-hanko text-paper" : "bg-bg text-ink-soft",
             )}
           >
             {unread > 999 ? "999+" : unread}
@@ -248,7 +248,7 @@ export function NewsletterCard({ inbox, actions }: { inbox: NewsletterInbox; act
             type="button"
             disabled={actions.inbox.isPending}
             onClick={() => actions.inbox.mutate(false)}
-            className="flex w-full items-center justify-center gap-1.5 rounded bg-hanko px-3 py-2 font-sans text-xs font-medium text-white shadow-sm transition-colors hover:bg-shu disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-1.5 rounded bg-hanko px-3 py-2 font-sans text-xs font-medium text-paper shadow-sm transition-colors hover:bg-shu disabled:opacity-60"
           >
             {actions.inbox.isPending ? (
               <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />

@@ -88,7 +88,7 @@ export function ShelfDetailPage({
             <p className="mt-2 font-sans text-sm text-ink-muted">
               This {tab === "tv" ? "series" : tab} was removed, or the link is wrong.
             </p>
-            <Button asChild className="mt-4 bg-hanko text-white hover:bg-shu">
+            <Button asChild className="mt-4 bg-hanko text-paper hover:bg-shu">
               <Link to={shelfPath(tab)} search={listSearch}>
                 Back to {meta.label.toLowerCase()}
               </Link>
@@ -140,7 +140,7 @@ function DetailBody({
       <title>{`${item.title} · Kami`}</title>
 
       <div className="mx-auto w-full max-w-[16rem] lg:sticky lg:top-6 lg:self-start">
-        <div className="poster-frame relative overflow-hidden rounded-[0.25rem] shadow-[var(--shadow-border)]">
+        <div className="poster-frame relative overflow-hidden rounded-lg shadow-[var(--shadow-border)]">
           {item.imageUrl ? (
             <img
               src={item.imageUrl}
@@ -196,7 +196,7 @@ function DetailBody({
               type="button"
               disabled={busy}
               onClick={() => void setAbandoned(false)}
-              className="bg-hanko text-white hover:bg-shu"
+              className="bg-hanko text-paper hover:bg-shu"
             >
               {busy ? (
                 <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -236,7 +236,7 @@ function DetailBody({
                   type="button"
                   disabled={busy}
                   onClick={() => void setDone(true)}
-                  className="bg-hanko text-white hover:bg-shu"
+                  className="bg-hanko text-paper hover:bg-shu"
                 >
                   {busy ? (
                     <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -298,7 +298,7 @@ function DetailBody({
         ) : null}
 
         {item.notes ? (
-          <section className="rounded-[0.25rem] border-l-2 border-hanko/40 bg-paper-warm p-4">
+          <section className="rounded-lg border-l-2 border-hanko/40 bg-paper-warm p-4">
             <h2 className="kami-label text-ink-muted">Marginalia</h2>
             <p className="mt-1.5 font-serif text-base text-ink italic text-pretty">{item.notes}</p>
           </section>

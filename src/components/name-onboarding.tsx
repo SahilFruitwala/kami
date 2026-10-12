@@ -92,7 +92,7 @@ function NameOnboardingInner() {
             <Button type="button" variant="ghost" onClick={() => setSkipped(true)}>
               Skip for now
             </Button>
-            <Button type="submit" disabled={saving} className="bg-hanko text-white hover:bg-shu">
+            <Button type="submit" disabled={saving} className="bg-hanko text-paper hover:bg-shu">
               {saving ? "Saving…" : "Save name"}
             </Button>
           </div>

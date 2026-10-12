@@ -77,12 +77,12 @@ function SeasonEpisodes({ itemId, season }: { itemId: string; season: number }) 
               onClick={() => toggle.mutate({ season: e.season, number: e.number })}
               disabled={toggle.isPending}
               aria-pressed={e.watched}
-              className="flex w-full items-center gap-2.5 rounded-[0.25rem] py-1.5 pr-2 text-left hover:bg-paper-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 disabled:opacity-60"
+              className="flex w-full items-center gap-2.5 rounded-lg py-1.5 pr-2 text-left hover:bg-paper-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 disabled:opacity-60"
             >
               <span
                 className={cn(
                   "flex size-4 shrink-0 items-center justify-center rounded-[0.125rem] border",
-                  e.watched ? "border-hanko bg-hanko text-white" : "border-line bg-surface",
+                  e.watched ? "border-hanko bg-hanko text-paper" : "border-line bg-surface",
                 )}
                 aria-hidden="true"
               >
@@ -215,7 +215,7 @@ export function EpisodeTracker({ itemId }: { itemId: string }) {
                     className={cn(
                       "flex size-5 shrink-0 items-center justify-center rounded-[0.125rem] border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 disabled:opacity-50",
                       complete
-                        ? "border-hanko bg-hanko text-white"
+                        ? "border-hanko bg-hanko text-paper"
                         : "border-line bg-surface hover:border-ink-muted",
                     )}
                   >

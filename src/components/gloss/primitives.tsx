@@ -26,6 +26,51 @@ export function GlossEyebrow({ icon, children }: { icon?: ReactNode; children: R
   );
 }
 
+/**
+ * Page header used by every app page: small eyebrow, huge serif H1, an
+ * optional serif one-liner and stats line, with actions on the right.
+ */
+export function GlossHeader({
+  eyebrow,
+  icon,
+  title,
+  description,
+  stats,
+  actions,
+  children,
+  className,
+}: {
+  eyebrow: ReactNode;
+  icon?: ReactNode;
+  title: ReactNode;
+  description?: ReactNode;
+  stats?: { value: ReactNode; label: string }[];
+  actions?: ReactNode;
+  children?: ReactNode;
+  className?: string;
+}) {
+  return (
+    <GlossColumn className={cn("pt-10 pb-2 sm:pt-14", className)}>
+      <GlossEyebrow icon={icon}>{eyebrow}</GlossEyebrow>
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
+        <h1 className="g-h1 text-ink">{title}</h1>
+        {actions ? <div className="mb-2 flex flex-wrap items-center gap-2">{actions}</div> : null}
+      </div>
+      {description ? (
+        <p className="mt-4 max-w-2xl font-display text-lg leading-snug text-ink-soft">
+          {description}
+        </p>
+      ) : null}
+      {stats ? (
+        <div className="mt-4">
+          <GlossStats parts={stats} />
+        </div>
+      ) : null}
+      {children}
+    </GlossColumn>
+  );
+}
+
 /** "101 essays · 10 topics · 35 hours" — numbers in ink, labels muted. */
 export function GlossStats({ parts }: { parts: { value: ReactNode; label: string }[] }) {
   return (
