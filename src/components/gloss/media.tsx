@@ -1,5 +1,5 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
-import { Check } from "lucide-react";
+import { Check, Trash2 } from "lucide-react";
 import {
   dvdLook,
   familyVars,
@@ -594,6 +594,7 @@ export function MediaPage({
   busy,
   onOpenDetails,
   onToggleDone,
+  onRemove,
 }: {
   api: PullOutApi;
   item: ShelfCard;
@@ -602,6 +603,7 @@ export function MediaPage({
   busy: boolean;
   onOpenDetails: () => void;
   onToggleDone: () => void;
+  onRemove: () => void;
 }) {
   const labels = statusLabels(
     kind === "vhs" ? "movie" : kind === "dvd" ? "tv" : kind === "book" ? "book" : "wishlist",
@@ -795,6 +797,15 @@ export function MediaPage({
           >
             <Check className={cn("size-4", isDone && "text-[#B8443A]")} aria-hidden="true" />
             {isDone ? labels.markTry : labels.markDone}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onRemove}
+            className="inline-flex items-center gap-1.5 text-[#B8443A] hover:text-ink disabled:opacity-50"
+          >
+            <Trash2 className="size-4" aria-hidden="true" />
+            Remove
           </button>
           <button
             type="button"
