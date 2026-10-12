@@ -43,7 +43,7 @@ export function CaptureForm({
         <label htmlFor="source-url" className="sr-only">
           Article URL
         </label>
-        <div className="kami-sheet flex flex-col gap-2 p-2 focus-within:ring-2 focus-within:ring-hanko/40 sm:flex-row sm:items-center sm:px-3">
+        <div className="kami-sheet flex flex-col gap-2 p-2 transition-colors focus-within:border-ink sm:flex-row sm:items-center sm:px-3">
           <div className="flex min-w-0 w-full items-center gap-2">
             <Search className="size-[18px] shrink-0 text-ink-muted" aria-hidden="true" />
             <Input
@@ -61,15 +61,15 @@ export function CaptureForm({
                 onUrlChange(e.target.value);
                 onClearError();
               }}
-              className="h-11 min-w-0 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+              className="h-11 min-w-0 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
             />
-            <kbd className="hidden shrink-0 rounded-[0.25rem] bg-paper-warm px-1.5 py-0.5 font-sans text-[11px] text-ink-muted tabular-nums sm:inline-block">
+            <kbd className="hidden shrink-0 rounded-lg bg-paper-warm px-1.5 py-0.5 font-sans text-[11px] text-ink-muted tabular-nums sm:inline-block">
               ⌘&nbsp;K
             </kbd>
           </div>
           <Button
             type="submit"
-            className="h-11 w-full shrink-0 bg-hanko text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
+            className="h-11 w-full shrink-0 bg-hanko text-paper hover:bg-shu sm:w-auto"
             disabled={busy}
           >
             {busy ? (
@@ -88,7 +88,7 @@ export function CaptureForm({
         </div>
         {error ? (
           <div className="mt-2 space-y-2" role="alert" aria-live="assertive">
-            <p className="text-sm font-medium text-hanko">{error}</p>
+            <p className="text-sm font-medium text-danger">{error}</p>
             <div className="flex flex-wrap gap-2">
               <Button
                 type="button"

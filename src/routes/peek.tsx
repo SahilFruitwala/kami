@@ -85,7 +85,7 @@ function Peek() {
                 <button
                   type="button"
                   onClick={save}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-hanko px-4 py-2 font-sans text-sm font-medium text-white hover:bg-shu"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-hanko px-4 py-2 font-sans text-sm font-medium text-paper hover:bg-shu"
                 >
                   <BookmarkPlus className="size-4" aria-hidden="true" />
                   Save it anyway
@@ -147,7 +147,7 @@ function PeekBody({ peek, onSave }: { peek: PagePeek; onSave: () => void }) {
         <button
           type="button"
           onClick={onSave}
-          className="inline-flex items-center gap-1.5 rounded-full bg-hanko px-4 py-2 font-sans text-sm font-medium text-white hover:bg-shu"
+          className="inline-flex items-center gap-1.5 rounded-full bg-hanko px-4 py-2 font-sans text-sm font-medium text-paper hover:bg-shu"
         >
           <BookmarkPlus className="size-4" aria-hidden="true" />
           Save to library

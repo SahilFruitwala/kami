@@ -165,7 +165,7 @@ function SourceForm({
         <button
           type="submit"
           disabled={busy || !url.trim() || !question.trim()}
-          className="flex h-9 flex-1 items-center justify-center gap-1 rounded-lg bg-hanko px-3 font-sans text-xs font-semibold text-white shadow-sm transition-colors hover:bg-shu disabled:opacity-50"
+          className="flex h-9 flex-1 items-center justify-center gap-1 rounded-lg bg-hanko px-3 font-sans text-xs font-semibold text-paper shadow-sm transition-colors hover:bg-shu disabled:opacity-50"
         >
           {busy ? (
             <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -228,7 +228,7 @@ function SourceList({
                 <span className="min-w-0 flex-1 truncate font-sans text-[13px]">{s.name}</span>
                 {s.lastError ? (
                   <AlertCircle
-                    className="size-3.5 shrink-0 text-hanko"
+                    className="size-3.5 shrink-0 text-danger"
                     aria-label={`Last run failed: ${s.lastError}`}
                   />
                 ) : null}
@@ -236,7 +236,7 @@ function SourceList({
                   <span
                     className={cn(
                       "shrink-0 rounded-full px-1.5 font-sans text-[10px] font-semibold",
-                      active ? "bg-hanko text-white" : "bg-bg text-ink-soft",
+                      active ? "bg-hanko text-paper" : "bg-bg text-ink-soft",
                     )}
                   >
                     review
@@ -320,7 +320,7 @@ function SourceDetail({
                 type="button"
                 disabled={!enabled || running}
                 onClick={() => actions.run.mutate({ id: source.id })}
-                className="flex items-center gap-1.5 rounded-md bg-hanko px-3 py-1.5 font-sans text-xs font-semibold text-white shadow-sm transition-colors hover:bg-shu disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-md bg-hanko px-3 py-1.5 font-sans text-xs font-semibold text-paper shadow-sm transition-colors hover:bg-shu disabled:opacity-60"
               >
                 {running ? (
                   <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
@@ -386,7 +386,7 @@ function PendingResult({ result, actions }: { result: ExtractResult; actions: Ac
             type="button"
             disabled={busy}
             onClick={() => actions.accept.mutate(result.id)}
-            className="flex items-center gap-1 rounded-md bg-hanko px-3 py-1.5 font-sans text-xs font-semibold text-white shadow-sm hover:bg-shu disabled:opacity-60"
+            className="flex items-center gap-1 rounded-md bg-hanko px-3 py-1.5 font-sans text-xs font-semibold text-paper shadow-sm hover:bg-shu disabled:opacity-60"
           >
             <Check className="size-3.5" aria-hidden="true" />
             Accept
@@ -515,7 +515,7 @@ function EmptyExtracts({ actions, onSaved }: { actions: Actions; onSaved: (id: s
         type="button"
         disabled={actions.create.isPending}
         onClick={() => actions.create.mutate(EXAMPLE, { onSuccess: (s) => onSaved(s.id) })}
-        className="mt-2 flex items-center gap-1.5 rounded-md bg-hanko px-3 py-2 font-sans text-xs font-semibold text-white shadow-sm hover:bg-shu disabled:opacity-60"
+        className="mt-2 flex items-center gap-1.5 rounded-md bg-hanko px-3 py-2 font-sans text-xs font-semibold text-paper shadow-sm hover:bg-shu disabled:opacity-60"
       >
         <Plus className="size-3.5" aria-hidden="true" />
         Try the Product Hunt example

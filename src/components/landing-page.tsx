@@ -122,7 +122,7 @@ export function LandingPage() {
     <div className="kami-desk relative min-h-dvh overflow-x-hidden text-ink [touch-action:manipulation]">
       <a
         href="#main"
-        className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-[60] focus-visible:rounded-[0.25rem] focus-visible:bg-hanko focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-white"
+        className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-[60] focus-visible:rounded-lg focus-visible:bg-hanko focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper"
       >
         Skip to content
       </a>
@@ -131,7 +131,7 @@ export function LandingPage() {
         <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-2 px-[max(1rem,env(safe-area-inset-left))] sm:gap-3 sm:px-6">
           <Link
             to="/"
-            className="group inline-flex items-center gap-2.5 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            className="group inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
           >
             <Hanko glyph={KAMI_GLYPH} square className="size-8" title="Kami" />
             <span className="hidden leading-none min-[360px]:block">
@@ -157,14 +157,14 @@ export function LandingPage() {
           </nav>
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
-            <Button type="button" variant="ghost" className="hidden h-10 rounded-[0.25rem] sm:inline-flex" asChild>
+            <Button type="button" variant="ghost" className="hidden h-10 rounded-lg sm:inline-flex" asChild>
               <Link to="/login/$">
                 Sign In
               </Link>
             </Button>
             <Button
               type="button"
-              className="h-10 rounded-[0.25rem] bg-hanko px-3 text-white shadow-sm hover:bg-shu active:translate-y-px sm:px-4"
+              className="h-10 rounded-lg bg-hanko px-3 text-paper shadow-sm hover:bg-shu active:translate-y-px sm:px-4"
               asChild
             >
               <Link to="/sign-up/$">
@@ -200,7 +200,7 @@ export function LandingPage() {
                 <Button
                   type="button"
                   size="lg"
-                  className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
+                  className="h-11 w-full rounded-lg bg-hanko px-5 text-paper shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
                   asChild
                 >
                   <Link to="/sign-up/$">
@@ -212,7 +212,7 @@ export function LandingPage() {
                   type="button"
                   variant="ghost"
                   size="lg"
-                  className="h-11 w-full rounded-[0.25rem] sm:w-auto"
+                  className="h-11 w-full rounded-lg sm:w-auto"
                   asChild
                 >
                   <a href="#features">
@@ -241,10 +241,10 @@ export function LandingPage() {
                 <div className="kami-sheet mt-3 px-3.5 py-3">
                   <p className="kami-label text-ink-muted">Save a link</p>
                   <div className="mt-2 flex items-center gap-2">
-                    <div className="flex h-10 flex-1 items-center rounded-[0.25rem] border border-line bg-bg/60 px-3 font-sans text-sm text-ink-muted">
+                    <div className="flex h-10 flex-1 items-center rounded-lg border border-line bg-bg/60 px-3 font-sans text-sm text-ink-muted">
                       <span className="truncate">Paste a blog or X URL…</span>
                     </div>
-                    <span className="rounded-[0.25rem] bg-hanko px-3.5 py-2 font-sans text-sm font-semibold text-white">
+                    <span className="rounded-lg bg-hanko px-3.5 py-2 font-sans text-sm font-semibold text-paper">
                       Save
                     </span>
                   </div>
@@ -256,7 +256,7 @@ export function LandingPage() {
                     { tag: "Blog", tone: "indigo", title: "A Field Guide to Focus", meta: "9 min · 3d ago" },
                   ].map((row) => (
                     <li key={row.title} className="flex items-center gap-3 py-2.5">
-                      <span className="size-10 shrink-0 rounded-[0.25rem] bg-paper-warm" aria-hidden="true" />
+                      <span className="size-10 shrink-0 rounded-lg bg-paper-warm" aria-hidden="true" />
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2">
                           <WashiTag tone={row.tone as "bamboo" | "vermilion" | "indigo"}>{row.tag}</WashiTag>
@@ -318,7 +318,7 @@ export function LandingPage() {
                 className="kami-sheet group relative overflow-hidden p-5 transition-shadow duration-150 hover:shadow-[var(--shadow-border-hover)]"
               >
                 <span aria-hidden="true" className="absolute top-0 right-6 h-7 w-2.5 rounded-b-[0.25rem] bg-hanko/70 opacity-0 transition-opacity group-hover:opacity-100" />
-                <span className="flex size-10 items-center justify-center rounded-[0.25rem] bg-paper-warm text-hanko">
+                <span className="flex size-10 items-center justify-center rounded-lg bg-paper-warm text-hanko">
                   <f.icon className="size-5" aria-hidden="true" />
                 </span>
                 <h3 className="mt-4 font-display text-base font-semibold tracking-tight">{f.title}</h3>
@@ -350,7 +350,7 @@ export function LandingPage() {
               <Button
                 type="button"
                 size="lg"
-                className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
+                className="h-11 w-full rounded-lg bg-hanko px-5 text-paper shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
                 asChild
               >
                 <Link to="/sign-up/$">
@@ -361,7 +361,7 @@ export function LandingPage() {
                 type="button"
                 variant="ghost"
                 size="lg"
-                className="h-11 w-full rounded-[0.25rem] sm:w-auto"
+                className="h-11 w-full rounded-lg sm:w-auto"
                 asChild
               >
                 <Link to="/login/$">I Already Have an Account</Link>
@@ -467,7 +467,7 @@ export function LandingPage() {
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div className="kami-sheet flex items-center gap-3 p-5">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-[0.25rem] bg-paper-warm text-hanko">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-paper-warm text-hanko">
                   <Command className="size-5" aria-hidden="true" />
                 </span>
                 <p className="kami-body text-sm leading-[1.8] text-ink-soft">
@@ -476,7 +476,7 @@ export function LandingPage() {
                 </p>
               </div>
               <div className="kami-sheet flex items-center gap-3 p-5">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-[0.25rem] bg-paper-warm text-hanko">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-paper-warm text-hanko">
                   <ShieldCheck className="size-5" aria-hidden="true" />
                 </span>
                 <p className="kami-body text-sm leading-[1.8] text-ink-soft">
@@ -538,7 +538,7 @@ export function LandingPage() {
               <Button
                 type="button"
                 size="lg"
-                className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
+                className="h-11 w-full rounded-lg bg-hanko px-5 text-paper shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
                 asChild
               >
                 <Link to="/sign-up/$">
@@ -549,7 +549,7 @@ export function LandingPage() {
                 type="button"
                 size="lg"
                 variant="outline"
-                className="h-11 w-full rounded-[0.25rem] border-line bg-surface text-ink-accent hover:bg-paper-warm sm:w-auto"
+                className="h-11 w-full rounded-lg border-line bg-surface text-ink-accent hover:bg-paper-warm sm:w-auto"
                 asChild
               >
                 <Link to="/login/$">

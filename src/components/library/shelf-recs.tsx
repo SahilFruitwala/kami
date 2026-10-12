@@ -110,7 +110,7 @@ function RecCard({ type, rec }: { type: RecType; rec: ShelfRec }) {
           height="84"
           loading="lazy"
           decoding="async"
-          className="h-21 w-14 shrink-0 rounded-[0.25rem] object-cover"
+          className="h-21 w-14 shrink-0 rounded-lg object-cover"
           onError={(e) => {
             e.currentTarget.style.display = "none";
           }}

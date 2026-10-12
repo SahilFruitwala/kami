@@ -351,7 +351,7 @@ function ChatPanel({ tripId, data }: { tripId: string; data: TripChatData }) {
             disabled={!input.trim()}
             title="Send"
             aria-label="Send"
-            className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-hanko text-white shadow-sm transition-colors hover:bg-shu disabled:opacity-50"
+            className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-hanko text-paper shadow-sm transition-colors hover:bg-shu disabled:opacity-50"
           >
             <ArrowUp className="size-4" aria-hidden="true" />
           </button>

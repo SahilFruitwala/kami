@@ -1,15 +1,13 @@
 /* ——————————————————————————————————————————————————————————————————————
    GLOSS — warm paper, editorial serif, tactile 3D shelves.
 
-   Everything here is scoped to `.gloss`. Today only Library, Movies and
-   Series wrap their page in it (see `GlossPage`). Because `.gloss`
-   re-declares the same `--color-*`, `--font-*`, `--radius-*` and motion
-   tokens the rest of the app already uses, putting the class on <html>
-   instead would reskin the whole app. See docs/GLOSS.md.
+   Gloss is the app's theme: <html> carries the `gloss` class, and the
+   app-wide tokens in styles.css hold the same values. This file adds the
+   Gloss-only tokens (`--g-*`) and components (`.g-*`). `.gloss` still works
+   as a nested scope (the pull-out stage re-declares it). See docs/GLOSS.md.
    —————————————————————————————————————————————————————————————————————— */
 
-/* Self-hosted (the CSP keeps font hosts out). Browsers only download a face
-   when a `.gloss` page actually uses it. */
+/* Self-hosted (the CSP keeps font hosts out). */
 @import "@fontsource-variable/newsreader/opsz.css";
 @import "@fontsource-variable/newsreader/opsz-italic.css";
 @import "@fontsource-variable/inter/index.css";
@@ -94,6 +92,7 @@
   --g-shelf-edge: #33281e;
   --g-bookend: #5b554c;
   --g-cream: #e9e1c8;
+  --g-accent-red: #d9766a;
   --g-dim: 0.25;
   --g-shadow-chip: 0 1px 2px rgba(0, 0, 0, 0.4);
   --g-shadow-card: 0 10px 28px rgba(0, 0, 0, 0.45);
@@ -101,10 +100,10 @@
   --g-shadow-plate: 0 2px 6px rgba(0, 0, 0, 0.45);
 
   --color-paper-warm: #241f19;
-  /* Filled buttons inherited from the app put white text on hanko, so in
-     the dark it can't be the (light) ink: use a lamp-lit bronze. */
-  --color-hanko: #8c6a48;
-  --color-shu: #9d7954;
+  /* Filled buttons are `bg-hanko text-paper`, so hanko can simply be the
+     (light) ink and the label the (dark) paper. */
+  --color-hanko: var(--g-ink);
+  --color-shu: #d9d1c1;
   --color-ink-soft: #c9c0b0;
   --color-faint: #3d362c;
   --color-shu-tint: rgba(239, 232, 218, 0.08);
@@ -145,8 +144,10 @@
   border-radius: 999px;
   background: var(--g-line);
 }
-.g-seg button {
+.g-seg button,
+.g-seg a {
   position: relative;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -161,15 +162,19 @@
     background-color var(--g-dur-s) var(--g-ease-out),
     box-shadow var(--g-dur-s) var(--g-ease-out);
 }
-.g-seg button:hover {
+.g-seg button:hover,
+.g-seg a:hover {
   color: color-mix(in srgb, var(--g-ink) 85%, transparent);
 }
-.g-seg button[aria-pressed="true"] {
+.g-seg button[aria-pressed="true"],
+.g-seg button[aria-selected="true"],
+.g-seg a[aria-current="page"] {
   background: var(--g-paper-raised);
   color: var(--g-ink);
   box-shadow: var(--g-shadow-chip);
 }
-.g-seg button:focus-visible {
+.g-seg button:focus-visible,
+.g-seg a:focus-visible {
   outline: 2px solid var(--g-ink);
   outline-offset: 1px;
 }

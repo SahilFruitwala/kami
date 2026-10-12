@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { addTransitionType, startTransition } from "react";
+import { Rss } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
+import { GlossHeader } from "@/components/gloss/primitives.tsx";
 import { FeedsView } from "@/components/feeds/feeds-view.tsx";
-import { KamiEyebrow } from "@/components/kami.tsx";
 import type { FeedEntryView } from "@/lib/api/feeds";
 import type { LibraryItem } from "@/lib/store.ts";
 
@@ -29,17 +30,14 @@ function FeedsPage() {
 
   return (
     <AppShell active="feeds" onOpenItem={openItem}>
-      <section className="w-full bg-paper/60 backdrop-blur-sm">
-        <div className="mx-auto w-full max-w-7xl px-4 pt-8 pb-6 sm:px-6 lg:px-12">
-          <KamiEyebrow>Feeds &amp; Newsletters</KamiEyebrow>
-          <h2 className="mt-2 font-display text-3xl tracking-tight text-ink">The Morning Post</h2>
-          <p className="mt-2 max-w-xl font-body text-sm leading-relaxed text-ink-soft">
-            Everything you follow, in one quiet stream. Skim here; save what deserves a proper read.
-          </p>
-        </div>
-      </section>
+      <GlossHeader
+        icon={<Rss className="size-4" aria-hidden="true" />}
+        eyebrow="Feeds & newsletters"
+        title="Your feeds"
+        description="Everything you follow, in one quiet stream. Skim here; save what deserves a proper read."
+      />
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-12">
+      <div className="mx-auto w-full max-w-[1200px] px-4 pt-8 pb-10 sm:px-8">
         <FeedsView
           feedId={search.feed ?? null}
           view={search.view ?? "unread"}

@@ -125,7 +125,7 @@ function Read() {
           <button
             type="button"
             onClick={goLibrary}
-            className="mt-2 rounded-[0.25rem] bg-hanko px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-sm hover:bg-shu"
+            className="mt-2 rounded-lg bg-hanko px-5 py-2.5 font-sans text-sm font-semibold text-paper shadow-sm hover:bg-shu"
           >
             Back to Library
           </button>
@@ -156,7 +156,7 @@ function Read() {
             <button
               type="button"
               onClick={goLibrary}
-              className="mt-2 rounded-[0.25rem] bg-hanko px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-sm hover:bg-shu"
+              className="mt-2 rounded-lg bg-hanko px-5 py-2.5 font-sans text-sm font-semibold text-paper shadow-sm hover:bg-shu"
             >
               Back to Library
             </button>

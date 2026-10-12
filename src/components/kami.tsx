@@ -21,7 +21,7 @@ export function Hanko({
       aria-hidden="true"
       className={cn(
         "kami-hanko flex shrink-0 items-center justify-center font-display text-xs font-semibold select-none",
-        square ? "rounded-[0.25rem] border border-white/40" : "rounded-full",
+        square ? "rounded-lg border border-white/40" : "rounded-full",
         className,
       )}
     >
@@ -43,7 +43,7 @@ export function WashiTag({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-[0.25rem] px-2 py-0.5 text-[10px] font-sans font-semibold tracking-wider uppercase",
+        "inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-sans font-semibold tracking-wider uppercase",
         tone === "paper" && "bg-paper-warm text-ink-soft",
         tone === "vermilion" && "bg-shu-tint text-hanko",
         tone === "bamboo" && "bg-bamboo-wash text-bamboo",

@@ -144,7 +144,7 @@ function SummaryCard({ item }: { item: LibraryItem }) {
             type="button"
             onClick={() => summarize.mutate()}
             disabled={summarize.isPending}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-hanko px-4 py-2.5 font-sans text-xs font-semibold text-white shadow-sm transition-colors hover:bg-shu disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-hanko px-4 py-2.5 font-sans text-xs font-semibold text-paper shadow-sm transition-colors hover:bg-shu disabled:opacity-60"
           >
             {summarize.isPending ? (
               <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />

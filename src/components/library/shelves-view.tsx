@@ -133,7 +133,7 @@ export function ShelvesView({ tab, search }: { tab: ShelfTab; search: ShelvesSea
               </h2>
             </div>
             <div className="relative w-full md:w-80">
-              <div className="kami-sheet flex items-center px-3 py-2.5 focus-within:ring-2 focus-within:ring-hanko/40">
+              <div className="kami-sheet flex items-center px-3 py-2.5 transition-colors focus-within:border-ink">
                 <Search className="mr-2 size-[18px] shrink-0 text-ink-muted" aria-hidden="true" />
                 <label htmlFor="shelves-search" className="sr-only">
                   Search {activeMeta.label.toLowerCase()}
@@ -166,7 +166,7 @@ export function ShelvesView({ tab, search }: { tab: ShelfTab; search: ShelvesSea
               <Button
                 type="button"
                 onClick={() => setAddOpen(true)}
-                className="shrink-0 bg-hanko text-white hover:bg-shu"
+                className="shrink-0 bg-hanko text-paper hover:bg-shu"
               >
                 <Plus className="size-4" aria-hidden="true" />
                 Add to shelf
@@ -186,9 +186,9 @@ export function ShelvesView({ tab, search }: { tab: ShelfTab; search: ShelvesSea
                 aria-pressed={status === s.id}
                 onClick={() => setStatus(s.id)}
                 className={cn(
-                  "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1 font-sans text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                  "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-3 py-1 font-sans text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
                   status === s.id
-                    ? "bg-hanko font-semibold text-white shadow-sm"
+                    ? "bg-hanko font-semibold text-paper shadow-sm"
                     : "bg-surface text-ink-soft shadow-[var(--shadow-border)] hover:bg-paper-warm hover:text-ink",
                 )}
               >
@@ -268,7 +268,7 @@ export function ShelvesView({ tab, search }: { tab: ShelfTab; search: ShelvesSea
             <Button
               type="button"
               onClick={() => setAddOpen(true)}
-              className="mt-4 bg-hanko text-white hover:bg-shu"
+              className="mt-4 bg-hanko text-paper hover:bg-shu"
             >
               <Plus className="size-4" aria-hidden="true" />
               Add your first item
