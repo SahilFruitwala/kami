@@ -51,6 +51,7 @@ import {
 import { useAiStatus } from "@/hooks/use-ai.ts";
 import {
   SHELF_PAGE_SIZE,
+  useDeleteShelfItem,
   useSetShelfItemStatus,
   useSetShowWatched,
   useShelfCounts,
@@ -137,6 +138,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setItemStatus = useSetShelfItemStatus();
   const setShowWatched = useSetShowWatched();
+  const deleteItem = useDeleteShelfItem();
   const tilt = useTilt();
 
   const detailQuery = useShelfDetail(tab, detailId);
@@ -249,6 +251,17 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
     } catch (err) {
       setPicked((p) => (p && p.card.id === card.id ? { ...p, card } : p));
       toast.error(err instanceof Error ? err.message : "Couldn't update status.");
+    }
+  }
+
+  async function removeItem(card: ShelfCard, close: () => void) {
+    if (!window.confirm(`Remove “${card.title}” from your shelf?`)) return;
+    try {
+      await deleteItem.mutateAsync({ type: tab, id: card.id });
+      toast.success(`Removed “${card.title}”`);
+      close();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Couldn't delete that item.");
     }
   }
 
@@ -578,8 +591,9 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 item={pickedCard}
                 kind={kind}
                 loading={opening}
-                busy={setItemStatus.isPending || setShowWatched.isPending}
+                busy={setItemStatus.isPending || setShowWatched.isPending || deleteItem.isPending}
                 onToggleDone={() => void toggleDone(pickedCard)}
+                onRemove={() => void removeItem(pickedCard, api.close)}
                 onOpenDetails={() => {
                   // Wishlist items open the original product page when they have one.
                   if (tab === "wishlist" && pickedCard.link) {
