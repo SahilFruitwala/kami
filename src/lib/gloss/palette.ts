@@ -303,3 +303,57 @@ export function shelfBookLook(item: { id: string; title: string }) {
     italic: rand() < 0.35,
   };
 }
+
+/* ——— Wishlist gift boxes ——— */
+
+const WRAPS: { paper: string; ink: string; ribbon: string }[] = [
+  { paper: "#B8443A", ink: "#F6E7C8", ribbon: "#E8C66A" },
+  { paper: "#2F5E8C", ink: "#F3EDE0", ribbon: "#F3EDE0" },
+  { paper: "#24493F", ink: "#EFE6CF", ribbon: "#D9673A" },
+  { paper: "#E7DDC6", ink: "#1E1B16", ribbon: "#B8443A" },
+  { paper: "#3B2A4F", ink: "#F0DFA8", ribbon: "#E9B949" },
+  { paper: "#E9B949", ink: "#1E1B16", ribbon: "#24493F" },
+];
+
+export function giftLook(id: string, title: string) {
+  const rand = seeded(id);
+  const w = WRAPS[Math.floor(rand() * WRAPS.length)]!;
+  return {
+    ...w,
+    width: Math.round(34 + Math.min(14, title.length * 0.4) + rand() * 12),
+    height: Math.round(176 + rand() * 44),
+  };
+}
+
+export const GIFT_COVER = { w: 400, h: 520 };
+export const BOOK_COVER = { w: 430, h: 620 };
+
+export type MediaShelfKind = "vhs" | "dvd" | "book" | "gift";
+
+export function mediaCoverSize(kind: MediaShelfKind) {
+  return kind === "vhs"
+    ? VHS_COVER
+    : kind === "dvd"
+      ? DVD_COVER
+      : kind === "book"
+        ? BOOK_COVER
+        : GIFT_COVER;
+}
+
+/** Depth of the pulled-out object relative to its height (spine view vs. cover view). */
+export function mediaDepthRatio(
+  kind: MediaShelfKind,
+  view: "spine" | "cover",
+  item: { id: string; title: string; totalEpisodes: number | null },
+) {
+  if (view === "cover") return kind === "vhs" ? 0.15 : kind === "gift" ? 0.18 : 0.06;
+  const l =
+    kind === "vhs"
+      ? vhsLook(item.id, item.title)
+      : kind === "dvd"
+        ? dvdLook(item.id, item.title, item.totalEpisodes)
+        : kind === "book"
+          ? shelfBookLook(item)
+          : giftLook(item.id, item.title);
+  return l.width / l.height;
+}

@@ -3,6 +3,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState, type CSSPropert
 import {
   BookOpen,
   Clapperboard,
+  Gift,
   Disc3,
   Film,
   Layers,
@@ -28,22 +29,17 @@ import {
   type ShelfGroup,
 } from "@/components/gloss/index.ts";
 import {
-  DvdCase,
-  DvdInside,
-  DvdSpine,
-  DvdSpineFace,
+  MediaCover,
+  MediaInside,
   MediaPage,
-  VhsInside,
-  VhsSleeve,
-  VhsSpine,
-  VhsSpineFace,
-  ShelfBookCover,
-  ShelfBookInside,
-  ShelfBookSpine,
-  ShelfBookSpineFace,
+  MediaSpine,
+  MediaSpineFace,
   type MediaKind,
 } from "@/components/gloss/media.tsx";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
+import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { AddShelfDialog } from "@/components/library/add-shelf-dialog.tsx";
+import { ShelfFolio } from "@/components/library/shelf-folio.tsx";
 import { ShelfRecs } from "@/components/library/shelf-recs.tsx";
 import {
   defaultStatus,
@@ -58,22 +54,16 @@ import {
   useSetShelfItemStatus,
   useSetShowWatched,
   useShelfCounts,
+  useShelfDetail,
   useShelfItems,
 } from "@/hooks/use-shelf-queries.ts";
 import { useTilt } from "@/hooks/use-tilt.ts";
-import {
-  DVD_COVER,
-  dvdLook,
-  shelfBookLook,
-  STATUS_DOT,
-  VHS_COVER,
-  vhsLook,
-} from "@/lib/gloss/palette.ts";
+import { mediaCoverSize, mediaDepthRatio, STATUS_DOT } from "@/lib/gloss/palette.ts";
 import { statusLabels, statusText } from "@/lib/shelf-labels.ts";
 import { shelfPath, type ShelfCard } from "@/lib/shelves.ts";
 import type { ShelvesSearch } from "@/lib/shelves-search.ts";
 
-type MediaTab = "movie" | "tv" | "book";
+type MediaTab = "movie" | "tv" | "book" | "wishlist";
 type View = "shelf" | "covers";
 type Arrange = "status" | "title" | "year" | "added";
 
@@ -105,11 +95,21 @@ const COPY: Record<
     unit: ["book", "books"],
     empty: "Search Open Library or paste a link to shelve your first book.",
   },
+  wishlist: {
+    title: "Wishlist",
+    eyebrow: "Wish shelf",
+    unit: ["wish", "wishes"],
+    empty: "Paste a product link to wrap your first wish.",
+  },
 };
 
-const KIND: Record<MediaTab, MediaKind> = { movie: "vhs", tv: "dvd", book: "book" };
-const ACTIVE = { movie: "movies", tv: "series", book: "books" } as const;
-const BOOK_COVER = { w: 430, h: 620 };
+const KIND: Record<MediaTab, MediaKind> = {
+  movie: "vhs",
+  tv: "dvd",
+  book: "book",
+  wishlist: "gift",
+};
+const ACTIVE = { movie: "movies", tv: "series", book: "books", wishlist: "wishlist" } as const;
 
 /**
  * Movies and Series as a video-rental shelf (Gloss): VHS tapes for films,
@@ -131,6 +131,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
   const [opening, setOpening] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [recsOpen, setRecsOpen] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const ai = useAiStatus();
   const syncedFromUrl = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -138,6 +139,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
   const setShowWatched = useSetShowWatched();
   const tilt = useTilt();
 
+  const detailQuery = useShelfDetail(tab, detailId);
   const countsQuery = useShelfCounts();
   const itemsQuery = useShelfItems({
     type: tab,
@@ -252,7 +254,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
 
   const statusChips = statusMeta(tab);
   const animateKey = `${status}|${arrange}|${deferredQuery}`;
-  const coverSize = kind === "vhs" ? VHS_COVER : kind === "dvd" ? DVD_COVER : BOOK_COVER;
+  const coverSize = mediaCoverSize(kind);
   const unitOne = copy.unit[0];
 
   return (
@@ -265,6 +267,8 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 <Film className="size-4" aria-hidden="true" />
               ) : kind === "dvd" ? (
                 <Disc3 className="size-4" aria-hidden="true" />
+              ) : kind === "gift" ? (
+                <Gift className="size-4" aria-hidden="true" />
               ) : (
                 <BookOpen className="size-4" aria-hidden="true" />
               )
@@ -275,7 +279,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
           <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
             <h1 className="g-h1 text-ink">{copy.title}</h1>
             <div className="mb-2 flex items-center gap-2">
-              {ai.enabled ? (
+              {ai.enabled && tab !== "wishlist" ? (
                 <button
                   type="button"
                   className="g-btn g-btn--ghost"
@@ -322,7 +326,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
             ) : null}
           </div>
 
-          {recsOpen && ai.enabled ? (
+          {recsOpen && ai.enabled && tab !== "wishlist" ? (
             <ShelfRecs key={tab} type={tab} onClose={() => setRecsOpen(false)} />
           ) : null}
 
@@ -342,7 +346,14 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 },
                 {
                   id: "covers",
-                  label: kind === "vhs" ? "Sleeves" : kind === "dvd" ? "Cases" : "Covers",
+                  label:
+                    kind === "vhs"
+                      ? "Sleeves"
+                      : kind === "dvd"
+                        ? "Cases"
+                        : kind === "gift"
+                          ? "Boxes"
+                          : "Covers",
                   icon: <LayoutGrid className="size-4" aria-hidden="true" />,
                 },
               ]}
@@ -386,6 +397,8 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                       <Clapperboard className="size-3" aria-hidden="true" />
                     ) : kind === "dvd" ? (
                       <Tv className="size-3" aria-hidden="true" />
+                    ) : kind === "gift" ? (
+                      <Gift className="size-3" aria-hidden="true" />
                     ) : (
                       <BookOpen className="size-3" aria-hidden="true" />
                     )
@@ -446,19 +459,11 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
             <>
               <Shelf<ShelfCard>
                 ariaLabel={`${copy.title} shelf`}
-                variant={kind === "book" ? "book" : "media"}
+                variant={kind === "vhs" || kind === "dvd" ? "media" : "book"}
                 groups={groups}
                 getId={(it) => it.id}
                 animateKey={animateKey}
-                renderSpine={(it) =>
-                  kind === "vhs" ? (
-                    <VhsSpine item={it} />
-                  ) : kind === "dvd" ? (
-                    <DvdSpine item={it} />
-                  ) : (
-                    <ShelfBookSpine item={it} />
-                  )
-                }
+                renderSpine={(it) => <MediaSpine kind={kind} item={it} />}
                 tooltip={(it) => {
                   const sub = [
                     it.year,
@@ -477,8 +482,15 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 onPick={(it) => setPicked({ card: it, kind: "spine" })}
               />
               <p className="mt-6 font-sans text-[13px] text-ink-muted">
-                Click a {kind === "vhs" ? "tape" : kind === "dvd" ? "case" : "book"} to pull it out.
-                Arrow keys walk the shelf.
+                Click a{" "}
+                {kind === "vhs"
+                  ? "tape"
+                  : kind === "dvd"
+                    ? "case"
+                    : kind === "gift"
+                      ? "box"
+                      : "book"}{" "}
+                to pull it out. Arrow keys walk the shelf.
               </p>
             </>
           ) : (
@@ -501,13 +513,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                     onClick={() => setPicked({ card: it, kind: "cover" })}
                     {...tilt}
                   >
-                    {kind === "vhs" ? (
-                      <VhsSleeve item={it} />
-                    ) : kind === "dvd" ? (
-                      <DvdCase item={it} />
-                    ) : (
-                      <ShelfBookCover item={it} />
-                    )}
+                    <MediaCover kind={kind} item={it} />
                   </button>
                   <p className="mt-2.5 line-clamp-1 font-display text-[15px] text-ink">
                     {it.title}
@@ -551,45 +557,20 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
             source={{ id: picked.card.id, kind: picked.kind }}
             label={pickedCard.title}
             coverSize={coverSize}
-            depthRatio={(() => {
-              if (picked.kind === "cover") return kind === "vhs" ? 0.15 : 0.06;
-              const l =
-                kind === "vhs"
-                  ? vhsLook(pickedCard.id, pickedCard.title)
-                  : kind === "dvd"
-                    ? dvdLook(pickedCard.id, pickedCard.title, pickedCard.totalEpisodes)
-                    : shelfBookLook(pickedCard);
-              return l.width / l.height;
-            })()}
-            spineFace={
-              kind === "vhs" ? (
-                <VhsSpineFace item={pickedCard} />
-              ) : kind === "dvd" ? (
-                <DvdSpineFace item={pickedCard} />
-              ) : (
-                <ShelfBookSpineFace item={pickedCard} />
-              )
-            }
-            cover={
-              kind === "vhs" ? (
-                <VhsSleeve item={pickedCard} />
-              ) : kind === "dvd" ? (
-                <DvdCase item={pickedCard} />
-              ) : (
-                <ShelfBookCover item={pickedCard} />
-              )
-            }
+            depthRatio={mediaDepthRatio(
+              kind,
+              picked.kind === "cover" ? "cover" : "spine",
+              pickedCard,
+            )}
+            spineFace={<MediaSpineFace kind={kind} item={pickedCard} />}
+            cover={<MediaCover kind={kind} item={pickedCard} />}
             inside={
-              kind === "vhs" ? (
-                <VhsInside item={pickedCard} spinning={opening} />
-              ) : kind === "dvd" ? (
-                <DvdInside item={pickedCard} spinning={opening} />
-              ) : (
-                <ShelfBookInside
-                  item={pickedCard}
-                  number={(items ?? []).filter((r) => r.createdAt <= pickedCard.createdAt).length}
-                />
-              )
+              <MediaInside
+                kind={kind}
+                item={pickedCard}
+                spinning={opening}
+                number={(items ?? []).filter((r) => r.createdAt <= pickedCard.createdAt).length}
+              />
             }
             page={(api) => (
               <MediaPage
@@ -600,6 +581,12 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 busy={setItemStatus.isPending || setShowWatched.isPending}
                 onToggleDone={() => void toggleDone(pickedCard)}
                 onOpenDetails={() => {
+                  // Wishlist items have no page of their own; they open in a dialog.
+                  if (tab === "wishlist") {
+                    setOpening(true);
+                    window.setTimeout(() => api.dissolve(() => setDetailId(pickedCard.id)), 650);
+                    return;
+                  }
                   setOpening(true);
                   // Let the reels / disc spin for a beat before we leave.
                   window.setTimeout(
@@ -628,6 +615,21 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
             }}
           />
         ) : null}
+
+        <Dialog open={detailId != null} onOpenChange={(open) => !open && setDetailId(null)}>
+          <DialogContent className="max-h-[85dvh] overflow-y-auto overscroll-contain sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="font-display text-balance">
+                {detailQuery.data?.item.title ?? "Loading…"}
+              </DialogTitle>
+            </DialogHeader>
+            {detailQuery.data ? (
+              <ShelfFolio detail={detailQuery.data} onClose={() => setDetailId(null)} />
+            ) : (
+              <Skeleton className="h-48 w-full" />
+            )}
+          </DialogContent>
+        </Dialog>
 
         <AddShelfDialog
           open={addOpen}
