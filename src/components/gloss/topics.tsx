@@ -3,9 +3,9 @@ import { ArrowLeft, Star } from "lucide-react";
 import {
   bookSpineLook,
   familyVars,
-  TOPIC_BLURBS,
-  TOPIC_FAMILIES,
-  TOPIC_LABELS,
+  topicBlurb,
+  topicFamily,
+  topicLabel,
   type TopicId,
 } from "@/lib/gloss/palette.ts";
 import type { LibraryItem } from "@/lib/store.ts";
@@ -52,7 +52,7 @@ function TopicCard({
   index: number;
   onOpen: () => void;
 }) {
-  const fam = TOPIC_FAMILIES[bucket.topic];
+  const fam = topicFamily(bucket.topic);
   const bars = bucket.items.slice(0, 26);
   return (
     <button
@@ -72,7 +72,7 @@ function TopicCard({
           style={{ color: fam.dark }}
         >
           <TopicIcon topic={bucket.topic} className="size-5" />
-          {TOPIC_LABELS[bucket.topic]}
+          {topicLabel(bucket.topic)}
         </p>
         <p
           className="mt-1 font-sans text-[13px]"
@@ -121,7 +121,7 @@ export function TopicPage({
   onBack: () => void;
   onPick: (item: LibraryItem) => void;
 }) {
-  const fam = TOPIC_FAMILIES[topic];
+  const fam = topicFamily(topic);
   const tilt = useTilt();
   return (
     <div>
@@ -131,16 +131,16 @@ export function TopicPage({
         className="mb-6 inline-flex items-center gap-1.5 font-sans text-sm text-ink-muted hover:text-ink"
       >
         <ArrowLeft className="size-4" aria-hidden="true" />
-        All topics
+        All tags
       </button>
       <div className="grid items-center gap-8 md:grid-cols-[1fr_minmax(0,420px)]">
         <div className="g-fade-late [animation-delay:0ms]">
           <h2 className="g-h1-topic flex items-center gap-4" style={{ color: fam.dark }}>
             <TopicIcon topic={topic} className="size-10" />
-            {TOPIC_LABELS[topic]}
+            {topicLabel(topic)}
           </h2>
           <p className="mt-4 max-w-md font-display text-xl leading-snug text-ink-soft">
-            {TOPIC_BLURBS[topic]}
+            {topicBlurb(topic)}
           </p>
           <p className="mt-3 font-sans text-[15px] text-ink-muted">
             <span className="font-medium text-ink">{items.length}</span> piece

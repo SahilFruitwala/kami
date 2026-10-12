@@ -3,9 +3,11 @@ import type { LibraryItem } from "@/lib/store.ts";
 import type { ItemStatus } from "@/lib/schema.ts";
 
 /**
- * Gloss colour lives in the content: every topic owns a family of shades so a
+ * Gloss colour lives in the content: every tag owns a family of shades so a
  * shelf reads as one colour with natural variation. Spines pick from the
  * family; covers use the darkest; endpapers and chip backgrounds the tint.
+ * The built-in categories have hand-picked families; any other tag borrows
+ * one, chosen by hashing its name so it stays the same.
  */
 export type TopicFamily = {
   dark: string;
@@ -14,9 +16,12 @@ export type TopicFamily = {
   tint: string;
 };
 
-export type TopicId = TagCategory | "unsorted";
+/** A shelf group: an article's first tag (lower-cased), or "unsorted" when it has none. */
+export type TopicId = string;
 
-export const TOPIC_FAMILIES: Record<TopicId, TopicFamily> = {
+type KnownTopic = TagCategory | "unsorted";
+
+const TOPIC_FAMILIES: Record<KnownTopic, TopicFamily> = {
   technology: { dark: "#42356B", mid: "#6B58A8", light: "#A797D6", tint: "#ECE8F4" },
   science: { dark: "#385A3F", mid: "#4A774C", light: "#9DB89A", tint: "#E3ECDC" },
   business: { dark: "#2F3E77", mid: "#4A5FA8", light: "#93A3D6", tint: "#E8ECF6" },
@@ -35,7 +40,7 @@ export const TOPIC_FAMILIES: Record<TopicId, TopicFamily> = {
   unsorted: { dark: "#5E574B", mid: "#857C6D", light: "#C2B9A8", tint: "#EFEBE3" },
 };
 
-export const TOPIC_LABELS: Record<TopicId, string> = {
+const TOPIC_LABELS: Record<KnownTopic, string> = {
   technology: "Technology",
   science: "Science",
   business: "Business",
@@ -54,7 +59,7 @@ export const TOPIC_LABELS: Record<TopicId, string> = {
   unsorted: "Unsorted",
 };
 
-export const TOPIC_BLURBS: Record<TopicId, string> = {
+const TOPIC_BLURBS: Record<KnownTopic, string> = {
   technology: "Machines, software and the people who build them.",
   science: "How the world works, one careful experiment at a time.",
   business: "Companies, markets and the craft of making things people buy.",
@@ -73,18 +78,41 @@ export const TOPIC_BLURBS: Record<TopicId, string> = {
   unsorted: "Not tagged yet. Auto-tag sorts these onto the right shelf.",
 };
 
-/** Display order for shelves and chips: the closed category list, then Unsorted. */
-export const TOPIC_ORDER: TopicId[] = [...TAG_CATEGORIES, "unsorted"];
+function isKnown(topic: TopicId): topic is KnownTopic {
+  return Object.hasOwn(TOPIC_FAMILIES, topic);
+}
 
-const CATEGORY_SET = new Set<string>(TAG_CATEGORIES);
+/** Families a free-form tag can borrow (not the greys of Other / Unsorted). */
+const BORROWABLE = TAG_CATEGORIES.filter((c) => c !== "other").map((c) => TOPIC_FAMILIES[c]);
 
-/** First tag that is one of the fixed categories, else "unsorted". */
+export function topicFamily(topic: TopicId): TopicFamily {
+  if (isKnown(topic)) return TOPIC_FAMILIES[topic];
+  return BORROWABLE[hashString(topic) % BORROWABLE.length]!;
+}
+
+export function topicLabel(topic: TopicId): string {
+  if (isKnown(topic)) return TOPIC_LABELS[topic];
+  return topic.replace(/(^|[\s-])\p{L}/gu, (m) => m.toUpperCase());
+}
+
+export function topicBlurb(topic: TopicId): string {
+  if (isKnown(topic)) return TOPIC_BLURBS[topic];
+  return `Everything you've tagged “${topic}”.`;
+}
+
+const CATEGORY_RANK = new Map<string, number>(TAG_CATEGORIES.map((c, i) => [c, i]));
+
+/** Display order for shelves and chips: built-in categories, then other tags A–Z, then Unsorted. */
+export function compareTopics(a: TopicId, b: TopicId): number {
+  const rank = (t: TopicId) =>
+    t === "unsorted" ? Infinity : (CATEGORY_RANK.get(t) ?? CATEGORY_RANK.size);
+  return rank(a) - rank(b) || a.localeCompare(b);
+}
+
+/** The shelf an article sits on: its first tag, else "unsorted". */
 export function topicOf(item: Pick<LibraryItem, "tags">): TopicId {
-  for (const tag of item.tags ?? []) {
-    const t = tag.toLowerCase();
-    if (CATEGORY_SET.has(t)) return t as TagCategory;
-  }
-  return "unsorted";
+  const first = item.tags?.find((t) => t.trim());
+  return first ? first.trim().toLowerCase() : "unsorted";
 }
 
 /** Small, stable string hash (FNV-1a) → unsigned 32-bit int. */
@@ -129,7 +157,7 @@ export type BookSpineLook = {
  */
 export function bookSpineLook(item: LibraryItem, topic: TopicId): BookSpineLook {
   const rand = seeded(item.id);
-  const fam = TOPIC_FAMILIES[topic];
+  const fam = topicFamily(topic);
   const minutes = Math.max(1, item.readingMinutes || 1);
   const width = Math.round(28 + Math.min(36, Math.log2(minutes + 1) * 7.5) + rand() * 4);
   const height = Math.round(200 + rand() * 50);
@@ -272,7 +300,7 @@ export const STATUS_DOT: Record<ItemStatus, string> = {
 
 /* ——— Shelved books ——— */
 
-const BOOK_TOPICS: TopicId[] = [
+const BOOK_TOPICS: TagCategory[] = [
   "technology",
   "science",
   "business",
