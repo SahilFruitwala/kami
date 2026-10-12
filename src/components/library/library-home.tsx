@@ -22,6 +22,7 @@ import {
   PullOut,
   Segmented,
   Shelf,
+  ShelfDivider,
   type ShelfGroup,
 } from "@/components/gloss/index.ts";
 import {
@@ -226,11 +227,13 @@ export function LibraryHome({
         id: b.topic,
         items: b.items,
         label: (
-          <span className="g-group-label">
-            <TopicIcon topic={b.topic} className="size-3" />
-            {TOPIC_LABELS[b.topic]}
-            <span className="text-ink-muted tabular-nums">{b.items.length}</span>
-          </span>
+          <ShelfDivider
+            label={TOPIC_LABELS[b.topic]}
+            count={b.items.length}
+            color={TOPIC_FAMILIES[b.topic].dark}
+            icon={<TopicIcon topic={b.topic} className="size-3.5" />}
+            height={190}
+          />
         ),
       }));
     }

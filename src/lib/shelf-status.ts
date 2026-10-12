@@ -18,9 +18,11 @@ export function statusMeta(tab: ShelfTab): { id: StatusFilter; label: string }[]
   ];
 }
 
-/** Series and books open on what you're in the middle of; the rest on "to try". */
+/** Default status filter per shelf. */
 export function defaultStatus(tab: ShelfTab): StatusFilter {
-  return tab === "tv" || tab === "book" ? "in_progress" : "to_try";
+  // Movies and series are video shelves that show every tape at once.
+  if (tab === "movie" || tab === "tv") return "all";
+  return tab === "book" ? "in_progress" : "to_try";
 }
 
 export function parseStatusFilter(v: unknown, tab: ShelfTab): StatusFilter {

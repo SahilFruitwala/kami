@@ -23,6 +23,7 @@ import {
   PullOut,
   Segmented,
   Shelf,
+  ShelfDivider,
   type ShelfGroup,
 } from "@/components/gloss/index.ts";
 import {
@@ -193,17 +194,12 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
       id: s,
       items: sorted.filter((it) => it.status === s),
       label: (
-        <span className="g-group-label">
-          <span
-            className="size-1.5 rounded-full"
-            style={{ background: STATUS_DOT[s] }}
-            aria-hidden="true"
-          />
-          {statusText(labels, s)}
-          <span className="text-ink-muted tabular-nums">
-            {sorted.filter((it) => it.status === s).length}
-          </span>
-        </span>
+        <ShelfDivider
+          label={statusText(labels, s)}
+          count={sorted.filter((it) => it.status === s).length}
+          color={STATUS_DOT[s]}
+          height={170}
+        />
       ),
     })).filter((g) => g.items.length > 0);
   }, [sorted, arrange, status, labels]);
@@ -232,7 +228,10 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
     }
   }
 
-  const statusChips = statusMeta(tab);
+  // "All" leads: the shelf opens on everything.
+  const statusChips = [...statusMeta(tab)].sort(
+    (a, b) => Number(b.id === "all") - Number(a.id === "all"),
+  );
   const animateKey = `${status}|${arrange}|${deferredQuery}`;
   const coverSize = kind === "vhs" ? VHS_COVER : DVD_COVER;
 
