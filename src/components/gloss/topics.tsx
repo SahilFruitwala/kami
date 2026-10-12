@@ -72,7 +72,7 @@ function TopicCard({
           style={{ color: fam.dark }}
         >
           <TopicIcon topic={bucket.topic} className="size-5" />
-          {topicLabel(bucket.topic)}
+          {topicLabel(bucket.topic, bucket.items[0]?.tags)}
         </p>
         <p
           className="mt-1 font-sans text-[13px]"
@@ -137,7 +137,7 @@ export function TopicPage({
         <div className="g-fade-late [animation-delay:0ms]">
           <h2 className="g-h1-topic flex items-center gap-4" style={{ color: fam.dark }}>
             <TopicIcon topic={topic} className="size-10" />
-            {topicLabel(topic)}
+            {topicLabel(topic, items[0]?.tags)}
           </h2>
           <p className="mt-4 max-w-md font-display text-xl leading-snug text-ink-soft">
             {topicBlurb(topic)}

@@ -130,7 +130,7 @@ export function BookCover({ item, topic }: { item: LibraryItem; topic: TopicId }
       <div className="g-cover-frame" />
       <CoverArt item={item} topic={topic} />
       <p className="g-cover-meta">
-        {topicLabel(topic)} {Number.isFinite(year) ? year : ""}
+        {topicLabel(topic, item.tags)} {Number.isFinite(year) ? year : ""}
       </p>
       <p className="g-cover-title">{item.title}</p>
       {item.author ? <p className="g-cover-author">{item.author}</p> : null}
@@ -323,7 +323,7 @@ export function BookPage({
         style={{ background: fam.tint, color: fam.dark }}
       >
         <TopicIcon topic={topic} className="size-3" />
-        {topicLabel(topic)}
+        {topicLabel(topic, item.tags)}
       </span>
       {Number.isFinite(year) ? <span>{year}</span> : null}
       <span aria-hidden="true">·</span>

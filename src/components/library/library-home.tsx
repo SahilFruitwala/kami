@@ -228,7 +228,7 @@ export function LibraryHome({
         items: b.items,
         label: (
           <ShelfDivider
-            label={topicLabel(b.topic)}
+            label={topicLabel(b.topic, b.items[0]?.tags)}
             count={b.items.length}
             color={topicFamily(b.topic).dark}
             icon={<TopicIcon topic={b.topic} className="size-3.5" />}
@@ -498,7 +498,7 @@ export function LibraryHome({
                 color={topicFamily(b.topic)}
                 icon={<TopicIcon topic={b.topic} className="size-3" />}
               >
-                {topicLabel(b.topic)}
+                {topicLabel(b.topic, b.items[0]?.tags)}
               </GlossChip>
             ))}
           </div>
