@@ -1,6 +1,14 @@
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { Check } from "lucide-react";
-import { dvdLook, familyVars, STATUS_DOT, vhsLook, shelfBookLook } from "@/lib/gloss/palette.ts";
+import {
+  dvdLook,
+  familyVars,
+  giftLook,
+  shelfBookLook,
+  STATUS_DOT,
+  vhsLook,
+  type MediaShelfKind,
+} from "@/lib/gloss/palette.ts";
 import { Endpaper } from "@/components/gloss/book.tsx";
 import { statusLabels, statusText } from "@/lib/shelf-labels.ts";
 import type { ShelfCard } from "@/lib/shelves.ts";
@@ -14,7 +22,7 @@ import { GlossCta, Ornament, type PullOutApi } from "@/components/gloss/index.ts
  * clamshell to show the tape or the disc.
  */
 
-export type MediaKind = "vhs" | "dvd" | "book";
+export type MediaKind = MediaShelfKind;
 
 function Poster({ src, className }: { src: string | null; className?: string }) {
   const [broken, setBroken] = useState(false);
@@ -418,6 +426,164 @@ export function ShelfBookInside({ item, number }: { item: ShelfCard; number: num
   );
 }
 
+/* ——— Wishlist: wrapped gift boxes ——— */
+
+export function GiftSpine({ item }: { item: ShelfCard }) {
+  const look = giftLook(item.id, item.title);
+  return (
+    <span
+      className={cn("g-book-spine", item.status === "done" && "opacity-70")}
+      style={
+        {
+          width: look.width,
+          height: look.height,
+          "--spine": look.paper,
+          "--spine-ink": look.ink,
+          "--spine-dark": look.paper,
+        } as CSSProperties
+      }
+      aria-hidden="true"
+    >
+      <span className="absolute inset-x-0 top-[18px] h-[7px]" style={{ background: look.ribbon }} />
+      <span
+        className="absolute inset-x-0 bottom-[18px] h-[7px]"
+        style={{ background: look.ribbon }}
+      />
+      <span className="flex h-full w-full flex-col items-center justify-center py-[34px]">
+        <span className="g-spine-title max-h-full px-0.5 font-display text-[13px]">
+          {item.title}
+        </span>
+      </span>
+      {item.status === "done" ? (
+        <span className="absolute top-[30px] right-1">
+          <WatchedSticker size={14} />
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+export function GiftSpineFace({ item }: { item: ShelfCard }) {
+  const look = giftLook(item.id, item.title);
+  return (
+    <span
+      className="g-book-spine size-full justify-center"
+      style={{ "--spine": look.paper, "--spine-ink": look.ink } as CSSProperties}
+    >
+      <span className="absolute inset-x-0 top-[8%] h-[4%]" style={{ background: look.ribbon }} />
+      <span className="absolute inset-x-0 bottom-[8%] h-[4%]" style={{ background: look.ribbon }} />
+      <span className="g-spine-title max-h-[70%] font-display text-[clamp(12px,4.5cqh,22px)]">
+        {item.title}
+      </span>
+    </span>
+  );
+}
+
+export function GiftBox({ item }: { item: ShelfCard }) {
+  const look = giftLook(item.id, item.title);
+  return (
+    <div className="size-full" style={{ containerType: "inline-size" }}>
+      <div
+        className="relative size-full overflow-hidden rounded-[3px]"
+        style={{ background: look.paper, color: look.ink }}
+      >
+        {/* Ribbon crossing the box, with a bow at the crossing. */}
+        <span
+          className="absolute inset-y-0 left-1/2 w-[13cqw] -translate-x-1/2"
+          style={{ background: look.ribbon }}
+        />
+        <span
+          className="absolute inset-x-0 top-[62%] h-[13cqw]"
+          style={{ background: look.ribbon }}
+        />
+        <div className="absolute inset-x-[9cqw] top-[8cqw] flex h-[56%] items-center justify-center overflow-hidden rounded-[2px] bg-white shadow-md">
+          <Poster src={item.imageUrl} className="size-full object-contain" />
+          {!item.imageUrl ? (
+            <span className="px-3 text-center font-display text-[max(14px,8cqw)] text-[#1b1712]">
+              {item.title}
+            </span>
+          ) : null}
+        </div>
+        <div className="absolute inset-x-[9cqw] bottom-[7cqw] rounded-[2px] bg-[#F6F1DE] px-[4cqw] py-[3cqw] text-[#1b1712] shadow-md">
+          <p className="line-clamp-2 font-display text-[max(12px,5.4cqw)] leading-tight">
+            {item.title}
+          </p>
+          {item.subtitle ? (
+            <p className="mt-0.5 font-sans text-[max(10px,3.6cqw)] opacity-70">{item.subtitle}</p>
+          ) : null}
+        </div>
+        {item.status === "done" ? (
+          <span className="absolute top-[4cqw] right-[4cqw] z-[2]">
+            <WatchedSticker size={28} />
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** Inside the box: a gift tag with the price and where to get it. */
+export function GiftInside({ item }: { item: ShelfCard }) {
+  const look = giftLook(item.id, item.title);
+  const date = new Date(item.createdAt).toLocaleDateString(undefined, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  return (
+    <div className="g-endpaper" style={{ background: look.paper, color: look.ink }}>
+      <div className="g-plate" style={{ color: "#1b1712" }}>
+        <p className="g-caps text-[11px] tracking-[0.32em]">A wish</p>
+        <p className="mt-3 font-display text-xl italic">{item.title}</p>
+        {item.subtitle ? (
+          <p className="mt-2 font-sans text-sm font-semibold tabular-nums">{item.subtitle}</p>
+        ) : null}
+        <p className="mt-2 font-sans text-[11px] text-[#7a7365]">wished {date}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ——— Per-kind dispatch ——— */
+
+export function MediaSpine({ kind, item }: { kind: MediaKind; item: ShelfCard }) {
+  if (kind === "vhs") return <VhsSpine item={item} />;
+  if (kind === "dvd") return <DvdSpine item={item} />;
+  if (kind === "book") return <ShelfBookSpine item={item} />;
+  return <GiftSpine item={item} />;
+}
+
+export function MediaSpineFace({ kind, item }: { kind: MediaKind; item: ShelfCard }) {
+  if (kind === "vhs") return <VhsSpineFace item={item} />;
+  if (kind === "dvd") return <DvdSpineFace item={item} />;
+  if (kind === "book") return <ShelfBookSpineFace item={item} />;
+  return <GiftSpineFace item={item} />;
+}
+
+export function MediaCover({ kind, item }: { kind: MediaKind; item: ShelfCard }) {
+  if (kind === "vhs") return <VhsSleeve item={item} />;
+  if (kind === "dvd") return <DvdCase item={item} />;
+  if (kind === "book") return <ShelfBookCover item={item} />;
+  return <GiftBox item={item} />;
+}
+
+export function MediaInside({
+  kind,
+  item,
+  spinning,
+  number,
+}: {
+  kind: MediaKind;
+  item: ShelfCard;
+  spinning: boolean;
+  number: number;
+}) {
+  if (kind === "vhs") return <VhsInside item={item} spinning={spinning} />;
+  if (kind === "dvd") return <DvdInside item={item} spinning={spinning} />;
+  if (kind === "book") return <ShelfBookInside item={item} number={number} />;
+  return <GiftInside item={item} />;
+}
+
 /* ——— Right page ——— */
 
 export function MediaPage({
@@ -437,19 +603,24 @@ export function MediaPage({
   onOpenDetails: () => void;
   onToggleDone: () => void;
 }) {
-  const labels = statusLabels(kind === "vhs" ? "movie" : kind === "dvd" ? "tv" : "book");
+  const labels = statusLabels(
+    kind === "vhs" ? "movie" : kind === "dvd" ? "tv" : kind === "book" ? "book" : "wishlist",
+  );
   const isDone = item.status === "done";
   const eps = item.totalEpisodes ?? 0;
   const watched = item.episodesWatched ?? 0;
   const isBook = kind === "book";
+  const isGift = kind === "gift";
   const pct = Math.min(100, Math.max(0, item.progressPercent ?? 0));
   const statusLine =
     item.status === "done"
       ? item.completedAt
-        ? `${isBook ? "Finished" : "Watched"} ${new Date(item.completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+        ? `${isBook ? "Finished" : isGift ? "Got it" : "Watched"} ${new Date(item.completedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
         : isBook
           ? "Finished"
-          : "Watched"
+          : isGift
+            ? "Got it"
+            : "Watched"
       : item.status === "in_progress"
         ? isBook
           ? `Reading${pct ? ` · ${pct}% read` : ""}`
@@ -460,7 +631,9 @@ export function MediaPage({
             : "Dropped"
           : isBook
             ? "Not read yet"
-            : "Not watched yet";
+            : isGift
+              ? "Still on the wish list"
+              : "Not watched yet";
 
   const rows: { key: string; node: ReactNode; className?: string }[] = [
     {
@@ -588,7 +761,13 @@ export function MediaPage({
           <GlossCta
             loading={loading}
             loadingLabel={
-              kind === "vhs" ? "Rewinding…" : kind === "dvd" ? "Loading disc…" : "Turning pages…"
+              kind === "vhs"
+                ? "Rewinding…"
+                : kind === "dvd"
+                  ? "Loading disc…"
+                  : kind === "gift"
+                    ? "Unwrapping…"
+                    : "Turning pages…"
             }
             onClick={onOpenDetails}
           >
