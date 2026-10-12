@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils.ts";
 
 export type ShelfGroup<T> = {
   id: string;
-  /** Outlined chip under the plank ("AI 20"). Omit for a single shelf. */
+  /** Divider card standing on the shelf before the group (see ShelfDivider). */
   label?: ReactNode;
   items: T[];
 };
@@ -80,7 +80,6 @@ export function Shelf<T>({
   }
 
   let i = 0;
-  const lastGroup = groups.length - 1;
 
   return (
     <div
@@ -91,56 +90,59 @@ export function Shelf<T>({
       onKeyDown={onKeyDown}
       onMouseLeave={() => setTip(null)}
     >
-      {/* Groups stand side by side on one continuous shelf, each closed by a
-          bookend and labelled under its stretch of plank. */}
-      <div key={animateKey} className="flex flex-wrap items-start gap-y-9">
-        {groups.map((group, gi) => (
-          <div key={group.id} className={cn("min-w-0 max-w-full", groups.length === 1 && "w-full")}>
-            <div className={cn("g-shelf", variant === "media" && "g-shelf--media")}>
-              {group.items.map((item) => {
-                const id = getId(item);
-                const t = tooltip(item);
-                const n = Math.min(i++, MAX_STAGGER);
-                return (
-                  <div
-                    key={id}
-                    className="g-slot g-slot--enter"
-                    style={{ "--i": n } as CSSProperties}
-                  >
-                    <button
-                      type="button"
-                      className="g-spine"
-                      data-gloss-id={id}
-                      tabIndex={rovingId === id ? 0 : -1}
-                      aria-label={t.label}
-                      onClick={() => {
-                        setTip(null);
-                        onPick(item);
-                      }}
-                      onMouseEnter={(e) => showTip(e.currentTarget, item)}
-                      onFocus={(e) => {
-                        setActiveId(id);
-                        if (e.currentTarget.matches(":focus-visible"))
-                          showTip(e.currentTarget, item);
-                      }}
-                      onBlur={() => setTip((cur) => (cur?.id === id ? null : cur))}
-                    >
-                      {renderSpine(item)}
-                    </button>
-                  </div>
-                );
-              })}
-              {gi === lastGroup && decoration ? (
-                <div className="g-slot g-fade-late ml-auto pr-2">{decoration}</div>
-              ) : bookends ? (
-                <div className="g-slot g-fade-late ml-1.5">
-                  <span className="g-bookend" aria-hidden="true" />
-                </div>
-              ) : null}
+      {/* One continuous shelf: every spine flows left to right and wraps onto
+          the next plank when the row is full. Groups are marked by a divider
+          card standing on the shelf, not by separate shelves. */}
+      <div
+        key={animateKey}
+        className={cn("g-shelf w-full", variant === "media" && "g-shelf--media")}
+      >
+        {groups.map((group) => [
+          group.label && groups.length > 1 ? (
+            <div
+              key={`divider:${group.id}`}
+              className="g-slot g-slot--enter"
+              style={{ "--i": Math.min(i, MAX_STAGGER) } as CSSProperties}
+            >
+              {group.label}
             </div>
-            {group.label ? <div className="mt-2.5 px-1.5">{group.label}</div> : null}
+          ) : null,
+          ...group.items.map((item) => {
+            const id = getId(item);
+            const t = tooltip(item);
+            const n = Math.min(i++, MAX_STAGGER);
+            return (
+              <div key={id} className="g-slot g-slot--enter" style={{ "--i": n } as CSSProperties}>
+                <button
+                  type="button"
+                  className="g-spine"
+                  data-gloss-id={id}
+                  tabIndex={rovingId === id ? 0 : -1}
+                  aria-label={t.label}
+                  onClick={() => {
+                    setTip(null);
+                    onPick(item);
+                  }}
+                  onMouseEnter={(e) => showTip(e.currentTarget, item)}
+                  onFocus={(e) => {
+                    setActiveId(id);
+                    if (e.currentTarget.matches(":focus-visible")) showTip(e.currentTarget, item);
+                  }}
+                  onBlur={() => setTip((cur) => (cur?.id === id ? null : cur))}
+                >
+                  {renderSpine(item)}
+                </button>
+              </div>
+            );
+          }),
+        ])}
+        {decoration ? (
+          <div className="g-slot g-fade-late ml-auto pr-2">{decoration}</div>
+        ) : bookends ? (
+          <div className="g-slot g-fade-late ml-1.5">
+            <span className="g-bookend" aria-hidden="true" />
           </div>
-        ))}
+        ) : null}
       </div>
       {tip ? (
         <div
@@ -153,5 +155,37 @@ export function Shelf<T>({
         </div>
       ) : null}
     </div>
+  );
+}
+
+/**
+ * A shelf divider: a slim card standing between groups, its tab in the
+ * group's colour, the name running up the card like a spine label.
+ */
+export function ShelfDivider({
+  label,
+  count,
+  color,
+  icon,
+  height = 150,
+}: {
+  label: string;
+  count: number;
+  color: string;
+  icon?: ReactNode;
+  height?: number;
+}) {
+  return (
+    <span
+      className="g-divider"
+      style={{ height, "--div": color } as CSSProperties}
+      title={`${label} · ${count}`}
+    >
+      <span className="g-divider-tab">{icon}</span>
+      <span className="g-divider-text">
+        {label}
+        <span className="g-divider-count">{count}</span>
+      </span>
+    </span>
   );
 }

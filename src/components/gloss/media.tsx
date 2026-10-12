@@ -151,9 +151,12 @@ export function VhsSleeve({ item }: { item: ShelfCard }) {
 export function VhsInside({ item, spinning }: { item: ShelfCard; spinning: boolean }) {
   // Tape on each reel tells you how far through it you are.
   const progress = item.status === "done" ? 1 : item.status === "in_progress" ? 0.5 : 0;
+  const look = vhsLook(item.id, item.title);
   return (
     <div className="g-clam">
-      <div className="g-cassette">
+      {/* The sleeve art, seen through the clamshell's clear front. */}
+      <InsideArt item={item} bg={look.sleeve} ink={look.ink} />
+      <div className="g-cassette g-cassette--flat">
         <div className="g-cassette-label">{item.title}</div>
         <div className="g-cassette-window">
           <span
@@ -172,6 +175,23 @@ export function VhsInside({ item, spinning }: { item: ShelfCard; spinning: boole
           T-120
         </span>
       </div>
+    </div>
+  );
+}
+
+/** Poster filling the inside of a case, under a sheet of clear plastic. */
+function InsideArt({ item, bg, ink }: { item: ShelfCard; bg: string; ink: string }) {
+  return (
+    <div className="g-inside-art" style={{ background: bg, color: ink }}>
+      <div className="absolute inset-0 flex flex-col justify-start p-[8%]">
+        <p className="font-sans text-[26px] leading-[0.95] font-extrabold uppercase">
+          {item.title}
+        </p>
+        {item.year ? (
+          <p className="mt-2 font-sans text-sm font-semibold opacity-70">{item.year}</p>
+        ) : null}
+      </div>
+      <Poster src={item.imageUrl} />
     </div>
   );
 }
@@ -283,12 +303,14 @@ export function DvdInside({ item, spinning }: { item: ShelfCard; spinning: boole
   const look = dvdLook(item.id, item.title, item.totalEpisodes);
   return (
     <div className="g-tray" style={{ "--case": look.case } as CSSProperties}>
-      <div className={cn("g-disc", spinning && "g-disc--spin")}>
+      {/* Cover insert seen through the clear sleeve, disc resting on the hub. */}
+      <InsideArt item={item} bg="#15161a" ink="#f2f2f2" />
+      <div className={cn("g-disc g-disc--tucked", spinning && "g-disc--spin")}>
         <div className="g-disc-label" style={{ "--case": look.case } as CSSProperties}>
           <Poster src={item.imageUrl} />
         </div>
       </div>
-      <span className="absolute bottom-4 left-0 right-0 text-center font-sans text-[10px] font-semibold tracking-[0.25em] text-white/45 uppercase">
+      <span className="g-disc-caption">
         {look.discs > 1 ? `Disc 1 of ${look.discs}` : "Disc 1"}
       </span>
     </div>
