@@ -90,9 +90,52 @@ export function topicFamily(topic: TopicId): TopicFamily {
   return BORROWABLE[hashString(topic) % BORROWABLE.length]!;
 }
 
-export function topicLabel(topic: TopicId): string {
+/** Short words that read as acronyms when a tag is typed all lower-case. */
+const ACRONYMS = new Set([
+  "ai",
+  "ml",
+  "llm",
+  "api",
+  "ui",
+  "ux",
+  "ar",
+  "vr",
+  "seo",
+  "saas",
+  "css",
+  "html",
+  "sql",
+  "nft",
+  "diy",
+  "usa",
+  "uk",
+  "eu",
+  "us",
+  "ceo",
+  "vc",
+  "yc",
+  "gpt",
+  "os",
+  "pc",
+  "tv",
+  "nba",
+  "nfl",
+  "f1",
+  "3d",
+]);
+
+/**
+ * Display name for a shelf. Pass the article's tags to keep how you wrote the
+ * tag ("iOS", "AI"); an all lower-case tag gets title case, with known
+ * acronyms in capitals.
+ */
+export function topicLabel(topic: TopicId, tags?: readonly string[]): string {
   if (isKnown(topic)) return TOPIC_LABELS[topic];
-  return topic.replace(/(^|[\s-])\p{L}/gu, (m) => m.toUpperCase());
+  const written = tags?.map((t) => t.trim()).find((t) => t.toLowerCase() === topic);
+  if (written && written !== topic) return written;
+  return topic.replace(/[\p{L}\p{N}]+/gu, (w) =>
+    ACRONYMS.has(w) ? w.toUpperCase() : w[0]!.toUpperCase() + w.slice(1),
+  );
 }
 
 export function topicBlurb(topic: TopicId): string {
