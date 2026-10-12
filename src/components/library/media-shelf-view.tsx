@@ -581,7 +581,12 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 busy={setItemStatus.isPending || setShowWatched.isPending}
                 onToggleDone={() => void toggleDone(pickedCard)}
                 onOpenDetails={() => {
-                  // Wishlist items have no page of their own; they open in a dialog.
+                  // Wishlist items open the original product page when they have one.
+                  if (tab === "wishlist" && pickedCard.link) {
+                    window.open(pickedCard.link, "_blank", "noopener,noreferrer");
+                    return;
+                  }
+                  // Otherwise they open in a dialog.
                   if (tab === "wishlist") {
                     setOpening(true);
                     window.setTimeout(() => api.dissolve(() => setDetailId(pickedCard.id)), 650);

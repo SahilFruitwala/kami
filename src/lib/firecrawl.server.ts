@@ -221,3 +221,34 @@ export async function readPage(url: string): Promise<{ markdown: string; truncat
     await firecrawlPost(FIRECRAWL_SCRAPE_URL, buildReadBody(url), RESEARCH_TIMEOUT_MS),
   );
 }
+
+export type PageMetadata = {
+  title?: string;
+  imageUrl?: string;
+  description?: string;
+  siteName?: string;
+};
+
+/** Pull title / image / description out of a scrape response's `metadata`. */
+export function parseMetadataResponse(payload: unknown): PageMetadata {
+  const data = (payload as { data?: { metadata?: Record<string, unknown> } } | null)?.data;
+  const m = data?.metadata ?? {};
+  const str = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : undefined);
+  return {
+    title: str(m["og:title"]) ?? str(m.ogTitle) ?? str(m.title),
+    imageUrl: str(m["og:image"]) ?? str(m.ogImage),
+    description: str(m["og:description"]) ?? str(m.ogDescription) ?? str(m.description),
+    siteName: str(m["og:site_name"]) ?? str(m.ogSiteName),
+  };
+}
+
+/** Read a page's title / image / description through Firecrawl (JS-rendered, bot-friendly). */
+export async function readPageMetadata(url: string): Promise<PageMetadata> {
+  return parseMetadataResponse(
+    await firecrawlPost(
+      FIRECRAWL_SCRAPE_URL,
+      { url, onlyMainContent: true, maxAge: DEFAULT_MAX_AGE_MS, formats: ["markdown"] },
+      30_000,
+    ),
+  );
+}
