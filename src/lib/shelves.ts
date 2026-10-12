@@ -47,6 +47,8 @@ export type ShelfCard = {
   lastEpisode: string | null;
   /** Books only — 0–100. */
   progressPercent: number | null;
+  /** Wishlist only — the original product URL. */
+  link?: string | null;
 };
 
 /** Folio detail as served by `GET /api/shelves/:type/:id` (dates are ISO strings). */

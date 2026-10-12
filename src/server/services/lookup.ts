@@ -427,6 +427,47 @@ async function fetchPreviewHtml(
   return null;
 }
 
+/**
+ * Sites that block plain server fetches (bot walls, JS-only pages) are retried
+ * through Firecrawl; if that is unavailable too, the link still saves with a
+ * title derived from its address rather than failing outright.
+ */
+async function firecrawlPreview(rawUrl: string): Promise<LookupResult | null> {
+  const { assertPublicFetchUrl } = await import("@/lib/safe-url.server");
+  let url: URL;
+  try {
+    url = await assertPublicFetchUrl(rawUrl);
+  } catch {
+    return null;
+  }
+  const { firecrawlApiKey, readPageMetadata } = await import("@/lib/firecrawl.server");
+  if (firecrawlApiKey()) {
+    try {
+      const meta = await readPageMetadata(url.href);
+      if (meta.title) {
+        const metadata: Record<string, string> = {};
+        if (meta.description) metadata.description = meta.description.slice(0, 300);
+        if (meta.siteName) metadata.source = meta.siteName;
+        return {
+          title: decodeEntities(meta.title).slice(0, 300),
+          imageUrl: meta.imageUrl && meta.imageUrl.length <= 2000 ? meta.imageUrl : undefined,
+          link: url.href.slice(0, 2000),
+          metadata,
+        };
+      }
+    } catch {
+      // fall through to the address-derived title
+    }
+  }
+  const host = url.hostname.replace(/^www\./, "");
+  const slug = url.pathname.split("/").filter(Boolean).pop()?.replace(/[-_]+/g, " ").trim();
+  return {
+    title: (slug && !/^\d+$/.test(slug) ? `${slug} · ${host}` : host).slice(0, 300),
+    link: url.href.slice(0, 2000),
+    metadata: { source: host },
+  };
+}
+
 export async function fetchLinkPreview(
   data: z.output<typeof linkPreviewQuery>,
 ): Promise<LookupResult | null> {
@@ -440,7 +481,7 @@ export async function fetchLinkPreview(
     CacheTTL.linkPreview,
     async () => {
       const fetched = await fetchPreviewHtml(rawUrl);
-      if (!fetched) return null;
+      if (!fetched) return firecrawlPreview(rawUrl);
       const { html, finalUrl } = fetched;
 
       let title =
@@ -452,7 +493,7 @@ export async function fetchLinkPreview(
         title = title ?? fallback.title;
         imageUrl = imageUrl ?? fallback.imageUrl;
       }
-      if (!title) return null;
+      if (!title) return firecrawlPreview(rawUrl);
 
       const metadata: Record<string, string> = {};
       const description = extractMeta(html, "og:description");
