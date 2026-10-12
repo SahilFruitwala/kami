@@ -5,18 +5,18 @@ import {
   bookSpineLook,
   familyVars,
   seeded,
-  TOPIC_FAMILIES,
-  TOPIC_LABELS,
+  topicFamily,
+  topicLabel,
   type TopicId,
 } from "@/lib/gloss/palette.ts";
 import { minutesLabel, domainOf } from "@/lib/gloss/format.ts";
-import { TOPIC_ICONS } from "@/lib/gloss/topic-icons.ts";
+import { topicIcon } from "@/lib/gloss/topic-icons.ts";
 import type { LibraryItem } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
 import { GlossCta, Ornament, type PullOutApi } from "@/components/gloss/index.ts";
 
 export function TopicIcon({ topic, className }: { topic: TopicId; className?: string }) {
-  const Icon = TOPIC_ICONS[topic];
+  const Icon = topicIcon(topic);
   return <Icon className={cn("size-3.5", className)} strokeWidth={1.8} aria-hidden="true" />;
 }
 
@@ -29,7 +29,7 @@ export function BookSpine({ item, topic }: { item: LibraryItem; topic: TopicId }
     height: look.height,
     "--spine": look.color,
     "--spine-ink": look.ink,
-    "--spine-dark": TOPIC_FAMILIES[topic].dark,
+    "--spine-dark": topicFamily(topic).dark,
   } as CSSProperties;
   const titleClass =
     look.titleStyle === "caps"
@@ -83,7 +83,7 @@ export function BookSpineFace({ item, topic }: { item: LibraryItem; topic: Topic
 
 /** A small stack of lying books, decoration at the end of a filtered shelf. */
 export function LyingBooks({ topic, seed }: { topic: TopicId; seed: string }) {
-  const fam = TOPIC_FAMILIES[topic];
+  const fam = topicFamily(topic);
   const rand = seeded(seed);
   const shades = [fam.dark, fam.mid, fam.light, fam.mid];
   return (
@@ -123,14 +123,14 @@ function CoverArt({ item, topic }: { item: LibraryItem; topic: TopicId }) {
 }
 
 export function BookCover({ item, topic }: { item: LibraryItem; topic: TopicId }) {
-  const fam = TOPIC_FAMILIES[topic];
+  const fam = topicFamily(topic);
   const year = new Date(item.published ?? item.savedAt).getFullYear();
   return (
     <div className="g-cover" style={familyVars(fam) as CSSProperties}>
       <div className="g-cover-frame" />
       <CoverArt item={item} topic={topic} />
       <p className="g-cover-meta">
-        {TOPIC_LABELS[topic]} {Number.isFinite(year) ? year : ""}
+        {topicLabel(topic)} {Number.isFinite(year) ? year : ""}
       </p>
       <p className="g-cover-title">{item.title}</p>
       {item.author ? <p className="g-cover-author">{item.author}</p> : null}
@@ -151,7 +151,7 @@ export function TopicEngraving({
   className?: string;
   iconScale?: number;
 }) {
-  const fam = TOPIC_FAMILIES[topic];
+  const fam = topicFamily(topic);
   const rand = seeded(`${topic}:${seed}`);
   const pid = `h-${topic}-${seed.replace(/[^a-z0-9]/gi, "").slice(0, 10)}`;
   const sunX = 70 + rand() * 260;
@@ -161,7 +161,7 @@ export function TopicEngraving({
     const b = rand() * 40;
     return `M0 ${base} C ${100 + a} ${base - amp}, ${180 + b} ${base + amp / 3}, 260 ${base - amp / 2} S 360 ${base - amp}, 400 ${base - amp / 3} L400 220 L0 220Z`;
   };
-  const Icon = TOPIC_ICONS[topic];
+  const Icon = topicIcon(topic);
   return (
     <div
       className={cn("g-art relative size-full overflow-hidden", className)}
@@ -247,7 +247,7 @@ export function Endpaper({
   shelvedAt: number;
   owner: string;
 }) {
-  const fam = TOPIC_FAMILIES[topic];
+  const fam = topicFamily(topic);
   const date = new Date(shelvedAt).toLocaleDateString(undefined, {
     day: "numeric",
     month: "short",
@@ -301,7 +301,7 @@ export function BookPage({
   onToggleFavorite: () => void;
   onToggleArchive: () => void;
 }) {
-  const fam = TOPIC_FAMILIES[topic];
+  const fam = topicFamily(topic);
   const [loading, setLoading] = useState(false);
   const year = new Date(item.published ?? item.savedAt).getFullYear();
   const domain = domainOf(item.canonicalUrl || item.url);
@@ -323,7 +323,7 @@ export function BookPage({
         style={{ background: fam.tint, color: fam.dark }}
       >
         <TopicIcon topic={topic} className="size-3" />
-        {TOPIC_LABELS[topic]}
+        {topicLabel(topic)}
       </span>
       {Number.isFinite(year) ? <span>{year}</span> : null}
       <span aria-hidden="true">·</span>
