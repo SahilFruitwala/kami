@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
+  BookOpen,
   Clapperboard,
   Disc3,
   Film,
@@ -36,6 +37,10 @@ import {
   VhsSleeve,
   VhsSpine,
   VhsSpineFace,
+  ShelfBookCover,
+  ShelfBookInside,
+  ShelfBookSpine,
+  ShelfBookSpineFace,
   type MediaKind,
 } from "@/components/gloss/media.tsx";
 import { AddShelfDialog } from "@/components/library/add-shelf-dialog.tsx";
@@ -56,12 +61,19 @@ import {
   useShelfItems,
 } from "@/hooks/use-shelf-queries.ts";
 import { useTilt } from "@/hooks/use-tilt.ts";
-import { DVD_COVER, dvdLook, STATUS_DOT, VHS_COVER, vhsLook } from "@/lib/gloss/palette.ts";
+import {
+  DVD_COVER,
+  dvdLook,
+  shelfBookLook,
+  STATUS_DOT,
+  VHS_COVER,
+  vhsLook,
+} from "@/lib/gloss/palette.ts";
 import { statusLabels, statusText } from "@/lib/shelf-labels.ts";
 import { shelfPath, type ShelfCard } from "@/lib/shelves.ts";
 import type { ShelvesSearch } from "@/lib/shelves-search.ts";
 
-type MediaTab = "movie" | "tv";
+type MediaTab = "movie" | "tv" | "book";
 type View = "shelf" | "covers";
 type Arrange = "status" | "title" | "year" | "added";
 
@@ -87,7 +99,17 @@ const COPY: Record<
     unit: ["box set", "box sets"],
     empty: "Search TMDB or paste a link to shelve your first box set.",
   },
+  book: {
+    title: "Books",
+    eyebrow: "Book shelf",
+    unit: ["book", "books"],
+    empty: "Search Open Library or paste a link to shelve your first book.",
+  },
 };
+
+const KIND: Record<MediaTab, MediaKind> = { movie: "vhs", tv: "dvd", book: "book" };
+const ACTIVE = { movie: "movies", tv: "series", book: "books" } as const;
+const BOOK_COVER = { w: 430, h: 620 };
 
 /**
  * Movies and Series as a video-rental shelf (Gloss): VHS tapes for films,
@@ -96,7 +118,7 @@ const COPY: Record<
  */
 export function MediaShelfView({ tab, search }: { tab: MediaTab; search: ShelvesSearch }) {
   const navigate = useNavigate();
-  const kind: MediaKind = tab === "movie" ? "vhs" : "dvd";
+  const kind: MediaKind = KIND[tab];
   const copy = COPY[tab];
   const labels = statusLabels(tab);
   const [query, setQuery] = useState(() => search.q ?? "");
@@ -228,23 +250,23 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
     }
   }
 
-  // "All" leads: the shelf opens on everything.
-  const statusChips = [...statusMeta(tab)].sort(
-    (a, b) => Number(b.id === "all") - Number(a.id === "all"),
-  );
+  const statusChips = statusMeta(tab);
   const animateKey = `${status}|${arrange}|${deferredQuery}`;
-  const coverSize = kind === "vhs" ? VHS_COVER : DVD_COVER;
+  const coverSize = kind === "vhs" ? VHS_COVER : kind === "dvd" ? DVD_COVER : BOOK_COVER;
+  const unitOne = copy.unit[0];
 
   return (
-    <AppShell active={tab === "movie" ? "movies" : "series"} onOpenItem={() => undefined}>
+    <AppShell active={ACTIVE[tab]} onOpenItem={() => undefined}>
       <GlossPage>
         <GlossColumn className="pt-10 pb-6 sm:pt-14">
           <GlossEyebrow
             icon={
               kind === "vhs" ? (
                 <Film className="size-4" aria-hidden="true" />
-              ) : (
+              ) : kind === "dvd" ? (
                 <Disc3 className="size-4" aria-hidden="true" />
+              ) : (
+                <BookOpen className="size-4" aria-hidden="true" />
               )
             }
           >
@@ -295,7 +317,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
             />
             {status !== "all" && items ? (
               <p className="mt-1 font-sans text-xs text-ink-muted">
-                Counts are for the tapes on screen.
+                Counts are for the {copy.unit[1]} on screen.
               </p>
             ) : null}
           </div>
@@ -320,7 +342,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 },
                 {
                   id: "covers",
-                  label: kind === "vhs" ? "Sleeves" : "Cases",
+                  label: kind === "vhs" ? "Sleeves" : kind === "dvd" ? "Cases" : "Covers",
                   icon: <LayoutGrid className="size-4" aria-hidden="true" />,
                 },
               ]}
@@ -362,8 +384,10 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                   s.id === "all" ? (
                     kind === "vhs" ? (
                       <Clapperboard className="size-3" aria-hidden="true" />
-                    ) : (
+                    ) : kind === "dvd" ? (
                       <Tv className="size-3" aria-hidden="true" />
+                    ) : (
+                      <BookOpen className="size-3" aria-hidden="true" />
                     )
                   ) : (
                     <span
@@ -414,7 +438,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                   onClick={() => setAddOpen(true)}
                 >
                   <Plus className="size-4" aria-hidden="true" />
-                  Add your first {copy.unit[0]}
+                  Add your first {unitOne}
                 </button>
               )}
             </div>
@@ -422,12 +446,18 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
             <>
               <Shelf<ShelfCard>
                 ariaLabel={`${copy.title} shelf`}
-                variant="media"
+                variant={kind === "book" ? "book" : "media"}
                 groups={groups}
                 getId={(it) => it.id}
                 animateKey={animateKey}
                 renderSpine={(it) =>
-                  kind === "vhs" ? <VhsSpine item={it} /> : <DvdSpine item={it} />
+                  kind === "vhs" ? (
+                    <VhsSpine item={it} />
+                  ) : kind === "dvd" ? (
+                    <DvdSpine item={it} />
+                  ) : (
+                    <ShelfBookSpine item={it} />
+                  )
                 }
                 tooltip={(it) => {
                   const sub = [
@@ -435,6 +465,9 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                     statusText(labels, it.status),
                     tab === "tv" && it.totalEpisodes
                       ? `${it.episodesWatched ?? 0}/${it.totalEpisodes} eps`
+                      : null,
+                    tab === "book" && it.progressPercent && it.status !== "done"
+                      ? `${it.progressPercent}% read`
                       : null,
                   ]
                     .filter(Boolean)
@@ -444,8 +477,8 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 onPick={(it) => setPicked({ card: it, kind: "spine" })}
               />
               <p className="mt-6 font-sans text-[13px] text-ink-muted">
-                Click a {kind === "vhs" ? "tape" : "case"} to pull it out. Arrow keys walk the
-                shelf.
+                Click a {kind === "vhs" ? "tape" : kind === "dvd" ? "case" : "book"} to pull it out.
+                Arrow keys walk the shelf.
               </p>
             </>
           ) : (
@@ -468,7 +501,13 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                     onClick={() => setPicked({ card: it, kind: "cover" })}
                     {...tilt}
                   >
-                    {kind === "vhs" ? <VhsSleeve item={it} /> : <DvdCase item={it} />}
+                    {kind === "vhs" ? (
+                      <VhsSleeve item={it} />
+                    ) : kind === "dvd" ? (
+                      <DvdCase item={it} />
+                    ) : (
+                      <ShelfBookCover item={it} />
+                    )}
                   </button>
                   <p className="mt-2.5 line-clamp-1 font-display text-[15px] text-ink">
                     {it.title}
@@ -517,22 +556,39 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
               const l =
                 kind === "vhs"
                   ? vhsLook(pickedCard.id, pickedCard.title)
-                  : dvdLook(pickedCard.id, pickedCard.title, pickedCard.totalEpisodes);
+                  : kind === "dvd"
+                    ? dvdLook(pickedCard.id, pickedCard.title, pickedCard.totalEpisodes)
+                    : shelfBookLook(pickedCard);
               return l.width / l.height;
             })()}
             spineFace={
               kind === "vhs" ? (
                 <VhsSpineFace item={pickedCard} />
-              ) : (
+              ) : kind === "dvd" ? (
                 <DvdSpineFace item={pickedCard} />
+              ) : (
+                <ShelfBookSpineFace item={pickedCard} />
               )
             }
-            cover={kind === "vhs" ? <VhsSleeve item={pickedCard} /> : <DvdCase item={pickedCard} />}
+            cover={
+              kind === "vhs" ? (
+                <VhsSleeve item={pickedCard} />
+              ) : kind === "dvd" ? (
+                <DvdCase item={pickedCard} />
+              ) : (
+                <ShelfBookCover item={pickedCard} />
+              )
+            }
             inside={
               kind === "vhs" ? (
                 <VhsInside item={pickedCard} spinning={opening} />
-              ) : (
+              ) : kind === "dvd" ? (
                 <DvdInside item={pickedCard} spinning={opening} />
+              ) : (
+                <ShelfBookInside
+                  item={pickedCard}
+                  number={(items ?? []).filter((r) => r.createdAt <= pickedCard.createdAt).length}
+                />
               )
             }
             page={(api) => (
@@ -551,7 +607,12 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                       api.dissolve(
                         () =>
                           void navigate({
-                            to: tab === "movie" ? "/shelves/movies/$id" : "/shelves/series/$id",
+                            to:
+                              tab === "movie"
+                                ? "/shelves/movies/$id"
+                                : tab === "tv"
+                                  ? "/shelves/series/$id"
+                                  : "/shelves/books/$id",
                             params: { id: pickedCard.id },
                             search: listSearch,
                           }),
@@ -591,7 +652,10 @@ function ShelfSkeleton({ kind }: { kind: MediaKind }) {
         <div key={i} className="g-slot">
           <span
             className="block rounded-[2px] bg-line"
-            style={{ width: kind === "vhs" ? 38 : 22, height: 196 + ((i * 7) % 12) }}
+            style={{
+              width: kind === "vhs" ? 38 : kind === "dvd" ? 22 : 32,
+              height: 196 + ((i * 7) % 12),
+            }}
           />
         </div>
       ))}
