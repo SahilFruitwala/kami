@@ -269,3 +269,37 @@ export const STATUS_DOT: Record<ItemStatus, string> = {
   done: "#B8443A",
   abandoned: "#8A857A",
 };
+
+/* ——— Shelved books ——— */
+
+const BOOK_TOPICS: TopicId[] = [
+  "technology",
+  "science",
+  "business",
+  "health",
+  "culture",
+  "history",
+  "design",
+  "education",
+  "travel",
+  "food",
+  "opinion",
+];
+
+/** Spine look for a shelved book, seeded by id so it never changes. */
+export function shelfBookLook(item: { id: string; title: string }) {
+  const rand = seeded(item.id);
+  const topic = BOOK_TOPICS[Math.floor(rand() * BOOK_TOPICS.length)]!;
+  const fam = TOPIC_FAMILIES[topic];
+  const shades = [fam.dark, fam.mid, fam.mid, fam.light];
+  const color = shades[Math.floor(rand() * shades.length)]!;
+  return {
+    topic,
+    fam,
+    color,
+    ink: color === fam.light ? fam.dark : "#F6F1DE",
+    width: Math.round(28 + Math.min(18, item.title.length * 0.6) + rand() * 10),
+    height: Math.round(200 + rand() * 50),
+    italic: rand() < 0.35,
+  };
+}

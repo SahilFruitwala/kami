@@ -18,11 +18,9 @@ export function statusMeta(tab: ShelfTab): { id: StatusFilter; label: string }[]
   ];
 }
 
-/** Default status filter per shelf. */
+/** Default status filter per shelf: what you're in the middle of, else what's queued. */
 export function defaultStatus(tab: ShelfTab): StatusFilter {
-  // Movies and series are video shelves that show every tape at once.
-  if (tab === "movie" || tab === "tv") return "all";
-  return tab === "book" ? "in_progress" : "to_try";
+  return tab === "tv" || tab === "book" ? "in_progress" : "to_try";
 }
 
 export function parseStatusFilter(v: unknown, tab: ShelfTab): StatusFilter {
