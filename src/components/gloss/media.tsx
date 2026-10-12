@@ -775,7 +775,9 @@ export function MediaPage({
               ? "Open the tape"
               : kind === "dvd"
                 ? "Open the box set"
-                : "Open the book"}
+                : isGift
+                  ? "Open Wish"
+                  : "Open the book"}
           </GlossCta>
         </div>
       ),
