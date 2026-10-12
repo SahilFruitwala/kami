@@ -238,6 +238,7 @@ export async function listShelfItems(userId: string, data: ShelfListArgs): Promi
           totalEpisodes: null,
           lastEpisode: null,
           progressPercent: null,
+          link: r.link,
         }));
       }
 
