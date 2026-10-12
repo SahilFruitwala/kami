@@ -17,9 +17,11 @@ older flat "Matrix Quiet" theme is gone.
   control, chips, search, buttons, shelves, spines, covers, the pull-out
   stage, reader reveal. `.gloss` still works as a nested scope; the pull-out
   stage re-declares it.
-- **Fonts** are self-hosted (Fontsource: Newsreader + Inter). The CSP
-  forbids font CDNs on purpose, so reader fonts other than Newsreader fall
-  back to system faces.
+- **Fonts** are all self-hosted with Fontsource and bundled into the app:
+  Newsreader (display and reading) and Inter (UI), plus the reader choices
+  Literata, Source Serif 4, Atkinson Hyperlegible and Figtree. Nothing is
+  fetched from Google Fonts; the CSP forbids font CDNs on purpose.
+  `@font-face` is lazy, so a reader face downloads only once it is used.
 
 ## Conventions
 

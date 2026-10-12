@@ -144,11 +144,11 @@ export function articleToItem(article: Article, extras: Partial<LibraryItem> = {
 }
 
 export const READER_FONTS = [
-  { id: "newsreader", label: "Newsreader", family: '"Newsreader Variable", "Newsreader", "Iowan Old Style", Georgia, serif' },
-  { id: "literata", label: "Literata", family: '"Literata", Georgia, serif' },
-  { id: "source-serif", label: "Source Serif", family: 'Georgia, "Iowan Old Style", serif' },
+  { id: "newsreader", label: "Newsreader", family: '"Newsreader Variable", Georgia, serif' },
+  { id: "literata", label: "Literata", family: '"Literata Variable", Georgia, serif' },
+  { id: "source-serif", label: "Source Serif", family: '"Source Serif 4 Variable", Georgia, serif' },
   { id: "atkinson", label: "Atkinson", family: '"Atkinson Hyperlegible", ui-sans-serif, sans-serif' },
-  { id: "figtree", label: "Figtree", family: 'ui-sans-serif, system-ui, sans-serif' },
+  { id: "figtree", label: "Figtree", family: '"Figtree Variable", ui-sans-serif, system-ui, sans-serif' },
 ] as const;
 
 export type ReaderFontId = (typeof READER_FONTS)[number]["id"];
