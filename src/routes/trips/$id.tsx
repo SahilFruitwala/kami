@@ -23,10 +23,10 @@ function TripPage() {
 
   return (
     <AppShell active="trips" onOpenItem={openItem}>
-      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-12">
+      <div className="mx-auto w-full max-w-[1200px] px-4 pt-8 pb-10 sm:px-8">
         <Link
           to="/trips"
-          className="mb-6 inline-flex items-center gap-1.5 font-sans text-xs text-ink-soft hover:text-hanko"
+          className="mb-6 inline-flex h-8 items-center gap-1.5 rounded-full pr-3 font-sans text-sm text-ink-muted transition-colors hover:text-ink"
         >
           <ArrowLeft className="size-3.5" aria-hidden="true" />
           All trips

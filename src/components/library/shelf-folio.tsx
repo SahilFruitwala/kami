@@ -167,14 +167,14 @@ export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: 
       </div>
 
       {overview ? (
-        <p className="font-serif text-[15px] leading-relaxed text-ink-soft text-pretty">
+        <p className="font-display text-[15px] leading-relaxed text-ink-soft text-pretty">
           {overview}
         </p>
       ) : null}
       {detail.item.notes ? (
         <div className="rounded-lg bg-paper-warm p-3">
           <p className="kami-label text-ink-muted">Marginalia</p>
-          <p className="mt-1 font-serif text-sm text-ink italic">{detail.item.notes}</p>
+          <p className="mt-1 font-display text-sm text-ink italic">{detail.item.notes}</p>
         </div>
       ) : null}
 

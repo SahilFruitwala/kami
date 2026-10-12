@@ -140,7 +140,7 @@ function DetailBody({
       <title>{`${item.title} · Kami`}</title>
 
       <div className="mx-auto w-full max-w-[16rem] lg:sticky lg:top-6 lg:self-start">
-        <div className="poster-frame relative overflow-hidden rounded-lg shadow-[var(--shadow-border)]">
+        <div className="poster-frame relative overflow-hidden rounded-[4px] shadow-[var(--g-shadow-lifted)]">
           {item.imageUrl ? (
             <img
               src={item.imageUrl}
@@ -171,14 +171,14 @@ function DetailBody({
           <KamiEyebrow>
             {eyebrow}
             <span className="size-1 rounded-full bg-hanko/40" aria-hidden="true" />
-            <span className={isDone ? "text-hanko" : isDropped ? "text-ink-muted" : "text-bamboo"}>
+            <span className={isDone ? "text-ink" : isDropped ? "text-ink-muted" : "text-ok"}>
               {statusText(labels, item.status)}
             </span>
           </KamiEyebrow>
-          <h1 className="font-display text-4xl leading-tight tracking-tight text-balance text-ink sm:text-5xl">
+          <h1 className="g-h1-topic text-balance text-ink">
             {item.title}
           </h1>
-          {byline ? <p className="font-serif text-lg text-ink-soft">{byline}</p> : null}
+          {byline ? <p className="font-display text-lg text-ink-soft italic">{byline}</p> : null}
           {detail.genres.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {detail.genres.map((g) => (
@@ -282,7 +282,7 @@ function DetailBody({
 
         {item.overview ? (
           <section aria-label="Overview">
-            <p className="max-w-prose font-serif text-[17px] leading-relaxed text-ink-soft text-pretty">
+            <p className="max-w-prose font-display text-[17px] leading-relaxed text-ink-soft text-pretty">
               {item.overview}
             </p>
           </section>
@@ -300,7 +300,7 @@ function DetailBody({
         {item.notes ? (
           <section className="rounded-lg border-l-2 border-hanko/40 bg-paper-warm p-4">
             <h2 className="kami-label text-ink-muted">Marginalia</h2>
-            <p className="mt-1.5 font-serif text-base text-ink italic text-pretty">{item.notes}</p>
+            <p className="mt-1.5 font-display text-base text-ink italic text-pretty">{item.notes}</p>
           </section>
         ) : null}
 

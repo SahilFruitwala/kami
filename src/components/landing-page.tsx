@@ -127,37 +127,34 @@ export function LandingPage() {
         Skip to content
       </a>
 
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+      <header className="fixed inset-x-0 top-0 z-50 bg-paper/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-2 px-[max(1rem,env(safe-area-inset-left))] sm:gap-3 sm:px-6">
           <Link
             to="/"
             className="group inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
           >
-            <Hanko glyph={KAMI_GLYPH} square className="size-8" title="Kami" />
-            <span className="hidden leading-none min-[360px]:block">
-              <span className="block font-display text-base font-semibold tracking-tight group-hover:text-hanko" translate="no">
-                KAMI
-              </span>
-              <span className="kami-label mt-0.5 block text-ink-muted">Washi & Thought</span>
+            <Hanko glyph={KAMI_GLYPH} className="size-7 text-sm" title="Kami" />
+            <span className="hidden font-display text-[22px] leading-none tracking-tight min-[360px]:block" translate="no">
+              Kami
             </span>
           </Link>
           <nav aria-label="Primary" className="hidden items-center gap-6 font-sans text-[13px] font-medium text-ink-soft lg:flex">
-            <a href="#features" className="rounded-sm py-1 transition-colors hover:text-hanko focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+            <a href="#features" className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
               Features
             </a>
-            <a href="#reader" className="rounded-sm py-1 transition-colors hover:text-hanko focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+            <a href="#reader" className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
               Reader
             </a>
-            <a href="#organize" className="rounded-sm py-1 transition-colors hover:text-hanko focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+            <a href="#organize" className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
               Organize
             </a>
-            <a href="#faq" className="rounded-sm py-1 transition-colors hover:text-hanko focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+            <a href="#faq" className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
               FAQ
             </a>
           </nav>
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
-            <Button type="button" variant="ghost" className="hidden h-10 rounded-lg sm:inline-flex" asChild>
+            <Button type="button" variant="ghost" className="hidden h-10 sm:inline-flex" asChild>
               <Link to="/login/$">
                 Sign In
               </Link>
@@ -188,7 +185,7 @@ export function LandingPage() {
               </div>
               <h1
                 id="hero-heading"
-                className="mt-4 font-display text-[2.35rem] leading-[1.08] font-normal tracking-tight text-balance sm:text-5xl"
+                className="mt-5 font-display text-[2.75rem] leading-[1] font-normal tracking-[-0.025em] text-balance sm:text-[4rem]"
               >
                 A quiet digital sanctuary for reading, inking, and unhurried thought.
               </h1>
@@ -212,7 +209,7 @@ export function LandingPage() {
                   type="button"
                   variant="ghost"
                   size="lg"
-                  className="h-11 w-full rounded-lg sm:w-auto"
+                  className="h-11 w-full sm:w-auto"
                   asChild
                 >
                   <a href="#features">
@@ -361,7 +358,7 @@ export function LandingPage() {
                 type="button"
                 variant="ghost"
                 size="lg"
-                className="h-11 w-full rounded-lg sm:w-auto"
+                className="h-11 w-full sm:w-auto"
                 asChild
               >
                 <Link to="/login/$">I Already Have an Account</Link>
@@ -549,7 +546,7 @@ export function LandingPage() {
                 type="button"
                 size="lg"
                 variant="outline"
-                className="h-11 w-full rounded-lg border-line bg-surface text-ink hover:bg-paper-warm sm:w-auto"
+                className="h-11 w-full border-line bg-surface text-ink hover:bg-paper-warm sm:w-auto"
                 asChild
               >
                 <Link to="/login/$">
