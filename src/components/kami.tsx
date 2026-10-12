@@ -30,7 +30,7 @@ export function Hanko({
   );
 }
 
-/** Translucent washi-tape tag for categories and filters. */
+/** Small rounded tag chip for categories and filters (Gloss "Classics" chip). */
 export function WashiTag({
   children,
   tone = "paper",
@@ -43,11 +43,11 @@ export function WashiTag({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-lg px-2 py-0.5 text-[10px] font-sans font-semibold tracking-wider uppercase",
-        tone === "paper" && "bg-paper-warm text-ink-soft",
-        tone === "vermilion" && "bg-shu-tint text-hanko",
-        tone === "bamboo" && "bg-bamboo-wash text-bamboo",
-        tone === "indigo" && "bg-ink-accent/10 text-ink-accent",
+        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 font-sans text-xs font-medium",
+        tone === "paper" && "border-line bg-surface text-ink-soft",
+        tone === "vermilion" && "border-line bg-surface text-ink",
+        tone === "bamboo" && "border-transparent bg-bamboo-wash text-bamboo",
+        tone === "indigo" && "border-transparent bg-aizome/10 text-aizome",
         className,
       )}
     >
@@ -56,7 +56,7 @@ export function WashiTag({
   );
 }
 
-/** Small uppercase section eyebrow, e.g. "Bunko Desk". */
+/** Small muted section eyebrow with an optional icon, e.g. "Personal library". */
 export function KamiEyebrow({
   children,
   className,
@@ -67,7 +67,7 @@ export function KamiEyebrow({
   return (
     <p
       className={cn(
-        "kami-label flex items-center gap-2 text-ink-muted",
+        "flex items-center gap-2 font-sans text-sm text-ink-muted",
         className,
       )}
     >

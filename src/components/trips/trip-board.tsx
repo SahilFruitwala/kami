@@ -129,13 +129,13 @@ function TripDetails({
   }
 
   return (
-    <section aria-label="Trip details" className="kami-sheet space-y-3 p-5">
+    <section aria-label="Trip details" className="kami-sheet space-y-4 p-6">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="font-display text-2xl leading-tight tracking-tight text-ink">
+          <h1 className="font-display text-4xl leading-none tracking-tight text-ink sm:text-5xl">
             {trip.title}
-          </h3>
-          <p className="mt-1 flex items-center gap-1.5 font-sans text-xs text-ink-soft">
+          </h1>
+          <p className="mt-3 flex items-center gap-1.5 font-display text-lg text-ink-soft italic">
             <MapPin className="size-3.5 shrink-0" aria-hidden="true" />
             {trip.destination}
           </p>

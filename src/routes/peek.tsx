@@ -111,7 +111,7 @@ function PeekBody({ peek, onSave }: { peek: PagePeek; onSave: () => void }) {
   return (
     <div className="space-y-4">
       <div className="space-y-1">
-        <h1 className="font-display text-2xl leading-tight tracking-tight text-ink">
+        <h1 className="font-display text-3xl leading-tight tracking-tight text-ink">
           {peek.title}
         </h1>
         <p className="flex flex-wrap items-center gap-x-2 font-sans text-xs text-ink-muted">

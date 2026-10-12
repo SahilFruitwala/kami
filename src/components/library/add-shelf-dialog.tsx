@@ -355,7 +355,7 @@ export function AddShelfDialog({
                     </p>
                   )}
                   {(metadata.overview || metadata.description) && (
-                    <p className="line-clamp-4 font-serif text-[14px] leading-relaxed text-ink-soft">
+                    <p className="line-clamp-4 font-display text-[14px] leading-relaxed text-ink-soft">
                       {metadata.overview || metadata.description}
                     </p>
                   )}

@@ -245,7 +245,7 @@ function ChatPanel({ tripId, data }: { tripId: string; data: TripChatData }) {
               disabled={busy}
               title="Clear conversation"
               aria-label="Clear conversation"
-              className="flex size-7 items-center justify-center rounded-md text-ink-muted hover:bg-paper-warm hover:text-ink disabled:opacity-50"
+              className="flex size-7 items-center justify-center rounded-full text-ink-muted hover:bg-paper-warm hover:text-ink disabled:opacity-50"
             >
               <RotateCcw className="size-3.5" aria-hidden="true" />
             </button>
@@ -341,7 +341,7 @@ function ChatPanel({ tripId, data }: { tripId: string; data: TripChatData }) {
             onClick={() => void stop()}
             title="Stop"
             aria-label="Stop"
-            className="flex size-10 shrink-0 items-center justify-center rounded-lg text-ink-soft shadow-[var(--shadow-border)] hover:text-ink"
+            className="flex size-10 shrink-0 items-center justify-center rounded-full text-ink-soft shadow-[var(--shadow-border)] hover:text-ink"
           >
             <Square className="size-4" aria-hidden="true" />
           </button>
