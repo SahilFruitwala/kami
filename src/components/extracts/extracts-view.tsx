@@ -44,8 +44,8 @@ export function ExtractsView({
   const enabled = overview.data?.enabled ?? true;
 
   return (
-    <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
-      <aside className="flex flex-col gap-6 lg:sticky lg:top-24 lg:col-span-4 xl:col-span-3">
+    <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[18.5rem_minmax(0,1fr)] xl:gap-10">
+      <aside className="flex flex-col gap-6 lg:sticky lg:top-24">
         <section className="kami-sheet space-y-5 p-4">
           <SourceForm actions={actions} onSaved={onSelect} />
           {sources.length > 0 ? (
@@ -60,7 +60,7 @@ export function ExtractsView({
         ) : null}
       </aside>
 
-      <div className="flex min-w-0 flex-col gap-5 lg:col-span-8 xl:col-span-9">
+      <div className="flex min-w-0 flex-col gap-5">
         {overview.isPending ? (
           <div className="kami-sheet h-40 animate-pulse opacity-60" aria-hidden="true" />
         ) : overview.isError ? (
@@ -165,7 +165,7 @@ function SourceForm({
         <button
           type="submit"
           disabled={busy || !url.trim() || !question.trim()}
-          className="flex h-9 flex-1 items-center justify-center gap-1 rounded-lg bg-hanko px-3 font-sans text-xs font-semibold text-paper shadow-sm transition-colors hover:bg-shu disabled:opacity-50"
+          className="flex h-9 flex-1 items-center justify-center gap-1 rounded-full bg-hanko px-3 font-sans text-xs font-medium text-paper transition-colors hover:bg-shu disabled:opacity-50"
         >
           {busy ? (
             <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -320,7 +320,7 @@ function SourceDetail({
                 type="button"
                 disabled={!enabled || running}
                 onClick={() => actions.run.mutate({ id: source.id })}
-                className="flex items-center gap-1.5 rounded-md bg-hanko px-3 py-1.5 font-sans text-xs font-semibold text-paper shadow-sm transition-colors hover:bg-shu disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-full bg-hanko px-3 py-1.5 font-sans text-xs font-medium text-paper transition-colors hover:bg-shu disabled:opacity-60"
               >
                 {running ? (
                   <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
@@ -386,7 +386,7 @@ function PendingResult({ result, actions }: { result: ExtractResult; actions: Ac
             type="button"
             disabled={busy}
             onClick={() => actions.accept.mutate(result.id)}
-            className="flex items-center gap-1 rounded-md bg-hanko px-3 py-1.5 font-sans text-xs font-semibold text-paper shadow-sm hover:bg-shu disabled:opacity-60"
+            className="flex items-center gap-1 rounded-full bg-hanko px-3 py-1.5 font-sans text-xs font-medium text-paper hover:bg-shu disabled:opacity-60"
           >
             <Check className="size-3.5" aria-hidden="true" />
             Accept
@@ -515,7 +515,7 @@ function EmptyExtracts({ actions, onSaved }: { actions: Actions; onSaved: (id: s
         type="button"
         disabled={actions.create.isPending}
         onClick={() => actions.create.mutate(EXAMPLE, { onSuccess: (s) => onSaved(s.id) })}
-        className="mt-2 flex items-center gap-1.5 rounded-md bg-hanko px-3 py-2 font-sans text-xs font-semibold text-paper shadow-sm hover:bg-shu disabled:opacity-60"
+        className="mt-2 flex items-center gap-1.5 rounded-full bg-hanko px-3 py-2 font-sans text-xs font-medium text-paper hover:bg-shu disabled:opacity-60"
       >
         <Plus className="size-3.5" aria-hidden="true" />
         Try the Product Hunt example

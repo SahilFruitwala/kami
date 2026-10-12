@@ -125,7 +125,7 @@ export function PrimaryButton({ children, className, ...rest }: React.ComponentP
   return (
     <button
       className={cn(
-        "flex h-9 items-center justify-center gap-1.5 rounded-lg bg-hanko px-3 font-sans text-xs font-semibold text-paper shadow-sm transition-colors hover:bg-shu disabled:opacity-50",
+        "flex h-9 items-center justify-center gap-1.5 rounded-full bg-hanko px-3 font-sans text-xs font-medium text-paper transition-colors hover:bg-shu disabled:opacity-50",
         className,
       )}
       {...rest}

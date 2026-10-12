@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { SignIn } from "@clerk/tanstack-react-start";
-import { BookMarked } from "lucide-react";
+import { KAMI_GLYPH } from "@/components/kami.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
@@ -32,23 +32,23 @@ function LoginPage() {
     <main className="relative min-h-dvh overflow-x-hidden bg-paper text-ink">
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-72 bg-[linear-gradient(180deg,color-mix(in_oklab,var(--color-paper-warm)_75%,transparent),transparent)]"
+        className="pointer-events-none absolute inset-x-0 top-0 h-72"
       />
       <div className="relative mx-auto flex w-full max-w-md flex-col px-4 py-10 sm:px-6">
         <div className="mb-10 flex items-center justify-between">
-          <Link to="/" className="inline-flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30">
-            <span className="flex size-8 items-center justify-center rounded-md bg-ink text-paper">
-              <BookMarked className="size-4" aria-hidden="true" />
+          <Link to="/" className="inline-flex items-center gap-2 rounded-full pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30">
+            <span className="kami-hanko flex size-7 items-center justify-center rounded-full font-display text-sm leading-none" lang="ja">
+              {KAMI_GLYPH}
             </span>
-            <span className="text-sm font-semibold tracking-tight" translate="no">KAMI</span>
+            <span className="font-display text-[22px] leading-none tracking-tight" translate="no">Kami</span>
           </Link>
           <ThemeToggle />
         </div>
 
-        <h1 className="font-display text-3xl leading-tight tracking-tight">
-          Sign in to <span translate="no">KAMI</span>
+        <h1 className="font-display text-5xl leading-none font-normal tracking-tight">
+          Sign in to <span translate="no">Kami</span>
         </h1>
-        <p className="mt-3 text-base leading-normal text-ink-soft">
+        <p className="mt-4 font-display text-lg leading-snug text-ink-soft">
           Your reading list stays with your account — save from any device, keep tags and
           highlights in sync.
         </p>

@@ -12,14 +12,14 @@ export function TripsList({ onCreated }: { onCreated: (trip: Trip) => void }) {
   const trips = list.data ?? [];
 
   return (
-    <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
-      <aside className="lg:sticky lg:top-24 lg:col-span-4 xl:col-span-3">
+    <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[18.5rem_minmax(0,1fr)] xl:gap-10">
+      <aside className="lg:sticky lg:top-24">
         <section className="kami-sheet p-4">
           <NewTripForm onCreated={onCreated} />
         </section>
       </aside>
 
-      <div className="min-w-0 lg:col-span-8 xl:col-span-9">
+      <div className="min-w-0">
         {list.isPending ? (
           <div className="kami-sheet h-40 animate-pulse opacity-60" aria-hidden="true" />
         ) : list.isError ? (

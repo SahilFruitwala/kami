@@ -164,7 +164,7 @@ export function LandingPage() {
             </Button>
             <Button
               type="button"
-              className="h-10 rounded-lg bg-hanko px-3 text-paper shadow-sm hover:bg-shu active:translate-y-px sm:px-4"
+              className="h-10 rounded-full bg-hanko px-3 text-paper hover:bg-shu sm:px-4"
               asChild
             >
               <Link to="/sign-up/$">
@@ -200,7 +200,7 @@ export function LandingPage() {
                 <Button
                   type="button"
                   size="lg"
-                  className="h-11 w-full rounded-lg bg-hanko px-5 text-paper shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
+                  className="h-11 w-full rounded-full bg-hanko px-5 text-paper hover:bg-shu sm:w-auto"
                   asChild
                 >
                   <Link to="/sign-up/$">
@@ -244,7 +244,7 @@ export function LandingPage() {
                     <div className="flex h-10 flex-1 items-center rounded-lg border border-line bg-bg/60 px-3 font-sans text-sm text-ink-muted">
                       <span className="truncate">Paste a blog or X URL…</span>
                     </div>
-                    <span className="rounded-lg bg-hanko px-3.5 py-2 font-sans text-sm font-semibold text-paper">
+                    <span className="rounded-full bg-hanko px-3.5 py-2 font-sans text-sm font-medium text-paper">
                       Save
                     </span>
                   </div>
@@ -350,7 +350,7 @@ export function LandingPage() {
               <Button
                 type="button"
                 size="lg"
-                className="h-11 w-full rounded-lg bg-hanko px-5 text-paper shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
+                className="h-11 w-full rounded-full bg-hanko px-5 text-paper hover:bg-shu sm:w-auto"
                 asChild
               >
                 <Link to="/sign-up/$">
@@ -538,7 +538,7 @@ export function LandingPage() {
               <Button
                 type="button"
                 size="lg"
-                className="h-11 w-full rounded-lg bg-hanko px-5 text-paper shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
+                className="h-11 w-full rounded-full bg-hanko px-5 text-paper hover:bg-shu sm:w-auto"
                 asChild
               >
                 <Link to="/sign-up/$">
@@ -549,7 +549,7 @@ export function LandingPage() {
                 type="button"
                 size="lg"
                 variant="outline"
-                className="h-11 w-full rounded-lg border-line bg-surface text-ink-accent hover:bg-paper-warm sm:w-auto"
+                className="h-11 w-full rounded-lg border-line bg-surface text-ink hover:bg-paper-warm sm:w-auto"
                 asChild
               >
                 <Link to="/login/$">

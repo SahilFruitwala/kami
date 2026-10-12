@@ -149,7 +149,7 @@ export function ShelfTile({
             "inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg font-sans text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 disabled:opacity-60",
             isDone
               ? "border border-line bg-surface text-ink-soft hover:bg-paper-warm hover:text-ink"
-              : "bg-hanko text-paper shadow-sm hover:bg-shu",
+              : "bg-hanko text-paper hover:bg-shu",
           )}
         >
           {busy ? (

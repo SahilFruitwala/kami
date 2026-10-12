@@ -34,7 +34,7 @@ export function ExportButton({ children, onClick }: { children: React.ReactNode;
     <button
       type="button"
       onClick={onClick}
-      className="rounded-lg bg-hanko px-4 py-2 font-sans text-xs font-semibold text-paper shadow-sm hover:bg-shu"
+      className="rounded-full bg-hanko px-4 py-2 font-sans text-xs font-medium text-paper hover:bg-shu"
     >
       {children}
     </button>

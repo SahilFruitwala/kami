@@ -56,7 +56,7 @@ function Settings() {
           </nav>
         </GlossHeader>
 
-        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-4 pt-8 pb-10 sm:px-8">
+        <div className="g-stagger mx-auto flex w-full max-w-[1200px] flex-col gap-6 px-4 pt-8 pb-10 sm:px-8">
           <AccountCard />
           <AppearanceCard />
           <ReadingCard />
