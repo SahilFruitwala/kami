@@ -100,7 +100,7 @@ export function BookProgress({
                 setError("");
               }}
               className={cn(
-                "min-h-8 rounded-[0.25rem] px-2.5 font-sans text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+                "min-h-8 rounded-lg px-2.5 font-sans text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
                 mode === m
                   ? "bg-paper-warm font-semibold text-ink"
                   : "text-ink-muted hover:text-ink",
@@ -189,7 +189,7 @@ export function BookProgress({
         <Button
           type="submit"
           disabled={save.isPending}
-          className="bg-hanko text-white hover:bg-shu"
+          className="bg-hanko text-paper hover:bg-shu"
         >
           {save.isPending ? (
             <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />

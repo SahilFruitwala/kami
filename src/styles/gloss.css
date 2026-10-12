@@ -1,18 +1,27 @@
 /* ——————————————————————————————————————————————————————————————————————
    GLOSS — warm paper, editorial serif, tactile 3D shelves.
 
-   Everything here is scoped to `.gloss`. Today only Library, Movies and
-   Series wrap their page in it (see `GlossPage`). Because `.gloss`
-   re-declares the same `--color-*`, `--font-*`, `--radius-*` and motion
-   tokens the rest of the app already uses, putting the class on <html>
-   instead would reskin the whole app. See docs/GLOSS.md.
+   Gloss is the app's theme: <html> carries the `gloss` class, and the
+   app-wide tokens in styles.css hold the same values. This file adds the
+   Gloss-only tokens (`--g-*`) and components (`.g-*`). `.gloss` still works
+   as a nested scope (the pull-out stage re-declares it). See docs/GLOSS.md.
    —————————————————————————————————————————————————————————————————————— */
 
-/* Self-hosted (the CSP keeps font hosts out). Browsers only download a face
-   when a `.gloss` page actually uses it. */
+/* Every face is self-hosted and served from our own origin (the CSP keeps
+   font hosts out). @font-face is lazy: a browser only downloads a reader
+   face once a page actually renders text in it. */
 @import "@fontsource-variable/newsreader/opsz.css";
 @import "@fontsource-variable/newsreader/opsz-italic.css";
 @import "@fontsource-variable/inter/index.css";
+/* Reader font choices (READER_FONTS in src/lib/store.ts). */
+@import "@fontsource-variable/literata/opsz.css";
+@import "@fontsource-variable/literata/opsz-italic.css";
+@import "@fontsource-variable/source-serif-4/opsz.css";
+@import "@fontsource-variable/source-serif-4/opsz-italic.css";
+@import "@fontsource-variable/figtree/index.css";
+@import "@fontsource/atkinson-hyperlegible/400.css";
+@import "@fontsource/atkinson-hyperlegible/400-italic.css";
+@import "@fontsource/atkinson-hyperlegible/700.css";
 
 .gloss {
   /* Core palette (spec: "Design tokens → Core palette") */
@@ -94,6 +103,7 @@
   --g-shelf-edge: #33281e;
   --g-bookend: #5b554c;
   --g-cream: #e9e1c8;
+  --g-accent-red: #d9766a;
   --g-dim: 0.25;
   --g-shadow-chip: 0 1px 2px rgba(0, 0, 0, 0.4);
   --g-shadow-card: 0 10px 28px rgba(0, 0, 0, 0.45);
@@ -101,10 +111,10 @@
   --g-shadow-plate: 0 2px 6px rgba(0, 0, 0, 0.45);
 
   --color-paper-warm: #241f19;
-  /* Filled buttons inherited from the app put white text on hanko, so in
-     the dark it can't be the (light) ink: use a lamp-lit bronze. */
-  --color-hanko: #8c6a48;
-  --color-shu: #9d7954;
+  /* Filled buttons are `bg-hanko text-paper`, so hanko can simply be the
+     (light) ink and the label the (dark) paper. */
+  --color-hanko: var(--g-ink);
+  --color-shu: #d9d1c1;
   --color-ink-soft: #c9c0b0;
   --color-faint: #3d362c;
   --color-shu-tint: rgba(239, 232, 218, 0.08);
@@ -145,8 +155,10 @@
   border-radius: 999px;
   background: var(--g-line);
 }
-.g-seg button {
+.g-seg button,
+.g-seg a {
   position: relative;
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -161,15 +173,19 @@
     background-color var(--g-dur-s) var(--g-ease-out),
     box-shadow var(--g-dur-s) var(--g-ease-out);
 }
-.g-seg button:hover {
+.g-seg button:hover,
+.g-seg a:hover {
   color: color-mix(in srgb, var(--g-ink) 85%, transparent);
 }
-.g-seg button[aria-pressed="true"] {
+.g-seg button[aria-pressed="true"],
+.g-seg button[aria-selected="true"],
+.g-seg a[aria-current="page"] {
   background: var(--g-paper-raised);
   color: var(--g-ink);
   box-shadow: var(--g-shadow-chip);
 }
-.g-seg button:focus-visible {
+.g-seg button:focus-visible,
+.g-seg a:focus-visible {
   outline: 2px solid var(--g-ink);
   outline-offset: 1px;
 }
@@ -1385,6 +1401,52 @@
 .g-disc--spin {
   animation: g-spin 0.6s linear infinite;
 }
+
+/* ——— Reader reveal (spec: "Opening the reader") ———
+   The page arrives from a blur and rises 12px; the floating bar follows. */
+@keyframes g-reader-in {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    /* `none`, not blur(0): a kept filter would trap fixed children. */
+    filter: none;
+    transform: none;
+  }
+}
+@keyframes g-bar-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+}
+.g-reader-in {
+  animation: g-reader-in 500ms var(--g-ease-out) both;
+}
+.g-bar-in {
+  animation: g-bar-in 300ms var(--g-ease-out) 300ms both;
+}
+
+/* Generic page-content entrance: cards rise in with a short stagger. */
+@keyframes g-card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+.g-stagger > * {
+  animation: g-card-rise 250ms var(--g-ease-out) both;
+}
+.g-stagger > :nth-child(2) { animation-delay: 30ms; }
+.g-stagger > :nth-child(3) { animation-delay: 60ms; }
+.g-stagger > :nth-child(4) { animation-delay: 90ms; }
+.g-stagger > :nth-child(5) { animation-delay: 120ms; }
+.g-stagger > :nth-child(6) { animation-delay: 150ms; }
+.g-stagger > :nth-child(7) { animation-delay: 180ms; }
+.g-stagger > :nth-child(n + 8) { animation-delay: 210ms; }
 
 /* ——— Dissolve into another page ——— */
 @keyframes g-dissolve {

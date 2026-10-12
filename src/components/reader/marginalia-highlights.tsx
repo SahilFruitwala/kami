@@ -39,7 +39,7 @@ export function MarginaliaHighlights({
         <button
           type="button"
           onClick={onExport}
-          className="flex items-center gap-1.5 rounded-[0.25rem] bg-hanko px-3 py-1.5 font-sans text-xs font-medium text-white shadow-sm transition-colors hover:bg-shu active:translate-y-px"
+          className="flex items-center gap-1.5 rounded-full bg-hanko px-3 py-1.5 font-sans text-xs font-medium text-paper transition-colors hover:bg-shu"
         >
           <PenLine className="size-3.5" aria-hidden="true" />
           Copy reading
@@ -47,7 +47,7 @@ export function MarginaliaHighlights({
       </div>
       <ul className="mt-4 space-y-4">
         {item.highlights.map((highlight) => (
-          <li key={highlight.id} className="rounded-[0.25rem] bg-ink/5 p-4 shadow-sm">
+          <li key={highlight.id} className="rounded-lg bg-ink/5 p-4 shadow-sm">
             <p className="hl-quote rounded-sm px-1.5 py-0.5 font-body text-base leading-normal italic" data-hl={highlight.color}>
               {highlight.text}
             </p>
@@ -63,7 +63,7 @@ export function MarginaliaHighlights({
                   onNote(highlight.id, e.target.value);
                 }}
                 placeholder="Add a marginalia note…"
-                className="block min-h-10 w-full resize-none rounded-[0.25rem] border border-line bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-hanko/30"
+                className="block min-h-10 w-full resize-none rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none placeholder:text-ink-muted focus-visible:ring-2 focus-visible:ring-hanko/30"
               />
             </label>
             <button

@@ -6,9 +6,9 @@ import {
   Gift,
   House,
   LibraryBig,
-  PanelLeftClose,
-  PanelLeftOpen,
+  Menu,
   Plane,
+  Plus,
   Rss,
   ScanSearch,
   Settings as SettingsIcon,
@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { KAMI_GLYPH } from "@/components/kami.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
-import { Button } from "@/components/ui/button.tsx";
 import { Show, SignInButton, SignUpButton, UserButton } from "@/lib/auth/gates";
 import { useCurrentUser } from "@/lib/auth/use-current-user.ts";
 import { cn } from "@/lib/utils.ts";
@@ -71,10 +70,7 @@ const SHELF_PANES: Pane[] = [
 
 const PANES: Pane[] = [...SANCTUARY_PANES, ...SHELF_PANES];
 
-const MOBILE_PANES = [
-  { id: "home" as const, to: "/app" as const, label: "Home", icon: House },
-  ...PANES,
-];
+const MOBILE_PANES = PANES;
 
 /** Time-aware desk atmosphere chip, after the Stitch top bar. Rotates daily so it feels alive. */
 function atmosphere(now = new Date()): string {
@@ -146,13 +142,20 @@ function atmosphere(now = new Date()): string {
   ]);
 }
 
+/** Label for the `/ Page` breadcrumb in the top bar. */
+const PANE_LABEL: Record<SitePane, string> = {
+  ...(Object.fromEntries(PANES.map((p) => [p.id, p.label])) as Record<Pane["id"], string>),
+  settings: "Settings",
+};
+
 /**
- * Sanctuary chrome: fixed left sidebar on desktop (Stitch Sanctuary layout),
- * slim utility top bar, and a bottom tab bar on mobile.
+ * Gloss chrome: quiet paper sidebar on desktop (hidden with the menu
+ * button), a constant top bar — menu, wordmark, `/ Page` breadcrumb on the
+ * left; +, theme and sign-in on the right — and a bottom tab bar on mobile.
  */
 export function SiteHeader({
   active,
-  onOpenTools: _onOpenTools,
+  onOpenTools,
   sidebarCollapsed = false,
   onToggleSidebar,
 }: {
@@ -171,28 +174,7 @@ export function SiteHeader({
           sidebarCollapsed ? "lg:hidden" : "lg:flex",
         )}
       >
-        <div className="flex items-center gap-2.5 px-5 pt-5">
-          <Link
-            to="/app"
-            className="flex min-w-0 flex-1 items-center gap-2.5 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
-            aria-label="Kami home"
-          >
-            <span
-              className="kami-hanko flex size-8 items-center justify-center rounded-[0.25rem] font-display text-sm font-bold leading-none"
-              lang="ja"
-            >
-              {KAMI_GLYPH}
-            </span>
-            <span className="leading-none">
-              <span
-                className="block font-display text-base font-semibold tracking-tight text-ink"
-                translate="no"
-              >
-                KAMI
-              </span>
-              <span className="kami-label mt-0.5 block text-ink-muted">Washi &amp; Thought</span>
-            </span>
-          </Link>
+        <div className="flex h-16 items-center gap-2 px-4">
           {onToggleSidebar ? (
             <button
               type="button"
@@ -201,15 +183,16 @@ export function SiteHeader({
               aria-expanded={!sidebarCollapsed}
               aria-controls="sanctuary-sidebar"
               title="Hide sidebar"
-              className="shrink-0 rounded-[0.25rem] p-2 text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+              className={ICON_BTN}
             >
-              <PanelLeftClose className="size-4" aria-hidden="true" />
+              <Menu className="size-[18px]" aria-hidden="true" />
             </button>
           ) : null}
+          <Wordmark />
         </div>
 
-        <nav aria-label="Sanctuary pages" className="flex-1 overflow-y-auto px-3 pt-6">
-          <p className="kami-label px-2 pb-2 text-ink-faint">Sanctuary Panes</p>
+        <nav aria-label="Sanctuary pages" className="flex-1 overflow-y-auto px-3 pt-4">
+          <p className="px-3 pb-2 font-sans text-xs text-ink-muted">Reading</p>
           <ul className="space-y-0.5">
             {SANCTUARY_PANES.map((pane) => (
               <li key={pane.id}>
@@ -221,7 +204,7 @@ export function SiteHeader({
             ))}
           </ul>
 
-          <p className="kami-label mt-6 px-2 pb-2 text-ink-faint">Shelves</p>
+          <p className="mt-6 px-3 pb-2 font-sans text-xs text-ink-muted">Shelves</p>
           <ul className="space-y-0.5">
             {SHELF_PANES.map((pane) => (
               <li key={pane.id}>
@@ -234,8 +217,8 @@ export function SiteHeader({
           </ul>
         </nav>
 
-        <div className="border-t border-line px-5 py-4">
-          <div className="flex items-center gap-2">
+        <div className="border-t border-line px-4 py-4">
+          <div className="flex items-center gap-2.5">
             <UserButton />
             <div className="min-w-0 flex-1 leading-tight">
               <SignedName />
@@ -243,10 +226,8 @@ export function SiteHeader({
             <Link
               to="/settings"
               aria-label="Settings"
-              className={cn(
-                "rounded-[0.25rem] p-2 text-ink-muted transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
-                active === "settings" && "text-ink",
-              )}
+              aria-current={active === "settings" ? "page" : undefined}
+              className={cn(ICON_BTN, active === "settings" && "bg-surface text-ink shadow-[var(--g-shadow-chip)]")}
             >
               <SettingsIcon className="size-4" aria-hidden="true" />
             </Link>
@@ -254,40 +235,60 @@ export function SiteHeader({
         </div>
       </aside>
 
-      {/* Slim utility top bar (desktop) */}
+      {/* Top bar (desktop) */}
       <div
         className={cn(
-          "sticky top-0 z-30 hidden border-b border-line bg-paper/90 backdrop-blur-xl lg:block",
+          "sticky top-0 z-30 hidden bg-paper/85 backdrop-blur-xl lg:block",
           topBarPad,
         )}
       >
-        <div className="flex h-14 items-center gap-3 px-6">
+        <div className="flex h-16 items-center gap-2 px-6">
           {sidebarCollapsed && onToggleSidebar ? (
-            <button
-              type="button"
-              onClick={onToggleSidebar}
-              aria-label="Show sidebar"
-              aria-expanded={false}
-              aria-controls="sanctuary-sidebar"
-              title="Show sidebar"
-              className="shrink-0 rounded-[0.25rem] p-2 text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
-            >
-              <PanelLeftOpen className="size-4" aria-hidden="true" />
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={onToggleSidebar}
+                aria-label="Show sidebar"
+                aria-expanded={false}
+                aria-controls="sanctuary-sidebar"
+                title="Show sidebar"
+                className={ICON_BTN}
+              >
+                <Menu className="size-[18px]" aria-hidden="true" />
+              </button>
+              <Wordmark />
+            </>
           ) : null}
-          <div className="ml-auto flex items-center gap-1 sm:gap-2">
-            <span className="kami-label mr-1 hidden text-ink-muted xl:block">{atmosphere()}</span>
-            <ThemeToggle />
+          <p className="flex items-center gap-2 font-sans text-sm text-ink-muted">
+            <span aria-hidden="true">/</span>
+            <span className="text-ink">{PANE_LABEL[active]}</span>
+          </p>
+          <div className="ml-auto flex items-center gap-1">
+            <span className="mr-2 hidden font-display text-sm text-ink-muted italic xl:block">
+              {atmosphere()}
+            </span>
+            {onOpenTools ? (
+              <button
+                type="button"
+                onClick={onOpenTools}
+                aria-label="Capture tools"
+                title="Capture tools"
+                className={ICON_BTN}
+              >
+                <Plus className="size-[18px]" aria-hidden="true" />
+              </button>
+            ) : null}
+            <ThemeToggle className="rounded-full text-ink-muted hover:text-ink" />
             <Show when="signed-out">
               <SignInButton mode="modal">
-                <Button type="button" variant="outline" className="h-9">
+                <button type="button" className="g-btn g-btn--ghost ml-1 h-9">
                   Sign in
-                </Button>
+                </button>
               </SignInButton>
               <SignUpButton mode="modal">
-                <Button type="button" className="h-9 bg-hanko text-white hover:bg-shu">
+                <button type="button" className="g-btn g-btn--ink h-9">
                   Sign up
-                </Button>
+                </button>
               </SignUpButton>
             </Show>
           </div>
@@ -295,34 +296,17 @@ export function SiteHeader({
       </div>
 
       {/* Mobile top row */}
-      <div className="sticky top-0 z-40 border-b border-line bg-paper/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl lg:hidden">
+      <div className="sticky top-0 z-40 bg-paper/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl lg:hidden">
         <div className="flex h-14 items-center justify-between gap-3 px-[max(1rem,env(safe-area-inset-left))]">
-          <Link
-            to="/app"
-            className="flex items-center gap-2 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
-            aria-label="Kami home"
-          >
-            <span
-              className="kami-hanko flex size-7 items-center justify-center rounded-[0.25rem] font-display text-xs font-bold leading-none"
-              lang="ja"
-            >
-              {KAMI_GLYPH}
-            </span>
-            <span
-              className="font-display text-base font-semibold tracking-tight text-ink"
-              translate="no"
-            >
-              KAMI
-            </span>
-          </Link>
+          <Wordmark />
           <div className="flex items-center gap-1">
-            <ThemeToggle />
+            <ThemeToggle className="rounded-full text-ink-muted hover:text-ink" />
             <Link
               to="/settings"
               aria-label="Settings"
               className={cn(
-                "flex size-11 items-center justify-center rounded-[0.25rem] text-ink-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
-                active === "settings" && "text-hanko",
+                "flex size-11 items-center justify-center rounded-full text-ink-muted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40",
+                active === "settings" && "text-ink",
               )}
             >
               <SettingsIcon className="size-4" aria-hidden="true" />
@@ -344,7 +328,7 @@ export function SiteHeader({
                 to={pane.to}
                 aria-current={active === pane.id ? "page" : undefined}
                 className={cn(
-                  "flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 py-1.5 font-sans text-[10px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-hanko/40",
+                  "flex min-h-12 flex-col items-center justify-center gap-0.5 px-1 py-1.5 font-sans text-[10px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ink/40",
                   active === pane.id ? "font-semibold text-ink" : "font-medium text-ink-muted",
                 )}
               >
@@ -362,6 +346,30 @@ export function SiteHeader({
   );
 }
 
+const ICON_BTN =
+  "flex size-9 shrink-0 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40";
+
+/** Serif wordmark: the 紙 seal and "Kami". */
+function Wordmark() {
+  return (
+    <Link
+      to="/app"
+      className="flex min-w-0 items-center gap-2 rounded-full pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
+      aria-label="Kami home"
+    >
+      <span
+        className="kami-hanko flex size-7 items-center justify-center rounded-full font-display text-sm leading-none"
+        lang="ja"
+      >
+        {KAMI_GLYPH}
+      </span>
+      <span className="font-display text-[22px] leading-none tracking-tight text-ink" translate="no">
+        Kami
+      </span>
+    </Link>
+  );
+}
+
 function PaneLink({
   to,
   active,
@@ -376,10 +384,10 @@ function PaneLink({
       to={to}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "flex items-center gap-2 rounded-[0.25rem] px-2 py-2 font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
+        "flex h-9 items-center gap-2.5 rounded-full px-3 font-sans text-sm transition-[color,background-color,box-shadow] duration-150 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40",
         active
-          ? "bg-paper-warm font-semibold text-ink"
-          : "font-medium text-ink-muted hover:text-ink",
+          ? "bg-surface font-medium text-ink shadow-[var(--g-shadow-chip),0_0_0_1px_var(--g-line)]"
+          : "font-medium text-ink-muted hover:bg-paper-warm hover:text-ink",
       )}
     >
       {children}
@@ -392,14 +400,14 @@ function SignedName() {
   return (
     <>
       <Show when="signed-in">
-        <span className="block truncate font-sans text-xs font-semibold text-ink">
-          {user?.displayName ?? "Sanctuary"}
+        <span className="block truncate font-sans text-sm font-medium text-ink">
+          {user?.displayName ?? "Reader"}
         </span>
-        <span className="block font-sans text-[11px] text-ink-muted">In deep focus</span>
+        <span className="block font-display text-[13px] text-ink-muted italic">A Kami reader</span>
       </Show>
       <Show when="signed-out">
-        <span className="block font-sans text-xs font-semibold text-ink">Guest</span>
-        <span className="block font-sans text-[11px] text-ink-muted">Sign in to bind works</span>
+        <span className="block font-sans text-sm font-medium text-ink">Guest</span>
+        <span className="block font-display text-[13px] text-ink-muted italic">Sign in to shelve works</span>
       </Show>
     </>
   );

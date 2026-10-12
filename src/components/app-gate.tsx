@@ -147,7 +147,7 @@ function GateLoading({
           <button
             type="button"
             onClick={onAction}
-            className="h-11 rounded-full bg-hanko px-5 text-sm font-medium text-white transition hover:bg-shu focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            className="h-11 rounded-full bg-hanko px-5 text-sm font-medium text-paper transition hover:bg-shu focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
           >
             {actionLabel}
           </button>

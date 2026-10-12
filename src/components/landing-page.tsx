@@ -122,49 +122,46 @@ export function LandingPage() {
     <div className="kami-desk relative min-h-dvh overflow-x-hidden text-ink [touch-action:manipulation]">
       <a
         href="#main"
-        className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-[60] focus-visible:rounded-[0.25rem] focus-visible:bg-hanko focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-white"
+        className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-[60] focus-visible:rounded-lg focus-visible:bg-hanko focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper"
       >
         Skip to content
       </a>
 
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-surface/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
+      <header className="fixed inset-x-0 top-0 z-50 bg-paper/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
         <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-2 px-[max(1rem,env(safe-area-inset-left))] sm:gap-3 sm:px-6">
           <Link
             to="/"
-            className="group inline-flex items-center gap-2.5 rounded-[0.25rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            className="group inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
           >
-            <Hanko glyph={KAMI_GLYPH} square className="size-8" title="Kami" />
-            <span className="hidden leading-none min-[360px]:block">
-              <span className="block font-display text-base font-semibold tracking-tight group-hover:text-hanko" translate="no">
-                KAMI
-              </span>
-              <span className="kami-label mt-0.5 block text-ink-muted">Washi & Thought</span>
+            <Hanko glyph={KAMI_GLYPH} className="size-7 text-sm" title="Kami" />
+            <span className="hidden font-display text-[22px] leading-none tracking-tight min-[360px]:block" translate="no">
+              Kami
             </span>
           </Link>
           <nav aria-label="Primary" className="hidden items-center gap-6 font-sans text-[13px] font-medium text-ink-soft lg:flex">
-            <a href="#features" className="rounded-sm py-1 transition-colors hover:text-hanko focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+            <a href="#features" className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
               Features
             </a>
-            <a href="#reader" className="rounded-sm py-1 transition-colors hover:text-hanko focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+            <a href="#reader" className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
               Reader
             </a>
-            <a href="#organize" className="rounded-sm py-1 transition-colors hover:text-hanko focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+            <a href="#organize" className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
               Organize
             </a>
-            <a href="#faq" className="rounded-sm py-1 transition-colors hover:text-hanko focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+            <a href="#faq" className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
               FAQ
             </a>
           </nav>
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
-            <Button type="button" variant="ghost" className="hidden h-10 rounded-[0.25rem] sm:inline-flex" asChild>
+            <Button type="button" variant="ghost" className="hidden h-10 sm:inline-flex" asChild>
               <Link to="/login/$">
                 Sign In
               </Link>
             </Button>
             <Button
               type="button"
-              className="h-10 rounded-[0.25rem] bg-hanko px-3 text-white shadow-sm hover:bg-shu active:translate-y-px sm:px-4"
+              className="h-10 rounded-full bg-hanko px-3 text-paper hover:bg-shu sm:px-4"
               asChild
             >
               <Link to="/sign-up/$">
@@ -188,7 +185,7 @@ export function LandingPage() {
               </div>
               <h1
                 id="hero-heading"
-                className="mt-4 font-display text-[2.35rem] leading-[1.08] font-normal tracking-tight text-balance sm:text-5xl"
+                className="mt-5 font-display text-[2.75rem] leading-[1] font-normal tracking-[-0.025em] text-balance sm:text-[4rem]"
               >
                 A quiet digital sanctuary for reading, inking, and unhurried thought.
               </h1>
@@ -200,7 +197,7 @@ export function LandingPage() {
                 <Button
                   type="button"
                   size="lg"
-                  className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
+                  className="h-11 w-full rounded-full bg-hanko px-5 text-paper hover:bg-shu sm:w-auto"
                   asChild
                 >
                   <Link to="/sign-up/$">
@@ -212,7 +209,7 @@ export function LandingPage() {
                   type="button"
                   variant="ghost"
                   size="lg"
-                  className="h-11 w-full rounded-[0.25rem] sm:w-auto"
+                  className="h-11 w-full sm:w-auto"
                   asChild
                 >
                   <a href="#features">
@@ -241,10 +238,10 @@ export function LandingPage() {
                 <div className="kami-sheet mt-3 px-3.5 py-3">
                   <p className="kami-label text-ink-muted">Save a link</p>
                   <div className="mt-2 flex items-center gap-2">
-                    <div className="flex h-10 flex-1 items-center rounded-[0.25rem] border border-line bg-bg/60 px-3 font-sans text-sm text-ink-muted">
+                    <div className="flex h-10 flex-1 items-center rounded-lg border border-line bg-bg/60 px-3 font-sans text-sm text-ink-muted">
                       <span className="truncate">Paste a blog or X URL…</span>
                     </div>
-                    <span className="rounded-[0.25rem] bg-hanko px-3.5 py-2 font-sans text-sm font-semibold text-white">
+                    <span className="rounded-full bg-hanko px-3.5 py-2 font-sans text-sm font-medium text-paper">
                       Save
                     </span>
                   </div>
@@ -256,7 +253,7 @@ export function LandingPage() {
                     { tag: "Blog", tone: "indigo", title: "A Field Guide to Focus", meta: "9 min · 3d ago" },
                   ].map((row) => (
                     <li key={row.title} className="flex items-center gap-3 py-2.5">
-                      <span className="size-10 shrink-0 rounded-[0.25rem] bg-paper-warm" aria-hidden="true" />
+                      <span className="size-10 shrink-0 rounded-lg bg-paper-warm" aria-hidden="true" />
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2">
                           <WashiTag tone={row.tone as "bamboo" | "vermilion" | "indigo"}>{row.tag}</WashiTag>
@@ -318,7 +315,7 @@ export function LandingPage() {
                 className="kami-sheet group relative overflow-hidden p-5 transition-shadow duration-150 hover:shadow-[var(--shadow-border-hover)]"
               >
                 <span aria-hidden="true" className="absolute top-0 right-6 h-7 w-2.5 rounded-b-[0.25rem] bg-hanko/70 opacity-0 transition-opacity group-hover:opacity-100" />
-                <span className="flex size-10 items-center justify-center rounded-[0.25rem] bg-paper-warm text-hanko">
+                <span className="flex size-10 items-center justify-center rounded-lg bg-paper-warm text-hanko">
                   <f.icon className="size-5" aria-hidden="true" />
                 </span>
                 <h3 className="mt-4 font-display text-base font-semibold tracking-tight">{f.title}</h3>
@@ -350,7 +347,7 @@ export function LandingPage() {
               <Button
                 type="button"
                 size="lg"
-                className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
+                className="h-11 w-full rounded-full bg-hanko px-5 text-paper hover:bg-shu sm:w-auto"
                 asChild
               >
                 <Link to="/sign-up/$">
@@ -361,7 +358,7 @@ export function LandingPage() {
                 type="button"
                 variant="ghost"
                 size="lg"
-                className="h-11 w-full rounded-[0.25rem] sm:w-auto"
+                className="h-11 w-full sm:w-auto"
                 asChild
               >
                 <Link to="/login/$">I Already Have an Account</Link>
@@ -467,7 +464,7 @@ export function LandingPage() {
             </div>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <div className="kami-sheet flex items-center gap-3 p-5">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-[0.25rem] bg-paper-warm text-hanko">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-paper-warm text-hanko">
                   <Command className="size-5" aria-hidden="true" />
                 </span>
                 <p className="kami-body text-sm leading-[1.8] text-ink-soft">
@@ -476,7 +473,7 @@ export function LandingPage() {
                 </p>
               </div>
               <div className="kami-sheet flex items-center gap-3 p-5">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-[0.25rem] bg-paper-warm text-hanko">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-paper-warm text-hanko">
                   <ShieldCheck className="size-5" aria-hidden="true" />
                 </span>
                 <p className="kami-body text-sm leading-[1.8] text-ink-soft">
@@ -538,7 +535,7 @@ export function LandingPage() {
               <Button
                 type="button"
                 size="lg"
-                className="h-11 w-full rounded-[0.25rem] bg-hanko px-5 text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
+                className="h-11 w-full rounded-full bg-hanko px-5 text-paper hover:bg-shu sm:w-auto"
                 asChild
               >
                 <Link to="/sign-up/$">
@@ -549,7 +546,7 @@ export function LandingPage() {
                 type="button"
                 size="lg"
                 variant="outline"
-                className="h-11 w-full rounded-[0.25rem] border-line bg-surface text-ink-accent hover:bg-paper-warm sm:w-auto"
+                className="h-11 w-full border-line bg-surface text-ink hover:bg-paper-warm sm:w-auto"
                 asChild
               >
                 <Link to="/login/$">
@@ -569,7 +566,7 @@ export function LandingPage() {
               <span className="font-display font-semibold text-ink" translate="no">KAMI</span>
             </span>
             <p className="kami-body mt-3 max-w-xs text-sm leading-[1.8]">
-              Your quiet reading list — washi & thought, set in Noto Serif and Literata.
+              Your quiet reading list — washi & thought, set in Newsreader and Inter.
             </p>
           </div>
           <nav aria-label="Sanctuaries">

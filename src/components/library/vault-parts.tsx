@@ -185,7 +185,7 @@ export function SlipCard({
           “{highlight.text}”
         </blockquote>
         <div>
-          <p className="font-sans text-sm font-medium text-ok">
+          <p className="font-sans text-sm text-ink-soft">
             — {item.author || item.siteName || "Unknown hand"},{" "}
             <span className="font-normal italic">{item.title}</span>
           </p>
@@ -210,7 +210,7 @@ export function SlipCard({
                   <button
                     type="button"
                     onClick={() => setEditingNote(true)}
-                    className="font-sans text-[11px] text-ink-accent underline-offset-2 hover:text-hanko hover:underline"
+                    className="font-sans text-[11px] text-ink-muted underline-offset-2 hover:text-ink hover:underline"
                   >
                     Edit
                   </button>
@@ -367,7 +367,7 @@ export function NoteEditor({
             }
           }}
           placeholder="Why did this passage matter?"
-          className="mt-1.5 block w-full resize-none rounded-[0.25rem] border border-line bg-surface px-2.5 py-2 font-body text-sm tracking-normal text-ink normal-case outline-none placeholder:text-ink-muted placeholder:italic focus-visible:ring-2 focus-visible:ring-hanko/30"
+          className="mt-1.5 block w-full resize-none rounded-lg border border-line bg-surface px-2.5 py-2 font-body text-sm tracking-normal text-ink normal-case outline-none placeholder:text-ink-muted placeholder:italic focus-visible:ring-2 focus-visible:ring-hanko/30"
         />
       </label>
       <div className="flex items-center justify-between gap-2">
@@ -393,7 +393,7 @@ export function NoteEditor({
           </button>
           <button
             type="submit"
-            className="rounded bg-hanko px-2.5 py-1 font-sans text-[11px] font-medium text-white shadow-sm hover:bg-shu"
+            className="rounded-full bg-hanko px-2.5 py-1 font-sans text-[11px] font-medium text-paper hover:bg-shu"
           >
             Save
           </button>
@@ -408,7 +408,7 @@ function SlipAction({ onClick, children }: { onClick: () => void; children: Reac
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-1 font-sans text-[11px] text-ink-accent transition-colors hover:text-hanko"
+      className="flex items-center gap-1 font-sans text-[11px] text-ink-muted transition-colors hover:text-ink"
     >
       {children}
     </button>

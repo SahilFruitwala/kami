@@ -194,10 +194,13 @@ function Home() {
         }}
       />
       <div className="mx-auto flex min-h-[70dvh] w-full max-w-3xl flex-col items-center justify-center px-4 py-10 sm:px-6">
-        <p className="font-display text-5xl tracking-tight text-ink" translate="no">
+        <h1 className="g-h1 text-center text-ink" translate="no">
           Kami
+        </h1>
+        <p className="mt-4 text-center font-display text-lg text-ink-muted italic">
+          Save anything worth reading. It lands on your shelf.
         </p>
-        <div className="mt-8 w-full">
+        <div className="mt-10 w-full">
           <HomeCaptureTabs value={captureType} onChange={setCaptureType} />
           <div className="mt-3">
             {captureType === "article" ? (

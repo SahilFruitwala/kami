@@ -112,7 +112,7 @@ function DigestBody({
                   <li key={e.entryId} className="list-none truncate">
                     <a
                       href={`#${entryAnchor(e.entryId)}`}
-                      className="font-sans text-[11px] text-ink-accent hover:text-hanko"
+                      className="font-sans text-[11px] text-ink-muted hover:text-ink"
                     >
                       {e.title || "(untitled)"}
                     </a>
@@ -130,7 +130,7 @@ function DigestBody({
             onMarkRead(digest.skipIds);
             toast.success(`Marked ${digest.skipIds.length} entries read`);
           }}
-          className="inline-flex items-center gap-1.5 font-sans text-xs text-ink-accent transition-colors hover:text-hanko"
+          className="inline-flex items-center gap-1.5 font-sans text-xs text-ink-muted transition-colors hover:text-ink"
         >
           <CheckCheck className="size-3.5" aria-hidden="true" />
           Mark the {digest.skipIds.length} skippable entr{digest.skipIds.length === 1 ? "y" : "ies"}{" "}

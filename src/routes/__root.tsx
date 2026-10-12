@@ -43,8 +43,8 @@ export const Route = createRootRoute({
         content:
           "KAMI is a quiet read-later app for blogs and X articles — save a link, read a clean distraction-free page, highlight, tag, and find it in seconds.",
       },
-      { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#faf6ee" },
-      { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#151312" },
+      { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#f6f3ea" },
+      { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#16130f" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: APP_NAME },
       { property: "og:url", content: SITE_URL },
@@ -75,12 +75,6 @@ export const Route = createRootRoute({
       { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16x16.png" },
       { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
       { rel: "manifest", href: "/site.webmanifest" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Literata:ital,wght@0,400;0,700;1,400&family=Newsreader:ital,wght@0,400;0,700;1,400&display=swap",
-      },
       { rel: "stylesheet", href: appCss },
     ],
   }),
@@ -88,7 +82,7 @@ export const Route = createRootRoute({
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="antialiased" suppressHydrationWarning>
+    <html lang="en" className="antialiased gloss" suppressHydrationWarning>
       <head>
         <HeadContent />
         {/* ScriptOnce carries the CSP nonce (router `ssr.nonce`). */}
@@ -123,7 +117,7 @@ function ThemeShell() {
         theme={theme === "dark" ? "dark" : "light"}
         toastOptions={{
           className:
-            "font-sans !bg-surface !text-ink !border-0 !shadow-[var(--shadow-border)]",
+            "font-sans !rounded-xl !bg-surface !text-ink !border !border-line !shadow-[var(--shadow-raised)]",
         }}
       />
     </>
