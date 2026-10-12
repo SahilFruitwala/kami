@@ -401,7 +401,7 @@ export function ReaderView({
         />
       ) : null}
 
-      <div className={cn("mx-auto w-full px-4 pb-32 sm:px-6", zen ? "max-w-3xl pt-14 sm:pt-20" : "max-w-6xl pt-6")}>
+      <div className={cn("g-reader-in mx-auto w-full px-4 pb-32 sm:px-6", zen ? "max-w-3xl pt-14 sm:pt-20" : "max-w-6xl pt-6")}>
         {/* Reading sheet — in zen the card chrome falls away, leaving just text */}
         <div
           className={cn(
@@ -433,7 +433,7 @@ export function ReaderView({
                 ) : null}
                 <ViewTransition name={`article-title-${item.id}`} share="text-morph">
                   <h1
-                    className="font-display text-3xl leading-tight tracking-tight sm:text-4xl"
+                    className="font-display text-[2.25rem] leading-[1.1] font-normal tracking-tight text-balance sm:text-[2.75rem]"
                     style={{ fontFamily }}
                   >
                     {article.title}
@@ -656,7 +656,7 @@ export function ReaderView({
         </div>
       ) : (
         /* Standard floating dock */
-        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 items-center justify-between gap-2 rounded-2xl bg-surface/95 px-2 py-2 shadow-[var(--shadow-raised)] backdrop-blur-xl sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] sm:w-[90%] sm:gap-6 sm:rounded-full sm:px-6 sm:py-3">
+        <div className="g-bar-in fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 items-center justify-between gap-2 rounded-2xl bg-surface/95 px-2 py-2 shadow-[var(--shadow-raised)] backdrop-blur-xl sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] sm:w-[90%] sm:gap-6 sm:rounded-full sm:px-6 sm:py-3">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <button
             type="button"

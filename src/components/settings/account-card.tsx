@@ -21,7 +21,7 @@ export function AccountCard() {
         ) : (
           <span
             aria-hidden="true"
-            className="flex size-11 items-center justify-center rounded-full bg-hanko font-display text-lg font-semibold text-paper"
+            className="flex size-11 items-center justify-center rounded-full bg-hanko font-display text-lg font-medium text-paper"
           >
             {initial}
           </span>

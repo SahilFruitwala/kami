@@ -39,7 +39,7 @@ export function MarginaliaHighlights({
         <button
           type="button"
           onClick={onExport}
-          className="flex items-center gap-1.5 rounded-lg bg-hanko px-3 py-1.5 font-sans text-xs font-medium text-paper shadow-sm transition-colors hover:bg-shu active:translate-y-px"
+          className="flex items-center gap-1.5 rounded-full bg-hanko px-3 py-1.5 font-sans text-xs font-medium text-paper transition-colors hover:bg-shu"
         >
           <PenLine className="size-3.5" aria-hidden="true" />
           Copy reading

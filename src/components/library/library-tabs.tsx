@@ -51,7 +51,7 @@ function TabButton({
       className={cn(
         "rounded-lg px-4 py-2 font-sans text-xs font-medium whitespace-nowrap transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
         active
-          ? "bg-hanko font-semibold text-paper shadow-sm"
+          ? "bg-hanko font-medium text-paper"
           : "text-ink-soft hover:bg-paper-warm hover:text-ink",
       )}
     >

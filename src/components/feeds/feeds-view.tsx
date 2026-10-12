@@ -57,8 +57,8 @@ export function FeedsView({
   const ai = useAiStatus();
 
   return (
-    <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
-      <aside className="flex flex-col gap-6 lg:sticky lg:top-24 lg:col-span-3">
+    <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[18.5rem_minmax(0,1fr)] xl:gap-10">
+      <aside className="flex flex-col gap-6 lg:sticky lg:top-24">
         <section className="kami-sheet space-y-5 p-4">
           <AddFeedForm actions={actions} />
           {hasFeeds ? <FeedList feeds={feeds} selected={feedId} onSelect={onSelectFeed} /> : null}
@@ -67,7 +67,7 @@ export function FeedsView({
         <OpmlTools actions={actions} />
       </aside>
 
-      <div className="flex min-w-0 flex-col gap-5 lg:col-span-9">
+      <div className="flex min-w-0 flex-col gap-5">
         {overview.isPending ? (
           <EntrySkeleton />
         ) : !hasFeeds ? (
@@ -500,7 +500,7 @@ function EntryCard({
               href={entry.url}
               target="_blank"
               rel="noreferrer noopener"
-              className="flex items-center gap-1 font-sans text-[11px] text-ink-accent transition-colors hover:text-hanko"
+              className="flex items-center gap-1 font-sans text-[11px] text-ink-muted transition-colors hover:text-ink"
             >
               <ExternalLink className="size-3.5" aria-hidden="true" />
               Original
@@ -553,7 +553,7 @@ function EntryAction({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex items-center gap-1 font-sans text-[11px] text-ink-accent transition-colors hover:text-hanko disabled:opacity-60"
+      className="flex items-center gap-1 font-sans text-[11px] text-ink-muted transition-colors hover:text-ink disabled:opacity-60"
     >
       {children}
     </button>

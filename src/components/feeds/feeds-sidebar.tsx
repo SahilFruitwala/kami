@@ -52,7 +52,7 @@ export function AddFeedForm({ actions }: { actions: Actions }) {
           type="submit"
           disabled={busy || !url.trim()}
           aria-label="Follow"
-          className="flex h-9 shrink-0 items-center gap-1 rounded-lg bg-hanko px-3 font-sans text-xs font-semibold text-paper shadow-sm transition-colors hover:bg-shu disabled:opacity-50"
+          className="flex h-9 shrink-0 items-center gap-1 rounded-full bg-hanko px-3 font-sans text-xs font-medium text-paper transition-colors hover:bg-shu disabled:opacity-50"
         >
           {busy ? (
             <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -248,7 +248,7 @@ export function NewsletterCard({ inbox, actions }: { inbox: NewsletterInbox; act
             type="button"
             disabled={actions.inbox.isPending}
             onClick={() => actions.inbox.mutate(false)}
-            className="flex w-full items-center justify-center gap-1.5 rounded bg-hanko px-3 py-2 font-sans text-xs font-medium text-paper shadow-sm transition-colors hover:bg-shu disabled:opacity-60"
+            className="flex w-full items-center justify-center gap-1.5 rounded-full bg-hanko px-3 py-2 font-sans text-xs font-medium text-paper transition-colors hover:bg-shu disabled:opacity-60"
           >
             {actions.inbox.isPending ? (
               <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />

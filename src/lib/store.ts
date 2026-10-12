@@ -144,7 +144,7 @@ export function articleToItem(article: Article, extras: Partial<LibraryItem> = {
 }
 
 export const READER_FONTS = [
-  { id: "newsreader", label: "Newsreader", family: '"Newsreader", "Iowan Old Style", Georgia, serif' },
+  { id: "newsreader", label: "Newsreader", family: '"Newsreader Variable", "Newsreader", "Iowan Old Style", Georgia, serif' },
   { id: "literata", label: "Literata", family: '"Literata", Georgia, serif' },
   { id: "source-serif", label: "Source Serif", family: 'Georgia, "Iowan Old Style", serif' },
   { id: "atkinson", label: "Atkinson", family: '"Atkinson Hyperlegible", ui-sans-serif, sans-serif' },
@@ -290,7 +290,7 @@ export const useLibraryStore = create<LibraryState>()(
       libraryTotal: null,
       libraryComplete: false,
       readerFontSize: DEFAULT_READER_FONT_SIZE,
-      readerFont: "literata",
+      readerFont: "newsreader",
       highlightColor: "vermilion",
       paperTone: "pale",
       preferredLightTone: "pale",

@@ -185,7 +185,7 @@ export function VaultView({
         <button
           type="button"
           onClick={onExitVault}
-          className="mt-2 rounded-lg bg-hanko px-5 py-2.5 font-sans text-sm font-semibold text-paper shadow-sm hover:bg-shu"
+          className="mt-2 rounded-full bg-hanko px-5 py-2.5 font-sans text-sm font-medium text-paper hover:bg-shu"
         >
           Return to the Desk
         </button>
@@ -377,7 +377,7 @@ export function VaultView({
                   setLocalQuery("");
                   setNotesOnly(false);
                 }}
-                className="mt-3 rounded-lg bg-hanko px-4 py-2 font-sans text-xs font-semibold text-paper shadow-sm hover:bg-shu"
+                className="mt-3 rounded-full bg-hanko px-4 py-2 font-sans text-xs font-medium text-paper hover:bg-shu"
               >
                 Clear Filters
               </button>
@@ -464,7 +464,7 @@ export function VaultView({
             <button
               type="button"
               onClick={onTranscribe}
-              className="flex w-full items-center justify-center gap-1.5 rounded bg-hanko px-3 py-2 font-sans text-xs font-medium text-paper shadow transition-colors hover:bg-shu"
+              className="flex w-full items-center justify-center gap-1.5 rounded-full bg-hanko px-3 py-2 font-sans text-xs font-medium text-paper shadow transition-colors hover:bg-shu"
             >
               <PenLine className="size-4" aria-hidden="true" />
               Ink New Slip

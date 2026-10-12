@@ -118,7 +118,7 @@ export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: 
                   href={detail.item.link}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-ink-accent underline underline-offset-2"
+                  className="text-ink underline underline-offset-2"
                 >
                   Open reference
                 </a>
