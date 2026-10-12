@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ShelvesView } from "@/components/library/shelves-view.tsx";
+import { MediaShelfView } from "@/components/library/media-shelf-view.tsx";
 import { validateShelvesSearch } from "@/lib/shelves-search.ts";
 
 export const Route = createFileRoute("/shelves/movies/")({
@@ -9,5 +9,5 @@ export const Route = createFileRoute("/shelves/movies/")({
 
 function MoviesShelfPage() {
   const search = Route.useSearch();
-  return <ShelvesView key="movie" tab="movie" search={search} />;
+  return <MediaShelfView key="movie" tab="movie" search={search} />;
 }
