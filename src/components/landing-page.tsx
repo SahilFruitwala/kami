@@ -566,7 +566,7 @@ export function LandingPage() {
               <span className="font-display font-semibold text-ink" translate="no">KAMI</span>
             </span>
             <p className="kami-body mt-3 max-w-xs text-sm leading-[1.8]">
-              Your quiet reading list — washi & thought, set in Noto Serif and Literata.
+              Your quiet reading list — washi & thought, set in Newsreader and Inter.
             </p>
           </div>
           <nav aria-label="Sanctuaries">
