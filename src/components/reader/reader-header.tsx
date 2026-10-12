@@ -48,7 +48,7 @@ export function ReaderHeader({
         </Button>
         <span className="ml-1 hidden items-center gap-2 font-display text-sm text-ink-soft md:flex" aria-hidden="true">
           <span
-            className="kami-hanko flex size-5 items-center justify-center rounded-[0.25rem] text-[10px] font-bold leading-none"
+            className="kami-hanko flex size-5 items-center justify-center rounded-lg text-[10px] font-bold leading-none"
             lang="ja"
           >
             {KAMI_GLYPH}

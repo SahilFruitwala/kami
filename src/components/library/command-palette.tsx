@@ -334,7 +334,7 @@ export function CommandPalette({ onOpenItem }: { onOpenItem: (item: LibraryItem)
           {page !== "home" && trimmedQuery.length >= 2 ? (
             <button
               type="button"
-              className="mx-auto flex items-center gap-2 rounded-full bg-hanko px-4 py-2 text-sm font-semibold text-white hover:bg-shu"
+              className="mx-auto flex items-center gap-2 rounded-full bg-hanko px-4 py-2 text-sm font-medium text-paper hover:bg-shu"
               onClick={() => void addManualTitle(page)}
             >
               <Plus className="size-4" aria-hidden="true" />

@@ -139,7 +139,7 @@ function CapturePage() {
             </p>
             <Link
               to="/app"
-              className="rounded-full bg-hanko px-5 py-2.5 text-sm font-medium text-white hover:bg-shu"
+              className="rounded-full bg-hanko px-5 py-2.5 text-sm font-medium text-paper hover:bg-shu"
             >
               Go to KAMI
             </Link>

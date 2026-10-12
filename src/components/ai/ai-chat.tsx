@@ -210,7 +210,7 @@ export function AiChat({
             type="submit"
             disabled={!input.trim()}
             aria-label="Send"
-            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-hanko text-white transition-colors hover:bg-shu disabled:opacity-40"
+            className="flex size-9 shrink-0 items-center justify-center rounded-full bg-hanko text-paper transition-colors hover:bg-shu disabled:opacity-40"
           >
             <ArrowUp className="size-4" aria-hidden="true" />
           </button>

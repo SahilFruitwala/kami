@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useState } from "react";
+import { Bookmark } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
+import { GlossHeader } from "@/components/gloss/primitives.tsx";
 import { TranscribeDialog } from "@/components/library/library-dialogs.tsx";
 import { VaultView } from "@/components/library/vault-view.tsx";
-import { KamiEyebrow } from "@/components/kami.tsx";
 import { useDeskStats } from "@/hooks/use-desk-stats.ts";
 import type { LibraryItem } from "@/lib/store.ts";
 
@@ -45,24 +46,15 @@ function Vault() {
 
   return (
     <AppShell active="vault" onOpenItem={openItem} requireLibrary>
-      <section className="w-full bg-paper/60 backdrop-blur-sm">
-        <div className="mx-auto w-full max-w-7xl px-4 pt-8 pb-6 sm:px-6 lg:px-12">
-          <KamiEyebrow>
-            Highlight Vault
-            <span className="size-1 rounded-full bg-hanko/40" aria-hidden="true" />
-            <span className="text-bamboo">{stats.vaultCount} slips pressed</span>
-          </KamiEyebrow>
-          <h2 className="mt-2 font-display text-3xl tracking-tight text-ink">
-            Every Passage You Inked
-          </h2>
-          <p className="mt-2 max-w-xl font-body text-sm leading-relaxed text-ink-soft">
-            Highlights pressed onto washi slips — filter by theme or voice,
-            copy them out, or export the whole vault.
-          </p>
-        </div>
-      </section>
+      <GlossHeader
+        icon={<Bookmark className="size-4" aria-hidden="true" />}
+        eyebrow="Highlight vault"
+        title="Your vault"
+        description="Every passage you marked — filter by theme or voice, copy them out, or export the lot."
+        stats={[{ value: stats.vaultCount, label: stats.vaultCount === 1 ? "highlight" : "highlights" }]}
+      />
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 lg:px-12">
+      <div className="mx-auto w-full max-w-[1200px] px-4 pt-8 pb-10 sm:px-8">
         <VaultView
           query=""
           initialMode={search.mode}

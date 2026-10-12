@@ -46,14 +46,14 @@ export function OrganizeCard() {
         <FieldLabel>Folders ({folders.length})</FieldLabel>
         <ul className="mt-2 space-y-1.5">
           {folders.length === 0 ? (
-            <li className="rounded-[0.25rem] bg-bg/60 px-3 py-2.5 font-body text-sm text-ink-muted italic">
+            <li className="rounded-lg bg-bg/60 px-3 py-2.5 font-body text-sm text-ink-muted italic">
               No slipcases yet — create one below, or from the Library filter row.
             </li>
           ) : null}
           {folders.map((f) => {
             const n = library.filter((row) => row.folderId === f.id).length;
             return (
-              <li key={f.id} className="flex flex-wrap items-center gap-2 rounded-[0.25rem] bg-bg/60 px-3 py-2 sm:flex-nowrap">
+              <li key={f.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-bg/60 px-3 py-2 sm:flex-nowrap">
                 {editingFolder === f.id ? (
                   <>
                     <input
@@ -127,13 +127,13 @@ export function OrganizeCard() {
       <div>
         <FieldLabel>Tags ({tags.length})</FieldLabel>
         {tags.length === 0 ? (
-          <p className="mt-2 rounded-[0.25rem] bg-bg/60 px-3 py-2.5 font-body text-sm text-ink-muted italic">
+          <p className="mt-2 rounded-lg bg-bg/60 px-3 py-2.5 font-body text-sm text-ink-muted italic">
             No tags yet — add one from any open work.
           </p>
         ) : (
           <ul className="mt-2 space-y-1.5">
             {tags.map((t) => (
-              <li key={t} className="flex flex-wrap items-center gap-2 rounded-[0.25rem] bg-bg/60 px-3 py-2 sm:flex-nowrap">
+              <li key={t} className="flex flex-wrap items-center gap-2 rounded-lg bg-bg/60 px-3 py-2 sm:flex-nowrap">
                 {editingTag === t ? (
                   <>
                     <input

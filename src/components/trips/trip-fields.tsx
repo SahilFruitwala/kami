@@ -125,7 +125,7 @@ export function PrimaryButton({ children, className, ...rest }: React.ComponentP
   return (
     <button
       className={cn(
-        "flex h-9 items-center justify-center gap-1.5 rounded-lg bg-hanko px-3 font-sans text-xs font-semibold text-white shadow-sm transition-colors hover:bg-shu disabled:opacity-50",
+        "flex h-9 items-center justify-center gap-1.5 rounded-full bg-hanko px-3 font-sans text-xs font-medium text-paper transition-colors hover:bg-shu disabled:opacity-50",
         className,
       )}
       {...rest}
@@ -161,7 +161,7 @@ export function IconButton({
       title={title}
       aria-label={title}
       className={cn(
-        "flex size-7 items-center justify-center rounded-md text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink disabled:opacity-50",
+        "flex size-7 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink disabled:opacity-50",
         className,
       )}
       {...rest}

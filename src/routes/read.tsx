@@ -113,9 +113,9 @@ function Read() {
     const noScroll = !search.id;
     return (
       <main className="kami-desk flex min-h-dvh items-center justify-center px-6">
-        <div className="kami-sheet flex max-w-sm flex-col items-center gap-3 p-8 text-center">
-          <h1 className="font-display text-2xl text-ink text-balance">
-            {noScroll ? "No Scroll Open" : "Scroll Not Found"}
+        <div className="kami-sheet-raised flex max-w-md flex-col items-center gap-3 p-10 text-center">
+          <h1 className="font-display text-3xl leading-tight text-ink text-balance">
+            {noScroll ? "Nothing open" : "Not on the shelf"}
           </h1>
           <p className="font-body text-sm text-ink-muted">
             {noScroll
@@ -125,7 +125,7 @@ function Read() {
           <button
             type="button"
             onClick={goLibrary}
-            className="mt-2 rounded-[0.25rem] bg-hanko px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-sm hover:bg-shu"
+            className="g-btn g-btn--ink mt-3"
           >
             Back to Library
           </button>
@@ -138,25 +138,30 @@ function Read() {
     return (
       <main className="kami-desk flex min-h-dvh items-center justify-center px-6">
         <div
-          className="kami-sheet flex max-w-sm flex-col items-center gap-3 p-8 text-center"
+          className="kami-sheet-raised flex max-w-md flex-col items-center gap-3 p-10 text-center"
           role={fetchError ? "alert" : "status"}
           aria-live="polite"
         >
-          <h1 className="font-display text-2xl text-balance text-ink">{openItem.title}</h1>
-          {!fetchError ? (
-            <div
-              className="h-4 w-2/3 animate-pulse rounded-full bg-paper-warm"
-              aria-hidden="true"
-            />
+          <h1 className="font-display text-3xl leading-tight text-balance text-ink">{openItem.title}</h1>
+          {openItem.author ? (
+            <p className="font-display text-[17px] text-ink-soft italic">{openItem.author}</p>
           ) : null}
-          <p className="font-body text-sm text-ink-muted">
-            {fetchError || "Preparing a clean copy…"}
-          </p>
+          {fetchError ? (
+            <p className="font-sans text-sm text-ink-muted">{fetchError}</p>
+          ) : (
+            <p className="mt-2 flex items-center gap-2 font-sans text-sm text-ink-muted">
+              <span
+                className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+                aria-hidden="true"
+              />
+              Bringing it in
+            </p>
+          )}
           {fetchError ? (
             <button
               type="button"
               onClick={goLibrary}
-              className="mt-2 rounded-[0.25rem] bg-hanko px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-sm hover:bg-shu"
+              className="g-btn g-btn--ink mt-3"
             >
               Back to Library
             </button>

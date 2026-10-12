@@ -653,7 +653,7 @@ function ShelfSkeleton({ kind }: { kind: MediaKind }) {
       {Array.from({ length: 14 }).map((_, i) => (
         <div key={i} className="g-slot">
           <span
-            className="block rounded-[2px] bg-line"
+            className="block rounded-md bg-line"
             style={{
               width: kind === "vhs" ? 38 : kind === "dvd" ? 22 : 32,
               height: 196 + ((i * 7) % 12),

@@ -1,43 +1,55 @@
-# Gloss — the shelf theme
+# Gloss — the app's theme
 
-Gloss is the warm-paper, serif, 3D-shelf look used by **Library**, **Movies**
-and **Series**. The rest of the app still uses the flat "Matrix Quiet" theme.
-Gloss is built so it can take over the whole app later with a one-line change.
+Gloss is the warm-paper, serif, 3D-shelf look from the design spec ("App
+UI/UX & Animation Design Spec"). It is the whole app's theme: `<html>`
+carries the `gloss` class and the app-wide tokens hold Gloss values. The
+older flat "Matrix Quiet" theme is gone.
 
-## How it's scoped
+## How it's built
 
-Everything lives under a `.gloss` class (`src/styles/gloss.css`):
+- **App tokens** (`src/styles.css`): `--color-*`, `--font-*`, shadows and
+  motion in `@theme`, dark values under `.dark`, and the shadcn tokens in
+  `:root` / `.dark`. Light is paper `#F6F3EA` and ink `#211E17`; dark is the
+  lamp-lit "reading room at night". Colour lives in the content (topic
+  spines, covers, posters); chrome stays near-monochrome.
+- **Gloss tokens and components** (`src/styles/gloss.css`): `--g-*` tokens
+  (paper, ink, shelf, motion, elevation) and every `.g-*` class: segmented
+  control, chips, search, buttons, shelves, spines, covers, the pull-out
+  stage, reader reveal. `.gloss` still works as a nested scope; the pull-out
+  stage re-declares it.
+- **Fonts** are all self-hosted with Fontsource and bundled into the app:
+  Newsreader (display and reading) and Inter (UI), plus the reader choices
+  Literata, Source Serif 4, Atkinson Hyperlegible and Figtree. Nothing is
+  fetched from Google Fonts; the CSP forbids font CDNs on purpose.
+  `@font-face` is lazy, so a reader face downloads only once it is used.
 
-- **Gloss tokens**: `--g-paper`, `--g-ink`, `--g-shelf`, motion (`--g-ease-*`,
-  `--g-dur-*`), elevation (`--g-shadow-*`), with dark-mode values under
-  `.dark .gloss`.
-- **Remapped app tokens**: inside `.gloss` the app's own `--color-*`,
-  `--font-sans` / `--font-display`, `--radius`, `--background`, `--primary`…
-  are redefined. Existing utilities (`text-ink`, `bg-surface`, `font-display`,
-  shadcn buttons) automatically render in Gloss inside the scope.
-- **Fonts** are self-hosted (Fontsource: Newsreader + Inter). The CSP
-  forbids font CDNs on purpose. Browsers only download them on pages that
-  use them.
+## Conventions
 
-Pages opt in with `<GlossPage>` (`src/components/gloss/primitives.tsx`), which
-is just `<div class="gloss">`.
+- **Primary fill is ink.** `bg-hanko` is ink; pair it with `text-paper`
+  (never `text-white`) so it inverts in the dark. Buttons are pills.
+- **Accent red** (`--color-ink-accent`) is only for the drop cap, the
+  bookmark ribbon and error icons. Links and secondary actions are muted ink.
+- **Page header**: `GlossHeader` (`src/components/gloss/primitives.tsx`) —
+  eyebrow with icon, huge serif H1, optional serif one-liner and stats.
+  Content sits in a `max-w-[1200px]` column with `px-4 sm:px-8`.
+- **Toggles**: `Segmented` / `.g-seg` for views (works with `aria-pressed`,
+  `aria-selected` or `aria-current`), `GlossChip` / `.g-chip` for filters.
+- **Cards**: `.kami-sheet` (raised paper, 16px radius, 1px line).
+- **Small caps meta**: `.kami-label` (Inter 11px / 600, +12% tracking).
 
-## Switching the whole app to Gloss
+## Motion
 
-1. Add `gloss` to the `<html>` class in `src/routes/__root.tsx`
-   (`<html lang="en" className="antialiased gloss">`).
-2. Remove the `kami-desk` grid background in `AppShell`, or redefine
-   `.gloss .kami-desk` to plain paper.
-3. Expect to touch components that hard-code Matrix Quiet values instead of
-   tokens: `rounded-[0.25rem]`, `text-white` on filled buttons, and the
-   `kami-sheet` border style.
+One rule from the spec: **the object moves, the world fades.** Books, tapes
+and discs get 3D transforms and a spring; everything else changes opacity.
 
-`GlossPage` keeps working after that; the class is just redundant.
-
-> The one prerequisite has already been done: `--font-sans` used to be
-> hard-coded in the `@theme inline` block in `src/styles.css`, which baked
-> the monospace stack into the `font-sans` utility. It now lives only in the
-> main `@theme`, as a variable a scope can override.
+- Page changes: the old page fades out (100 ms, ease-in), the new one rises
+  12px as it fades in (250 ms, ease-out) — `::view-transition-*` in
+  `styles.css`.
+- Dialogs fade the page behind to paper instead of a dark scrim.
+- Reader: `.g-reader-in` (blur 8px → 0, rise 12px) and `.g-bar-in` for the
+  floating bar; loading reads "Bringing it in".
+- `.g-stagger` rises a list of cards in with a 30 ms stagger.
+- Under `prefers-reduced-motion`, every move collapses to an instant change.
 
 ## Pieces
 

@@ -20,7 +20,6 @@ import { queryKeys } from "@/lib/query-client.ts";
 import { shelfPath, type ShelfTab } from "@/lib/shelves.ts";
 import { lookupApi } from "@/lib/api/lookup";
 import type { LookupResult } from "@/lib/api/types";
-import { cn } from "@/lib/utils.ts";
 
 export type HomeCaptureType = "article" | ShelfTab;
 
@@ -52,7 +51,7 @@ export function HomeCaptureTabs({
       <div
         role="tablist"
         aria-label="What to save"
-        className="flex max-w-full items-center gap-1 overflow-x-auto pb-1"
+        className="g-seg no-scrollbar max-w-full overflow-x-auto"
       >
         {TABS.map((t) => (
           <button
@@ -61,14 +60,8 @@ export function HomeCaptureTabs({
             role="tab"
             aria-selected={value === t.id}
             onClick={() => onChange(t.id)}
-            className={cn(
-              "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-[0.25rem] px-3 py-1 font-sans text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40",
-              value === t.id
-                ? "bg-hanko font-semibold text-white shadow-sm"
-                : "bg-surface font-medium text-ink-soft shadow-[var(--shadow-border)] hover:bg-paper-warm hover:text-ink",
-            )}
           >
-            <t.icon className="size-3.5" aria-hidden="true" />
+            <t.icon className="size-4" aria-hidden="true" />
             {t.label}
           </button>
         ))}
@@ -196,7 +189,7 @@ export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
           if (isWishlist) void saveWishlistLink();
         }}
       >
-        <div className="kami-sheet flex flex-col gap-2 p-2 focus-within:ring-2 focus-within:ring-hanko/40 sm:flex-row sm:items-center sm:px-3">
+        <div className="kami-sheet flex flex-col gap-2 p-2 transition-colors focus-within:border-ink sm:flex-row sm:items-center sm:px-3">
           <div className="flex min-w-0 w-full items-center gap-2">
             {isWishlist ? (
               <Link2 className="size-[18px] shrink-0 text-ink-muted" aria-hidden="true" />
@@ -217,14 +210,14 @@ export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
               placeholder={placeholder}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="h-11 min-w-0 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+              className="h-11 min-w-0 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0"
             />
           </div>
           {isWishlist ? (
             <Button
               type="submit"
               disabled={!query.trim() || busy}
-              className="h-11 w-full shrink-0 bg-hanko text-white shadow-sm hover:bg-shu active:translate-y-px sm:w-auto"
+              className="h-11 w-full shrink-0 bg-hanko text-paper hover:bg-shu sm:w-auto"
             >
               {busy ? (
                 <>
@@ -288,7 +281,7 @@ export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
                       size="sm"
                       disabled={rowBusy}
                       onClick={() => void saveResult(r)}
-                      className="shrink-0 bg-hanko text-white hover:bg-shu"
+                      className="shrink-0 bg-hanko text-paper hover:bg-shu"
                     >
                       {addingKey ? (
                         <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />

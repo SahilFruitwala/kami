@@ -23,7 +23,7 @@ export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: 
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
-        <div className="poster-frame relative w-24 shrink-0 overflow-hidden rounded-[0.25rem] bg-paper-warm">
+        <div className="poster-frame relative w-24 shrink-0 overflow-hidden rounded-lg bg-paper-warm">
           {cover ? (
             <img
               src={cover}
@@ -118,7 +118,7 @@ export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: 
                   href={detail.item.link}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-ink-accent underline underline-offset-2"
+                  className="text-ink underline underline-offset-2"
                 >
                   Open reference
                 </a>
@@ -144,7 +144,7 @@ export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: 
             type="button"
             disabled={busy}
             onClick={() => void setDone(true)}
-            className="bg-hanko text-white hover:bg-shu"
+            className="bg-hanko text-paper hover:bg-shu"
           >
             {busy ? (
               <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -167,14 +167,14 @@ export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: 
       </div>
 
       {overview ? (
-        <p className="font-serif text-[15px] leading-relaxed text-ink-soft text-pretty">
+        <p className="font-display text-[15px] leading-relaxed text-ink-soft text-pretty">
           {overview}
         </p>
       ) : null}
       {detail.item.notes ? (
-        <div className="rounded-[0.25rem] bg-paper-warm p-3">
+        <div className="rounded-lg bg-paper-warm p-3">
           <p className="kami-label text-ink-muted">Marginalia</p>
-          <p className="mt-1 font-serif text-sm text-ink italic">{detail.item.notes}</p>
+          <p className="mt-1 font-display text-sm text-ink italic">{detail.item.notes}</p>
         </div>
       ) : null}
 

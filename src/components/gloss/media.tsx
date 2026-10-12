@@ -496,7 +496,7 @@ export function GiftBox({ item }: { item: ShelfCard }) {
           className="absolute inset-x-0 top-[62%] h-[13cqw]"
           style={{ background: look.ribbon }}
         />
-        <div className="absolute inset-x-[9cqw] top-[8cqw] flex h-[56%] items-center justify-center overflow-hidden rounded-[2px] bg-white shadow-md">
+        <div className="absolute inset-x-[9cqw] top-[8cqw] flex h-[56%] items-center justify-center overflow-hidden rounded-md bg-white shadow-md">
           <Poster src={item.imageUrl} className="size-full object-contain" />
           {!item.imageUrl ? (
             <span className="px-3 text-center font-display text-[max(14px,8cqw)] text-[#1b1712]">
@@ -504,7 +504,7 @@ export function GiftBox({ item }: { item: ShelfCard }) {
             </span>
           ) : null}
         </div>
-        <div className="absolute inset-x-[9cqw] bottom-[7cqw] rounded-[2px] bg-[#F6F1DE] px-[4cqw] py-[3cqw] text-[#1b1712] shadow-md">
+        <div className="absolute inset-x-[9cqw] bottom-[7cqw] rounded-md bg-[#F6F1DE] px-[4cqw] py-[3cqw] text-[#1b1712] shadow-md">
           <p className="line-clamp-2 font-display text-[max(12px,5.4cqw)] leading-tight">
             {item.title}
           </p>

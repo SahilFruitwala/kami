@@ -185,7 +185,7 @@ export function VaultView({
         <button
           type="button"
           onClick={onExitVault}
-          className="mt-2 rounded-[0.25rem] bg-hanko px-5 py-2.5 font-sans text-sm font-semibold text-white shadow-sm hover:bg-shu"
+          className="mt-2 rounded-full bg-hanko px-5 py-2.5 font-sans text-sm font-medium text-paper hover:bg-shu"
         >
           Return to the Desk
         </button>
@@ -377,7 +377,7 @@ export function VaultView({
                   setLocalQuery("");
                   setNotesOnly(false);
                 }}
-                className="mt-3 rounded-[0.25rem] bg-hanko px-4 py-2 font-sans text-xs font-semibold text-white shadow-sm hover:bg-shu"
+                className="mt-3 rounded-full bg-hanko px-4 py-2 font-sans text-xs font-medium text-paper hover:bg-shu"
               >
                 Clear Filters
               </button>
@@ -395,32 +395,24 @@ export function VaultView({
               </span>
               <span className="font-sans text-[11px] text-ink-muted">{tagCounts.length} Tags</span>
             </p>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
+                aria-pressed={tag === null}
                 onClick={() => setTag(null)}
-                className={cn(
-                  "flex items-center gap-1 rounded px-2.5 py-1 font-sans text-xs",
-                  tag === null
-                    ? "bg-hanko text-white shadow-sm"
-                    : "bg-bg text-ink transition-colors hover:bg-paper-warm",
-                )}
+                className="g-chip px-3"
               >
-                All Slips <span className="text-[10px] opacity-80">({slips.length})</span>
+                All <span className="g-chip-count">{slips.length}</span>
               </button>
               {tagCounts.slice(0, 10).map(([t, n]) => (
                 <button
                   key={t}
                   type="button"
+                  aria-pressed={tag === t}
                   onClick={() => setTag(tag === t ? null : t)}
-                  className={cn(
-                    "flex items-center gap-1 rounded px-2.5 py-1 font-sans text-xs",
-                    tag === t
-                      ? "bg-hanko text-white shadow-sm"
-                      : "bg-bg text-ink transition-colors hover:bg-paper-warm",
-                  )}
+                  className="g-chip px-3"
                 >
-                  {t} <span className="text-[11px] text-ink-muted">({n})</span>
+                  {t} <span className="g-chip-count">{n}</span>
                 </button>
               ))}
             </div>
@@ -472,7 +464,7 @@ export function VaultView({
             <button
               type="button"
               onClick={onTranscribe}
-              className="flex w-full items-center justify-center gap-1.5 rounded bg-hanko px-3 py-2 font-sans text-xs font-medium text-white shadow transition-colors hover:bg-shu"
+              className="flex w-full items-center justify-center gap-1.5 rounded-full bg-hanko px-3 py-2 font-sans text-xs font-medium text-paper shadow transition-colors hover:bg-shu"
             >
               <PenLine className="size-4" aria-hidden="true" />
               Ink New Slip
