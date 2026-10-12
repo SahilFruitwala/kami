@@ -49,9 +49,9 @@ import {
 import {
   bookSpineLook,
   hueOf,
-  TOPIC_FAMILIES,
-  TOPIC_LABELS,
-  TOPIC_ORDER,
+  compareTopics,
+  topicFamily,
+  topicLabel,
   topicOf,
   type TopicId,
 } from "@/lib/gloss/palette.ts";
@@ -207,7 +207,7 @@ export function LibraryHome({
       if (list) list.push(it);
       else by.set(t, [it]);
     }
-    return TOPIC_ORDER.filter((t) => by.has(t)).map((t) => ({
+    return [...by.keys()].sort(compareTopics).map((t) => ({
       topic: t,
       items: [...by.get(t)!].sort((a, b) => b.savedAt - a.savedAt),
     }));
@@ -228,9 +228,9 @@ export function LibraryHome({
         items: b.items,
         label: (
           <ShelfDivider
-            label={TOPIC_LABELS[b.topic]}
+            label={topicLabel(b.topic, b.items[0]?.tags)}
             count={b.items.length}
-            color={TOPIC_FAMILIES[b.topic].dark}
+            color={topicFamily(b.topic).dark}
             icon={<TopicIcon topic={b.topic} className="size-3.5" />}
             height={190}
           />
@@ -342,7 +342,7 @@ export function LibraryHome({
                 value: library.length,
                 label: library.length === 1 ? "essay or paper" : "essays and papers",
               },
-              { value: stats.topics, label: stats.topics === 1 ? "topic" : "topics" },
+              { value: stats.topics, label: stats.topics === 1 ? "tag" : "tags" },
               { value: Math.max(0, Math.round(stats.minutes / 60)), label: "hours of reading" },
               { value: stats.inProgress, label: "in progress" },
               { value: counts.archived, label: "read" },
@@ -370,7 +370,7 @@ export function LibraryHome({
               },
               {
                 id: "topics",
-                label: "Topics",
+                label: "Tags",
                 icon: <LayoutGrid className="size-4" aria-hidden="true" />,
               },
               { id: "list", label: "List", icon: <List className="size-4" aria-hidden="true" /> },
@@ -393,7 +393,7 @@ export function LibraryHome({
                   value={arrange}
                   onChange={setArrange}
                   options={[
-                    { id: "topic", label: "Topic" },
+                    { id: "topic", label: "Tag" },
                     { id: "colour", label: "Colour" },
                     { id: "recent", label: "Recent" },
                     { id: "length", label: "Length" },
@@ -485,7 +485,7 @@ export function LibraryHome({
 
         {/* Topic chips (shelf view) */}
         {view === "shelf" && buckets.length > 0 ? (
-          <div className="mt-5 flex flex-wrap gap-2" aria-label="Topics">
+          <div className="mt-5 flex flex-wrap gap-2" aria-label="Tags">
             <GlossChip active={topic === "all"} onClick={() => setTopic("all")} count={totalShown}>
               All
             </GlossChip>
@@ -495,10 +495,10 @@ export function LibraryHome({
                 active={topic === b.topic}
                 onClick={() => setTopic(topic === b.topic ? "all" : b.topic)}
                 count={b.items.length}
-                color={TOPIC_FAMILIES[b.topic]}
+                color={topicFamily(b.topic)}
                 icon={<TopicIcon topic={b.topic} className="size-3" />}
               >
-                {TOPIC_LABELS[b.topic]}
+                {topicLabel(b.topic, b.items[0]?.tags)}
               </GlossChip>
             ))}
           </div>

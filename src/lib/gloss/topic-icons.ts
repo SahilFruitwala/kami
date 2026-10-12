@@ -12,6 +12,7 @@ import {
   PenTool,
   Plane,
   Shapes,
+  Tag,
   Trophy,
   Utensils,
   Vote,
@@ -19,7 +20,7 @@ import {
 } from "lucide-react";
 import type { TopicId } from "@/lib/gloss/palette.ts";
 
-export const TOPIC_ICONS: Record<TopicId, LucideIcon> = {
+const TOPIC_ICONS: Record<string, LucideIcon> = {
   technology: Cpu,
   science: FlaskConical,
   business: Briefcase,
@@ -37,3 +38,8 @@ export const TOPIC_ICONS: Record<TopicId, LucideIcon> = {
   other: Shapes,
   unsorted: Inbox,
 };
+
+/** Category icon, or a plain tag for free-form tags. */
+export function topicIcon(topic: TopicId): LucideIcon {
+  return Object.hasOwn(TOPIC_ICONS, topic) ? TOPIC_ICONS[topic]! : Tag;
+}
