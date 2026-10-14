@@ -404,9 +404,8 @@ with name, link and category"*.
 
 `/trips` is a private trip planner: a list of trips, and per trip a board with
 the details (destination, start date, length, travellers, budget, what you
-like), a **hotel shortlist**, and a **day-by-day itinerary**, plus a **trip
-agent**: a chat beside the board that researches with Firecrawl and edits the
-board through the same service a person uses.
+like), a **hotel shortlist**, and a **day-by-day itinerary**. Planning is
+manual: there is no chat agent.
 
 | Concern | Approach |
 |---|---|
@@ -417,42 +416,6 @@ board through the same service a person uses.
 | Writes | Every write returns the whole updated trip; the client swaps it into the React Query cache. Each write also bumps `trips.updated_at` so the list sorts by recent activity. |
 | Limits | 50 trips per user, 30 hotels and 300 items per trip. Links go through `assertPublicHttpUrl`. |
 
-### Trip agent
-
-```mermaid
-sequenceDiagram
-  participant UI as Chat (useChat)
-  participant API as POST /api/trips/:id/chat
-  participant LLM as Model (Google / OpenRouter)
-  participant FC as Firecrawl
-  participant DB as Postgres
-  UI->>API: new message + chosen model
-  API->>DB: save user message, load trip + history
-  loop up to 8 steps
-    API->>LLM: instructions (trip snapshot) + history + tools
-    LLM-->>API: tool call
-    alt web_search / read_page
-      API->>FC: search or read (≤ 6 per message)
-    else update_trip, shortlist_hotel, set_day, …
-      API->>DB: trips service (same checks as the board)
-    end
-    API-->>UI: streamed tool status
-  end
-  LLM-->>API: reply text
-  API-->>UI: streamed reply
-  API->>DB: save assistant message
-  UI->>UI: refetch the board after each write tool
-```
-
-| Concern | Approach |
-|---|---|
-| Models | Vercel AI SDK v7 (`streamText`). `src/lib/llm.server.ts` is the only provider-aware file: `google:<model>` via `@ai-sdk/google`, `openrouter:<vendor/model>` via `@openrouter/ai-sdk-provider`. `TRIPS_MODELS` lists what the picker offers (default `google:gemini-3.8-flash`, then `openrouter:anthropic/claude-haiku-5.5`); entries without a provider key show as unavailable, and an unusable request falls back to the first usable model. The user's pick is remembered per browser. |
-| Tools | Research: `web_search`, `read_page` (Firecrawl, only when `FIRECRAWL_API_KEY` is set). Plans and hotels accept optional `startTime`, `durationMin` and `lat`/`lng` (the prompt says to pass coordinates only when a source gives them); the trip snapshot shows each plan's time, whether it is pinned, `kmFromPrevious` and the day's warnings. Writes: `update_trip`, `shortlist_hotel`, `update_hotel`, `remove_hotel`, `set_day`, `add_item`, `update_item`, `remove_item`, each bound to the signed-in user + this trip and calling `src/server/services/trips.ts`. Write tools answer with the fresh trip snapshot so the model always has current ids. Failures come back as `{ error }` for the model to recover from. |
-| Undo | Before the agent's first write in a turn, `trip-undo.ts` saves the whole trip to `trip_snapshots` (one row per trip, replaced each turn). `POST /api/trips/:id/undo` restores details, hotels and itinerary with their original ids in one transaction and deletes the snapshot, so only the latest agent turn can be undone. |
-| Safety | No booking, payment or messaging tools; the worst a misleading page can do is edit this one trip, which the user can undo. Page text is returned as `untrusted_page_content` and the instructions say never to follow it. URLs pass `assertPublicHttpUrl`. Only plain text from the client's message is used; the server builds the stored user message itself. Replies render through a small React Markdown renderer that only links http(s) URLs. |
-| Cost | `agent` rate-limit bucket (40 messages/hour/user); 8 model steps and 6 Firecrawl calls per message (research tools are withdrawn once the 6 are spent, repeated searches and page reads in a turn are served from a per-turn cache, and only the text of the last 16 messages is re-sent as history, never old tool results); each Firecrawl call also counts against the shared `firecrawl` bucket. |
-| History | `trip_messages` stores AI SDK UIMessages (newest 200 per trip). The model gets the last 30 plus a fresh trip snapshot in its instructions each turn. History that no longer validates against the tools is skipped rather than failing the turn. `consumeStream()` lets a turn finish and save even if the browser disconnects. |
-
 | Path | Role |
 |---|---|
 | `src/lib/trip-days.ts` | Date math, day grouping, item order, move-within-slot (pure, tested) |
@@ -460,30 +423,25 @@ sequenceDiagram
 | `src/lib/geocode.server.ts`, `src/server/services/trip-locate.ts` | Nominatim client (pure parts tested) and the batched "Pin places" service |
 | `src/components/trips/trip-map.tsx`, `src/lib/trip-colors.ts` | Leaflet trip map (one or many days) and the per-day colors |
 | `src/lib/trip-ics.ts` | Itinerary → `.ics` calendar text, built in the browser for the "Add to calendar" button (pure, tested) |
-| `src/server/services/trip-undo.ts` | Agent undo snapshot: save, check, restore |
 | `src/server/services/trips.ts` | Trips, hotels, itinerary items |
-| `src/lib/trip-models.ts`, `src/lib/llm.server.ts` | Model menu parsing (pure, tested) and provider wiring |
-| `src/lib/trip-agent-prompt.ts` | Agent instructions + trip snapshot (pure, tested) |
-| `src/server/services/trip-agent.ts` | Tools, chat turn, history |
-| `src/lib/firecrawl.server.ts` | `searchWeb`, `readPage` (alongside Extracts' `askPage`) |
-| `src/routes/api/trips/**` | HTTP routes (`$id/chat` streams the agent) |
-| `src/hooks/use-trips.ts`, `src/components/trips/*`, `src/routes/trips/*` | `/trips` UI, including `trip-chat.tsx` |
-| `migrations/0012_trips.sql`, `migrations/0013_trip_messages.sql` | `trips`, `trip_hotels`, `trip_items`, `trip_messages` |
+| `src/routes/api/trips/**` | HTTP routes  |
+| `src/hooks/use-trips.ts`, `src/components/trips/*`, `src/routes/trips/*` | `/trips` UI |
+| `migrations/0012_trips.sql` | `trips`, `trip_hotels`, `trip_items` (`0013`/`0014` added `trip_messages` / `trip_snapshots` for the removed agent; the tables are left in place, unused) |
 
 ---
 
 ## AI features
 
-Optional AI helpers across the library. They reuse the trip agent's provider
-keys and are hidden in the UI until `GET /api/ai/status` reports a usable
-model.
+Optional AI helpers across the library. They are hidden in the UI until
+`GET /api/ai/status` reports a usable model (at least one of
+`GOOGLE_GENERATIVE_AI_API_KEY` / `OPENROUTER_API_KEY`).
 
 | Concern | Choice |
 |---|---|
 | Models | `AI_MODELS` (default `google:gemini-3.8-flash`, then `openrouter:anthropic/claude-haiku-5.5`). `aiLanguageModel()` in `llm.server.ts` wraps the models that have a key in one `fallbackModel` (`src/lib/model-fallback.ts`): each call tries Google first and moves to Claude Haiku when Google errors (bad key, quota, outage). Streams fail over only while they are being set up, never mid-reply. The model that answered is recorded with each result. |
-| Calls | `src/server/ai.ts`: `generateJson` (zod schema → structured output), `generateProse`, `embedTexts`. Low temperature, one SDK retry per model, provider errors mapped to friendly 502/503s. |
-| Untrusted text | Articles, feed entries and journal text go into prompts wrapped in `<document>` tags, and every system prompt says to treat them as data, never instructions. |
-| Cost | `ai` rate-limit bucket (300 calls/hour/user). Results are cached in the database and regenerated only on request. Article text is clipped to ~24k characters. |
+| Calls | `src/server/ai.ts`: `generateJson` (zod schema → structured output). Low temperature, one SDK retry per model, provider errors mapped to friendly 502/503s. |
+| Untrusted text | Articles, feed entries and page text go into prompts wrapped in `<document>` tags, and every system prompt says to treat them as data, never instructions. |
+| Cost | `ai` rate-limit bucket (300 calls/hour/user). Results are cached where it makes sense and regenerated only on request. Article text is clipped to ~24k characters. |
 
 ### Article summaries
 
@@ -495,81 +453,9 @@ article, with a sha256 of the body it was made from. When the text changes
 (a link stub upgraded to a clean copy), the card shows the old summary as
 stale until it is regenerated.
 
-### Article chat
+### Feeds: entry summaries
 
-Below the Gist card, **Ask this article** opens a chat grounded in the
-article (`POST /api/ai/articles/:id/chat`, an AI SDK UI message stream).
-Selecting a passage adds an **Ask** button to the ink toolbar that drops the
-passage into the chat. Chats aren't stored: the browser sends the
-conversation, the server re-sends its last 12 text messages plus the
-article (in the instructions) to the model. `AiChat`
-(`src/components/ai/ai-chat.tsx`) is the shared chat UI.
-
-### Ask your library
-
-**Ask your library** on `/library` opens a panel with two modes:
-
-- **Ask**: a chat (`POST /api/ai/ask`) that retrieves the ten best-matching
-  passages for each question and answers from them with numbered
-  citations. The reply's metadata lists the sources, shown as links to the
-  reader.
-- **Find by meaning**: `GET /api/ai/search?q=`, one hit per article or
-  highlight set, best first.
-
-Retrieval uses `ai_embeddings` (pgvector, migration 0017): article bodies
-in ~1500-character chunks (up to 8 per article, each prefixed with the
-title) and each article's highlights and notes. Indexing is incremental and
-pulled by the browser: while the library is open, `useLibraryIndexer` calls
-`POST /api/ai/embed` until nothing is left. Each call embeds up to 12 new or
-changed docs (one embedding request, at most 96 chunks), detects changes by
-the md5 of the source, and prunes chunks of deleted articles or cleared
-highlights. Without pgvector or an embedding key, both modes fall back to
-Postgres full-text search over titles and bodies. The journal (paused) is
-not indexed.
-
-### Vault patterns
-
-On `/vault`, a **Patterns** panel works on the slips currently in view (so
-filter by tag, author or search first; up to 150 slips):
-
-- **Find themes** (`POST /api/ai/vault/themes`): three to six themes with
-  the slips behind each, connections between different sources, and open
-  questions. Slips are sent as `s1`, `s2`… so the model cites short ids
-  that are mapped back to highlights (unknown ids are dropped).
-- **Make flashcards** (`POST /api/ai/vault/flashcards`): up to 40
-  question/answer cards, flip to reveal, export as CSV (Anki: front, back,
-  source) or Markdown.
-- **Draft** on a slip without a note (`POST /api/ai/vault/note`): drafts a
-  two-to-four sentence note from the passage and the article text around
-  it, opened in the note editor for the reader to edit or discard.
-
-The browser sends the slips it shows (text, note, title, author), so
-highlights that haven't synced yet are included. Nothing is stored.
-
-### Weekly reading recap
-
-The desk (`/app`) shows **Your week in reading** under the capture box: a
-recap of the past seven days (what was saved and finished, the passages
-highlighted), up to four themes, a standout highlight, a reflection prompt,
-and a pick from older unread inbox items. Made on demand
-(`POST /api/ai/recap`) and kept in `ai_notes` (kind `weekly-recap`, keyed by
-the day it was made, newest 12 kept); `GET` returns the latest. The model
-names highlights and unread pieces by short ids (`h1`, `r1`) that are mapped
-back to articles. This stands in for journal reflections while the journal
-is paused.
-
-### Feeds: digest and summaries
-
-On `/feeds` (Unread view) a **Digest** panel triages up to 60 unread
-entries in scope (one feed or all, `POST /api/ai/feeds/digest`): a short
-overview, up to five picks for this reader (judged against their own tags
-and recently finished, highlighted or favorited titles), topic groups that
-fold several posts or newsletter issues into one summary, and the entries
-safe to skip, with one tap to mark those read. Entries go to the model as
-`e1`, `e2`… and are mapped back; a pick is never suggested as a skip. The
-digest is kept in `ai_notes` (kind `feed-digest`, key = feed id or `all`).
-
-Each entry card has a **Summary** toggle (`POST
+Each entry card on `/feeds` has a **Summary** toggle (`POST
 /api/ai/feeds/entries/:id/summary`): a TL;DR and key points from the
 entry's own text, ignoring newsletter sponsor blocks and footers. Teasers
 under 60 words are refused (open the entry instead). Cached in `ai_notes`
@@ -577,15 +463,22 @@ under 60 words are refused (open the entry instead). Cached in `ai_notes`
 
 ### Tidy this copy
 
-The reader's Gist card has **Tidy this copy** (`POST
+The reader's Gist card has **Remove ads & clutter** (`POST
 /api/ai/articles/:id/tidy`) for newsletters and cluttered pages. The saved
 HTML is split into numbered top-level blocks (descending through lone
 layout wrappers, `src/lib/tidy-html.server.ts`), the model gets a short
 preview of each and returns the numbers of ads, sponsor slots, subscribe /
 share / referral prompts, footers and navigation. The text itself is never
 rewritten, and a result that would drop 60% or more of the blocks is
-refused. The browser saves the tidied copy through the normal library
-upsert, with Undo.
+refused.
+
+The endpoint saves nothing. It returns the original and the tidied HTML plus
+a preview of each removed block, and the reader opens a **review dialog**
+(`src/components/reader/tidy-review.tsx`) showing Before and After side by
+side (tabs on narrow screens) with the list of what goes. Only **Save tidy
+copy** writes the change, through the normal library upsert; **Keep
+original** (or closing the dialog) leaves the article untouched. After a
+save the toast still offers Undo.
 
 ### Shelf suggestions
 
@@ -597,16 +490,6 @@ something on the shelf. Titles already on the shelf are dropped, and the
 first eight are matched against TMDB / Open Library (same search as the add
 dialog) so **Add to shelf** saves a cover and metadata in one tap. Nothing
 is stored.
-
-### Plan a trip from an article
-
-The reader's Gist card has **Plan a trip from this** (`POST
-/api/ai/articles/:id/trip`). For a travel piece, the model extracts the
-destination, a day count (up to 14), the style of the trip, plans per day
-and slot (only places from the article), and any hotels it recommends. The
-trip is created through the trips service (`createTrip`, `addTripItem`,
-`addTripHotel`), so the board's validation and limits apply, and the
-reader is taken to it. Non-travel pieces are refused.
 
 ### Extraction fallback
 
@@ -634,24 +517,18 @@ capture flow; **Skip** closes the tab.
 
 | Path | Role |
 |---|---|
-| `src/lib/model-fallback.ts` | Fallback model chain, embedding fitting, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |
-| `src/lib/llm.server.ts` | Provider wiring for the chain and embeddings |
+| `src/lib/model-fallback.ts` | Fallback model chain, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |
+| `src/lib/ai-models.ts`, `src/lib/llm.server.ts` | `AI_MODELS` parsing (pure, tested) and provider wiring for the chain |
 | `src/server/ai.ts` | Shared generation helpers and error mapping |
 | `src/server/services/ai-articles.ts` | Summaries, tag vocabulary, article-to-prompt helpers |
 | `src/routes/api/ai/**` | HTTP routes |
-| `src/components/reader/reader-ai.tsx` | Reader cards (Gist, Ask this article) |
-| `src/components/ai/ai-chat.tsx` | Shared unsaved chat UI (`useChat`) |
-| `src/lib/ai-text.ts` | Chunking, highlight lines, pgvector literals (pure, tested) |
-| `src/server/services/ai-library.ts` | Indexing, semantic + keyword retrieval, Ask, status |
-| `src/server/services/ai-feeds.ts`, `src/components/feeds/feed-ai.tsx` | Feed digest, entry summaries |
+| `src/components/reader/reader-ai.tsx`, `src/components/reader/tidy-review.tsx` | Reader Gist card; Tidy before/after review |
+| `src/server/services/ai-notes.ts`, `src/hooks/use-ai.ts` | The `ai_notes` store; status + auto-organize hooks |
+| `src/server/services/ai-feeds.ts`, `src/components/feeds/feed-ai.tsx` | Feed entry summaries |
 | `src/lib/tidy-html.server.ts` | Block splitting for Tidy and page block collection for the extraction fallback (tested) |
 | `src/server/services/ai-extract.ts`, `src/routes/peek.tsx` | Extraction fallback; page peek for the extension |
 | `src/server/services/ai-shelves.ts`, `src/components/library/shelf-recs.tsx` | Shelf suggestions |
-| `src/server/services/ai-trips.ts` | Trip from article |
-| `src/server/services/ai-recap.ts`, `src/server/services/ai-notes.ts`, `src/components/library/weekly-recap.tsx` | Weekly recap and the `ai_notes` store |
-| `src/server/services/ai-vault.ts`, `src/components/library/vault-ai.tsx` | Vault themes, flashcards, note drafts |
-| `src/components/library/library-ask.tsx`, `src/hooks/use-ai.ts` | Ask / Find panel, status + background indexer hooks |
-| `migrations/0016_article_ai.sql`, `0017_ai_embeddings.sql`, `0018_ai_notes.sql` | `article_ai`, `ai_embeddings` (only when pgvector is available), `ai_notes` |
+| `migrations/0016_article_ai.sql`, `0017_ai_embeddings.sql`, `0018_ai_notes.sql` | `article_ai`, `ai_embeddings` (left over from the removed semantic search; unused), `ai_notes` |
 
 ---
 

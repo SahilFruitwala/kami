@@ -6,11 +6,9 @@ import {
   LibraryBig,
   List,
   SlidersHorizontal,
-  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ArticleList } from "@/components/article-list.tsx";
-import { LibraryAsk } from "@/components/library/library-ask.tsx";
 import { LibraryFilters } from "@/components/library-filters.tsx";
 import {
   GlossChip,
@@ -35,7 +33,7 @@ import {
   TopicIcon,
 } from "@/components/gloss/book.tsx";
 import { TopicPage, TopicsGrid, type TopicBucket } from "@/components/gloss/topics.tsx";
-import { useAiStatus, useAutoOrganize, useLibraryIndexer } from "@/hooks/use-ai.ts";
+import { useAutoOrganize } from "@/hooks/use-ai.ts";
 import { useCurrentUserState } from "@/lib/auth/use-current-user.ts";
 import { minutesLabel } from "@/lib/gloss/format.ts";
 import {
@@ -138,11 +136,8 @@ export function LibraryHome({
   const { user } = useCurrentUserState();
 
   const counts = countByArchive(library);
-  const ai = useAiStatus();
-  useLibraryIndexer();
   useAutoOrganize();
 
-  const [askOpen, setAskOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(
     () => filters.folderFilter !== "all" || filters.tagFilter != null || filters.favoritesOnly,
   );
@@ -322,18 +317,6 @@ export function LibraryHome({
         </GlossEyebrow>
         <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
           <h1 className="g-h1 text-ink">Your library</h1>
-          {ai.enabled ? (
-            <button
-              type="button"
-              onClick={() => setAskOpen((v) => !v)}
-              aria-expanded={askOpen}
-              aria-pressed={askOpen}
-              className="g-btn g-btn--ghost mb-2"
-            >
-              <Sparkles className="size-4" aria-hidden="true" />
-              Ask your library
-            </button>
-          ) : null}
         </div>
         <div className="mt-4">
           <GlossStats
@@ -349,10 +332,6 @@ export function LibraryHome({
             ]}
           />
         </div>
-
-        {askOpen && ai.enabled ? (
-          <LibraryAsk semantic={ai.semanticSearch} onClose={() => setAskOpen(false)} />
-        ) : null}
 
         {capture ? <div className="mt-8 max-w-2xl">{capture}</div> : null}
 

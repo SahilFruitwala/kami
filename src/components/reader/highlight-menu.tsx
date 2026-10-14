@@ -1,4 +1,4 @@
-import { MessageCircleQuestion, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { HIGHLIGHT_COLORS, type HighlightColorId } from "@/lib/store.ts";
 import type { EditMenu, SelMenu } from "@/lib/selection-menu.ts";
 import { cn } from "@/lib/utils.ts";
@@ -16,15 +16,12 @@ export function HighlightMenu({
   activeColor,
   onInk,
   onRemove,
-  onAsk,
 }: {
   menu: SelMenu | EditMenu;
   /** Current ink of the highlight being edited; omitted for a fresh selection. */
   activeColor?: HighlightColorId;
   onInk: (color: HighlightColorId) => void;
   onRemove?: () => void;
-  /** Ask the AI about the selected passage (shown when AI is available). */
-  onAsk?: () => void;
 }) {
   const isEdit = onRemove != null;
   return (
@@ -73,22 +70,6 @@ export function HighlightMenu({
             </span>
           </button>
         ))}
-        {onAsk ? (
-          <>
-            <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-ink/10" />
-            <button
-              type="button"
-              aria-label="Ask about this passage"
-              title="Ask about this passage"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={onAsk}
-              className="flex items-center gap-1.5 rounded-full px-2.5 py-1.5 font-sans text-xs font-medium text-ink-soft transition-colors hover:bg-ink/5 hover:text-hanko focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
-            >
-              <MessageCircleQuestion className="size-3.5" aria-hidden="true" />
-              <span className="hidden min-[430px]:inline">Ask</span>
-            </button>
-          </>
-        ) : null}
         {onRemove ? (
           <>
             <span aria-hidden="true" className="mx-1 h-5 w-px shrink-0 bg-ink/10" />

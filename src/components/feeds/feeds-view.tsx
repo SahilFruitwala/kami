@@ -21,7 +21,7 @@ import {
   NewsletterCard,
   OpmlTools,
 } from "@/components/feeds/feeds-sidebar.tsx";
-import { EntrySummary, FeedDigest } from "@/components/feeds/feed-ai.tsx";
+import { EntrySummary } from "@/components/feeds/feed-ai.tsx";
 import { useAiStatus } from "@/hooks/use-ai.ts";
 import { useFeedActions, useFeedEntries, useFeedsOverview } from "@/hooks/use-feeds.ts";
 import type { FeedEntry, FeedEntryView, FeedSummary } from "@/lib/api/feeds";
@@ -54,8 +54,6 @@ export function FeedsView({
   const hasFeeds = feeds.length > 0;
   const actions = useFeedActions();
   const selected = feedId ? (feeds.find((f) => f.id === feedId) ?? null) : null;
-  const ai = useAiStatus();
-
   return (
     <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[18.5rem_minmax(0,1fr)] xl:gap-10">
       <aside className="flex flex-col gap-6 lg:sticky lg:top-24">
@@ -130,13 +128,6 @@ export function FeedsView({
                 </ToolbarButton>
               </div>
             </div>
-            {ai.enabled && view === "unread" ? (
-              <FeedDigest
-                key={feedId ?? "all"}
-                feedId={feedId}
-                onMarkRead={(ids) => actions.markRead.mutate(ids)}
-              />
-            ) : null}
             <EntryList
               key={`${view}:${feedId ?? "all"}`}
               view={view}
@@ -436,7 +427,6 @@ function EntryCard({
   const [summaryOpen, setSummaryOpen] = useState(false);
   return (
     <li
-      // Digest picks link here (feed-ai.tsx).
       id={`feed-entry-${entry.id}`}
       className={cn(
         "kami-sheet group flex scroll-mt-24 gap-4 p-4 transition-shadow hover:shadow-[var(--shadow-border-hover)] sm:p-5",

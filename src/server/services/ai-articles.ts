@@ -1,6 +1,6 @@
 import "@tanstack/react-start/server-only";
 import { createHash } from "node:crypto";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { ArticleSummary, TidyResult } from "@/lib/api/ai";
 import { textFromHtml } from "@/lib/article-build.server.ts";
@@ -8,13 +8,7 @@ import { getDb } from "@/lib/db";
 import { clipText } from "@/lib/model-fallback.ts";
 import { articleAi, articles, folders } from "@/lib/schema";
 import { TAG_CATEGORIES } from "@/lib/tag-categories.ts";
-import {
-  asDocument,
-  chatHistory,
-  generateJson,
-  streamChat,
-  type chatTurnInput,
-} from "@/server/ai";
+import { asDocument, generateJson } from "@/server/ai";
 import { badRequest, notFound } from "@/server/http";
 
 /**
@@ -97,19 +91,6 @@ export function articleDocument(article: ArticleForAi, maxChars = MAX_ARTICLE_CH
     author: article.author || undefined,
     site: article.siteName || undefined,
   });
-}
-
-/** Tags the user already uses, most used first. */
-export async function userTagVocabulary(userId: string, limit = 120): Promise<string[]> {
-  const db = await getDb();
-  const result = await db.execute<{ tag: string }>(sql`
-    select tag from (
-      select jsonb_array_elements_text(${articles.tags}) as tag
-      from ${articles} where ${articles.userId} = ${userId}
-    ) t
-    group by tag order by count(*) desc, tag limit ${limit}
-  `);
-  return result.rows.map((r) => r.tag);
 }
 
 function toSummary(
@@ -200,27 +181,6 @@ export async function summarizeArticle(userId: string, articleId: string): Promi
   return toSummary(row, article.contentHash);
 }
 
-/** One chat turn about an article; the article itself rides in the instructions. */
-export async function chatAboutArticle(
-  userId: string,
-  articleId: string,
-  body: z.output<typeof chatTurnInput>,
-): Promise<Response> {
-  const history = chatHistory(body);
-  const article = await loadArticleForAi(userId, articleId);
-  return streamChat({
-    instructions: [
-      "You help someone think about an article they are reading. The article is below.",
-      "Answer from the article first and quote short phrases from it when useful.",
-      "If the article doesn't cover something, say so plainly; you may then add general knowledge, clearly marked as not from the article.",
-      "Be concise: a few short paragraphs or a short list. Use the reader's language.",
-      "",
-      articleDocument(article),
-    ].join("\n"),
-    history,
-  });
-}
-
 // ---------- Tidy ----------
 
 const tidySchema = z.object({
@@ -233,7 +193,8 @@ const tidySchema = z.object({
  * Find the clutter in a saved copy — newsletter sponsor slots, ads,
  * subscribe/share/referral prompts, footers — and return the HTML without
  * it. The model only picks block numbers; the text itself is never
- * rewritten. Nothing is saved: the reader applies it (with undo).
+ * rewritten. Nothing is saved: the reader reviews before and after, and
+ * saves only on confirmation.
  */
 export async function tidyArticle(userId: string, articleId: string): Promise<TidyResult> {
   const { splitBlocks, joinBlocks } = await import("@/lib/tidy-html.server.ts");
@@ -266,6 +227,7 @@ export async function tidyArticle(userId: string, articleId: string): Promise<Ti
     throw badRequest("That would remove most of this piece, so nothing was changed.");
   }
   return {
+    originalHtml: row.html,
     contentHtml: drop.size ? joinBlocks(blocks, drop) : row.html,
     removed: [...drop].sort((a, b) => a - b).map((i) => previews[i]),
   };
