@@ -23,8 +23,7 @@ import { TONES } from "@/lib/paper-tones.ts";
 import { cn } from "@/lib/utils.ts";
 import { FocusWave } from "@/components/reader/focus-wave.tsx";
 import { MarginaliaHighlights } from "@/components/reader/marginalia-highlights.tsx";
-import { ReaderAi, type AskSeed } from "@/components/reader/reader-ai.tsx";
-import { useAiStatus } from "@/hooks/use-ai.ts";
+import { ReaderAi } from "@/components/reader/reader-ai.tsx";
 
 export function ReaderView({
   item,
@@ -67,9 +66,6 @@ export function ReaderView({
   const setItemNote = useLibraryStore((s) => s.setItemNote);
   /** Anchored to a tapped highlight — recolor or remove inline. */
   const [editMenu, setEditMenu] = useState<EditMenu | null>(null);
-  const ai = useAiStatus();
-  /** A selected passage handed to the article chat. */
-  const [askSeed, setAskSeed] = useState<AskSeed | null>(null);
 
   const fontSizeRem = READER_FONT_SIZES[readerFontSize] ?? READER_FONT_SIZES[2];
   const fontFamily = READER_FONTS.find((f) => f.id === readerFont)?.family;
@@ -254,15 +250,6 @@ export function ReaderView({
     setEditMenu(null);
   }
 
-  /** Hand the selection to the article chat in the margin. */
-  function askAboutSelection() {
-    if (!menu) return;
-    const passage = menu.text.replace(/\s+/g, " ").trim().slice(0, 600);
-    setAskSeed({ text: `About this passage: “${passage}”\n\n`, nonce: Date.now() });
-    window.getSelection()?.removeAllRanges();
-    clearMenu();
-  }
-
   /** Recolor the tapped highlight inline — no trip to the bottom needed. */
   function recolorEditingHighlight(color: HighlightColorId) {
     if (!editMenu) return;
@@ -387,11 +374,7 @@ export function ReaderView({
       )}
 
       {menu ? (
-        <HighlightMenu
-          menu={menu}
-          onInk={saveHighlight}
-          onAsk={ai.enabled && !zen ? askAboutSelection : undefined}
-        />
+        <HighlightMenu menu={menu} onInk={saveHighlight} />
       ) : editMenu && editingHighlight ? (
         <HighlightMenu
           menu={editMenu}
@@ -542,7 +525,7 @@ export function ReaderView({
                 </span>
               </div>
 
-              <ReaderAi item={item} askSeed={askSeed} />
+              <ReaderAi item={item} />
 
               {item.highlights.length === 0 && !item.note ? (
                 <p className="rounded-xl bg-ink/5 p-4 font-body text-sm italic opacity-70">

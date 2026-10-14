@@ -625,7 +625,7 @@ export const tripMessages = pgTable(
   (t) => [index("trip_messages_trip_idx").on(t.tripId, t.seq)],
 );
 
-/** The trip agent's undo point: one row per trip, replaced on each agent turn that writes. */
+/** Legacy (trip agent removed): its undo points. Nothing reads or writes this table now. */
 export const tripSnapshots = pgTable("trip_snapshots", {
   tripId: text("trip_id")
     .primaryKey()
@@ -658,7 +658,7 @@ export const articleAi = pgTable(
   (t) => [index("article_ai_user_idx").on(t.userId)],
 );
 
-/** Generated write-ups per period: weekly recap, feed digest (0018_ai_notes.sql). */
+/** Generated write-ups kept per user: feed entry summaries (0018_ai_notes.sql). Older weekly recaps and digests may remain. */
 export const aiNotes = pgTable(
   "ai_notes",
   {

@@ -3,8 +3,6 @@ import { Download, Network, LayoutGrid, PenLine, Search, Tag, User, Waves } from
 import { toast } from "sonner";
 import { Hanko } from "@/components/kami.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { VaultAi } from "@/components/library/vault-ai.tsx";
-import { useAiStatus } from "@/hooks/use-ai.ts";
 import type { LibraryItem } from "@/lib/store.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
@@ -44,7 +42,6 @@ export function VaultView({
   onTranscribe: () => void;
 }) {
   const library = useLibraryStore((s) => s.library);
-  const ai = useAiStatus();
   const [mode, setMode] = useState<VaultViewMode>(initialMode === "river" || initialMode === "web" ? initialMode : "tanzaku");
   const [sort, setSort] = useState<VaultSort>(initialSort === "linked" || initialSort === "source" ? initialSort : "recent");
   const [tag, setTag] = useState<string | null>(initialTag ?? null);
@@ -318,8 +315,6 @@ export function VaultView({
           </button>
         </div>
       )}
-
-      {ai.enabled && filtered.length > 0 ? <VaultAi slips={filtered} onOpenItem={onOpenItem} /> : null}
 
       <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
         <div className="lg:col-span-9">
