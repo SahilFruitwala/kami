@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test } from "node:test";
-import { loadDotenv, parseDotenv, readDotenvFile } from "./load-dotenv.mjs";
+import { loadDotenv, parseDotenv, readDotenvFile } from "../scripts/load-dotenv.mjs";
 
 test("parseDotenv handles keys, quotes, comments, and export", () => {
   const parsed = parseDotenv(`

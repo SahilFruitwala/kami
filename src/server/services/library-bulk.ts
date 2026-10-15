@@ -3,7 +3,7 @@ import { and, eq, or } from "drizzle-orm";
 import { z } from "zod";
 import type { BulkSaveLinksResult } from "@/lib/api/types";
 import { invalidateUserCache } from "@/lib/cache.server.ts";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { articles } from "@/lib/schema";
 import type { Article } from "@/lib/article-types";
 import { uid } from "@/lib/id";

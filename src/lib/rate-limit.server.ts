@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 
 /**
  * Fixed-window, per-user rate limits backed by the `rate_limits` table

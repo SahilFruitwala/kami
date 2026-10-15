@@ -3,7 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { EpisodeRow, SeasonRow, ShowSeasons } from "@/lib/api/types";
 import { CacheTTL, cacheKey, cached, invalidateUserCache } from "@/lib/cache.server.ts";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { listMembers, tvShows, watchedEpisodes } from "@/lib/schema";
 import { notFound } from "@/server/http";
 

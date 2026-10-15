@@ -2,7 +2,7 @@ import "@tanstack/react-start/server-only";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { ExtractResult, ExtractSource, ExtractsOverview } from "@/lib/api/extracts";
-import { getDb, type AppDb } from "@/lib/db";
+import { getDb, type AppDb } from "@/lib/db.server";
 import { askPage, firecrawlApiKey, FirecrawlError } from "@/lib/firecrawl.server.ts";
 import { markdownToHtml } from "@/lib/markdown.ts";
 import { assertPublicHttpUrl } from "@/lib/safe-url.ts";

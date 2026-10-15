@@ -221,4 +221,4 @@ Rules:
 | Journal CRUD | `src/server/services/journal.ts` |
 | Shelves CRUD | `src/server/services/shelves.ts` (reads), `shelves-write.ts` (writes), `src/lib/shelves-db.server.ts` (helpers), `src/lib/shelves.ts` (client-safe types) |
 | Lookups / episodes | `src/server/services/lookup.ts`, `episodes.ts` |
-| DB client | `src/lib/db.ts` |
+| DB client | `src/lib/db.server.ts` |

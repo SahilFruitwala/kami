@@ -26,7 +26,7 @@ pnpm dev              # http://0.0.0.0:8080
 | `pnpm dev`                                        | Vite + TanStack Start on port **8080**                          |
 | `pnpm build`                                      | Production build → Vercel Nitro output + migrate                |
 | `pnpm typecheck`                                  | `tsc --noEmit`                                                  |
-| `pnpm test`                                       | Node tests under `scripts/**/*.test.mjs`                        |
+| `pnpm test`                                       | Node tests under `tests/**/*.test.mjs`                          |
 | `pnpm lint` / `pnpm format` / `pnpm format:check` | ESLint / Prettier (CI runs typecheck, lint, format:check, test) |
 
 ---

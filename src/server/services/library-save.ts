@@ -2,7 +2,7 @@ import "@tanstack/react-start/server-only";
 import { and, eq, or } from "drizzle-orm";
 import { z } from "zod";
 import type { SaveUrlResult } from "@/lib/api/types";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { articles } from "@/lib/schema";
 import { getArticle, libraryItemBody, upsertLibraryItem } from "@/server/services/library";
 import { articleToItem } from "@/lib/library-item";

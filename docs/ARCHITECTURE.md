@@ -518,7 +518,7 @@ capture flow; **Skip** closes the tab.
 
 | Path | Role |
 |---|---|
-| `src/lib/model-fallback.ts` | Fallback model chain, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |
+| `src/lib/model-fallback.ts` | Fallback model chain, prompt clipping (pure, tested in `tests/ai.test.mjs`) |
 | `src/lib/ai-models.ts`, `src/lib/llm.server.ts` | `AI_MODELS` parsing (pure, tested) and provider wiring for the chain |
 | `src/server/ai.ts` | Shared generation helpers and error mapping |
 | `src/server/services/ai-articles.ts` | Summaries, tag vocabulary, article-to-prompt helpers |

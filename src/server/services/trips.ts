@@ -10,7 +10,7 @@ import {
   updateItemInput,
 } from "@/lib/api/schemas/trips";
 import type { Trip, TripHotel, TripItem, TripSummary } from "@/lib/api/trips";
-import { getDb, type AppDb } from "@/lib/db";
+import { getDb, type AppDb } from "@/lib/db.server";
 import { assertPublicHttpUrl } from "@/lib/safe-url.ts";
 import {
   tripHotels,
