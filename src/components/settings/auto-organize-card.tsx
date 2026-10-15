@@ -4,12 +4,13 @@ import { useAiStatus, organizeLibrary } from "@/hooks/use-ai.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { Card, ExportButton } from "@/components/settings/settings-ui.tsx";
 import { toastError } from "@/lib/errors";
+import { useReaderPrefs } from "@/lib/reader-prefs.ts";
 
 /** Waiting articles: no tags, no folder (link-only stubs can't be read, so they're skipped). */
 export function AutoOrganizeCard() {
   const ai = useAiStatus();
-  const autoOrganize = useLibraryStore((s) => s.autoOrganize);
-  const setAutoOrganize = useLibraryStore((s) => s.setAutoOrganize);
+  const autoOrganize = useReaderPrefs((s) => s.autoOrganize);
+  const setAutoOrganize = useReaderPrefs((s) => s.setAutoOrganize);
   const waiting = useLibraryStore(
     (s) => s.library.filter((r) => !r.tags?.length && !r.folderId).length,
   );

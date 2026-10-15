@@ -6,6 +6,7 @@ import { toastError } from "@/lib/errors";
 import type { LibraryItem } from "@/lib/library-item";
 import { queryKeys } from "@/lib/query-client.ts";
 import { useLibraryStore } from "@/lib/store.ts";
+import { useReaderPrefs } from "@/lib/reader-prefs.ts";
 
 /** What the server's AI can do; buttons hide while unknown or when off. */
 export function useAiStatus() {
@@ -55,7 +56,7 @@ export function organizeLibrary(onProgress?: (remaining: number, filed: number) 
 let autoOrganizeStarted = false;
 export function useAutoOrganize() {
   const { enabled } = useAiStatus();
-  const auto = useLibraryStore((s) => s.autoOrganize);
+  const auto = useReaderPrefs((s) => s.autoOrganize);
   useEffect(() => {
     if (!enabled || !auto || autoOrganizeStarted) return;
     autoOrganizeStarted = true;
@@ -69,7 +70,7 @@ export function useAutoOrganize() {
 /** For save flows: file the new article if auto-organise is on and AI is set up. */
 export function useOrganizeAfterSave() {
   const { enabled } = useAiStatus();
-  const auto = useLibraryStore((s) => s.autoOrganize);
+  const auto = useReaderPrefs((s) => s.autoOrganize);
   return () => {
     if (enabled && auto) void organizeLibrary().catch(() => {});
   };

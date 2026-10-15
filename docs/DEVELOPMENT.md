@@ -103,7 +103,8 @@ src/
     db.server.ts   # getDb() — Postgres via pg pool (server-only)
     library-item.ts # Library domain types, LIBRARY_LIMITS, clamp (isomorphic)
     id.ts          # uid()
-    store.ts       # Zustand library (client only)
+    store.ts       # Zustand library data (client only)
+    reader-prefs.ts # Zustand reader preferences, persisted per device
     journal.ts     # Zustand journal
   styles.css       # Tailwind + Kami design tokens
 migrations/        # Ordered SQL

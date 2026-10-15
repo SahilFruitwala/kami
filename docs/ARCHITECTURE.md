@@ -108,7 +108,7 @@ sequenceDiagram
 | UI | `src/components/**` | Presentation; call hooks / stores / `src/lib/api` |
 | Hooks | `src/hooks/**` | Capture, filters, shelf queries |
 | Domain | `library-item.ts`, `item-ops.ts`, `id.ts` | Isomorphic types, size limits, pure helpers — shared by client and server; never imports the store |
-| Client state | `store.ts`, `journal.ts`, `*-remote.ts` | Optimistic library/journal + offline outbox |
+| Client state | `store.ts`, `journal.ts`, `*-remote.ts`, `reader-prefs.ts` | Optimistic library/journal + offline outbox; per-device reader preferences |
 | API client | `src/lib/api/**` | Typed `fetch` wrappers + shared request/response types |
 | HTTP routes | `src/routes/api/**` | Method + path → service call; no business logic |
 | HTTP layer | `src/server/http.ts` | Auth, same-site, rate limit, Zod, error → status |
