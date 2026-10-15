@@ -605,6 +605,7 @@ export const tripItems = pgTable(
   (t) => [index("trip_items_trip_idx").on(t.tripId, t.dayIndex, t.sort)],
 );
 
+/** Legacy (trip agent removed): its chat history. Nothing reads or writes this table now. */
 export const tripMessages = pgTable(
   "trip_messages",
   {
@@ -680,7 +681,6 @@ export const aiNotes = pgTable(
 export type TripRow = typeof trips.$inferSelect;
 export type TripHotelRow = typeof tripHotels.$inferSelect;
 export type TripItemRow = typeof tripItems.$inferSelect;
-export type TripMessageRow = typeof tripMessages.$inferSelect;
 
 export const schema = {
   user,

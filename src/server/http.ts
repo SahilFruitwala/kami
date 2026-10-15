@@ -73,7 +73,8 @@ function errorResponse(status: number, message: string, headers?: HeadersInit): 
   return json({ error: message }, { status, headers });
 }
 
-function toErrorResponse(err: unknown): Response {
+/** Map a thrown error to its JSON response. Shared by `apiHandler` and `hookHandler`. */
+export function toErrorResponse(err: unknown): Response {
   if (err instanceof z.ZodError) {
     return errorResponse(400, err.issues[0]?.message ?? "Invalid request.");
   }
