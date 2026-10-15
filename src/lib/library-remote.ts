@@ -2,79 +2,14 @@ import { libraryApi, type LibraryItemPatch } from "@/lib/api/library";
 import { LIBRARY_BOOT_LIMIT, type LibraryCursor, type LibrarySnapshot } from "@/lib/api/types";
 import { useLibraryStore } from "@/lib/store";
 import { clampLibraryItem, type Folder, type LibraryItem } from "@/lib/library-item";
+import { createSyncQueue, localOnceFlag } from "@/lib/sync-queue";
 
 const LEGACY_KEY = "quarto-library";
 const MIGRATED_FLAG = "quarto-library-migrated-v1";
 
-let remoteEnabled = false;
-
-export function setLibraryRemoteEnabled(enabled: boolean) {
-  remoteEnabled = enabled;
-}
-
-type OutboxEntry = { id: number; label: string; run: () => Promise<unknown> };
-
-let outboxSeq = 0;
-const outbox: OutboxEntry[] = [];
-const outboxListeners = new Set<(count: number) => void>();
-
-function notifyOutbox() {
-  for (const fn of outboxListeners) fn(outbox.length);
-}
-
-/** Subscribe to the pending-sync count (offline outbox). Immediate initial call. */
-export function subscribeOutbox(fn: (count: number) => void): () => void {
-  outboxListeners.add(fn);
-  fn(outbox.length);
-  return () => {
-    outboxListeners.delete(fn);
-  };
-}
-
-export function pendingSyncCount(): number {
-  return outbox.length;
-}
-
-function enqueue(entry: Omit<OutboxEntry, "id">) {
-  outbox.push({ ...entry, id: ++outboxSeq });
-  notifyOutbox();
-}
-
-function sync(label: string, task: () => Promise<unknown>) {
-  if (!remoteEnabled) return;
-  if (typeof navigator !== "undefined" && navigator.onLine === false) {
-    enqueue({ label, run: task });
-    return;
-  }
-  void task().catch((err) => {
-    console.error("[library]", err);
-    enqueue({ label, run: task });
-  });
-}
-
-/** Retry every queued mutation in order. Keeps failures queued for later. */
-export async function flushSyncOutbox(): Promise<{ done: number; failed: number }> {
-  let done = 0;
-  const failed: OutboxEntry[] = [];
-  for (const entry of outbox.splice(0)) {
-    try {
-      await entry.run();
-      done += 1;
-    } catch (err) {
-      console.error("[library]", err);
-      failed.push(entry);
-    }
-  }
-  outbox.unshift(...failed);
-  notifyOutbox();
-  return { done, failed: failed.length };
-}
-
-if (typeof window !== "undefined") {
-  window.addEventListener("online", () => {
-    void flushSyncOutbox();
-  });
-}
+const queue = createSyncQueue("library");
+const sync = queue.sync;
+const legacyMigrated = localOnceFlag(MIGRATED_FLAG);
 
 export function hydrateLibrary(snapshot: LibrarySnapshot) {
   useLibraryStore
@@ -96,24 +31,6 @@ function readLegacySnapshot(): LibrarySnapshot | null {
     return { library, folders };
   } catch {
     return null;
-  }
-}
-
-function markLegacyMigrated() {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(MIGRATED_FLAG, "1");
-  } catch {
-    /* ignore */
-  }
-}
-
-function wasLegacyMigrated(): boolean {
-  if (typeof window === "undefined") return true;
-  try {
-    return window.localStorage.getItem(MIGRATED_FLAG) === "1";
-  } catch {
-    return true;
   }
 }
 
@@ -149,20 +66,20 @@ export async function bootstrapLibraryFromServer(userId: string): Promise<void> 
   }
   bootInflight = (async () => {
     bootSeq += 1;
-    setLibraryRemoteEnabled(true);
+    queue.setEnabled(true);
     const page = await libraryApi.page({ limit: LIBRARY_BOOT_LIMIT });
 
-    if ((page.total ?? 0) === 0 && page.folders.length === 0 && !wasLegacyMigrated()) {
+    if ((page.total ?? 0) === 0 && page.folders.length === 0 && !legacyMigrated.isSet()) {
       const legacy = readLegacySnapshot();
       if (legacy && (legacy.library.length > 0 || legacy.folders.length > 0)) {
         const snapshot = await libraryApi.import(legacy);
-        markLegacyMigrated();
+        legacyMigrated.set();
         hydrateLibrary(snapshot);
         nextPageCursor = null;
         bootedUserId = userId;
         return;
       }
-      markLegacyMigrated();
+      legacyMigrated.set();
     }
 
     const complete = page.nextCursor == null;
@@ -305,6 +222,7 @@ export async function wipeLibraryAccount(): Promise<void> {
 
 export function clearLibraryLocal() {
   bootedUserId = null;
+  queue.setEnabled(false);
   nextPageCursor = undefined;
   bootSeq += 1;
   useLibraryStore.setState({

@@ -7,7 +7,7 @@ import { SiteFooter } from "@/components/library/site-footer.tsx";
 import { NameOnboarding } from "@/components/name-onboarding.tsx";
 import { SiteHeader, type SitePane } from "@/components/site-header.tsx";
 import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
-import { flushSyncOutbox, pendingSyncCount, subscribeOutbox } from "@/lib/library-remote.ts";
+import { flushAllSyncQueues, pendingSyncCount, subscribeSyncQueues } from "@/lib/sync-queue.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
 
 // ⌘K palette is heavy (~600 lines + shelf lookup hooks) and unused until
@@ -123,7 +123,7 @@ function OfflineBanner() {
     const goOffline = () => setOnline(false);
     window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
-    const unsub = subscribeOutbox(setPending);
+    const unsub = subscribeSyncQueues(setPending);
     return () => {
       window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
@@ -136,7 +136,7 @@ function OfflineBanner() {
   async function retry() {
     setFlushing(true);
     try {
-      const { done, failed } = await flushSyncOutbox();
+      const { done, failed } = await flushAllSyncQueues();
       if (failed > 0) toast.error(`${failed} changes still waiting — try again later`);
       else if (done > 0) toast.success(`Synced ${done} ${done === 1 ? "change" : "changes"}`);
     } finally {

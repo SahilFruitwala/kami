@@ -1,76 +1,13 @@
 import { journalApi } from "@/lib/api/journal";
 import { isDateKey, useJournalStore, type JournalEntry } from "@/lib/journal";
+import { createSyncQueue, localOnceFlag } from "@/lib/sync-queue";
 
 const LOCAL_KEY = "quarto-journal";
 const MIGRATED_FLAG = "quarto-journal-migrated-v1";
 
-let remoteEnabled = false;
-
-export function setJournalRemoteEnabled(enabled: boolean) {
-  remoteEnabled = enabled;
-}
-
-type OutboxEntry = { id: number; label: string; run: () => Promise<unknown> };
-
-let outboxSeq = 0;
-const outbox: OutboxEntry[] = [];
-const outboxListeners = new Set<(count: number) => void>();
-
-function notifyOutbox() {
-  for (const fn of outboxListeners) fn(outbox.length);
-}
-
-export function subscribeJournalOutbox(fn: (count: number) => void): () => void {
-  outboxListeners.add(fn);
-  fn(outbox.length);
-  return () => {
-    outboxListeners.delete(fn);
-  };
-}
-
-export function pendingJournalSyncCount(): number {
-  return outbox.length;
-}
-
-function enqueue(entry: Omit<OutboxEntry, "id">) {
-  outbox.push({ ...entry, id: ++outboxSeq });
-  notifyOutbox();
-}
-
-function sync(label: string, task: () => Promise<unknown>) {
-  if (!remoteEnabled) return;
-  if (typeof navigator !== "undefined" && navigator.onLine === false) {
-    enqueue({ label, run: task });
-    return;
-  }
-  void task().catch((err) => {
-    console.error("[journal]", err);
-    enqueue({ label, run: task });
-  });
-}
-
-export async function flushJournalOutbox(): Promise<{ done: number; failed: number }> {
-  let done = 0;
-  const failed: OutboxEntry[] = [];
-  for (const entry of outbox.splice(0)) {
-    try {
-      await entry.run();
-      done += 1;
-    } catch (err) {
-      console.error("[journal]", err);
-      failed.push(entry);
-    }
-  }
-  outbox.unshift(...failed);
-  notifyOutbox();
-  return { done, failed: failed.length };
-}
-
-if (typeof window !== "undefined") {
-  window.addEventListener("online", () => {
-    void flushJournalOutbox();
-  });
-}
+const queue = createSyncQueue("journal");
+const sync = queue.sync;
+const legacyMigrated = localOnceFlag(MIGRATED_FLAG);
 
 export function hydrateJournal(entries: Record<string, JournalEntry>) {
   useJournalStore.getState().replaceEntries(entries);
@@ -105,24 +42,6 @@ function readLocalEntries(): Record<string, JournalEntry> {
   }
 }
 
-function markLegacyMigrated() {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(MIGRATED_FLAG, "1");
-  } catch {
-    /* ignore */
-  }
-}
-
-function wasLegacyMigrated(): boolean {
-  if (typeof window === "undefined") return true;
-  try {
-    return window.localStorage.getItem(MIGRATED_FLAG) === "1";
-  } catch {
-    return true;
-  }
-}
-
 function mergeByUpdatedAt(
   local: Record<string, JournalEntry>,
   remote: JournalEntry[],
@@ -151,16 +70,16 @@ export async function bootstrapJournalFromServer(userId: string): Promise<void> 
     return;
   }
   bootInflight = (async () => {
-    setJournalRemoteEnabled(true);
+    queue.setEnabled(true);
     let remote = await journalApi.list();
     const local = readLocalEntries();
     const localList = Object.values(local);
 
-    if (remote.length === 0 && localList.length > 0 && !wasLegacyMigrated()) {
+    if (remote.length === 0 && localList.length > 0 && !legacyMigrated.isSet()) {
       remote = await journalApi.import(localList);
-      markLegacyMigrated();
-    } else if (!wasLegacyMigrated()) {
-      markLegacyMigrated();
+      legacyMigrated.set();
+    } else if (!legacyMigrated.isSet()) {
+      legacyMigrated.set();
     }
 
     const merged = mergeByUpdatedAt(local, remote);
@@ -194,6 +113,6 @@ export function syncUpsertEntry(date: string, text: string, updatedAt: number) {
 
 export function clearJournalLocal() {
   bootedUserId = null;
-  setJournalRemoteEnabled(false);
+  queue.setEnabled(false);
   useJournalStore.getState().clearAll();
 }
