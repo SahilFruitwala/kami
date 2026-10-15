@@ -26,14 +26,15 @@ import {
 } from "@/lib/library-item";
 import { uid } from "@/lib/id";
 import {
+  libraryItemBody,
+  libraryItemPatch,
+  type libraryItemSchema,
+} from "@/lib/api/schemas/library";
+import {
   articleListColumns,
-  highlightOpSchema,
-  highlightSchema,
-  libraryItemSchema,
   ownedFolderId,
   rowToItem,
   sanitizeStoredHtml,
-  tagOpSchema,
 } from "@/lib/library-rows.server.ts";
 import { applyHighlightOps, applyTagOps } from "@/lib/item-ops.ts";
 import { conflict, notFound } from "@/server/http";
@@ -55,20 +56,7 @@ export const libraryPageQuery = z
         : undefined,
   }));
 
-export const libraryItemBody = z.preprocess(clampLibraryItem, libraryItemSchema);
-
-export const libraryItemPatch = z.object({
-  archived: z.boolean().optional(),
-  favorited: z.boolean().optional(),
-  note: z.string().max(L.note).optional(),
-  folderId: z.string().max(200).nullable().optional(),
-  /** Full replacement — prefer `tagOps` so concurrent edits merge. */
-  tags: z.array(z.string().max(L.tagLength)).max(L.tags).optional(),
-  /** Full replacement — prefer `highlightOps` so concurrent edits merge. */
-  highlights: z.array(highlightSchema).max(L.highlights).optional(),
-  tagOps: z.array(tagOpSchema).max(50).optional(),
-  highlightOps: z.array(highlightOpSchema).max(50).optional(),
-});
+export { libraryItemBody, libraryItemPatch };
 
 /**
  * Keyset-paginated library read: `WHERE user_id` + tuple cursor on
