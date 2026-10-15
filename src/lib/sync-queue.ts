@@ -1,28 +1,39 @@
 /**
- * Fire-and-forget server writes with an in-memory retry outbox, shared by the
- * library and journal sync layers (`*-remote.ts`).
+ * Fire-and-forget server writes with a retry outbox, shared by the library and
+ * journal sync layers (`*-remote.ts`).
  *
- * A write runs immediately when online; if it fails (or the browser is
- * offline) it is queued and retried on reconnect or via `flushAllSyncQueues`
- * (the offline pill's Retry). The queue lives in memory, so writes still
- * queued when the tab closes are lost — persisting them needs serializable
- * ops instead of closures.
+ * A write is a plain-data op (e.g. `{ kind: "patch", id, patch }`) run by the
+ * queue's `run` function. It runs immediately when online; if it fails (or the
+ * browser is offline) it is queued and retried on reconnect, on the next boot,
+ * or via `flushAllSyncQueues` (the offline pill's Retry).
+ *
+ * Queued ops are saved to localStorage under the signed-in user's id, so they
+ * survive a reload and are only ever replayed for that same user. Ops older
+ * than `MAX_AGE_MS` are dropped on load rather than replayed over newer edits.
  */
 
-type Entry = { id: number; label: string; run: () => Promise<unknown> };
+import { readLocal, writeLocal } from "@/lib/local-pref";
+
+type Entry<Op> = { label: string; op: Op; at: number };
 type Listener = (count: number) => void;
 
 export type FlushResult = { done: number; failed: number };
 
-export type SyncQueue = {
-  /** Writes are dropped while disabled (signed out / before boot). */
-  setEnabled: (enabled: boolean) => void;
-  /** Run `task` now, queueing it for retry on failure or while offline. */
-  sync: (label: string, task: () => Promise<unknown>) => void;
-  /** Retry every queued write in order; failures stay queued. */
+export type SyncQueue<Op> = {
+  /** Load and replay `userId`'s saved ops; accept new writes. */
+  start: (userId: string) => void;
+  /** Stop accepting writes (sign-out). Saved ops stay for that user's next boot. */
+  stop: () => void;
+  /** Run `op` now, queueing it for retry on failure or while offline. */
+  sync: (label: string, op: Op) => void;
+  /** Retry every queued op in order; failures stay queued. */
   flush: () => Promise<FlushResult>;
+  /** Drop the current user's queued ops (their data was just wiped). */
+  discard: () => void;
   pending: () => number;
 };
+
+const MAX_AGE_MS = 7 * 24 * 60 * 60_000;
 
 const queues = new Set<{ pending: () => number; flush: () => Promise<FlushResult> }>();
 const listeners = new Set<Listener>();
@@ -38,46 +49,107 @@ function notify() {
   for (const fn of listeners) fn(count);
 }
 
-export function createSyncQueue(name: string): SyncQueue {
-  let enabled = false;
-  let seq = 0;
-  const outbox: Entry[] = [];
+export function createSyncQueue<Op>(
+  name: string,
+  run: (op: Op) => Promise<unknown>,
+  opts: {
+    /** Smaller copy of an op to save when storage is full (e.g. drop an article body). */
+    shrink?: (op: Op) => Op;
+  } = {},
+): SyncQueue<Op> {
+  let userId: string | null = null;
+  let outbox: Entry<Op>[] = [];
 
-  const enqueue = (label: string, run: Entry["run"]) => {
-    outbox.push({ id: ++seq, label, run });
+  const storageKey = (id: string) => `kami-outbox:${name}:${id}`;
+
+  function save() {
+    if (!userId) return;
+    const key = storageKey(userId);
+    if (outbox.length === 0) {
+      writeLocal(key, null);
+      return;
+    }
+    try {
+      window.localStorage.setItem(key, JSON.stringify(outbox));
+    } catch {
+      // Quota: try a slimmer copy; failing that the ops stay in memory only.
+      if (!opts.shrink) return;
+      const slim = outbox.map((e) => ({ ...e, op: opts.shrink!(e.op) }));
+      writeLocal(key, JSON.stringify(slim));
+    }
+  }
+
+  function load(id: string): Entry<Op>[] {
+    try {
+      const parsed: unknown = JSON.parse(readLocal(storageKey(id)) ?? "[]");
+      if (!Array.isArray(parsed)) return [];
+      const cutoff = Date.now() - MAX_AGE_MS;
+      return (parsed as Entry<Op>[]).filter(
+        (e) => e && typeof e.label === "string" && typeof e.at === "number" && e.at >= cutoff,
+      );
+    } catch {
+      return [];
+    }
+  }
+
+  function enqueue(label: string, op: Op) {
+    outbox.push({ label, op, at: Date.now() });
+    save();
     notify();
-  };
+  }
 
-  const queue: SyncQueue = {
-    setEnabled: (next) => {
-      enabled = next;
+  const queue: SyncQueue<Op> = {
+    start: (id) => {
+      if (userId === id) return;
+      userId = id;
+      outbox = load(id);
+      notify();
+      if (outbox.length && (typeof navigator === "undefined" || navigator.onLine !== false)) {
+        void queue.flush();
+      }
     },
-    sync: (label, task) => {
-      if (!enabled) return;
+    stop: () => {
+      userId = null;
+      outbox = [];
+      notify();
+    },
+    sync: (label, op) => {
+      if (!userId) return;
       if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        enqueue(label, task);
+        enqueue(label, op);
         return;
       }
-      void task().catch((err) => {
+      const owner = userId;
+      void run(op).catch((err) => {
         console.error(`[${name}]`, err);
-        enqueue(label, task);
+        if (userId === owner) enqueue(label, op);
       });
     },
     flush: async () => {
+      const owner = userId;
       let done = 0;
-      const failed: Entry[] = [];
+      const failed: Entry<Op>[] = [];
       for (const entry of outbox.splice(0)) {
         try {
-          await entry.run();
+          await run(entry.op);
           done += 1;
         } catch (err) {
           console.error(`[${name}]`, err);
           failed.push(entry);
         }
       }
-      outbox.unshift(...failed);
+      // Signed out (or switched user) mid-flush: the new session owns the outbox.
+      if (userId === owner) {
+        outbox.unshift(...failed);
+        save();
+      }
       notify();
       return { done, failed: failed.length };
+    },
+    discard: () => {
+      outbox = [];
+      save();
+      notify();
     },
     pending: () => outbox.length,
   };
@@ -129,13 +201,6 @@ export function localOnceFlag(key: string): { isSet: () => boolean; set: () => v
         return true;
       }
     },
-    set: () => {
-      if (typeof window === "undefined") return;
-      try {
-        window.localStorage.setItem(key, "1");
-      } catch {
-        /* ignore */
-      }
-    },
+    set: () => writeLocal(key, "1"),
   };
 }

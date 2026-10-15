@@ -7,7 +7,40 @@ import { createSyncQueue, localOnceFlag } from "@/lib/sync-queue";
 const LEGACY_KEY = "quarto-library";
 const MIGRATED_FLAG = "quarto-library-migrated-v1";
 
-const queue = createSyncQueue("library");
+/** Library writes as data, so the outbox can be saved and replayed after a reload. */
+type LibraryOp =
+  | { kind: "upsert"; item: LibraryItem }
+  | { kind: "patch"; id: string; patch: LibraryItemPatch }
+  | { kind: "remove"; id: string }
+  | { kind: "tags"; op: LibraryTagOp }
+  | { kind: "folderAdd"; folder: Folder }
+  | { kind: "folderRename"; id: string; name: string }
+  | { kind: "folderRemove"; id: string };
+
+function runLibraryOp(op: LibraryOp): Promise<unknown> {
+  switch (op.kind) {
+    case "upsert":
+      return libraryApi.items.upsert(op.item);
+    case "patch":
+      return libraryApi.items.patch(op.id, op.patch);
+    case "remove":
+      return libraryApi.items.remove(op.id);
+    case "tags":
+      return libraryApi.tagEverywhere(op.op);
+    case "folderAdd":
+      return libraryApi.folders.add(op.folder);
+    case "folderRename":
+      return libraryApi.folders.rename(op.id, op.name);
+    case "folderRemove":
+      return libraryApi.folders.remove(op.id);
+  }
+}
+
+const queue = createSyncQueue("library", runLibraryOp, {
+  // An upsert with an empty body never clobbers the stored one, so a body is
+  // the first thing to drop when localStorage is full.
+  shrink: (op) => (op.kind === "upsert" ? { ...op, item: { ...op.item, contentHtml: "" } } : op),
+});
 const sync = queue.sync;
 const legacyMigrated = localOnceFlag(MIGRATED_FLAG);
 
@@ -66,7 +99,7 @@ export async function bootstrapLibraryFromServer(userId: string): Promise<void> 
   }
   bootInflight = (async () => {
     bootSeq += 1;
-    queue.setEnabled(true);
+    queue.start(userId);
     const page = await libraryApi.page({ limit: LIBRARY_BOOT_LIMIT });
 
     if ((page.total ?? 0) === 0 && page.folders.length === 0 && !legacyMigrated.isSet()) {
@@ -145,7 +178,7 @@ export async function loadMoreLibrary(): Promise<boolean> {
 }
 
 export function syncUpsertItem(item: LibraryItem) {
-  sync("save", () => libraryApi.items.upsert(item));
+  sync("save", { kind: "upsert", item });
 }
 
 /**
@@ -183,37 +216,39 @@ export async function persistArticleItem(item: LibraryItem): Promise<LibraryItem
 }
 
 export function syncArchiveItem(id: string, archived: boolean) {
-  sync("archive", () => libraryApi.items.patch(id, { archived }));
+  sync("archive", { kind: "patch", id, patch: { archived } });
 }
 
 export function syncRemoveItem(id: string) {
-  sync("remove", () => libraryApi.items.remove(id));
+  sync("remove", { kind: "remove", id });
 }
 
 export function syncPatchItem(id: string, patch: LibraryItemPatch) {
-  sync("update", () => libraryApi.items.patch(id, patch));
+  sync("update", { kind: "patch", id, patch });
 }
 
 export function syncTagEverywhere(op: LibraryTagOp) {
-  sync("tags", () => libraryApi.tagEverywhere(op));
+  sync("tags", { kind: "tags", op });
 }
 
 export function syncAddFolder(folder: Folder) {
-  sync("folder", () => libraryApi.folders.add({ id: folder.id, name: folder.name }));
+  sync("folder", { kind: "folderAdd", folder: { id: folder.id, name: folder.name } });
 }
 
 export function syncRenameFolder(id: string, name: string) {
-  sync("folder", () => libraryApi.folders.rename(id, name));
+  sync("folder", { kind: "folderRename", id, name });
 }
 
 export function syncRemoveFolder(id: string) {
-  sync("folder", () => libraryApi.folders.remove(id));
+  sync("folder", { kind: "folderRemove", id });
 }
 
 /** Delete every server row for this account, then clear local state.
  *  Explicit user action — not queued; throws when unreachable. */
 export async function wipeLibraryAccount(): Promise<void> {
   await libraryApi.wipe();
+  // Queued writes would recreate rows the wipe just deleted.
+  queue.discard();
   nextPageCursor = null;
   useLibraryStore.setState({
     library: [],
@@ -226,7 +261,7 @@ export async function wipeLibraryAccount(): Promise<void> {
 
 export function clearLibraryLocal() {
   bootedUserId = null;
-  queue.setEnabled(false);
+  queue.stop();
   nextPageCursor = undefined;
   bootSeq += 1;
   useLibraryStore.setState({
