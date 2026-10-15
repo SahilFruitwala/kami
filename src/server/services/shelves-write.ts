@@ -6,7 +6,6 @@ import { invalidateUserCache } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db.server";
 import { activity, books, movies, places, restaurants, tvShows, wishlistItems } from "@/lib/schema";
 import {
-  clampShelfItemInput,
   addShelfItemInput,
   findExistingMovieOrTv,
   findOwnedItem,
@@ -21,12 +20,15 @@ import {
   tableForType,
 } from "@/lib/shelves-db.server.ts";
 import { badRequest, conflict, notFound } from "@/server/http";
+import {
+  addShelfItemBody,
+  bookProgressBody,
+  importBooksBody,
+  statusBody,
+} from "@/lib/api/schemas/shelves";
 
-/** `POST /api/shelves/:type` body — the type lives in the path. */
-export const addShelfItemBody = z.preprocess(
-  clampShelfItemInput,
-  addShelfItemInput.omit({ type: true }),
-);
+// Request bodies are shared with the browser client.
+export { addShelfItemBody, bookProgressBody, importBooksBody, statusBody };
 
 /** `GET /api/shelves/:type/duplicates?title=&tmdbId=` */
 export const duplicatesQuery = z.object({
@@ -34,25 +36,7 @@ export const duplicatesQuery = z.object({
   tmdbId: z.string().max(32).optional(),
 });
 
-export const statusBody = z.object({ status: shelfStatus });
-
 export const bookIdParams = z.object({ id: z.string().min(1).max(200) });
-
-export const bookProgressBody = z
-  .union([
-    z.object({
-      mode: z.literal("pages"),
-      currentPage: z.number().int().min(0).max(100_000),
-      pageCount: z.number().int().min(1).max(100_000),
-    }),
-    z.object({
-      mode: z.literal("percent"),
-      percent: z.number().int().min(0).max(100),
-    }),
-  ])
-  .refine((d) => d.mode !== "pages" || d.currentPage <= d.pageCount, {
-    message: "Current page can't be past the last page.",
-  });
 
 type ShelfType = z.output<typeof shelfType>;
 
@@ -394,35 +378,6 @@ export async function setBookProgress(
   await invalidateUserCache(userId);
   return { status, percent: finished ? 100 : Math.min(percent, 99) };
 }
-
-/** `POST /api/shelves/book/import` — rows parsed client-side from a Goodreads or StoryGraph export. */
-export const importBooksBody = z.object({
-  source: z.enum(["goodreads", "storygraph"]).default("goodreads"),
-  books: z
-    .array(
-      z.object({
-        title: z.string().trim().min(1).max(500),
-        author: z.string().trim().max(300).optional(),
-        isbn: z
-          .string()
-          .regex(/^(\d{9}[\dX]|\d{13})$/)
-          .optional(),
-        year: z.number().int().min(1).max(3000).optional(),
-        pages: z.number().int().min(1).max(100_000).optional(),
-        status: shelfStatus,
-        // Goodreads rates in whole stars, StoryGraph in quarter stars.
-        rating: z.number().min(0.25).max(5).multipleOf(0.25).optional(),
-        goodreadsId: z
-          .string()
-          .regex(/^\d{1,20}$/)
-          .optional(),
-        dateAdded: z.iso.date().optional(),
-        dateRead: z.iso.date().optional(),
-        review: z.string().max(20_000).optional(),
-      }),
-    )
-    .max(10_000),
-});
 
 const IMPORT_CHUNK = 500;
 const SOURCE_NAMES = { goodreads: "Goodreads", storygraph: "StoryGraph" } as const;
