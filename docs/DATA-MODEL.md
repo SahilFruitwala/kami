@@ -170,7 +170,7 @@ See [AI features](./ARCHITECTURE.md#ai-features).
 
 | Table | Role |
 |-------|------|
-| `ai_notes` | Generated write-ups not tied to one article. Primary key (`user_id`, `kind`, `key`): `kind` is the feature (`entry-summary`; older `weekly-recap` and `feed-digest` rows may remain), `key` the period (e.g. the day it was made). `content` jsonb in the feature's shape, `model` that wrote it; the newest 12 per kind are kept |
+| `ai_notes` | Generated write-ups not tied to one article. Primary key (`user_id`, `kind`, `key`): `kind` is the feature (no feature writes here now; older `entry-summary`, `weekly-recap` and `feed-digest` rows may remain), `key` the period (e.g. the day it was made). `content` jsonb in the feature's shape, `model` that wrote it; the newest 12 per kind are kept |
 | `article_ai` | One row per article: `summary` jsonb (`tldr`, `keyPoints`, suggested `tags` and `folderId`), `content_hash` (sha256 of the body it was made from, to flag stale summaries), `model` that wrote it |
 
 Highlight notes (inside `articles.highlights` jsonb) are capped at 1000 chars (`HIGHLIGHT_NOTE_MAX`).

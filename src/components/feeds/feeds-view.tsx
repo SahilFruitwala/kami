@@ -10,7 +10,6 @@ import {
   PencilLine,
   RefreshCcw,
   Rss,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 import { Hanko } from "@/components/kami.tsx";
@@ -21,8 +20,6 @@ import {
   NewsletterCard,
   OpmlTools,
 } from "@/components/feeds/feeds-sidebar.tsx";
-import { EntrySummary } from "@/components/feeds/feed-ai.tsx";
-import { useAiStatus } from "@/hooks/use-ai.ts";
 import { useFeedActions, useFeedEntries, useFeedsOverview } from "@/hooks/use-feeds.ts";
 import type { FeedEntry, FeedEntryView, FeedSummary } from "@/lib/api/feeds";
 import { previewImageSrc } from "@/lib/image-url.ts";
@@ -331,7 +328,6 @@ function EntryList({
   const query = useFeedEntries(view, feedId);
   const entries = useMemo(() => query.data?.pages.flatMap((p) => p.entries) ?? [], [query.data]);
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const ai = useAiStatus();
 
   if (query.isPending) return <EntrySkeleton />;
   if (query.isError) {
@@ -385,7 +381,6 @@ function EntryList({
             entry={entry}
             busy={pendingId === entry.id}
             showFeed={!feedId}
-            canSummarize={ai.enabled}
             onRead={() => run(entry, true)}
             onSave={() => run(entry, false)}
             onDismiss={() => actions.markRead.mutate([entry.id])}
@@ -413,7 +408,6 @@ function EntryCard({
   entry,
   busy,
   showFeed,
-  canSummarize,
   onRead,
   onSave,
   onDismiss,
@@ -421,13 +415,11 @@ function EntryCard({
   entry: FeedEntry;
   busy: boolean;
   showFeed: boolean;
-  canSummarize: boolean;
   onRead: () => void;
   onSave: () => void;
   onDismiss: () => void;
 }) {
   const read = entry.state !== null;
-  const [summaryOpen, setSummaryOpen] = useState(false);
   return (
     <li
       id={`feed-entry-${entry.id}`}
@@ -505,14 +497,7 @@ function EntryCard({
               Mark read
             </EntryAction>
           ) : null}
-          {canSummarize ? (
-            <EntryAction onClick={() => setSummaryOpen((v) => !v)}>
-              <Sparkles className="size-3.5" aria-hidden="true" />
-              {summaryOpen ? "Hide summary" : "Summary"}
-            </EntryAction>
-          ) : null}
         </div>
-        {summaryOpen ? <EntrySummary entryId={entry.id} /> : null}
       </div>
       {entry.imageUrl ? (
         <img

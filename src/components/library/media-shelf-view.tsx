@@ -10,7 +10,6 @@ import {
   LayoutGrid,
   LoaderCircle,
   Plus,
-  Sparkles,
   Tv,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -40,9 +39,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { AddShelfDialog } from "@/components/library/add-shelf-dialog.tsx";
 import { ShelfFolio } from "@/components/library/shelf-folio.tsx";
-import { ShelfRecs } from "@/components/library/shelf-recs.tsx";
 import { statusMeta, statusToApi } from "@/lib/shelf-status.ts";
-import { useAiStatus } from "@/hooks/use-ai.ts";
 import {
   SHELF_PAGE_SIZE,
   useDeleteShelfItem,
@@ -133,9 +130,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
   const [picked, setPicked] = useState<Picked | null>(null);
   const [opening, setOpening] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
-  const [recsOpen, setRecsOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
-  const ai = useAiStatus();
   const setItemStatus = useSetShelfItemStatus();
   const setShowWatched = useSetShowWatched();
   const deleteItem = useDeleteShelfItem();
@@ -249,18 +244,6 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
           <div className="mt-3 flex flex-wrap items-end justify-between gap-4">
             <h1 className="g-h1 text-ink">{copy.title}</h1>
             <div className="mb-2 flex items-center gap-2">
-              {ai.enabled && tab !== "wishlist" ? (
-                <button
-                  type="button"
-                  className="g-btn g-btn--ghost"
-                  aria-pressed={recsOpen}
-                  aria-expanded={recsOpen}
-                  onClick={() => setRecsOpen((v) => !v)}
-                >
-                  <Sparkles className="size-4" aria-hidden="true" />
-                  Suggest
-                </button>
-              ) : null}
               <button type="button" className="g-btn g-btn--ink" onClick={() => setAddOpen(true)}>
                 <Plus className="size-4" aria-hidden="true" />
                 Add to shelf
@@ -295,10 +278,6 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
               </p>
             ) : null}
           </div>
-
-          {recsOpen && ai.enabled && tab !== "wishlist" ? (
-            <ShelfRecs key={tab} type={tab} onClose={() => setRecsOpen(false)} />
-          ) : null}
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Segmented<View>
