@@ -2,6 +2,15 @@ import "@tanstack/react-start/server-only";
 import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { DOMParser } from "linkedom";
 import { z } from "zod";
+import {
+  addFeedInput,
+  inboxInput,
+  markAllReadInput,
+  markReadInput,
+  opmlInput,
+  refreshInput,
+  renameFeedInput,
+} from "@/lib/api/schemas/feeds";
 import type {
   EntryArticleResult,
   FeedEntry,
@@ -55,15 +64,18 @@ const FULL_TEXT_MIN_WORDS = 150;
 
 // ---------- Schemas ----------
 
-export const addFeedInput = z.object({
-  url: z.string().trim().min(4, "Paste a feed or site URL.").max(2000),
-});
+// Request bodies are shared with the browser client.
+export {
+  addFeedInput,
+  inboxInput,
+  markAllReadInput,
+  markReadInput,
+  opmlInput,
+  refreshInput,
+  renameFeedInput,
+};
+
 export const feedIdParams = z.object({ id: z.string().min(1).max(200) });
-export const renameFeedInput = z.object({ title: z.string().trim().max(200).nullable() });
-export const refreshInput = z.object({
-  force: z.boolean().optional(),
-  feedId: z.string().min(1).max(200).optional(),
-});
 export const entriesQuery = z.object({
   view: z.enum(["unread", "all", "saved"]).default("unread"),
   feedId: z.string().max(200).optional(),
@@ -71,10 +83,6 @@ export const entriesQuery = z.object({
   cursorId: z.string().max(200).optional(),
   limit: z.coerce.number().int().min(1).max(100).default(40),
 });
-export const markReadInput = z.object({ ids: z.array(z.string().min(1).max(200)).min(1).max(200) });
-export const markAllReadInput = z.object({ feedId: z.string().max(200).optional() });
-export const inboxInput = z.object({ rotate: z.boolean().optional() });
-export const opmlInput = z.object({ opml: z.string().min(1).max(2_000_000) });
 
 // ---------- Shared SQL ----------
 

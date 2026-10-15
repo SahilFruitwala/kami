@@ -1,6 +1,7 @@
 import "@tanstack/react-start/server-only";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
+import { createSourceInput, runInput, updateSourceInput } from "@/lib/api/schemas/extracts";
 import type { ExtractResult, ExtractSource, ExtractsOverview } from "@/lib/api/extracts";
 import { getDb, type AppDb } from "@/lib/db.server";
 import { askPage, firecrawlApiKey, FirecrawlError } from "@/lib/firecrawl.server.ts";
@@ -27,22 +28,8 @@ const MAX_HISTORY = 50;
 
 // ---------- Schemas ----------
 
-const name = z.string().trim().max(120);
-const url = z.string().trim().min(4, "Paste the page URL.").max(2000);
-const question = z
-  .string()
-  .trim()
-  .min(8, "Describe what to pull from the page.")
-  .max(2000, "Keep the question under 2000 characters.");
-
-export const createSourceInput = z.object({ name: name.optional(), url, question });
-export const updateSourceInput = z.object({
-  name: name.optional(),
-  url: url.optional(),
-  question: question.optional(),
-});
+export { createSourceInput, runInput, updateSourceInput };
 export const extractIdParams = z.object({ id: z.string().min(1).max(200) });
-export const runInput = z.object({ fresh: z.boolean().optional() });
 
 // ---------- Mapping ----------
 
