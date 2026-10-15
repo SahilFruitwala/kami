@@ -1,12 +1,18 @@
 import "@tanstack/react-start/server-only";
 import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 import { z } from "zod";
+import {
+  createTripInput,
+  updateTripInput,
+  createHotelInput,
+  updateHotelInput,
+  createItemInput,
+  updateItemInput,
+} from "@/lib/api/schemas/trips";
 import type { Trip, TripHotel, TripItem, TripSummary } from "@/lib/api/trips";
 import { getDb, type AppDb } from "@/lib/db";
 import { assertPublicHttpUrl } from "@/lib/safe-url.ts";
 import {
-  TRIP_HOTEL_STATUSES,
-  TRIP_SLOTS,
   tripHotels,
   tripItems,
   trips,
@@ -22,7 +28,6 @@ import {
   lastUsedDay,
   MAX_TRIP_DAYS,
   moveWithin,
-  parseIsoDate,
 } from "@/lib/trip-days.ts";
 import { badRequest, notFound } from "@/server/http";
 
@@ -39,112 +44,20 @@ export const MAX_ITEMS = 300;
 // ---------- Schemas ----------
 
 const id = z.string().min(1).max(200);
-/** Optional text: `undefined` leaves a field alone, `null` or "" clears it. */
-const text = (max: number) => z.string().trim().max(max).nullable().optional();
-const isoDate = z
-  .string()
-  .trim()
-  .refine((v) => parseIsoDate(v) !== null, "Use a real date (YYYY-MM-DD).");
-const dayCount = z
-  .number()
-  .int()
-  .min(1)
-  .max(MAX_TRIP_DAYS, `Trips can be up to ${MAX_TRIP_DAYS} days.`);
 
 export const tripIdParams = z.object({ id });
 export const tripHotelParams = z.object({ id, hotelId: id });
 export const tripItemParams = z.object({ id, itemId: id });
 
-export const createTripInput = z.object({
-  destination: z.string().trim().min(1, "Where are you going?").max(120),
-  title: z.string().trim().max(120).optional(),
-  startDate: isoDate.nullable().optional(),
-  /** Alternative to `dayCount`: the last day of the trip (inclusive). */
-  endDate: isoDate.optional(),
-  dayCount: dayCount.optional(),
-});
-
-export const updateTripInput = z.object({
-  title: z.string().trim().min(1, "Give the trip a name.").max(120).optional(),
-  destination: z.string().trim().min(1, "Where are you going?").max(120).optional(),
-  startDate: isoDate.nullable().optional(),
-  endDate: isoDate.optional(),
-  dayCount: dayCount.optional(),
-  travelers: z.number().int().min(1).max(20).nullable().optional(),
-  budget: text(200),
-  preferences: text(2000),
-});
-
-const lat = z.number().min(-90).max(90).nullable().optional();
-const lng = z.number().min(-180).max(180).nullable().optional();
-const startTime = z
-  .string()
-  .trim()
-  .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use a 24-hour time like 09:30.")
-  .nullable()
-  .optional()
-  .or(z.literal("").transform(() => null));
-const durationMin = z
-  .number()
-  .int()
-  .min(5, "Make it at least 5 minutes.")
-  .max(1440, "Keep a plan to one day or less.")
-  .nullable()
-  .optional();
-
-const hotelFields = {
-  area: text(120),
-  url: text(2000),
-  priceNote: text(200),
-  ratingNote: text(200),
-  why: text(1000),
-  lat,
-  lng,
+// Request bodies are shared with the browser client.
+export {
+  createTripInput,
+  updateTripInput,
+  createHotelInput,
+  updateHotelInput,
+  createItemInput,
+  updateItemInput,
 };
-
-export const createHotelInput = z.object({
-  name: z.string().trim().min(1, "Name the hotel.").max(200),
-  ...hotelFields,
-});
-
-export const updateHotelInput = z.object({
-  name: z.string().trim().min(1, "Name the hotel.").max(200).optional(),
-  ...hotelFields,
-  status: z.enum(TRIP_HOTEL_STATUSES).optional(),
-});
-
-const itemFields = {
-  place: text(200),
-  url: text(2000),
-  notes: text(2000),
-  lat,
-  lng,
-  startTime,
-  durationMin,
-};
-
-export const createItemInput = z.object({
-  dayIndex: z
-    .number()
-    .int()
-    .min(0)
-    .max(MAX_TRIP_DAYS - 1),
-  slot: z.enum(TRIP_SLOTS),
-  title: z.string().trim().min(1, "Describe the plan.").max(200),
-  ...itemFields,
-});
-
-export const updateItemInput = z.object({
-  dayIndex: z
-    .number()
-    .int()
-    .min(0)
-    .max(MAX_TRIP_DAYS - 1)
-    .optional(),
-  slot: z.enum(TRIP_SLOTS).optional(),
-  title: z.string().trim().min(1, "Describe the plan.").max(200).optional(),
-  ...itemFields,
-});
 
 // ---------- Mapping ----------
 

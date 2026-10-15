@@ -13,6 +13,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import type { Slot as TripSlot, TripHotelStatus } from "./trip-days.ts";
 
 /**
  * Local user mirror for Clerk identities.
@@ -527,10 +528,13 @@ export type ExtractResultRow = typeof extractResults.$inferSelect;
 // ---------- Trips (planner: details, hotel shortlist, itinerary) ----------
 // Snake_case columns match `migrations/0012_trips.sql`.
 
-export const TRIP_HOTEL_STATUSES = ["shortlisted", "chosen"] as const;
-export type TripHotelStatus = (typeof TRIP_HOTEL_STATUSES)[number];
-export const TRIP_SLOTS = ["morning", "afternoon", "evening", "night"] as const;
-export type TripSlot = (typeof TRIP_SLOTS)[number];
+// Slot / status vocabularies live with the pure trip helpers (shared with the client).
+export {
+  SLOT_ORDER as TRIP_SLOTS,
+  TRIP_HOTEL_STATUSES,
+  type Slot as TripSlot,
+  type TripHotelStatus,
+} from "./trip-days.ts";
 
 export const trips = pgTable(
   "trips",
