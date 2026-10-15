@@ -107,15 +107,6 @@ export function useTripActions(tripId: string) {
     onError: fail("Could not pin places on the map."),
   });
 
-  const undoAgent = useMutation({
-    mutationFn: () => tripsApi.undoAgent(tripId),
-    onSuccess: (trip) => {
-      apply(trip);
-      toast.success("Restored the trip from before the agent's changes");
-    },
-    onError: fail("Could not undo the agent's changes."),
-  });
-
   const removeItem = useMutation({
     mutationFn: (itemId: string) => tripsApi.removeItem(tripId, itemId),
     onSuccess: apply,
@@ -132,7 +123,6 @@ export function useTripActions(tripId: string) {
     updateItem,
     moveItem,
     locate,
-    undoAgent,
     removeItem,
   };
 }

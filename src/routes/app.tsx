@@ -9,7 +9,6 @@ import {
   type HomeCaptureType,
 } from "@/components/library/home-shelves.tsx";
 import { BulkSaveDialog, PasteDialog } from "@/components/library/library-dialogs.tsx";
-import { WeeklyRecap } from "@/components/library/weekly-recap.tsx";
 import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useBulkSave } from "@/hooks/use-bulk-save.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
@@ -225,7 +224,6 @@ function Home() {
             {capturing ? "Importing captured page…" : "Saving a clean copy…"}
           </p>
         ) : null}
-        <WeeklyRecap />
       </div>
 
       <PasteDialog

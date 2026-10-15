@@ -1,30 +1,11 @@
 import "@tanstack/react-start/server-only";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { aiNotes } from "@/lib/schema";
 
 /** Stored AI write-ups (`ai_notes`): one per user, feature and period key. */
 
 export type StoredNote<T> = { key: string; content: T; model: string | null; createdAt: number };
-
-/** The newest note of a kind (any key), or null. */
-export async function latestNote<T>(userId: string, kind: string): Promise<StoredNote<T> | null> {
-  const db = await getDb();
-  const [row] = await db
-    .select()
-    .from(aiNotes)
-    .where(and(eq(aiNotes.userId, userId), eq(aiNotes.kind, kind)))
-    .orderBy(desc(aiNotes.createdAt))
-    .limit(1);
-  return row
-    ? {
-        key: row.key,
-        content: row.content as T,
-        model: row.model,
-        createdAt: row.createdAt.getTime(),
-      }
-    : null;
-}
 
 /** Save (or replace) a note, keeping the newest `keep` of its kind. */
 export async function saveNote<T>(

@@ -95,18 +95,6 @@ export function fallbackModel(
   } satisfies ProviderModel;
 }
 
-/**
- * Fit an embedding to `dims`: keep the leading values and re-normalise to
- * unit length. Gemini embeddings are trained so a prefix is still a good
- * embedding, so the same model through either provider lands in one space.
- */
-export function fitEmbedding(values: number[], dims: number): number[] {
-  const head = values.slice(0, dims);
-  if (head.length < dims) throw new Error(`Embedding has ${head.length} values, need ${dims}.`);
-  const norm = Math.hypot(...head);
-  return norm > 0 ? head.map((v) => v / norm) : head;
-}
-
 /** Trim text for a prompt, cutting at a paragraph or sentence when one is near the limit. */
 export function clipText(text: string, maxChars: number): string {
   const clean = text.replace(/\n{3,}/g, "\n\n").trim();

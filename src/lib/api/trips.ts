@@ -1,4 +1,3 @@
-import type { UIMessage } from "ai";
 import { http, seg } from "./client";
 
 export type TripSlot = "morning" | "afternoon" | "evening" | "night";
@@ -122,33 +121,6 @@ export type TripLocateResult = {
   remaining: number;
 };
 
-export type TripChatModel = { id: string; label: string; available: boolean };
-
-export type TripChat = {
-  /** Saved conversation, oldest first (AI SDK UIMessage shape). */
-  messages: UIMessage[];
-  /** Models the agent can run on; `available` is false when the server lacks that provider's key. */
-  models: TripChatModel[];
-  /** The model used when none is picked; null when no provider is configured. */
-  defaultModel: string | null;
-  /** Firecrawl is configured, so the agent can search and read the web. */
-  research: boolean;
-  /** The agent changed the trip and its previous state can be restored. */
-  canUndo: boolean;
-};
-
-/** Agent tools that change the trip; the board refreshes after each one finishes. */
-export const TRIP_WRITE_TOOLS = [
-  "update_trip",
-  "shortlist_hotel",
-  "update_hotel",
-  "remove_hotel",
-  "set_day",
-  "add_item",
-  "update_item",
-  "remove_item",
-] as const;
-
 const trip = (id: string) => `/api/trips/${seg(id)}`;
 
 /** Every write returns the whole updated trip so the board can swap it in. */
@@ -176,14 +148,6 @@ export const tripsApi = {
   updateItem: (id: string, itemId: string, patch: TripItemPatch) =>
     http.patch<Trip>(`${trip(id)}/items/${seg(itemId)}`, patch),
 
-  chat: (id: string) => http.get<TripChat>(`${trip(id)}/chat`),
-
-  /** Forget the conversation (the board is unchanged). */
-  clearChat: (id: string) => http.delete<void>(`${trip(id)}/chat`),
-
-  /** Streaming endpoint used by `useChat`. */
-  chatUrl: (id: string) => `${trip(id)}/chat`,
-
   /** Swap a plan with its neighbour in the same day and slot. */
   moveItem: (id: string, itemId: string, direction: "up" | "down") =>
     http.post<Trip>(`${trip(id)}/items/${seg(itemId)}/move`, { direction }),
@@ -191,9 +155,6 @@ export const tripsApi = {
   /** Geocode plans and hotels that have a place but no pin yet (a few per call). */
   locate: (id: string, skip: string[] = []) =>
     http.post<TripLocateResult>(`${trip(id)}/locate`, { skip }),
-
-  /** Restore the trip as it was before the agent's latest edits. */
-  undoAgent: (id: string) => http.post<Trip>(`${trip(id)}/undo`),
 
   removeItem: (id: string, itemId: string) => http.delete<Trip>(`${trip(id)}/items/${seg(itemId)}`),
 };

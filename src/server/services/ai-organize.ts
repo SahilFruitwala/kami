@@ -14,7 +14,7 @@ import { patchLibraryItem } from "@/server/services/library";
 /**
  * Auto-organise: give articles that have neither tags nor a folder a few tags
  * and one of the user's existing folders. The browser pulls this in small
- * batches (same pattern as the semantic indexer), both from the Settings
+ * batches, both from the Settings
  * button (the whole library) and quietly after new saves.
  *
  * Only untouched articles are candidates and only additions are made, so a
