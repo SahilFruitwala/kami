@@ -19,7 +19,9 @@ function LoginPage() {
   if (isPending) {
     return (
       <main className="grid min-h-dvh place-items-center bg-paper px-4 text-sm text-ink-muted">
-        <p role="status" aria-live="polite">Checking your session…</p>
+        <p role="status" aria-live="polite">
+          Checking your session…
+        </p>
       </main>
     );
   }
@@ -30,17 +32,22 @@ function LoginPage() {
 
   return (
     <main className="relative min-h-dvh overflow-x-hidden bg-paper text-ink">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 top-0 h-72"
-      />
+      <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-72" />
       <div className="relative mx-auto flex w-full max-w-md flex-col px-4 py-10 sm:px-6">
         <div className="mb-10 flex items-center justify-between">
-          <Link to="/" className="inline-flex items-center gap-2 rounded-full pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30">
-            <span className="kami-hanko flex size-7 items-center justify-center rounded-full font-display text-sm leading-none" lang="ja">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-2 rounded-full pr-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30"
+          >
+            <span
+              className="kami-hanko flex size-7 items-center justify-center rounded-full font-display text-sm leading-none"
+              lang="ja"
+            >
               {KAMI_GLYPH}
             </span>
-            <span className="font-display text-[22px] leading-none tracking-tight" translate="no">Kami</span>
+            <span className="font-display text-[22px] leading-none tracking-tight" translate="no">
+              Kami
+            </span>
           </Link>
           <ThemeToggle />
         </div>
@@ -49,15 +56,11 @@ function LoginPage() {
           Sign in to <span translate="no">Kami</span>
         </h1>
         <p className="mt-4 font-display text-lg leading-snug text-ink-soft">
-          Your reading list stays with your account — save from any device, keep tags and
-          highlights in sync.
+          Your reading list stays with your account — save from any device, keep tags and highlights
+          in sync.
         </p>
         <div className="mt-8 flex justify-center">
-          <SignIn
-            path="/login"
-            signUpUrl="/sign-up"
-            fallbackRedirectUrl="/app"
-          />
+          <SignIn path="/login" signUpUrl="/sign-up" fallbackRedirectUrl="/app" />
         </div>
         <p className="mt-6 text-xs text-ink-muted">
           Sign in or create an account with Clerk. Your library stays private to this app.

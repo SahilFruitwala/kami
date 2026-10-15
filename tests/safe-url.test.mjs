@@ -96,7 +96,13 @@ describe("isHttpUrl", () => {
   it("accepts only http(s) links", () => {
     assert.equal(isHttpUrl("https://example.com/a"), true);
     assert.equal(isHttpUrl("http://example.com"), true);
-    for (const bad of ["javascript:alert(1)", "intent://x#Intent;end", "data:text/html,x", "file:///etc/passwd", "nope"]) {
+    for (const bad of [
+      "javascript:alert(1)",
+      "intent://x#Intent;end",
+      "data:text/html,x",
+      "file:///etc/passwd",
+      "nope",
+    ]) {
       assert.equal(isHttpUrl(bad), false, bad);
     }
   });

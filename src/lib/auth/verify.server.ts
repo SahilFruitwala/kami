@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { auth, clerkClient } from "@clerk/tanstack-react-start/server";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { user } from "@/lib/schema";
 
 /**

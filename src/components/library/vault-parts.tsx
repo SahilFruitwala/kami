@@ -1,17 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  BookOpen,
-  Copy,
-  Droplets,
-  Heart,
-  PenLine,
-  StickyNote,
-  Trash2,
-} from "lucide-react";
+import { BookOpen, Copy, Droplets, Heart, PenLine, StickyNote, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Hanko } from "@/components/kami.tsx";
 import { HIGHLIGHT_NOTE_MAX } from "@/lib/item-ops.ts";
-import type { Highlight, LibraryItem } from "@/lib/store.ts";
+import type { Highlight, LibraryItem } from "@/lib/library-item.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
 

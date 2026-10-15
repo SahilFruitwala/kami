@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { extractsApi, type ExtractSourceInput } from "@/lib/api/extracts";
 import { queryKeys } from "@/lib/query-client.ts";
+import { errorMessage } from "@/lib/errors";
 
 export function useExtractsOverview() {
   return useQuery({
@@ -18,8 +19,6 @@ export function useExtractResults(sourceId: string | null) {
   });
 }
 
-const message = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback);
-
 export function useExtractActions() {
   const client = useQueryClient();
   const invalidate = () => client.invalidateQueries({ queryKey: queryKeys.extracts.all });
@@ -30,14 +29,14 @@ export function useExtractActions() {
       toast.success(`Saved “${source.name}”`, { description: "Press Run to fetch it." });
       void invalidate();
     },
-    onError: (err) => toast.error(message(err, "Could not save that extract.")),
+    onError: (err) => toast.error(errorMessage(err, "Could not save that extract.")),
   });
 
   const update = useMutation({
     mutationFn: ({ id, input }: { id: string; input: Partial<ExtractSourceInput> }) =>
       extractsApi.update(id, input),
     onSuccess: () => void invalidate(),
-    onError: (err) => toast.error(message(err, "Could not update that extract.")),
+    onError: (err) => toast.error(errorMessage(err, "Could not update that extract.")),
   });
 
   const remove = useMutation({
@@ -46,7 +45,7 @@ export function useExtractActions() {
       toast.success("Extract deleted");
       void invalidate();
     },
-    onError: (err) => toast.error(message(err, "Could not delete that extract.")),
+    onError: (err) => toast.error(errorMessage(err, "Could not delete that extract.")),
   });
 
   const run = useMutation({
@@ -56,7 +55,7 @@ export function useExtractActions() {
       void invalidate();
     },
     onError: (err) => {
-      toast.error(message(err, "Firecrawl run failed."));
+      toast.error(errorMessage(err, "Firecrawl run failed."));
       void invalidate();
     },
   });
@@ -67,13 +66,13 @@ export function useExtractActions() {
       toast.success("Saved to history");
       void invalidate();
     },
-    onError: (err) => toast.error(message(err, "Could not accept that result.")),
+    onError: (err) => toast.error(errorMessage(err, "Could not accept that result.")),
   });
 
   const discard = useMutation({
     mutationFn: (resultId: string) => extractsApi.discard(resultId),
     onSuccess: () => void invalidate(),
-    onError: (err) => toast.error(message(err, "Could not discard that result.")),
+    onError: (err) => toast.error(errorMessage(err, "Could not discard that result.")),
   });
 
   return { create, update, remove, run, accept, discard };

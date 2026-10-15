@@ -15,6 +15,4 @@ export type Article = {
   heroImage: string | null;
 };
 
-export type ExtractResult =
-  | { ok: true; article: Article }
-  | { ok: false; error: string };
+export type ExtractResult = { ok: true; article: Article } | { ok: false; error: string };

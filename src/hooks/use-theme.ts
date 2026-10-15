@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
-import { useLibraryStore } from "@/lib/store.ts";
 import { isPaperTone } from "@/lib/paper-tones.ts";
+import { readLocal, writeLocal } from "@/lib/local-pref.ts";
+import { useReaderPrefs } from "@/lib/reader-prefs.ts";
 
 export type Theme = "light" | "dark";
 
@@ -16,13 +17,8 @@ function getSystemTheme(): Theme {
 }
 
 function getStoredTheme(): Theme | null {
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark") return stored;
-  } catch {
-    // ignore (private mode, SSR)
-  }
-  return null;
+  const stored = readLocal(STORAGE_KEY);
+  return stored === "light" || stored === "dark" ? stored : null;
 }
 
 export function applyTheme(theme: Theme) {
@@ -46,52 +42,41 @@ type ThemeState = {
  */
 export function syncReaderPaper(theme: Theme) {
   try {
-    const lib = useLibraryStore.getState();
+    const prefs = useReaderPrefs.getState();
     if (theme === "dark") {
-      if (lib.paperTone !== "sumi") lib.setPaperTone("sumi");
-    } else if (lib.paperTone === "sumi") {
-      const light = lib.preferredLightTone;
-      lib.setPaperTone(isPaperTone(light) && light !== "sumi" ? light : "pale");
+      if (prefs.paperTone !== "sumi") prefs.setPaperTone("sumi");
+    } else if (prefs.paperTone === "sumi") {
+      const light = prefs.preferredLightTone;
+      prefs.setPaperTone(isPaperTone(light) && light !== "sumi" ? light : "pale");
     }
   } catch {
-    // library store unavailable (SSR) — nothing to sync
+    // prefs store unavailable (SSR) — nothing to sync
   }
 }
 
 export const useThemeStore = create<ThemeState>()(
   combine(
     {
-      theme: typeof window === "undefined" ? ("light" as Theme) : (getStoredTheme() ?? getSystemTheme()),
+      theme:
+        typeof window === "undefined" ? ("light" as Theme) : (getStoredTheme() ?? getSystemTheme()),
       isSystem: typeof window === "undefined" ? true : getStoredTheme() == null,
     },
     (set, get) => ({
       setTheme: (next: Theme) => {
-        try {
-          window.localStorage.setItem(STORAGE_KEY, next);
-        } catch {
-          // ignore
-        }
+        writeLocal(STORAGE_KEY, next);
         applyTheme(next);
         set({ theme: next, isSystem: false });
         syncReaderPaper(next);
       },
       toggleTheme: () => {
         const next: Theme = get().theme === "dark" ? "light" : "dark";
-        try {
-          window.localStorage.setItem(STORAGE_KEY, next);
-        } catch {
-          // ignore
-        }
+        writeLocal(STORAGE_KEY, next);
         applyTheme(next);
         set({ theme: next, isSystem: false });
         syncReaderPaper(next);
       },
       followSystem: () => {
-        try {
-          window.localStorage.removeItem(STORAGE_KEY);
-        } catch {
-          // ignore
-        }
+        writeLocal(STORAGE_KEY, null);
         const next = getSystemTheme();
         applyTheme(next);
         set({ theme: next, isSystem: true });

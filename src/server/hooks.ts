@@ -1,6 +1,6 @@
 import "@tanstack/react-start/server-only";
 import { timingSafeEqual } from "node:crypto";
-import { HttpError, json } from "@/server/http";
+import { HttpError, json, toErrorResponse } from "@/server/http";
 
 /**
  * Machine-to-machine endpoints under `/api/hooks/*` (Vercel Cron, inbound
@@ -54,12 +54,7 @@ export function hookHandler(
       const result = await handler(request);
       return json(result ?? { ok: true });
     } catch (err) {
-      if (err instanceof HttpError) return json({ error: err.message }, { status: err.status });
-      if (err instanceof Error && err.name === "RateLimitError") {
-        return json({ error: err.message }, { status: 429 });
-      }
-      console.error("[hooks]", err);
-      return json({ error: "Something went wrong." }, { status: 500 });
+      return toErrorResponse(err);
     }
   };
 }

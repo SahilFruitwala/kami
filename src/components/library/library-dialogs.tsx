@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/dialog.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { articlesApi } from "@/lib/api/articles";
-import { articleToItem, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import { useLibraryStore } from "@/lib/store.ts";
+import { articleToItem, type LibraryItem } from "@/lib/library-item.ts";
 import { MAX_BULK_URLS } from "@/hooks/use-bulk-save.ts";
 
 type PasteDialogProps = {

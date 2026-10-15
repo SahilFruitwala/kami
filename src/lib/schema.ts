@@ -13,6 +13,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
+import type { Slot as TripSlot, TripHotelStatus } from "./trip-days.ts";
 
 /**
  * Local user mirror for Clerk identities.
@@ -527,10 +528,13 @@ export type ExtractResultRow = typeof extractResults.$inferSelect;
 // ---------- Trips (planner: details, hotel shortlist, itinerary) ----------
 // Snake_case columns match `migrations/0012_trips.sql`.
 
-export const TRIP_HOTEL_STATUSES = ["shortlisted", "chosen"] as const;
-export type TripHotelStatus = (typeof TRIP_HOTEL_STATUSES)[number];
-export const TRIP_SLOTS = ["morning", "afternoon", "evening", "night"] as const;
-export type TripSlot = (typeof TRIP_SLOTS)[number];
+// Slot / status vocabularies live with the pure trip helpers (shared with the client).
+export {
+  SLOT_ORDER as TRIP_SLOTS,
+  TRIP_HOTEL_STATUSES,
+  type Slot as TripSlot,
+  type TripHotelStatus,
+} from "./trip-days.ts";
 
 export const trips = pgTable(
   "trips",
@@ -605,6 +609,7 @@ export const tripItems = pgTable(
   (t) => [index("trip_items_trip_idx").on(t.tripId, t.dayIndex, t.sort)],
 );
 
+/** Legacy (trip agent removed): its chat history. Nothing reads or writes this table now. */
 export const tripMessages = pgTable(
   "trip_messages",
   {
@@ -680,7 +685,6 @@ export const aiNotes = pgTable(
 export type TripRow = typeof trips.$inferSelect;
 export type TripHotelRow = typeof tripHotels.$inferSelect;
 export type TripItemRow = typeof tripItems.$inferSelect;
-export type TripMessageRow = typeof tripMessages.$inferSelect;
 
 export const schema = {
   user,

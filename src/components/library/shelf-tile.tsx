@@ -8,6 +8,7 @@ import { type ShelfCard, type ShelfTab } from "@/lib/shelves.ts";
 import type { ShelvesSearch } from "@/lib/shelves-search.ts";
 import { cn } from "@/lib/utils.ts";
 import { statusLabels, statusText } from "@/lib/shelf-labels.ts";
+import { toastError } from "@/lib/errors";
 
 export function ShelfTile({
   item,
@@ -47,7 +48,7 @@ export function ShelfTile({
         toast.success(`Marked “${item.title}” ${labels.done.toLowerCase()}`);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't update status.");
+      toastError(err, "Couldn't update status.");
     }
   }
 

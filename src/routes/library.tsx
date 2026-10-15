@@ -10,7 +10,7 @@ import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
 import { isLibrarySort } from "@/lib/filter-library.ts";
 import { parseBulkUrls } from "@/lib/session-article.ts";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 
 type LibrarySearch = {
   folder?: string;
@@ -24,9 +24,7 @@ type LibrarySearch = {
 export const Route = createFileRoute("/library")({
   validateSearch: (search: Record<string, unknown>): LibrarySearch => ({
     folder:
-      typeof search.folder === "string" && search.folder.length > 0
-        ? search.folder
-        : undefined,
+      typeof search.folder === "string" && search.folder.length > 0 ? search.folder : undefined,
     tab: search.tab === "archive" || search.tab === "inbox" ? search.tab : undefined,
     q: typeof search.q === "string" && search.q.length > 0 ? search.q : undefined,
     tag: typeof search.tag === "string" && search.tag.length > 0 ? search.tag : undefined,
@@ -40,10 +38,7 @@ function LibraryPage() {
   return <Library />;
 }
 
-function goRead(
-  navigate: ReturnType<typeof Route.useNavigate>,
-  id: string,
-) {
+function goRead(navigate: ReturnType<typeof Route.useNavigate>, id: string) {
   startTransition(() => {
     addTransitionType("nav-forward");
     void navigate({ to: "/read", search: { id } });
@@ -100,7 +95,14 @@ function Library() {
       };
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [filters.tab, filters.folderFilter, filters.tagFilter, filters.query, filters.favoritesOnly, filters.sort],
+    [
+      filters.tab,
+      filters.folderFilter,
+      filters.tagFilter,
+      filters.query,
+      filters.favoritesOnly,
+      filters.sort,
+    ],
   );
 
   function openItem(item: LibraryItem) {

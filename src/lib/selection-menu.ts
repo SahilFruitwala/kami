@@ -39,10 +39,7 @@ function placeMenu(
     y = last!.top + last!.height + GAP;
   }
   // Keep the menu inside the viewport vertically.
-  y = Math.max(
-    TOP_SAFE,
-    Math.min(y, window.innerHeight - MENU_HEIGHT - BOTTOM_SAFE),
-  );
+  y = Math.max(TOP_SAFE, Math.min(y, window.innerHeight - MENU_HEIGHT - BOTTOM_SAFE));
 
   return {
     x: Math.min(
@@ -55,10 +52,7 @@ function placeMenu(
 }
 
 /** Anchor a menu to an existing highlight's <mark> rects (tap-to-edit). */
-export function highlightMenu(
-  highlightId: string,
-  mark: Element,
-): EditMenu | null {
+export function highlightMenu(highlightId: string, mark: Element): EditMenu | null {
   const lineRects = [...mark.getClientRects()].map((r) => ({
     top: r.top,
     left: r.left,
@@ -67,7 +61,9 @@ export function highlightMenu(
   }));
   const bounds = mark.getBoundingClientRect();
   const placed = placeMenu(
-    lineRects.length ? lineRects : [{ top: bounds.top, left: bounds.left, width: bounds.width, height: bounds.height }],
+    lineRects.length
+      ? lineRects
+      : [{ top: bounds.top, left: bounds.left, width: bounds.width, height: bounds.height }],
     { top: bounds.top, left: bounds.left, width: bounds.width, height: bounds.height },
   );
   if (!placed) return null;

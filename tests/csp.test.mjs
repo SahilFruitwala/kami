@@ -6,7 +6,10 @@ import { contentSecurityPolicy, newCspNonce } from "../src/lib/csp.ts";
 const csp = contentSecurityPolicy("TESTNONCE");
 
 function directive(name) {
-  const match = csp.split(";").map((part) => part.trim()).find((part) => part.startsWith(`${name} `));
+  const match = csp
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name} `));
   assert.ok(match, `missing CSP directive ${name}`);
   return match;
 }
@@ -29,7 +32,13 @@ describe("production CSP allows Clerk custom Frontend API", () => {
 
 describe("production CSP stays minimal", () => {
   it("does not allow hosts only the server talks to", () => {
-    for (const host of ["r.jina.ai", "fxtwitter.com", "vxtwitter.com", "publish.twitter.com", "fonts.googleapis.com"]) {
+    for (const host of [
+      "r.jina.ai",
+      "fxtwitter.com",
+      "vxtwitter.com",
+      "publish.twitter.com",
+      "fonts.googleapis.com",
+    ]) {
       assert.ok(!csp.includes(host), `CSP should not list ${host}`);
     }
   });

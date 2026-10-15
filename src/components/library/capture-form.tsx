@@ -1,11 +1,4 @@
-import {
-  ArrowRight,
-  ClipboardPaste,
-  Layers,
-  Link2,
-  LoaderCircle,
-  Search,
-} from "lucide-react";
+import { ArrowRight, ClipboardPaste, Layers, Link2, LoaderCircle, Search } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 

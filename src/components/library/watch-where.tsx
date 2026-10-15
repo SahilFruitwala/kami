@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { Tv } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
-import { lookupApi } from "@/lib/api/lookup";
 import { cn } from "@/lib/utils.ts";
+import { useWatchProviders } from "@/hooks/use-shelf-queries.ts";
 
 function guessCountry(): string {
   if (typeof navigator === "undefined") return "US";
@@ -51,11 +50,7 @@ export function WatchWhere({
   kind: "movie" | "tv";
   className?: string;
 }) {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["watch-providers", kind, tmdbId],
-    queryFn: () => lookupApi.watchProviders(tmdbId, kind),
-    staleTime: 1000 * 60 * 60 * 12,
-  });
+  const { data, isLoading, isError } = useWatchProviders(kind, tmdbId);
   const [country, setCountry] = useState<string | null>(null);
 
   if (isLoading) return <WatchWhereSkeleton />;

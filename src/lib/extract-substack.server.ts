@@ -154,7 +154,9 @@ function cleanFootnotes(document: Doc, body: Element) {
 }
 
 function cleanEmbeds(document: Doc, body: Element) {
-  for (const el of Array.from(body.querySelectorAll(".youtube-wrap, [data-component-name='Youtube2ToDOM']"))) {
+  for (const el of Array.from(
+    body.querySelectorAll(".youtube-wrap, [data-component-name='Youtube2ToDOM']"),
+  )) {
     const id = str(dataAttrs(el).videoId);
     replaceWithLink(
       document,
@@ -163,18 +165,27 @@ function cleanEmbeds(document: Doc, body: Element) {
       "Watch on YouTube",
     );
   }
-  for (const el of Array.from(body.querySelectorAll(".tweet, [data-component-name='Twitter2ToDOM']"))) {
-    const attrs = dataAttrs(el);
-    const author = str(attrs.username) || str(attrs.name);
-    replaceWithLink(document, el, str(attrs.url), author ? `View post by @${author} on X` : "View post on X");
-  }
   for (const el of Array.from(
-    body.querySelectorAll(".embedded-post-wrap, .digest-post-embed, [data-component-name='EmbeddedPostToDOM']"),
+    body.querySelectorAll(".tweet, [data-component-name='Twitter2ToDOM']"),
   )) {
     const attrs = dataAttrs(el);
-    const href =
-      str(attrs.url) || el.querySelector("a[href]")?.getAttribute("href")?.trim() || "";
-    const title = str(attrs.title) || (el.querySelector(".embedded-post-title")?.textContent || "").trim();
+    const author = str(attrs.username) || str(attrs.name);
+    replaceWithLink(
+      document,
+      el,
+      str(attrs.url),
+      author ? `View post by @${author} on X` : "View post on X",
+    );
+  }
+  for (const el of Array.from(
+    body.querySelectorAll(
+      ".embedded-post-wrap, .digest-post-embed, [data-component-name='EmbeddedPostToDOM']",
+    ),
+  )) {
+    const attrs = dataAttrs(el);
+    const href = str(attrs.url) || el.querySelector("a[href]")?.getAttribute("href")?.trim() || "";
+    const title =
+      str(attrs.title) || (el.querySelector(".embedded-post-title")?.textContent || "").trim();
     const pub = str(attrs.publication_name);
     replaceWithLink(document, el, href, [title || "Linked post", pub].filter(Boolean).join(" — "));
   }
@@ -232,7 +243,9 @@ export function extractSubstack(document: Doc, pageUrl: string): SubstackExtract
     ""
   ).trim();
   const author = Array.from(
-    document.querySelectorAll(".post-header .byline-wrapper a[href*='/@'], .post-header [data-testid='author-name']"),
+    document.querySelectorAll(
+      ".post-header .byline-wrapper a[href*='/@'], .post-header [data-testid='author-name']",
+    ),
   )
     .map((a) => (a.textContent || "").trim())
     .filter(Boolean)

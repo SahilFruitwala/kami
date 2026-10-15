@@ -1,80 +1,48 @@
-import { libraryApi } from "@/lib/api/library";
+import { libraryApi, type LibraryItemPatch, type LibraryTagOp } from "@/lib/api/library";
 import { LIBRARY_BOOT_LIMIT, type LibraryCursor, type LibrarySnapshot } from "@/lib/api/types";
-import type { HighlightOp, TagOp } from "@/lib/item-ops";
-import { useLibraryStore, type Folder, type LibraryItem } from "@/lib/store";
+import { useLibraryStore } from "@/lib/store";
+import { clampLibraryItem, type Folder, type LibraryItem } from "@/lib/library-item";
+import { createSyncQueue, localOnceFlag } from "@/lib/sync-queue";
 
 const LEGACY_KEY = "quarto-library";
 const MIGRATED_FLAG = "quarto-library-migrated-v1";
 
-let remoteEnabled = false;
+/** Library writes as data, so the outbox can be saved and replayed after a reload. */
+type LibraryOp =
+  | { kind: "upsert"; item: LibraryItem }
+  | { kind: "patch"; id: string; patch: LibraryItemPatch }
+  | { kind: "remove"; id: string }
+  | { kind: "tags"; op: LibraryTagOp }
+  | { kind: "folderAdd"; folder: Folder }
+  | { kind: "folderRename"; id: string; name: string }
+  | { kind: "folderRemove"; id: string };
 
-export function setLibraryRemoteEnabled(enabled: boolean) {
-  remoteEnabled = enabled;
-}
-
-type OutboxEntry = { id: number; label: string; run: () => Promise<unknown> };
-
-let outboxSeq = 0;
-const outbox: OutboxEntry[] = [];
-const outboxListeners = new Set<(count: number) => void>();
-
-function notifyOutbox() {
-  for (const fn of outboxListeners) fn(outbox.length);
-}
-
-/** Subscribe to the pending-sync count (offline outbox). Immediate initial call. */
-export function subscribeOutbox(fn: (count: number) => void): () => void {
-  outboxListeners.add(fn);
-  fn(outbox.length);
-  return () => {
-    outboxListeners.delete(fn);
-  };
-}
-
-export function pendingSyncCount(): number {
-  return outbox.length;
-}
-
-function enqueue(entry: Omit<OutboxEntry, "id">) {
-  outbox.push({ ...entry, id: ++outboxSeq });
-  notifyOutbox();
-}
-
-function sync(label: string, task: () => Promise<unknown>) {
-  if (!remoteEnabled) return;
-  if (typeof navigator !== "undefined" && navigator.onLine === false) {
-    enqueue({ label, run: task });
-    return;
+function runLibraryOp(op: LibraryOp): Promise<unknown> {
+  switch (op.kind) {
+    case "upsert":
+      return libraryApi.items.upsert(op.item);
+    case "patch":
+      return libraryApi.items.patch(op.id, op.patch);
+    case "remove":
+      return libraryApi.items.remove(op.id);
+    case "tags":
+      return libraryApi.tagEverywhere(op.op);
+    case "folderAdd":
+      return libraryApi.folders.add(op.folder);
+    case "folderRename":
+      return libraryApi.folders.rename(op.id, op.name);
+    case "folderRemove":
+      return libraryApi.folders.remove(op.id);
   }
-  void task().catch((err) => {
-    console.error("[library]", err);
-    enqueue({ label, run: task });
-  });
 }
 
-/** Retry every queued mutation in order. Keeps failures queued for later. */
-export async function flushSyncOutbox(): Promise<{ done: number; failed: number }> {
-  let done = 0;
-  const failed: OutboxEntry[] = [];
-  for (const entry of outbox.splice(0)) {
-    try {
-      await entry.run();
-      done += 1;
-    } catch (err) {
-      console.error("[library]", err);
-      failed.push(entry);
-    }
-  }
-  outbox.unshift(...failed);
-  notifyOutbox();
-  return { done, failed: failed.length };
-}
-
-if (typeof window !== "undefined") {
-  window.addEventListener("online", () => {
-    void flushSyncOutbox();
-  });
-}
+const queue = createSyncQueue("library", runLibraryOp, {
+  // An upsert with an empty body never clobbers the stored one, so a body is
+  // the first thing to drop when localStorage is full.
+  shrink: (op) => (op.kind === "upsert" ? { ...op, item: { ...op.item, contentHtml: "" } } : op),
+});
+const sync = queue.sync;
+const legacyMigrated = localOnceFlag(MIGRATED_FLAG);
 
 export function hydrateLibrary(snapshot: LibrarySnapshot) {
   useLibraryStore
@@ -99,99 +67,60 @@ function readLegacySnapshot(): LibrarySnapshot | null {
   }
 }
 
-function markLegacyMigrated() {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(MIGRATED_FLAG, "1");
-  } catch {
-    /* ignore */
-  }
-}
-
-function wasLegacyMigrated(): boolean {
-  if (typeof window === "undefined") return true;
-  try {
-    return window.localStorage.getItem(MIGRATED_FLAG) === "1";
-  } catch {
-    return true;
-  }
-}
-
-export function isLibraryBootstrapped(userId: string): boolean {
-  return bootedUserId === userId;
-}
-
-/** Load the signed-in user's library; one-time import from old localStorage if empty.
- *
- * Boot is paged: the first page (100 newest) unblocks first paint, then the
- * remaining pages stream in in the background. Guarded per user: every page
- * mounts its own AppGate, so without this each navigation would refetch +
- * replace the store — wiping an item that was just saved optimistically a
- * moment before its server round-trip lands.
+/**
+ * Paging state for the signed-in session. `bootSeq` is bumped on every boot
+ * and on sign-out; page appends check it, so a late page can never
+ * repopulate the store after sign-out or an account switch.
  */
-let bootedUserId: string | null = null;
-let bootInflight: Promise<void> | null = null;
+let bootSeq = 0;
 /** Cursor for the next background/on-demand page; null once the end is reached. */
 let nextPageCursor: LibraryCursor | null | undefined;
 let fillInflight: Promise<void> | null = null;
+
 /**
- * Bumped on every boot and on sign-out. Background/on-demand page appends
- * verify it hasn't changed, so a late page can never repopulate the store
- * after sign-out or an account switch.
+ * Load the signed-in user's library (one-time import from old localStorage
+ * if the account is empty). Call it through `useLibraryBoot`, which runs it
+ * once per user and caches the result: re-running would replace the store
+ * and drop an item saved optimistically a moment before.
+ *
+ * Paged: the first page (100 newest) unblocks first paint, then the rest
+ * streams in the background.
  */
-let bootSeq = 0;
-
 export async function bootstrapLibraryFromServer(userId: string): Promise<void> {
-  if (bootedUserId === userId) return;
-  if (bootInflight) {
-    await bootInflight;
-    return;
-  }
-  bootInflight = (async () => {
-    bootSeq += 1;
-    setLibraryRemoteEnabled(true);
-    const page = await libraryApi.page({ limit: LIBRARY_BOOT_LIMIT });
+  const seq = ++bootSeq;
+  queue.start(userId);
+  const page = await libraryApi.page({ limit: LIBRARY_BOOT_LIMIT });
+  if (seq !== bootSeq) return;
 
-    if ((page.total ?? 0) === 0 && page.folders.length === 0 && !wasLegacyMigrated()) {
-      const legacy = readLegacySnapshot();
-      if (legacy && (legacy.library.length > 0 || legacy.folders.length > 0)) {
-        const snapshot = await libraryApi.import(legacy);
-        markLegacyMigrated();
-        hydrateLibrary(snapshot);
-        nextPageCursor = null;
-        bootedUserId = userId;
-        return;
-      }
-      markLegacyMigrated();
+  if ((page.total ?? 0) === 0 && page.folders.length === 0 && !legacyMigrated.isSet()) {
+    const legacy = readLegacySnapshot();
+    if (legacy && (legacy.library.length > 0 || legacy.folders.length > 0)) {
+      const snapshot = await libraryApi.import(legacy);
+      legacyMigrated.set();
+      if (seq !== bootSeq) return;
+      hydrateLibrary(snapshot);
+      nextPageCursor = null;
+      return;
     }
-
-    const complete = page.nextCursor == null;
-    useLibraryStore.getState().setLibrarySnapshot(page.library, page.folders, page.total, complete);
-    nextPageCursor = page.nextCursor;
-    bootedUserId = userId;
-    // Stream the rest without blocking first paint; failures surface via the
-    // Load-more affordance (the cursor is preserved).
-    if (page.nextCursor) void fillRemainingLibrary(userId).catch(() => undefined);
-  })();
-  try {
-    await bootInflight;
-  } finally {
-    bootInflight = null;
+    legacyMigrated.set();
   }
+
+  const complete = page.nextCursor == null;
+  useLibraryStore.getState().setLibrarySnapshot(page.library, page.folders, page.total, complete);
+  nextPageCursor = page.nextCursor;
+  // Stream the rest without blocking first paint; failures surface via the
+  // Load-more affordance (the cursor is preserved).
+  if (page.nextCursor) void fillRemainingLibrary().catch(() => undefined);
 }
 
 /** Sequentially fetch every remaining page in the background. */
-async function fillRemainingLibrary(userId: string): Promise<void> {
-  if (fillInflight) {
-    await fillInflight;
-    return;
-  }
+async function fillRemainingLibrary(): Promise<void> {
+  if (fillInflight) return fillInflight;
+  const seq = bootSeq;
   fillInflight = (async () => {
-    const seq = bootSeq;
-    while (nextPageCursor) {
-      // Signed out or switched account mid-fill — stop; the new boot restarts.
-      if (bootedUserId !== userId || seq !== bootSeq) return;
+    while (nextPageCursor && seq === bootSeq) {
       const page = await libraryApi.page({ limit: LIBRARY_BOOT_LIMIT, cursor: nextPageCursor });
+      // Signed out or switched account mid-fill: stop; the new boot restarts.
       if (seq !== bootSeq) return;
       useLibraryStore.getState().appendLibraryItems(page.library, page.nextCursor == null);
       nextPageCursor = page.nextCursor;
@@ -228,7 +157,7 @@ export async function loadMoreLibrary(): Promise<boolean> {
 }
 
 export function syncUpsertItem(item: LibraryItem) {
-  sync("save", () => libraryApi.items.upsert(item));
+  sync("save", { kind: "upsert", item });
 }
 
 /**
@@ -244,21 +173,8 @@ export function syncUpsertItem(item: LibraryItem) {
  * surface it instead of toasting a success the next refresh can't see.
  */
 export async function persistArticleItem(item: LibraryItem): Promise<LibraryItem> {
-  // Mirror server clamp so local optimistic rows match what the DB will keep,
-  // and so a long og:image never trips the Zod max before the upsert handler.
-  const prepared: LibraryItem = {
-    ...item,
-    title: item.title.trim().slice(0, 500) || "Untitled",
-    author: item.author.slice(0, 300),
-    siteName: item.siteName.slice(0, 200),
-    excerpt: item.excerpt.slice(0, 4000),
-    contentHtml: item.contentHtml.slice(0, 1_500_000),
-    heroImage: item.heroImage && item.heroImage.length <= 2000 ? item.heroImage : null,
-    published: item.published ? item.published.slice(0, 100) : null,
-    note: item.note.slice(0, 2000),
-    tags: item.tags.slice(0, 12),
-    highlights: item.highlights.slice(0, 80),
-  };
+  // Same clamp as the server, so local optimistic rows match what the DB keeps.
+  const prepared = clampLibraryItem(item);
   const store = useLibraryStore.getState();
   store.upsertItem(prepared, { sync: false });
   let saved: LibraryItem;
@@ -279,60 +195,55 @@ export async function persistArticleItem(item: LibraryItem): Promise<LibraryItem
 }
 
 export function syncArchiveItem(id: string, archived: boolean) {
-  sync("archive", () => libraryApi.items.patch(id, { archived }));
+  sync("archive", { kind: "patch", id, patch: { archived } });
 }
 
 export function syncRemoveItem(id: string) {
-  sync("remove", () => libraryApi.items.remove(id));
+  sync("remove", { kind: "remove", id });
 }
 
-export function syncPatchItem(
-  id: string,
-  patch: {
-    favorited?: boolean;
-    note?: string;
-    folderId?: string | null;
-    tagOps?: TagOp[];
-    highlightOps?: HighlightOp[];
-  },
-) {
-  sync("update", () => libraryApi.items.patch(id, patch));
+export function syncPatchItem(id: string, patch: LibraryItemPatch) {
+  sync("update", { kind: "patch", id, patch });
+}
+
+export function syncTagEverywhere(op: LibraryTagOp) {
+  sync("tags", { kind: "tags", op });
 }
 
 export function syncAddFolder(folder: Folder) {
-  sync("folder", () => libraryApi.folders.add({ id: folder.id, name: folder.name }));
+  sync("folder", { kind: "folderAdd", folder: { id: folder.id, name: folder.name } });
 }
 
 export function syncRenameFolder(id: string, name: string) {
-  sync("folder", () => libraryApi.folders.rename(id, name));
+  sync("folder", { kind: "folderRename", id, name });
 }
 
 export function syncRemoveFolder(id: string) {
-  sync("folder", () => libraryApi.folders.remove(id));
+  sync("folder", { kind: "folderRemove", id });
 }
 
 /** Delete every server row for this account, then clear local state.
  *  Explicit user action — not queued; throws when unreachable. */
 export async function wipeLibraryAccount(): Promise<void> {
   await libraryApi.wipe();
+  // Queued writes would recreate rows the wipe just deleted.
+  queue.discard();
   nextPageCursor = null;
   useLibraryStore.setState({
     library: [],
     folders: [],
-    openId: null,
     libraryTotal: 0,
     libraryComplete: true,
   });
 }
 
 export function clearLibraryLocal() {
-  bootedUserId = null;
+  queue.stop();
   nextPageCursor = undefined;
   bootSeq += 1;
   useLibraryStore.setState({
     library: [],
     folders: [],
-    openId: null,
     libraryTotal: null,
     libraryComplete: false,
   });

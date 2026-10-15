@@ -1,6 +1,6 @@
 import { PenLine } from "lucide-react";
 import { HIGHLIGHT_NOTE_MAX } from "@/lib/item-ops.ts";
-import { type LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 
 /** Grow a textarea with its content (capped) so long notes stay readable. */
 function autosize(el: HTMLTextAreaElement | null) {
@@ -48,7 +48,10 @@ export function MarginaliaHighlights({
       <ul className="mt-4 space-y-4">
         {item.highlights.map((highlight) => (
           <li key={highlight.id} className="rounded-lg bg-ink/5 p-4 shadow-sm">
-            <p className="hl-quote rounded-sm px-1.5 py-0.5 font-body text-base leading-normal italic" data-hl={highlight.color}>
+            <p
+              className="hl-quote rounded-sm px-1.5 py-0.5 font-body text-base leading-normal italic"
+              data-hl={highlight.color}
+            >
               {highlight.text}
             </p>
             <label className="mt-2 block">

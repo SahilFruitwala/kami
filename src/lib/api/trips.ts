@@ -1,7 +1,17 @@
+import type { z } from "zod";
+import type { Slot, TripHotelStatus } from "@/lib/trip-days";
 import { http, seg } from "./client";
+import type {
+  createHotelInput,
+  createItemInput,
+  createTripInput,
+  updateHotelInput,
+  updateItemInput,
+  updateTripInput,
+} from "./schemas/trips";
 
-export type TripSlot = "morning" | "afternoon" | "evening" | "night";
-export type TripHotelStatus = "shortlisted" | "chosen";
+export type TripSlot = Slot;
+export type { TripHotelStatus };
 
 export type TripHotel = {
   id: string;
@@ -66,50 +76,13 @@ export type Trip = {
   items: TripItem[];
 };
 
-export type NewTripInput = {
-  destination: string;
-  title?: string;
-  startDate?: string | null;
-  dayCount?: number;
-};
-
-export type TripPatch = {
-  title?: string;
-  destination?: string;
-  startDate?: string | null;
-  dayCount?: number;
-  travelers?: number | null;
-  budget?: string | null;
-  preferences?: string | null;
-};
-
-export type TripHotelInput = {
-  name: string;
-  area?: string | null;
-  url?: string | null;
-  priceNote?: string | null;
-  ratingNote?: string | null;
-  why?: string | null;
-  lat?: number | null;
-  lng?: number | null;
-};
-
-export type TripHotelPatch = Partial<TripHotelInput> & { status?: TripHotelStatus };
-
-export type TripItemInput = {
-  dayIndex: number;
-  slot: TripSlot;
-  title: string;
-  place?: string | null;
-  url?: string | null;
-  notes?: string | null;
-  lat?: number | null;
-  lng?: number | null;
-  startTime?: string | null;
-  durationMin?: number | null;
-};
-
-export type TripItemPatch = Partial<TripItemInput>;
+// Request bodies: derived from the server's schemas so the two can't drift.
+export type NewTripInput = z.input<typeof createTripInput>;
+export type TripPatch = z.input<typeof updateTripInput>;
+export type TripHotelInput = z.input<typeof createHotelInput>;
+export type TripHotelPatch = z.input<typeof updateHotelInput>;
+export type TripItemInput = z.input<typeof createItemInput>;
+export type TripItemPatch = z.input<typeof updateItemInput>;
 
 export type TripLocateResult = {
   trip: Trip;

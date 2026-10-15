@@ -32,9 +32,11 @@ export type FxXArticle = {
 function entityOf(entry: unknown): EntityData | null {
   if (!entry || typeof entry !== "object") return null;
   const rec = entry as Record<string, unknown>;
-  const inner = rec.value && typeof rec.value === "object" ? (rec.value as Record<string, unknown>) : rec;
+  const inner =
+    rec.value && typeof rec.value === "object" ? (rec.value as Record<string, unknown>) : rec;
   const type = typeof inner.type === "string" ? inner.type : undefined;
-  const data = inner.data && typeof inner.data === "object" ? (inner.data as EntityData["data"]) : undefined;
+  const data =
+    inner.data && typeof inner.data === "object" ? (inner.data as EntityData["data"]) : undefined;
   return { type, data };
 }
 
@@ -124,7 +126,9 @@ export function xArticleBlocksToHtml(article: FxXArticle): string {
   const parts: string[] = [];
   const cover = article.cover_media?.media_info?.original_img_url;
   if (cover) {
-    parts.push(`<figure><img src="${xmlEscape(cover)}" alt="${xmlEscape(article.title || "Cover")}"/></figure>`);
+    parts.push(
+      `<figure><img src="${xmlEscape(cover)}" alt="${xmlEscape(article.title || "Cover")}"/></figure>`,
+    );
   }
 
   let listTag: "ol" | "ul" | null = null;

@@ -10,6 +10,9 @@
 export const SLOT_ORDER = ["morning", "afternoon", "evening", "night"] as const;
 export type Slot = (typeof SLOT_ORDER)[number];
 
+export const TRIP_HOTEL_STATUSES = ["shortlisted", "chosen"] as const;
+export type TripHotelStatus = (typeof TRIP_HOTEL_STATUSES)[number];
+
 export const MAX_TRIP_DAYS = 30;
 
 const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;

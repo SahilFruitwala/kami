@@ -4,12 +4,12 @@ import { z } from "zod";
 import type { JsonRow } from "@/lib/api/types";
 import {
   CacheTTL,
-  cacheKey,
+  userFeatureKey,
   cached,
   hashKeyPart,
   normalizeCacheQuery,
 } from "@/lib/cache.server.ts";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import {
   bookGenres,
   books,
@@ -26,7 +26,7 @@ import {
 } from "@/lib/schema";
 
 import { type ShelfCard, type ShelfDetail, type ShelfTab } from "@/lib/shelves.ts";
-import { shelfStatus, shelfType } from "@/lib/shelves-db.server.ts";
+import { shelfStatus, shelfType, tableForType } from "@/lib/shelves-db.server.ts";
 import { notFound } from "@/server/http";
 
 export const shelfTypeParams = z.object({ type: shelfType });
@@ -56,7 +56,7 @@ function jsonRow<T extends Record<string, unknown>>(row: T): JsonRow<T> {
 export async function getShelfCounts(userId: string): Promise<Record<ShelfTab, number>> {
   // Four COUNT queries on every shelves render — a 60s per-user entry
   // absorbs remount bursts; writes invalidate it below.
-  return cached(cacheKey("u", userId, "shelves", "counts"), CacheTTL.shelfReads, async () => {
+  return cached(userFeatureKey(userId, "shelves", "counts"), CacheTTL.shelfReads, async () => {
     const db = await getDb();
     const [[m], [t], [b], [w]] = await Promise.all([
       db
@@ -89,13 +89,83 @@ export async function getShelfCounts(userId: string): Promise<Record<ShelfTab, n
   });
 }
 
+type ShelfRow = {
+  movie: typeof movies.$inferSelect;
+  tv: typeof tvShows.$inferSelect;
+  book: typeof books.$inferSelect;
+  wishlist: typeof wishlistItems.$inferSelect;
+  restaurant: typeof restaurants.$inferSelect;
+  place: typeof places.$inferSelect;
+};
+type ShelfKind = keyof ShelfRow;
+type CardExtras = Partial<Omit<ShelfCard, "id" | "type" | "title" | "imageUrl" | "status">>;
+
+/**
+ * What each shelf type adds to the shared card columns (id, title, image,
+ * status, dates). Adding a shelf type means one entry here, not another
+ * copy of the list query.
+ */
+const CARD_EXTRAS: { [K in ShelfKind]: (row: ShelfRow[K]) => CardExtras } = {
+  movie: (r) => ({
+    subtitle: r.releaseYear ? String(r.releaseYear) : null,
+    overview: r.overview,
+    year: r.releaseYear,
+  }),
+  tv: (r) => ({
+    subtitle:
+      r.episodesWatched != null && r.totalEpisodes != null
+        ? `${r.episodesWatched}/${r.totalEpisodes} eps${r.lastEpisode ? ` · ${r.lastEpisode}` : ""}`
+        : r.releaseYear
+          ? String(r.releaseYear)
+          : null,
+    overview: r.overview,
+    year: r.releaseYear,
+    episodesWatched: r.episodesWatched,
+    totalEpisodes: r.totalEpisodes,
+    lastEpisode: r.lastEpisode,
+  }),
+  book: (r) => ({
+    subtitle: r.author ?? null,
+    overview: r.overview,
+    year: r.publishYear,
+    progressPercent: r.progressPercent,
+  }),
+  wishlist: (r) => ({
+    subtitle: r.price ?? r.source ?? null,
+    overview: r.description,
+    link: r.link,
+  }),
+  restaurant: (r) => ({ subtitle: r.cuisine ?? r.address ?? null }),
+  place: (r) => ({ subtitle: r.address ?? null }),
+};
+
+function toCard<K extends ShelfKind>(type: K, row: ShelfRow[ShelfKind]): ShelfCard {
+  return {
+    id: row.id,
+    type,
+    title: row.title,
+    imageUrl: row.imageUrl,
+    status: row.status,
+    subtitle: null,
+    overview: null,
+    year: null,
+    createdAt: row.createdAt ? row.createdAt.getTime() : Date.now(),
+    completedAt: toMs(row.completedAt),
+    episodesWatched: null,
+    totalEpisodes: null,
+    lastEpisode: null,
+    progressPercent: null,
+    // `tableForType(type)` returns this type's table, so the row matches `type`.
+    ...CARD_EXTRAS[type](row as ShelfRow[K]),
+  };
+}
+
 export async function listShelfItems(userId: string, data: ShelfListArgs): Promise<ShelfCard[]> {
   const q = data.q.trim();
   // Filtered shelf lists are re-queried on every tab switch / keystroke.
   // Cache per user + filter for 60s; shelf writes invalidate the prefix.
   return cached(
-    cacheKey(
-      "u",
+    userFeatureKey(
       userId,
       "shelves",
       "list",
@@ -106,203 +176,28 @@ export async function listShelfItems(userId: string, data: ShelfListArgs): Promi
     CacheTTL.shelfReads,
     async (): Promise<ShelfCard[]> => {
       const db = await getDb();
-      const owner = eq(lists.ownerId, userId);
-
-      if (data.type === "movie") {
-        const conds = [
-          owner,
-          data.status ? eq(movies.status, data.status) : undefined,
-          q ? ilike(movies.title, `%${q}%`) : undefined,
-        ].filter(Boolean);
-        const rows = await db
-          .select()
-          .from(movies)
-          .innerJoin(lists, eq(movies.listId, lists.id))
-          .where(and(...conds))
-          .orderBy(desc(movies.createdAt))
-          .limit(data.limit)
-          .offset(data.offset);
-        return rows.map(({ movies: r }) => ({
-          id: r.id,
-          type: "movie" as const,
-          title: r.title,
-          imageUrl: r.imageUrl,
-          status: r.status,
-          subtitle: r.releaseYear ? String(r.releaseYear) : null,
-          overview: r.overview,
-          year: r.releaseYear,
-          createdAt: r.createdAt ? r.createdAt.getTime() : Date.now(),
-          completedAt: toMs(r.completedAt),
-          episodesWatched: null,
-          totalEpisodes: null,
-          lastEpisode: null,
-          progressPercent: null,
-        }));
-      }
-
-      if (data.type === "tv") {
-        const conds = [
-          owner,
-          data.status ? eq(tvShows.status, data.status) : undefined,
-          q ? ilike(tvShows.title, `%${q}%`) : undefined,
-        ].filter(Boolean);
-        const rows = await db
-          .select()
-          .from(tvShows)
-          .innerJoin(lists, eq(tvShows.listId, lists.id))
-          .where(and(...conds))
-          .orderBy(desc(tvShows.createdAt))
-          .limit(data.limit)
-          .offset(data.offset);
-        return rows.map(({ tv_shows: r }) => ({
-          id: r.id,
-          type: "tv" as const,
-          title: r.title,
-          imageUrl: r.imageUrl,
-          status: r.status,
-          subtitle:
-            r.episodesWatched != null && r.totalEpisodes != null
-              ? `${r.episodesWatched}/${r.totalEpisodes} eps${r.lastEpisode ? ` · ${r.lastEpisode}` : ""}`
-              : r.releaseYear
-                ? String(r.releaseYear)
-                : null,
-          overview: r.overview,
-          year: r.releaseYear,
-          createdAt: r.createdAt ? r.createdAt.getTime() : Date.now(),
-          completedAt: toMs(r.completedAt),
-          episodesWatched: r.episodesWatched,
-          totalEpisodes: r.totalEpisodes,
-          lastEpisode: r.lastEpisode,
-          progressPercent: null,
-        }));
-      }
-
-      if (data.type === "book") {
-        const conds = [
-          owner,
-          data.status ? eq(books.status, data.status) : undefined,
-          q ? or(ilike(books.title, `%${q}%`), ilike(books.author, `%${q}%`)) : undefined,
-        ].filter(Boolean);
-        const rows = await db
-          .select()
-          .from(books)
-          .innerJoin(lists, eq(books.listId, lists.id))
-          .where(and(...conds))
-          .orderBy(desc(books.createdAt))
-          .limit(data.limit)
-          .offset(data.offset);
-        return rows.map(({ books: r }) => ({
-          id: r.id,
-          type: "book" as const,
-          title: r.title,
-          imageUrl: r.imageUrl,
-          status: r.status,
-          subtitle: r.author ?? null,
-          overview: r.overview,
-          year: r.publishYear,
-          createdAt: r.createdAt ? r.createdAt.getTime() : Date.now(),
-          completedAt: toMs(r.completedAt),
-          episodesWatched: null,
-          totalEpisodes: null,
-          lastEpisode: null,
-          progressPercent: r.progressPercent,
-        }));
-      }
-
-      if (data.type === "wishlist") {
-        const conds = [
-          owner,
-          data.status ? eq(wishlistItems.status, data.status) : undefined,
-          q ? ilike(wishlistItems.title, `%${q}%`) : undefined,
-        ].filter(Boolean);
-        const rows = await db
-          .select()
-          .from(wishlistItems)
-          .innerJoin(lists, eq(wishlistItems.listId, lists.id))
-          .where(and(...conds))
-          .orderBy(desc(wishlistItems.createdAt))
-          .limit(data.limit)
-          .offset(data.offset);
-        return rows.map(({ wishlist_items: r }) => ({
-          id: r.id,
-          type: "wishlist" as const,
-          title: r.title,
-          imageUrl: r.imageUrl,
-          status: r.status,
-          subtitle: r.price ?? r.source ?? null,
-          overview: r.description,
-          year: null,
-          createdAt: r.createdAt ? r.createdAt.getTime() : Date.now(),
-          completedAt: toMs(r.completedAt),
-          episodesWatched: null,
-          totalEpisodes: null,
-          lastEpisode: null,
-          progressPercent: null,
-          link: r.link,
-        }));
-      }
-
-      if (data.type === "restaurant") {
-        const conds = [
-          owner,
-          data.status ? eq(restaurants.status, data.status) : undefined,
-          q ? ilike(restaurants.title, `%${q}%`) : undefined,
-        ].filter(Boolean);
-        const rows = await db
-          .select()
-          .from(restaurants)
-          .innerJoin(lists, eq(restaurants.listId, lists.id))
-          .where(and(...conds))
-          .orderBy(desc(restaurants.createdAt))
-          .limit(data.limit)
-          .offset(data.offset);
-        return rows.map(({ restaurants: r }) => ({
-          id: r.id,
-          type: "restaurant" as const,
-          title: r.title,
-          imageUrl: r.imageUrl,
-          status: r.status,
-          subtitle: r.cuisine ?? r.address ?? null,
-          overview: null,
-          year: null,
-          createdAt: r.createdAt ? r.createdAt.getTime() : Date.now(),
-          completedAt: toMs(r.completedAt),
-          episodesWatched: null,
-          totalEpisodes: null,
-          lastEpisode: null,
-          progressPercent: null,
-        }));
-      }
-
-      const conds = [
-        owner,
-        data.status ? eq(places.status, data.status) : undefined,
-        q ? ilike(places.title, `%${q}%`) : undefined,
-      ].filter(Boolean);
+      const table = tableForType(data.type);
+      const pattern = `%${q}%`;
+      const search = !q
+        ? undefined
+        : data.type === "book"
+          ? or(ilike(books.title, pattern), ilike(books.author, pattern))
+          : ilike(table.title, pattern);
       const rows = await db
-        .select()
-        .from(places)
-        .innerJoin(lists, eq(places.listId, lists.id))
-        .where(and(...conds))
-        .orderBy(desc(places.createdAt))
+        .select({ item: table })
+        .from(table)
+        .innerJoin(lists, eq(table.listId, lists.id))
+        .where(
+          and(
+            eq(lists.ownerId, userId),
+            data.status ? eq(table.status, data.status) : undefined,
+            search,
+          ),
+        )
+        .orderBy(desc(table.createdAt))
         .limit(data.limit)
         .offset(data.offset);
-      return rows.map(({ places: r }) => ({
-        id: r.id,
-        type: "place" as const,
-        title: r.title,
-        imageUrl: r.imageUrl,
-        status: r.status,
-        subtitle: r.address ?? null,
-        overview: null,
-        year: null,
-        createdAt: r.createdAt ? r.createdAt.getTime() : Date.now(),
-        completedAt: toMs(r.completedAt),
-        episodesWatched: null,
-        totalEpisodes: null,
-        lastEpisode: null,
-        progressPercent: null,
-      }));
+      return rows.map(({ item }) => toCard(data.type, item));
     },
   );
 }
@@ -315,7 +210,7 @@ export async function getShelfItem(
   const detail = await cached(
     // Detail opens repeat the same 2-3 queries; cache per user + item.
     // Episode ticks and status changes invalidate the user prefix.
-    cacheKey("u", userId, "shelves", "detail", data.type, data.id),
+    userFeatureKey(userId, "shelves", "detail", data.type, data.id),
     CacheTTL.shelfReads,
     async (): Promise<ShelfDetail | null> => {
       const db = await getDb();

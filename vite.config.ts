@@ -19,16 +19,7 @@ export default defineConfig(({ command, isPreview }) => ({
   plugins: [
     tailwindcss(),
     tanstackStart(),
-    ...(command === "build" || isPreview
-      ? [
-          nitro({
-            preset: "vercel",
-            // The trip agent streams a multi-step research loop; the default
-            // function timeout cuts it off mid-stream ("network error").
-            vercel: { functionRules: { "/api/trips/*/chat": { maxDuration: 300 } } },
-          }),
-        ]
-      : []),
+    ...(command === "build" || isPreview ? [nitro({ preset: "vercel" })] : []),
     viteReact(),
   ],
 }));

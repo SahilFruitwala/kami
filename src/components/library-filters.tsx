@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input.tsx";
 import { collectLibraryTags } from "@/lib/filter-library.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
+import { confirmAction } from "@/lib/confirm.ts";
 
 export function LibraryFilters({
   folderFilter,
@@ -61,8 +62,13 @@ export function LibraryFilters({
             type="button"
             className="ml-1 flex size-11 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 sm:size-8"
             aria-label={`Delete folder ${folder.name}`}
-            onClick={() => {
-              if (!window.confirm(`Delete slipcase “${folder.name}”? Works inside become Unfiled.`)) return;
+            onClick={async () => {
+              const ok = await confirmAction({
+                title: `Delete slipcase “${folder.name}”?`,
+                description: "Works inside become Unfiled.",
+                confirmLabel: "Delete",
+              });
+              if (!ok) return;
               if (folderFilter === folder.id) onFolder("all");
               removeFolder(folder.id);
             }}
@@ -122,12 +128,7 @@ function FilterChip({
   children: ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className="g-chip px-3"
-    >
+    <button type="button" onClick={onClick} aria-pressed={active} className="g-chip px-3">
       {children}
     </button>
   );

@@ -2,7 +2,7 @@ import "@tanstack/react-start/server-only";
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import type { TripLocateResult } from "@/lib/api/trips";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { geocode } from "@/lib/geocode.server.ts";
 import { enforceRateLimit } from "@/lib/rate-limit.server.ts";
 import { tripHotels, tripItems, trips } from "@/lib/schema";

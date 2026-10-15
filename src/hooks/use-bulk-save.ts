@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { libraryApi } from "@/lib/api/library";
 import { useLibraryStore } from "@/lib/store.ts";
 import { parseBulkUrls } from "@/lib/session-article.ts";
+import { toastError } from "@/lib/errors";
 
 export const MAX_BULK_URLS = 50;
 
@@ -71,7 +72,7 @@ export function useBulkSave() {
         setOpen(false);
         reset();
       } else {
-        toast.error(err instanceof Error ? err.message : "Could not save those links.");
+        toastError(err, "Could not save those links.");
       }
     } finally {
       setBusy(false);

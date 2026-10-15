@@ -10,7 +10,7 @@ import {
   invalidateUserCache,
 } from "@/lib/cache.server.ts";
 import { and, eq, isNull } from "drizzle-orm";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { books } from "@/lib/schema";
 import { findOwnedItem } from "@/lib/shelves-db.server.ts";
 import { notFound } from "@/server/http";
@@ -589,6 +589,6 @@ export async function fillBookPageCount(
     .update(books)
     .set({ pageCount: pages })
     .where(and(eq(books.id, data.id), isNull(books.pageCount)));
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "shelves");
   return { pageCount: pages };
 }

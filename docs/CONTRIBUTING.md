@@ -10,7 +10,7 @@ If you have not set up the app yet, start with [Development](./DEVELOPMENT.md). 
 
 1. Branch from latest `master`.
 2. Keep changes focused — one concern per PR when possible.
-3. Run `pnpm typecheck` (and `pnpm test` if you touched `scripts/`).
+3. Run `pnpm typecheck` and `pnpm test` (tests live in `tests/`).
 4. Prefer matching existing naming (`src/server/services/*`, `src/routes/api/*`, `*.server.ts`, Kami CSS tokens).
 5. Never commit `.env`, secrets, or real user data dumps.
 
@@ -45,29 +45,38 @@ function MyFeaturePage() {
 
 ### 2. Add an API endpoint
 
-An endpoint is three small pieces — keep business logic out of the route file.
+An endpoint is a few small pieces — keep business logic out of the route file.
 
-**a. Service** — `src/server/services/<domain>.ts` (plain async functions, server-only):
+**a. Request schema** — `src/lib/api/schemas/<domain>.ts` (isomorphic: Zod + `src/lib` pure helpers only, no DB or server imports). The server validates with it and the client derives its request type from it, so the two can't drift (see `schemas/library.ts`, `schemas/trips.ts`):
+
+```ts
+import { z } from "zod";
+
+export const doThingBody = z.object({ /* … */ });
+```
+
+**b. Service** — `src/server/services/<domain>.ts` (plain async functions, server-only):
 
 ```ts
 import "@tanstack/react-start/server-only";
 import { z } from "zod";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { invalidateUserCache } from "@/lib/cache.server";
 import { notFound } from "@/server/http";
+import { doThingBody } from "@/lib/api/schemas/<domain>";
 
-export const doThingBody = z.object({ /* … */ });
+export { doThingBody }; // routes import schemas from the service
 
 export async function doThing(userId: string, id: string, data: z.output<typeof doThingBody>) {
   const db = await getDb();
   // ALWAYS scope by userId; throw notFound()/conflict()/badRequest() for user-facing errors
   // …
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "library"); // the feature this write changes
   return { ok: true as const };
 }
 ```
 
-**b. Route** — `src/routes/api/<domain>/$id/thing.ts`:
+**c. Route** — `src/routes/api/<domain>/$id/thing.ts`:
 
 ```ts
 import { createFileRoute } from "@tanstack/react-router";
@@ -88,9 +97,14 @@ export const Route = createFileRoute("/api/<domain>/$id/thing")({
 });
 ```
 
-**c. Client** — add a method to `src/lib/api/<domain>.ts`:
+**d. Client** — add a method to `src/lib/api/<domain>.ts`, typing the body from the schema (type-only import — ESLint rejects a value import here, so Zod stays out of the bundle):
 
 ```ts
+import type { z } from "zod";
+import type { doThingBody } from "./schemas/<domain>";
+
+export type DoThingInput = z.input<typeof doThingBody>;
+
 doThing: (id: string, input: DoThingInput) => http.post<{ ok: true }>(`/api/<domain>/${seg(id)}/thing`, input),
 ```
 
@@ -99,12 +113,13 @@ Checklist:
 - [ ] Route wraps its handler in `apiHandler` (auth, same-site, JSON body, Zod, error mapping)
 - [ ] `rateLimit: "lookup" | "extract"` when the service fetches from the outside world
 - [ ] Queries/mutations filtered by `userId` (or verified list membership)
-- [ ] Writes call `invalidateUserCache(userId)`
-- [ ] Shared response types live in `src/lib/api/types.ts` — never import `src/server/**` from client code
+- [ ] Writes call `invalidateUserCache(userId, feature)` for each cached feature they change (cached reads use `userFeatureKey`)
+- [ ] Request body schema lives in `src/lib/api/schemas/`; the client type is `z.input<>` of it
+- [ ] Shared response types live in `src/lib/api/types.ts` — never import `src/server/**` from client code (ESLint enforces this)
 - [ ] REST shape: `GET` reads, `POST` create/actions, `PATCH` partial update, `PUT` replace/set, `DELETE` remove; 404 for missing-or-not-yours
 - [ ] Endpoint listed in [`docs/API.md`](./API.md)
 
-For shelves, prefer React Query hooks in `src/hooks/use-shelf-queries.ts` and keys in `src/lib/query-client.ts`. For library/journal, go through `*-remote.ts` so the outbox stays consistent.
+Server data in components goes through hooks in `src/hooks/` (`use-shelf-queries.ts`, `use-ai.ts`, `use-feeds.ts`, …): every `useQuery` / `useMutation` lives there, keyed through the `queryKeys` factory in `src/lib/query-client.ts`, with its invalidation and error toast. ESLint rejects React Query hooks imported straight into components or pages. One-off imperative calls (export a file, save on click) may call `src/lib/api` directly. For library/journal, go through `*-remote.ts` so the outbox stays consistent.
 
 ### 3. Change the database schema
 

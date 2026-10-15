@@ -3,7 +3,7 @@ import { addTransitionType, startTransition } from "react";
 import { ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { TripBoard } from "@/components/trips/trip-board.tsx";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 
 export const Route = createFileRoute("/trips/$id")({
   component: TripPage,

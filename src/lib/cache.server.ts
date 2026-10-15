@@ -33,6 +33,11 @@ function getClient(): Redis | null {
   return client;
 }
 
+/** Swap the Redis client (tests use an in-memory stand-in; `undefined` re-reads env). */
+export function setCacheClientForTests(next: Redis | null | undefined): void {
+  client = next;
+}
+
 /** Build a namespaced key: `quarto:v1:<part>:<part>...` */
 export function cacheKey(...parts: string[]): string {
   return [NAMESPACE, ...parts].join(":");
@@ -124,22 +129,38 @@ export async function cached<T>(
   return fresh;
 }
 
+/** Per-user cached features: the third key part, `quarto:v1:u:<userId>:<feature>:…`. */
+export type UserCacheFeature = "library" | "shelves" | "journal";
+
+/** Key prefix for one user's cached reads of a feature. */
+export function userFeatureKey(userId: string, feature: UserCacheFeature, ...parts: string[]) {
+  return cacheKey("u", userId, feature, ...parts);
+}
+
 /**
- * Drop all cached reads for one user after any of their writes.
+ * Drop one user's cached reads of `feature` after they write to it, leaving
+ * their other features cached (marking a feed entry read no longer evicts
+ * shelves and library pages).
  *
- * Cost is O(that user's cached keys): one SMEMBERS on the user's index set
- * plus one DEL. (The previous SCAN MATCH walked the entire Redis keyspace —
- * every user's entries and all long-lived TMDB / link-preview lookups — on
- * every write, and its unterminated prefix also matched other user ids that
- * merely started with this one.)
+ * Cost is O(that user's cached keys): one SMEMBERS on the user's index set,
+ * one DEL and one SREM — no keyspace scan.
  */
-export async function invalidateUserCache(userId: string): Promise<void> {
+export async function invalidateUserCache(
+  userId: string,
+  feature: UserCacheFeature,
+): Promise<void> {
   const redis = getClient();
   if (!redis) return;
   try {
     const index = userIndexKey(userId);
-    const keys = await redis.smembers(index);
-    await redis.del(index, ...keys);
+    const prefix = `${userFeatureKey(userId, feature)}:`;
+    const keys = (await redis.smembers(index)).filter((k) => k.startsWith(prefix));
+    if (keys.length === 0) return;
+    await redis
+      .pipeline()
+      .del(...keys)
+      .srem(index, ...keys)
+      .exec();
   } catch (err) {
     console.warn("[cache] invalidate failed:", err);
   }

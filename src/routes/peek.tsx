@@ -5,6 +5,7 @@ import { AppShell } from "@/components/app-shell.tsx";
 import { aiApi, type PagePeek } from "@/lib/api/ai";
 import type { BookmarkletPayload } from "@/lib/bookmarklet.ts";
 import { stashCapturePayload, takeStashedCapturePayload } from "@/lib/session-article.ts";
+import { errorMessage } from "@/lib/errors";
 
 /**
  * "Summarize page with KAMI" from the browser extension: /capture stashes the
@@ -53,7 +54,7 @@ function Peek() {
       .catch((err: unknown) =>
         setState({
           status: "error",
-          message: err instanceof Error ? err.message : "Could not summarize that page.",
+          message: errorMessage(err, "Could not summarize that page."),
         }),
       );
   }, []);

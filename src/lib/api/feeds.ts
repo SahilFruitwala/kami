@@ -1,3 +1,5 @@
+import type { z } from "zod";
+import type { refreshInput } from "./schemas/feeds";
 import type { Article } from "@/lib/article-types";
 import { http, seg } from "./client";
 
@@ -72,7 +74,7 @@ export const feedsApi = {
   remove: (id: string) => http.delete<void>(feed(id)),
 
   /** Fetch this user's feeds (or one feed) now, one bounded batch per call. */
-  refresh: (opts: { force?: boolean; feedId?: string } = {}) =>
+  refresh: (opts: z.input<typeof refreshInput> = {}) =>
     http.post<RefreshResult>("/api/feeds/refresh", opts),
 
   entries: (opts: {

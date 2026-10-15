@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { lookupApi } from "@/lib/api/lookup";
 import {
   shelvesApi,
@@ -10,6 +9,8 @@ import {
 import type { ItemStatus } from "@/lib/schema";
 import type { ShelfTab } from "@/lib/shelves";
 import { invalidateShelves, queryKeys } from "@/lib/query-client";
+import { toastError } from "@/lib/errors";
+import type { BookCsvSource, GoodreadsBook } from "@/lib/goodreads";
 
 export function useShelfCounts() {
   return useQuery({
@@ -73,15 +74,22 @@ export function useBookSearch(query: string, enabled: boolean) {
   });
 }
 
+const linkPreviewQuery = (href: string) => ({
+  queryKey: queryKeys.lookup.link(href),
+  queryFn: () => lookupApi.link(href),
+  staleTime: LOOKUP_STALE_TIME,
+  gcTime: LOOKUP_GC_TIME,
+});
+
 export function useLinkPreview(url: string, enabled: boolean) {
   const href = url.trim();
-  return useQuery({
-    queryKey: queryKeys.lookup.link(href),
-    queryFn: () => lookupApi.link(href),
-    enabled: enabled && href.length >= 4,
-    staleTime: LOOKUP_STALE_TIME,
-    gcTime: LOOKUP_GC_TIME,
-  });
+  return useQuery({ ...linkPreviewQuery(href), enabled: enabled && href.length >= 4 });
+}
+
+/** Imperative link preview (on a button press), sharing `useLinkPreview`'s cache. */
+export function useFetchLinkPreview() {
+  const client = useQueryClient();
+  return (url: string) => client.fetchQuery(linkPreviewQuery(url.trim()));
 }
 
 export function useAddShelfItem() {
@@ -126,13 +134,23 @@ export function useShowSeasons(itemId: string | null) {
   });
 }
 
+const seasonEpisodesQuery = (itemId: string, season: number) => ({
+  queryKey: queryKeys.shelves.episodes(itemId, season),
+  queryFn: () => shelvesApi.tv.episodes(itemId, season),
+  staleTime: 60 * 60_000,
+});
+
 export function useSeasonEpisodes(itemId: string | null, season: number | null) {
   return useQuery({
-    queryKey: queryKeys.shelves.episodes(itemId ?? "", season ?? -1),
-    queryFn: () => shelvesApi.tv.episodes(itemId!, season!),
+    ...seasonEpisodesQuery(itemId ?? "", season ?? -1),
     enabled: Boolean(itemId) && season != null,
-    staleTime: 60 * 60_000,
   });
+}
+
+/** Imperative season episode list, sharing `useSeasonEpisodes`' cache. */
+export function useFetchSeasonEpisodes() {
+  const client = useQueryClient();
+  return (itemId: string, season: number) => client.fetchQuery(seasonEpisodesQuery(itemId, season));
 }
 
 export function useToggleEpisode(itemId: string) {
@@ -140,12 +158,12 @@ export function useToggleEpisode(itemId: string) {
   return useMutation({
     mutationFn: (data: { season: number; number: number }) =>
       shelvesApi.tv.toggleEpisode(itemId, data.season, data.number),
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't update episodes."),
+    onError: (e) => toastError(e, "Couldn't update episodes."),
     onSuccess: () => {
       void invalidateShelves(client);
       void client.invalidateQueries({ queryKey: queryKeys.shelves.seasons(itemId) });
       void client.invalidateQueries({
-        queryKey: [...queryKeys.shelves.all, "episodes", itemId],
+        queryKey: queryKeys.shelves.episodesAll(itemId),
       });
     },
   });
@@ -156,12 +174,12 @@ export function useSetSeasonWatched(itemId: string) {
   return useMutation({
     mutationFn: (data: { season: number; numbers: number[]; watched: boolean }) =>
       shelvesApi.tv.setSeasonWatched(itemId, data.season, data.numbers, data.watched),
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't update episodes."),
+    onError: (e) => toastError(e, "Couldn't update episodes."),
     onSuccess: () => {
       void invalidateShelves(client);
       void client.invalidateQueries({ queryKey: queryKeys.shelves.seasons(itemId) });
       void client.invalidateQueries({
-        queryKey: [...queryKeys.shelves.all, "episodes", itemId],
+        queryKey: queryKeys.shelves.episodesAll(itemId),
       });
     },
   });
@@ -176,7 +194,7 @@ export function useSetShowWatched() {
       void invalidateShelves(client);
       void client.invalidateQueries({ queryKey: queryKeys.shelves.seasons(vars.itemId) });
       void client.invalidateQueries({
-        queryKey: [...queryKeys.shelves.all, "episodes", vars.itemId],
+        queryKey: queryKeys.shelves.episodesAll(vars.itemId),
       });
     },
   });
@@ -198,7 +216,7 @@ export function useSetBookProgress() {
 export function useBookPageCountLookup(id: string, enabled: boolean) {
   const client = useQueryClient();
   return useQuery({
-    queryKey: [...queryKeys.shelves.all, "page-count", id] as const,
+    queryKey: queryKeys.shelves.pageCount(id),
     queryFn: async () => {
       const res = await shelvesApi.books.fillPageCount(id);
       if (res.pageCount) await invalidateShelves(client);
@@ -207,5 +225,24 @@ export function useBookPageCountLookup(id: string, enabled: boolean) {
     enabled,
     staleTime: Infinity,
     retry: false,
+  });
+}
+
+/** Where a title streams / rents, per country (TMDB via the server). */
+export function useWatchProviders(kind: "movie" | "tv", tmdbId: string) {
+  return useQuery({
+    queryKey: queryKeys.lookup.watchProviders(kind, tmdbId),
+    queryFn: () => lookupApi.watchProviders(tmdbId, kind),
+    staleTime: 12 * 60 * 60_000,
+  });
+}
+
+/** Bulk-add books parsed from a Goodreads / StoryGraph export. */
+export function useImportBooks() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (args: { source: BookCsvSource; books: GoodreadsBook[] }) =>
+      shelvesApi.books.importBooks(args.source, args.books),
+    onSuccess: () => void invalidateShelves(client),
   });
 }

@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input.tsx";
 import type { useFeedActions } from "@/hooks/use-feeds.ts";
 import { feedsApi, type FeedSummary, type NewsletterInbox } from "@/lib/api/feeds";
 import { cn } from "@/lib/utils.ts";
+import { confirmAction } from "@/lib/confirm.ts";
 
 type Actions = ReturnType<typeof useFeedActions>;
 
@@ -225,13 +226,14 @@ export function NewsletterCard({ inbox, actions }: { inbox: NewsletterInbox; act
           <button
             type="button"
             disabled={actions.inbox.isPending}
-            onClick={() => {
-              if (
-                window.confirm(
-                  "Replace this address? Mail sent to the old one will stop arriving — you'll need to update your subscriptions.",
-                )
-              )
-                actions.inbox.mutate(true);
+            onClick={async () => {
+              const ok = await confirmAction({
+                title: "Replace this address?",
+                description:
+                  "Mail sent to the old one will stop arriving — you'll need to update your subscriptions.",
+                confirmLabel: "Replace",
+              });
+              if (ok) actions.inbox.mutate(true);
             }}
             className="flex items-center gap-1 font-sans text-[11px] text-ink-muted underline-offset-2 hover:text-hanko hover:underline"
           >

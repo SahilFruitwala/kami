@@ -1,6 +1,16 @@
 import { cn } from "@/lib/utils.ts";
 
-export function Card({ id, title, copy, children }: { id: string; title: string; copy: string; children: React.ReactNode }) {
+export function Card({
+  id,
+  title,
+  copy,
+  children,
+}: {
+  id: string;
+  title: string;
+  copy: string;
+  children: React.ReactNode;
+}) {
   return (
     <section id={id} aria-label={title} className="kami-sheet scroll-mt-24 p-4 sm:p-8">
       <h3 className="font-display text-xl text-ink">{title}</h3>
@@ -14,7 +24,15 @@ export function FieldLabel({ children }: { children: React.ReactNode }) {
   return <p className="kami-label text-ink-muted">{children}</p>;
 }
 
-export function MiniButton({ children, onClick, danger }: { children: React.ReactNode; onClick: () => void; danger?: boolean }) {
+export function MiniButton({
+  children,
+  onClick,
+  danger,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  danger?: boolean;
+}) {
   return (
     <button
       type="button"
@@ -29,7 +47,13 @@ export function MiniButton({ children, onClick, danger }: { children: React.Reac
   );
 }
 
-export function ExportButton({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
+export function ExportButton({
+  children,
+  onClick,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"

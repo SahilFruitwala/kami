@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { ArticleSummary, TidyResult } from "@/lib/api/ai";
 import { textFromHtml } from "@/lib/article-build.server.ts";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { clipText } from "@/lib/model-fallback.ts";
 import { articleAi, articles, folders } from "@/lib/schema";
 import { TAG_CATEGORIES } from "@/lib/tag-categories.ts";
@@ -244,7 +244,10 @@ const autoTagSchema = z.object({
 });
 
 /** Tag an article with one to three categories from the fixed list. */
-export async function autoTagArticle(userId: string, articleId: string): Promise<{ tags: string[] }> {
+export async function autoTagArticle(
+  userId: string,
+  articleId: string,
+): Promise<{ tags: string[] }> {
   const { patchLibraryItem } = await import("@/server/services/library");
   const article = await loadArticleForAi(userId, articleId);
   const { output } = await generateJson(autoTagSchema, {

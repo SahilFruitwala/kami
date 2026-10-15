@@ -1,123 +1,25 @@
 import { and, asc, desc, eq } from "drizzle-orm";
-import { z } from "zod";
 import {
   MAX_CACHED_SNAPSHOT_BYTES,
   approxJsonBytes,
   CacheTTL,
-  cacheKey,
+  userFeatureKey,
   cached,
 } from "@/lib/cache.server.ts";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { articles, folders } from "@/lib/schema";
-import type { Highlight, HighlightColorId, LibraryItem } from "@/lib/store";
-import { HIGHLIGHT_COLORS, normalizeTag } from "@/lib/store";
-import { HIGHLIGHT_NOTE_MAX } from "@/lib/item-ops";
-import { isHttpUrl } from "@/lib/safe-url";
+import {
+  LIBRARY_LIMITS as L,
+  normalizeTag,
+  type Highlight,
+  type LibraryItem,
+} from "@/lib/library-item";
+import { highlightSchema } from "@/lib/api/schemas/library";
 import type { LibrarySnapshot } from "@/lib/api/types";
 
-/** Shared server-side helpers for the library server functions: input
- *  schemas/clamps, row <-> item mapping, ownership checks, snapshot load. */
-
-const highlightColorIds = HIGHLIGHT_COLORS.map((c) => c.id) as [
-  HighlightColorId,
-  ...HighlightColorId[],
-];
-
-export const highlightSchema = z.object({
-  id: z.string().min(1),
-  text: z.string().min(1).max(800),
-  note: z.string().max(HIGHLIGHT_NOTE_MAX).default(""),
-  createdAt: z.number(),
-  color: z.enum(highlightColorIds).default("vermilion"),
-});
-
-const tagSchema = z.string().max(28).transform(normalizeTag);
-
-/**
- * Stored links must be plain http(s). The web reader is shielded by React
- * (which neuters `javascript:` hrefs), but native/mobile clients open these
- * with the OS (`Linking.openURL`, intents) and get no such protection.
- */
-const httpUrlField = z
-  .string()
-  .min(1)
-  .max(2000)
-  .refine(isHttpUrl, "Only http(s) links can be saved.");
-
-export const tagOpSchema = z.discriminatedUnion("op", [
-  z.object({ op: z.literal("add"), tag: tagSchema }),
-  z.object({ op: z.literal("remove"), tag: tagSchema }),
-  z.object({ op: z.literal("rename"), from: tagSchema, to: tagSchema }),
-]);
-
-export const highlightOpSchema = z.discriminatedUnion("op", [
-  z.object({ op: z.literal("add"), highlight: highlightSchema }),
-  z.object({ op: z.literal("remove"), id: z.string().min(1).max(200) }),
-  z.object({
-    op: z.literal("update"),
-    id: z.string().min(1).max(200),
-    color: z.enum(highlightColorIds).optional(),
-    note: z.string().max(HIGHLIGHT_NOTE_MAX).optional(),
-  }),
-]);
-
-export const libraryItemSchema = z.object({
-  // Extracted articles initially use the full URL as their id. The server may
-  // replace it with a generated id when that global PK is already used by a
-  // different user.
-  id: z.string().min(1).max(2000),
-  url: httpUrlField,
-  canonicalUrl: httpUrlField,
-  title: z.string().min(1).max(500),
-  author: z.string().max(300).default(""),
-  siteName: z.string().max(200).default(""),
-  source: z.enum(["blog", "x"]).default("blog"),
-  wordCount: z.number().int().nonnegative().max(1_000_000).default(0),
-  readingMinutes: z.number().int().positive().max(100_000).default(1),
-  excerpt: z.string().max(4000).default(""),
-  contentHtml: z.string().max(1_500_000).default(""),
-  heroImage: z.string().max(2000).nullable().default(null),
-  published: z.string().max(100).nullable().default(null),
-  savedAt: z.number(),
-  archived: z.boolean().default(false),
-  tags: z.array(z.string().max(28)).max(12).default([]),
-  folderId: z.string().max(200).nullable().default(null),
-  highlights: z.array(highlightSchema).max(80).default([]),
-  favorited: z.boolean().default(false),
-  note: z.string().max(2000).default(""),
-});
-
-/**
- * Clamp extractor fields *before* Zod so an oversize og:image URL or title
- * cannot hard-fail the upsert validator (the handler clamp never ran when
- * parse threw first — Cmd+K / capture looked successful until refresh).
- */
-export function clampLibraryItemInput(input: unknown): unknown {
-  if (!input || typeof input !== "object") return input;
-  const o = input as Record<string, unknown>;
-  const str = (v: unknown) => (typeof v === "string" ? v : v == null ? v : String(v));
-  const titleRaw = str(o.title);
-  const hero = str(o.heroImage);
-  return {
-    ...o,
-    title: typeof titleRaw === "string" ? titleRaw.trim().slice(0, 500) || "Untitled" : o.title,
-    author: typeof o.author === "string" ? o.author.slice(0, 300) : o.author,
-    siteName: typeof o.siteName === "string" ? o.siteName.slice(0, 200) : o.siteName,
-    excerpt: typeof o.excerpt === "string" ? o.excerpt.slice(0, 4000) : o.excerpt,
-    contentHtml:
-      typeof o.contentHtml === "string" ? o.contentHtml.slice(0, 1_500_000) : o.contentHtml,
-    heroImage:
-      typeof hero === "string"
-        ? hero.length <= 2000 && isHttpUrl(hero)
-          ? hero
-          : null
-        : o.heroImage,
-    published: typeof o.published === "string" ? o.published.slice(0, 100) : o.published,
-    note: typeof o.note === "string" ? o.note.slice(0, 2000) : o.note,
-    tags: Array.isArray(o.tags) ? o.tags.slice(0, 12) : o.tags,
-    highlights: Array.isArray(o.highlights) ? o.highlights.slice(0, 80) : o.highlights,
-  };
-}
+/** Shared server-side helpers for the library services: row <-> item
+ *  mapping, ownership checks, snapshot load. Request schemas live in
+ *  `@/lib/api/schemas/library`. */
 
 function asStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
@@ -157,7 +59,7 @@ export function rowToItem(row: ArticleListRow, opts?: { includeBody?: boolean })
     published: row.published,
     savedAt: row.savedAt instanceof Date ? row.savedAt.getTime() : Date.now(),
     archived: Boolean(row.archived),
-    tags: asStringArray(row.tags).map(normalizeTag).filter(Boolean).slice(0, 12),
+    tags: asStringArray(row.tags).map(normalizeTag).filter(Boolean).slice(0, L.tags),
     folderId: row.folderId,
     highlights: asHighlights(row.highlights),
     favorited: Boolean(row.favorited),
@@ -198,7 +100,7 @@ export async function sanitizeStoredHtml(html: string, baseUrl: string): Promise
   if (!html.trim()) return "";
   const { sanitizeHtml } = await import("./sanitize-html.server.ts");
   try {
-    return sanitizeHtml(html, baseUrl).slice(0, 1_500_000);
+    return sanitizeHtml(html, baseUrl).slice(0, L.contentHtml);
   } catch {
     return "";
   }
@@ -227,7 +129,7 @@ export async function loadSnapshot(userId: string): Promise<LibrarySnapshot> {
   // via `getArticleContent` when the reader opens a work — that keeps cold
   // start and Redis entries small even for large libraries.
   return cached(
-    cacheKey("u", userId, "library", "snapshot-meta"),
+    userFeatureKey(userId, "library", "snapshot-meta"),
     CacheTTL.library,
     async () => {
       const db = await getDb();

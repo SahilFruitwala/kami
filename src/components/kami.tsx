@@ -65,12 +65,7 @@ export function KamiEyebrow({
   className?: string;
 }) {
   return (
-    <p
-      className={cn(
-        "flex items-center gap-2 font-sans text-sm text-ink-muted",
-        className,
-      )}
-    >
+    <p className={cn("flex items-center gap-2 font-sans text-sm text-ink-muted", className)}>
       {children}
     </p>
   );

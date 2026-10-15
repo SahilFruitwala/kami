@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { ViewTransition } from "react";
+import { useEffect, useState, ViewTransition } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { BookOpen, Clock3, Highlighter, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -8,14 +7,20 @@ import { useLibraryStore } from "@/lib/store.ts";
 import { Hanko, WashiTag } from "@/components/kami.tsx";
 import { previewImageSrc } from "@/lib/image-url.ts";
 import { relativeTime } from "@/lib/time.ts";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import { cn } from "@/lib/utils.ts";
 
 const VIRTUALIZE_AFTER = 50;
 
 function useLaneCount(): number {
   const [lanes, setLanes] = useState(() =>
-    typeof window === "undefined" ? 3 : window.innerWidth >= 1280 ? 3 : window.innerWidth >= 768 ? 2 : 1,
+    typeof window === "undefined"
+      ? 3
+      : window.innerWidth >= 1280
+        ? 3
+        : window.innerWidth >= 768
+          ? 2
+          : 1,
   );
   useEffect(() => {
     const xl = window.matchMedia("(min-width: 1280px)");
@@ -58,9 +63,7 @@ export function ArticleList({
       <div className="kami-sheet flex flex-col items-center gap-3 px-6 py-16 text-center">
         <BookOpen className="size-6 text-ink-muted" aria-hidden="true" />
         <p className="font-display text-2xl text-ink-soft italic">{emptyTitle}</p>
-        <p className="max-w-sm font-body text-sm leading-relaxed text-ink-muted">
-          {emptyCopy}
-        </p>
+        <p className="max-w-sm font-body text-sm leading-relaxed text-ink-muted">{emptyCopy}</p>
       </div>
     );
   }
@@ -80,10 +83,7 @@ export function ArticleList({
   }
 
   return (
-    <ul
-      id="library-article-list"
-      className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3"
-    >
+    <ul id="library-article-list" className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
       {items.map((item) => (
         <ViewTransition key={item.id} default="none">
           <ArticleCard
@@ -221,17 +221,23 @@ function ArticleCard({
               onClick={() => onToggleSelect?.(item.id)}
               className={cn(
                 "flex size-11 shrink-0 items-center justify-center rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 sm:size-8",
-                selected ? "border-hanko bg-hanko text-paper" : "border-faint bg-surface text-transparent",
+                selected
+                  ? "border-hanko bg-hanko text-paper"
+                  : "border-faint bg-surface text-transparent",
               )}
             >
               <svg viewBox="0 0 12 12" className="size-3" fill="none" aria-hidden="true">
-                <path d="M2 6.5 4.8 9 10 3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                <path
+                  d="M2 6.5 4.8 9 10 3"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </button>
           ) : null}
-          <WashiTag tone="paper">
-            {item.source === "x" ? "X" : item.siteName || "Article"}
-          </WashiTag>
+          <WashiTag tone="paper">{item.source === "x" ? "X" : item.siteName || "Article"}</WashiTag>
         </span>
         {item.highlights?.length ? (
           <span className="flex items-center gap-1 text-[11px] font-semibold text-hanko">

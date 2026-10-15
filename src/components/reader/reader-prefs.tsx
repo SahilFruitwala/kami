@@ -1,11 +1,6 @@
 import { Minus, Plus } from "lucide-react";
-import {
-  HIGHLIGHT_COLORS,
-  READER_FONTS,
-  READER_FONT_SIZES,
-  type HighlightColorId,
-  type ReaderFontId,
-} from "@/lib/store.ts";
+import { READER_FONTS, READER_FONT_SIZES, type ReaderFontId } from "@/lib/reader-prefs.ts";
+import { HIGHLIGHT_COLORS, type HighlightColorId } from "@/lib/library-item.ts";
 import { PAPER_TONES, type PaperTone } from "@/lib/paper-tones.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { cn } from "@/lib/utils.ts";
@@ -132,7 +127,9 @@ export function ReaderPrefsPanel({
         ))}
       </div>
 
-      <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-ink-soft">Default highlight</p>
+      <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-ink-soft">
+        Default highlight
+      </p>
       <div className="mt-2 flex flex-wrap gap-2">
         {HIGHLIGHT_COLORS.map((color) => (
           <button
@@ -142,7 +139,9 @@ export function ReaderPrefsPanel({
             title={color.label}
             className={cn(
               "size-11 rounded-full border-2 transition-transform sm:size-8",
-              highlightColor === color.id ? "scale-110 border-ink ring-2 ring-ink/30" : "border-transparent hover:scale-105",
+              highlightColor === color.id
+                ? "scale-110 border-ink ring-2 ring-ink/30"
+                : "border-transparent hover:scale-105",
             )}
             style={{ background: color.swatch }}
             onClick={() => onHighlightColor(color.id)}

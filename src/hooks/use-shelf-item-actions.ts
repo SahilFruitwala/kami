@@ -6,6 +6,8 @@ import {
 } from "@/hooks/use-shelf-queries.ts";
 import { statusLabels } from "@/lib/shelf-labels.ts";
 import type { ShelfDetail } from "@/lib/shelves.ts";
+import { toastError } from "@/lib/errors";
+import { confirmAction } from "@/lib/confirm.ts";
 
 /** Mark done / back to-try / remove for one shelf item, with toasts. */
 export function useShelfItemActions(detail: ShelfDetail, onRemoved: () => void) {
@@ -19,7 +21,11 @@ export function useShelfItemActions(detail: ShelfDetail, onRemoved: () => void) 
   async function setDone(done: boolean) {
     if (!done && detail.type === "tv" && detail.item.episodesWatched > 0) {
       const n = detail.item.episodesWatched;
-      if (!window.confirm(`Clear ${n} watched episode${n === 1 ? "" : "s"} of “${title}”?`)) return;
+      const ok = await confirmAction({
+        title: `Clear ${n} watched episode${n === 1 ? "" : "s"} of “${title}”?`,
+        confirmLabel: "Clear",
+      });
+      if (!ok) return;
     }
     try {
       if (detail.type === "tv") {
@@ -37,7 +43,7 @@ export function useShelfItemActions(detail: ShelfDetail, onRemoved: () => void) 
           : `Moved “${title}” back to ${labels.toTry.toLowerCase()}`,
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't update status.");
+      toastError(e, "Couldn't update status.");
     }
   }
 
@@ -48,7 +54,7 @@ export function useShelfItemActions(detail: ShelfDetail, onRemoved: () => void) 
       await setStatus.mutateAsync({ type: "book", id, status: "in_progress" });
       toast.success(`Started “${title}”`);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't update status.");
+      toastError(e, "Couldn't update status.");
     }
   }
 
@@ -68,18 +74,24 @@ export function useShelfItemActions(detail: ShelfDetail, onRemoved: () => void) 
           : `Picked “${title}” back up`,
       );
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't update status.");
+      toastError(e, "Couldn't update status.");
     }
   }
 
   async function remove() {
-    if (!window.confirm(`Remove “${title}” from your shelf?`)) return;
+    if (
+      !(await confirmAction({
+        title: `Remove “${title}” from your shelf?`,
+        confirmLabel: "Remove",
+      }))
+    )
+      return;
     try {
       await deleteItem.mutateAsync({ type: detail.type, id });
       toast.success(`Removed “${title}”`);
       onRemoved();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't delete that item.");
+      toastError(e, "Couldn't delete that item.");
     }
   }
 

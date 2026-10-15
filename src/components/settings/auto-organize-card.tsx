@@ -3,12 +3,14 @@ import { toast } from "sonner";
 import { useAiStatus, organizeLibrary } from "@/hooks/use-ai.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { Card, ExportButton } from "@/components/settings/settings-ui.tsx";
+import { toastError } from "@/lib/errors";
+import { useReaderPrefs } from "@/lib/reader-prefs.ts";
 
 /** Waiting articles: no tags, no folder (link-only stubs can't be read, so they're skipped). */
 export function AutoOrganizeCard() {
   const ai = useAiStatus();
-  const autoOrganize = useLibraryStore((s) => s.autoOrganize);
-  const setAutoOrganize = useLibraryStore((s) => s.setAutoOrganize);
+  const autoOrganize = useReaderPrefs((s) => s.autoOrganize);
+  const setAutoOrganize = useReaderPrefs((s) => s.setAutoOrganize);
   const waiting = useLibraryStore(
     (s) => s.library.filter((r) => !r.tags?.length && !r.folderId).length,
   );
@@ -26,7 +28,7 @@ export function AutoOrganizeCard() {
         filed > 0 ? `Filed ${filed} ${filed === 1 ? "work" : "works"}` : "Nothing new to file",
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not organize the library.");
+      toastError(err, "Could not organize the library.");
     } finally {
       setRunning(false);
       setLeft(null);
@@ -47,7 +49,9 @@ export function AutoOrganizeCard() {
           className="mt-1 size-4 accent-[#a6331b]"
         />
         <span>
-          <span className="font-sans text-sm font-medium text-ink">Organize new articles automatically</span>
+          <span className="font-sans text-sm font-medium text-ink">
+            Organize new articles automatically
+          </span>
           <span className="block font-body text-sm text-ink-muted">
             Runs when you save something and whenever the library opens. Articles saved from the
             extension are picked up on your next visit.

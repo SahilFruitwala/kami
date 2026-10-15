@@ -1,9 +1,5 @@
-import {
-  useLibraryStore,
-  HIGHLIGHT_COLORS,
-  READER_FONTS,
-  READER_FONT_SIZES,
-} from "@/lib/store.ts";
+import { READER_FONTS, READER_FONT_SIZES, useReaderPrefs } from "@/lib/reader-prefs.ts";
+import { HIGHLIGHT_COLORS } from "@/lib/library-item.ts";
 import { PAPER_TONES } from "@/lib/paper-tones.ts";
 import { useTheme } from "@/hooks/use-theme.ts";
 import { cn } from "@/lib/utils.ts";
@@ -11,20 +7,28 @@ import { Card, FieldLabel } from "@/components/settings/settings-ui.tsx";
 
 export function AppearanceCard() {
   const { theme, isSystem, setTheme, followSystem } = useTheme();
-  const readerFontSize = useLibraryStore((s) => s.readerFontSize);
-  const readerFont = useLibraryStore((s) => s.readerFont);
-  const highlightColor = useLibraryStore((s) => s.highlightColor);
-  const paperTone = useLibraryStore((s) => s.paperTone);
-  const bumpReaderFontSize = useLibraryStore((s) => s.bumpReaderFontSize);
-  const setReaderFont = useLibraryStore((s) => s.setReaderFont);
-  const setHighlightColor = useLibraryStore((s) => s.setHighlightColor);
-  const setPaperTone = useLibraryStore((s) => s.setPaperTone);
+  const readerFontSize = useReaderPrefs((s) => s.readerFontSize);
+  const readerFont = useReaderPrefs((s) => s.readerFont);
+  const highlightColor = useReaderPrefs((s) => s.highlightColor);
+  const paperTone = useReaderPrefs((s) => s.paperTone);
+  const bumpReaderFontSize = useReaderPrefs((s) => s.bumpReaderFontSize);
+  const setReaderFont = useReaderPrefs((s) => s.setReaderFont);
+  const setHighlightColor = useReaderPrefs((s) => s.setHighlightColor);
+  const setPaperTone = useReaderPrefs((s) => s.setPaperTone);
 
   return (
-    <Card id="appearance" title="Appearance" copy="Theme, paper, and type. Mirrors the reader preferences popover — change it here or there.">
+    <Card
+      id="appearance"
+      title="Appearance"
+      copy="Theme, paper, and type. Mirrors the reader preferences popover — change it here or there."
+    >
       <div>
         <FieldLabel>Theme</FieldLabel>
-        <div className="mt-2 inline-flex rounded-lg bg-paper-warm p-1" role="group" aria-label="Color theme">
+        <div
+          className="mt-2 inline-flex rounded-lg bg-paper-warm p-1"
+          role="group"
+          aria-label="Color theme"
+        >
           {(
             [
               ["light", "Light"],
@@ -41,7 +45,9 @@ export function AppearanceCard() {
                 onClick={() => (id === "system" ? followSystem() : setTheme(id))}
                 className={cn(
                   "rounded-md px-4 py-1.5 font-sans text-xs transition-colors",
-                  active ? "bg-surface font-semibold text-hanko shadow-sm" : "text-ink-soft hover:text-ink",
+                  active
+                    ? "bg-surface font-semibold text-hanko shadow-sm"
+                    : "text-ink-soft hover:text-ink",
                 )}
               >
                 {label}
@@ -53,7 +59,11 @@ export function AppearanceCard() {
 
       <div>
         <FieldLabel>Paper tone</FieldLabel>
-        <div className="mt-2 grid max-w-lg grid-cols-1 gap-2 min-[420px]:grid-cols-3" role="group" aria-label="Paper tone">
+        <div
+          className="mt-2 grid max-w-lg grid-cols-1 gap-2 min-[420px]:grid-cols-3"
+          role="group"
+          aria-label="Paper tone"
+        >
           {PAPER_TONES.map((t) => (
             <button
               key={t.id}
@@ -62,10 +72,20 @@ export function AppearanceCard() {
               onClick={() => setPaperTone(t.id)}
               className={cn(
                 "flex items-center gap-2 rounded-lg px-3 py-2.5 text-left transition-colors",
-                paperTone === t.id ? "bg-paper-warm shadow-xs ring-1 ring-hanko/40" : "bg-bg/60 hover:bg-paper-warm/70",
+                paperTone === t.id
+                  ? "bg-paper-warm shadow-xs ring-1 ring-hanko/40"
+                  : "bg-bg/60 hover:bg-paper-warm/70",
               )}
             >
-              <span aria-hidden="true" className="flex size-8 items-center justify-center rounded-md text-xs font-bold" style={{ backgroundColor: t.bg, color: t.fg, border: "1px solid var(--color-line)" }}>
+              <span
+                aria-hidden="true"
+                className="flex size-8 items-center justify-center rounded-md text-xs font-bold"
+                style={{
+                  backgroundColor: t.bg,
+                  color: t.fg,
+                  border: "1px solid var(--color-line)",
+                }}
+              >
                 {t.glyph}
               </span>
               <span className="font-sans text-xs font-medium text-ink">{t.shortLabel}</span>
@@ -87,7 +107,9 @@ export function AppearanceCard() {
                 style={{ fontFamily: f.family }}
                 className={cn(
                   "rounded-lg px-3 py-2 text-left text-sm transition-colors",
-                  readerFont === f.id ? "bg-paper-warm font-semibold text-ink shadow-xs" : "text-ink-soft hover:bg-paper-warm/60 hover:text-ink",
+                  readerFont === f.id
+                    ? "bg-paper-warm font-semibold text-ink shadow-xs"
+                    : "text-ink-soft hover:bg-paper-warm/60 hover:text-ink",
                 )}
               >
                 {f.label}
@@ -98,19 +120,41 @@ export function AppearanceCard() {
         <div>
           <FieldLabel>Text size & highlight</FieldLabel>
           <div className="mt-2 flex items-center gap-2">
-            <button type="button" aria-label="Decrease font size" disabled={readerFontSize <= 0} onClick={() => bumpReaderFontSize(-1)} className="flex size-9 items-center justify-center rounded-lg bg-paper-warm text-ink disabled:opacity-40">
+            <button
+              type="button"
+              aria-label="Decrease font size"
+              disabled={readerFontSize <= 0}
+              onClick={() => bumpReaderFontSize(-1)}
+              className="flex size-9 items-center justify-center rounded-lg bg-paper-warm text-ink disabled:opacity-40"
+            >
               −
             </button>
             <div className="flex flex-1 items-center justify-center gap-1.5" aria-hidden="true">
               {READER_FONT_SIZES.map((_, i) => (
-                <span key={i} className={cn("h-2 w-2 rounded-full", i === readerFontSize ? "scale-125 bg-ink" : "bg-faint")} />
+                <span
+                  key={i}
+                  className={cn(
+                    "h-2 w-2 rounded-full",
+                    i === readerFontSize ? "scale-125 bg-ink" : "bg-faint",
+                  )}
+                />
               ))}
             </div>
-            <button type="button" aria-label="Increase font size" disabled={readerFontSize >= READER_FONT_SIZES.length - 1} onClick={() => bumpReaderFontSize(1)} className="flex size-9 items-center justify-center rounded-lg bg-paper-warm text-ink disabled:opacity-40">
+            <button
+              type="button"
+              aria-label="Increase font size"
+              disabled={readerFontSize >= READER_FONT_SIZES.length - 1}
+              onClick={() => bumpReaderFontSize(1)}
+              className="flex size-9 items-center justify-center rounded-lg bg-paper-warm text-ink disabled:opacity-40"
+            >
               +
             </button>
           </div>
-          <div className="mt-3 flex flex-wrap gap-2" role="group" aria-label="Default highlight color">
+          <div
+            className="mt-3 flex flex-wrap gap-2"
+            role="group"
+            aria-label="Default highlight color"
+          >
             {HIGHLIGHT_COLORS.map((c) => (
               <button
                 key={c.id}
@@ -122,7 +166,9 @@ export function AppearanceCard() {
                 style={{ background: c.swatch }}
                 className={cn(
                   "size-8 rounded-full border-2 transition-transform",
-                  highlightColor === c.id ? "scale-110 border-ink ring-2 ring-ink/30" : "border-transparent hover:scale-105",
+                  highlightColor === c.id
+                    ? "scale-110 border-ink ring-2 ring-ink/30"
+                    : "border-transparent hover:scale-105",
                 )}
               />
             ))}

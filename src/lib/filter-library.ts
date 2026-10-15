@@ -1,4 +1,4 @@
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 
 export type LibraryTab = "inbox" | "archive";
 export type FolderFilter = "all" | "none" | string;
@@ -94,4 +94,37 @@ export function isLibrarySort(value: unknown): value is LibrarySort {
     value === "shortest" ||
     value === "title"
   );
+}
+
+/**
+ * The article after `id` in the reading queue (unarchived, newest saved
+ * first; ties keep library order), wrapping to the newest. Null when `id`
+ * isn't in the queue. Linear, so it is cheap enough to run as a store selector.
+ */
+export function nextInQueue<T extends { id: string; savedAt: number; archived: boolean }>(
+  library: readonly T[],
+  id: string,
+): T | null {
+  const at = library.findIndex((row) => row.id === id);
+  const current = library[at];
+  if (!current || current.archived) return null;
+  // Sorted position: savedAt descending, then library index ascending.
+  const before = (a: T, ai: number, b: T, bi: number) =>
+    a.savedAt > b.savedAt || (a.savedAt === b.savedAt && ai < bi);
+  let next: T | null = null;
+  let nextIdx = -1;
+  let first: T | null = null;
+  let firstIdx = -1;
+  library.forEach((row, i) => {
+    if (row.archived) return;
+    if (!first || before(row, i, first, firstIdx)) {
+      first = row;
+      firstIdx = i;
+    }
+    if (before(current, at, row, i) && (!next || before(row, i, next, nextIdx))) {
+      next = row;
+      nextIdx = i;
+    }
+  });
+  return next ?? first;
 }
