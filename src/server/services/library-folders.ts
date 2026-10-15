@@ -12,7 +12,8 @@ import {
   type Folder,
 } from "@/lib/library-item";
 import { uid } from "@/lib/id";
-import { libraryItemSchema, loadSnapshot, sanitizeStoredHtml } from "@/lib/library-rows.server.ts";
+import { libraryItemSchema } from "@/lib/api/schemas/library";
+import { loadSnapshot, sanitizeStoredHtml } from "@/lib/library-rows.server.ts";
 import { conflict } from "@/server/http";
 
 export const folderIdParams = z.object({ id: z.string().min(1).max(200) });

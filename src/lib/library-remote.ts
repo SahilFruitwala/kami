@@ -1,6 +1,5 @@
-import { libraryApi } from "@/lib/api/library";
+import { libraryApi, type LibraryItemPatch } from "@/lib/api/library";
 import { LIBRARY_BOOT_LIMIT, type LibraryCursor, type LibrarySnapshot } from "@/lib/api/types";
-import type { HighlightOp, TagOp } from "@/lib/item-ops";
 import { useLibraryStore } from "@/lib/store";
 import { clampLibraryItem, type Folder, type LibraryItem } from "@/lib/library-item";
 
@@ -274,16 +273,7 @@ export function syncRemoveItem(id: string) {
   sync("remove", () => libraryApi.items.remove(id));
 }
 
-export function syncPatchItem(
-  id: string,
-  patch: {
-    favorited?: boolean;
-    note?: string;
-    folderId?: string | null;
-    tagOps?: TagOp[];
-    highlightOps?: HighlightOp[];
-  },
-) {
+export function syncPatchItem(id: string, patch: LibraryItemPatch) {
   sync("update", () => libraryApi.items.patch(id, patch));
 }
 

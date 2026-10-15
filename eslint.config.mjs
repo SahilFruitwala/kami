@@ -39,6 +39,30 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "off",
     },
   },
+  // Browser code: no server modules, and request schemas only as types
+  // (their runtime — and Zod — must not ship to the client).
+  {
+    files: ["src/components/**", "src/hooks/**", "src/routes/**/*.tsx", "src/lib/api/*.ts"],
+    rules: {
+      "no-restricted-imports": "off",
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/server/*", "**/*.server", "**/*.server.ts"],
+              message: "Server-only module: call it through /api/* instead.",
+            },
+            {
+              group: ["@/lib/api/schemas/*", "./schemas/*"],
+              allowTypeImports: true,
+              message: "Import request schemas with `import type` and use z.input<>.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Disable rules that conflict with Prettier formatting.
   prettier,
 );
