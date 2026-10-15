@@ -1,22 +1,19 @@
 import "@tanstack/react-start/server-only";
 import { createGoogle } from "@ai-sdk/google";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
-import type { EmbeddingModel, LanguageModel } from "ai";
-import { fallbackModel, type ProviderModel } from "@/lib/model-fallback.ts";
+import type { LanguageModel } from "ai";
 import {
   DEFAULT_AI_MODELS,
-  DEFAULT_EMBEDDING_MODELS,
   parseModelList,
-  pickModel,
+  type AiModel,
   type ModelProvider,
-  type TripModel,
-} from "@/lib/trip-models.ts";
+} from "@/lib/ai-models.ts";
+import { fallbackModel, type ProviderModel } from "@/lib/model-fallback.ts";
 
 /**
- * The one place model providers are chosen (the trip agent's picker and the
- * library's AI features). Everything else works with an AI SDK
- * `LanguageModel`, so adding a provider only touches this file and
- * `trip-models.ts`.
+ * The one place model providers are chosen. Everything else works with an
+ * AI SDK `LanguageModel`, so adding a provider only touches this file and
+ * `ai-models.ts`.
  */
 
 function providerKey(provider: ModelProvider): string | null {
@@ -26,29 +23,14 @@ function providerKey(provider: ModelProvider): string | null {
 
 const hasKey = (provider: ModelProvider) => providerKey(provider) !== null;
 
-/** Models offered in the picker, each marked usable or not. */
-export function tripModelMenu(): Array<TripModel & { available: boolean }> {
-  return parseModelList(process.env.TRIPS_MODELS).map((m) => ({
-    ...m,
-    available: hasKey(m.provider),
-  }));
-}
-
-/** The model for a request (falls back to the default), or null when no provider has a key. */
-export function resolveTripModel(requested?: string | null): TripModel | null {
-  return pickModel(parseModelList(process.env.TRIPS_MODELS), hasKey, requested);
-}
-
-export function languageModel(choice: TripModel): LanguageModel {
+function languageModel(choice: AiModel): LanguageModel {
   const apiKey = providerKey(choice.provider) ?? undefined;
   if (choice.provider === "google") return createGoogle({ apiKey })(choice.model);
   return createOpenRouter({ apiKey, headers: { "X-Title": "KAMI" } })(choice.model);
 }
 
-// ---------- Library AI features ----------
-
 /** `AI_MODELS` (or the default chain), keeping only providers with a key. */
-function aiModelChain(): TripModel[] {
+function aiModelChain(): AiModel[] {
   return parseModelList(process.env.AI_MODELS, DEFAULT_AI_MODELS).filter((m) => hasKey(m.provider));
 }
 
@@ -71,20 +53,4 @@ export function aiLanguageModel(): LanguageModel | null {
       );
     },
   );
-}
-
-/** Embedding models in fallback order (all serving one model family). */
-export function aiEmbeddingModels(): Array<{ id: string; model: EmbeddingModel }> {
-  return parseModelList(process.env.AI_EMBEDDING_MODELS, DEFAULT_EMBEDDING_MODELS)
-    .filter((m) => hasKey(m.provider))
-    .map((m) => {
-      const apiKey = providerKey(m.provider) ?? undefined;
-      const model =
-        m.provider === "google"
-          ? createGoogle({ apiKey }).embedding(m.model)
-          : createOpenRouter({ apiKey, headers: { "X-Title": "KAMI" } }).textEmbeddingModel(
-              m.model,
-            );
-      return { id: m.id, model: model as EmbeddingModel };
-    });
 }

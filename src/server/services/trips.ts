@@ -29,7 +29,7 @@ import { badRequest, notFound } from "@/server/http";
 /**
  * Trips: a private plan per user — details, a hotel shortlist, and a
  * day-by-day itinerary. Every write returns the whole updated trip, so the
- * board (and later the trip agent) always works from one fresh snapshot.
+ * board always works from one fresh snapshot.
  */
 
 export const MAX_TRIPS = 50;
@@ -677,7 +677,7 @@ export const replaceDayInput = z.object({
     .max(20, "Keep one day to 20 plans or fewer."),
 });
 
-/** Replace every item on one day in a single transaction (used by the trip agent). */
+/** Replace every item on one day in a single transaction. */
 export async function replaceTripDay(
   userId: string,
   tripId: string,

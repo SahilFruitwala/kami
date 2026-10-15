@@ -23,9 +23,7 @@ export const RATE_LIMITS = {
   feeds: { limit: 60, windowSeconds: 600 },
   /** Firecrawl extract runs (each one spends paid Firecrawl credits). */
   firecrawl: { limit: 30, windowSeconds: 3600 },
-  /** Trip agent chat turns (each runs a model loop with up to 8 steps). */
-  agent: { limit: 40, windowSeconds: 3600 },
-  /** Library AI calls: summaries, tags, digests, reflections (one model call each). */
+  /** Library AI calls: summaries, tags, suggestions (one model call each). */
   ai: { limit: 300, windowSeconds: 3600 },
   /** Inbound newsletter emails stored per user. */
   inbound: { limit: 300, windowSeconds: 86_400 },
@@ -39,7 +37,7 @@ export type RateLimitBucket = keyof typeof RATE_LIMITS;
  * become an unmetered window on someone else's bill. Everything else fails
  * open so normal reading/saving keeps working.
  */
-const FAIL_CLOSED: ReadonlySet<RateLimitBucket> = new Set(["firecrawl", "agent", "ai"]);
+const FAIL_CLOSED: ReadonlySet<RateLimitBucket> = new Set(["firecrawl", "ai"]);
 
 export class RateLimitError extends Error {
   readonly status = 429;

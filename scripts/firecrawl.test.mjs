@@ -4,14 +4,8 @@ import {
   DEFAULT_MAX_AGE_MS,
   FirecrawlError,
   MAX_ANSWER_CHARS,
-  MAX_PAGE_CHARS,
-  MAX_SEARCH_RESULTS,
   buildQuestionBody,
-  buildReadBody,
-  buildSearchBody,
   parseQuestionResponse,
-  parseReadResponse,
-  parseSearchResponse,
 } from "../src/lib/firecrawl.server.ts";
 
 describe("buildQuestionBody", () => {
@@ -59,64 +53,5 @@ describe("parseQuestionResponse", () => {
       FirecrawlError,
     );
     assert.throws(() => parseQuestionResponse(null), FirecrawlError);
-  });
-});
-
-describe("web search", () => {
-  it("builds a web-only search with a clamped limit", () => {
-    assert.deepEqual(buildSearchBody("cafés Lisbon"), {
-      query: "cafés Lisbon",
-      limit: 5,
-      sources: ["web"],
-    });
-    assert.equal(buildSearchBody("x", 50).limit, MAX_SEARCH_RESULTS);
-    assert.equal(buildSearchBody("x", 0).limit, 1);
-  });
-
-  it("reads v2 { data: { web } } and flat { data: [] } results, skipping bad URLs", () => {
-    const entry = { title: "Best cafés", url: "https://example.com/cafes", description: "A list" };
-    assert.deepEqual(parseSearchResponse({ success: true, data: { web: [entry] } }), [entry]);
-    assert.deepEqual(
-      parseSearchResponse({
-        success: true,
-        data: [entry, { url: "javascript:alert(1)" }, { title: "no url" }, null],
-      }),
-      [entry],
-    );
-    assert.deepEqual(parseSearchResponse({ success: true, data: {} }), []);
-  });
-
-  it("surfaces upstream search errors", () => {
-    assert.throws(
-      () => parseSearchResponse({ success: false, error: "Bad query" }),
-      (err) => err instanceof FirecrawlError && err.message === "Bad query",
-    );
-  });
-});
-
-describe("page reading", () => {
-  it("asks for cached main-content Markdown", () => {
-    assert.deepEqual(buildReadBody("https://example.com/"), {
-      url: "https://example.com/",
-      onlyMainContent: true,
-      maxAge: DEFAULT_MAX_AGE_MS,
-      parsers: ["pdf"],
-      formats: ["markdown"],
-    });
-  });
-
-  it("caps long pages and flags the cut", () => {
-    const long = "a".repeat(MAX_PAGE_CHARS + 10);
-    const read = parseReadResponse({ success: true, data: { markdown: long } });
-    assert.equal(read.markdown.length, MAX_PAGE_CHARS);
-    assert.equal(read.truncated, true);
-    assert.deepEqual(parseReadResponse({ success: true, data: { markdown: " # Hi " } }), {
-      markdown: "# Hi",
-      truncated: false,
-    });
-  });
-
-  it("rejects empty pages", () => {
-    assert.throws(() => parseReadResponse({ success: true, data: {} }), FirecrawlError);
   });
 });
