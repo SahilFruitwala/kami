@@ -1,5 +1,4 @@
-import { useNavigate } from "@tanstack/react-router";
-import { useDeferredValue, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { LoaderCircle, Plus, Search, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { KamiEyebrow } from "@/components/kami.tsx";
@@ -14,15 +13,9 @@ import {
   useShelfDetail,
   useShelfItems,
 } from "@/hooks/use-shelf-queries.ts";
-import { shelfPath, type ShelfDetail, type ShelfTab } from "@/lib/shelves.ts";
+import { type ShelfDetail, type ShelfTab } from "@/lib/shelves.ts";
 import { statusLabels } from "@/lib/shelf-labels.ts";
-import {
-  defaultStatus,
-  parseStatusFilter,
-  statusMeta,
-  statusToApi,
-  type StatusFilter,
-} from "@/lib/shelf-status.ts";
+import { statusMeta, statusToApi } from "@/lib/shelf-status.ts";
 import { cn } from "@/lib/utils.ts";
 import { AddShelfDialog } from "@/components/library/add-shelf-dialog.tsx";
 import { ShelfFolio } from "@/components/library/shelf-folio.tsx";
@@ -30,6 +23,7 @@ import { ShelfRecs } from "@/components/library/shelf-recs.tsx";
 import { ShelfTile } from "@/components/library/shelf-tile.tsx";
 import { useAiStatus } from "@/hooks/use-ai.ts";
 import type { ShelvesSearch } from "@/lib/shelves-search.ts";
+import { useShelfFilters } from "@/hooks/use-shelf-filters.ts";
 
 const SHELF_META: {
   id: ShelfTab;
@@ -45,18 +39,13 @@ const SHELF_META: {
 
 /** One shelf type per route — movies, series, books, or wishlist. */
 export function ShelvesView({ tab, search }: { tab: ShelfTab; search: ShelvesSearch }) {
-  const navigate = useNavigate();
-  const [query, setQuery] = useState(() => search.q ?? "");
-  const [status, setStatus] = useState<StatusFilter>(() => parseStatusFilter(search.status, tab));
-  const [limit, setLimit] = useState(SHELF_PAGE_SIZE);
-  const deferredQuery = useDeferredValue(query);
+  const { query, setQuery, deferredQuery, status, setStatus, limit, loadMore, urlSearch } =
+    useShelfFilters(tab, search, SHELF_PAGE_SIZE);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const ai = useAiStatus();
   const [recsFor, setRecsFor] = useState<ShelfTab | null>(null);
   const canSuggest = ai.enabled && tab !== "wishlist";
-  const syncedFromUrl = useRef(false);
-  const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const countsQuery = useShelfCounts();
   const itemsQuery = useShelfItems({
@@ -73,47 +62,11 @@ export function ShelvesView({ tab, search }: { tab: ShelfTab; search: ShelvesSea
   const hasMore = items != null && items.length >= limit;
   const activeMeta = SHELF_META.find((t) => t.id === tab)!;
 
-  // One-way: URL → local state on first paint (deep links).
-  useEffect(() => {
-    if (syncedFromUrl.current) return;
-    syncedFromUrl.current = true;
-    if (typeof search.q === "string") setQuery(search.q);
-    setStatus(parseStatusFilter(search.status, tab));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Other way: local state → URL (debounced for typing).
-  useEffect(() => {
-    if (!syncedFromUrl.current) return;
-    if (pushTimer.current) clearTimeout(pushTimer.current);
-    pushTimer.current = setTimeout(() => {
-      void navigate({
-        to: shelfPath(tab),
-        search: {
-          q: query ? query : undefined,
-          // Omit the shelf's default filter from the URL.
-          status: status === defaultStatus(tab) ? undefined : status,
-        },
-        replace: true,
-      });
-    }, 300);
-    return () => {
-      if (pushTimer.current) clearTimeout(pushTimer.current);
-    };
-  }, [tab, query, status, navigate]);
-
-  // Reset pagination / detail when the shelf type or list criteria change.
-  useEffect(() => {
-    setLimit(SHELF_PAGE_SIZE);
-    setDetailId(null);
-  }, [tab, status, deferredQuery]);
+  // Close the detail when the shelf type or list criteria change (the hook resets paging).
+  useEffect(() => setDetailId(null), [tab, status, deferredQuery]);
 
   const shelfCount = counts?.[tab] ?? null;
-  // Omit the shelf's default filter from the URL.
-  const listSearch: ShelvesSearch = {
-    q: query ? query : undefined,
-    status: status === defaultStatus(tab) ? undefined : status,
-  };
+  const listSearch = urlSearch;
 
   return (
     <AppShell active={activeMeta.pane} onOpenItem={() => undefined}>
@@ -293,7 +246,7 @@ export function ShelvesView({ tab, search }: { tab: ShelfTab; search: ShelvesSea
                   type="button"
                   variant="secondary"
                   disabled={itemsQuery.isFetching}
-                  onClick={() => setLimit((n) => n + SHELF_PAGE_SIZE)}
+                  onClick={loadMore}
                 >
                   {itemsQuery.isFetching ? (
                     <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
