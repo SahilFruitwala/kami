@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import type { ItemStatus } from "@/lib/schema";
 import {
   bookGenres,

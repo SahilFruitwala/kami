@@ -11,7 +11,7 @@ import type {
   NewsletterInbox,
 } from "@/lib/api/feeds";
 import type { ExtractResult } from "@/lib/article-types";
-import { getDb, type AppDb } from "@/lib/db";
+import { getDb, type AppDb } from "@/lib/db.server";
 import {
   discoverFeedLinks,
   guessFeedUrls,

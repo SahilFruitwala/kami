@@ -1,6 +1,6 @@
 import "@tanstack/react-start/server-only";
 import { and, eq, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { aiNotes } from "@/lib/schema";
 
 /** Stored AI write-ups (`ai_notes`): one per user, feature and period key. */

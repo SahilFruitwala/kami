@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { ArticleSummary, TidyResult } from "@/lib/api/ai";
 import { textFromHtml } from "@/lib/article-build.server.ts";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { clipText } from "@/lib/model-fallback.ts";
 import { articleAi, articles, folders } from "@/lib/schema";
 import { TAG_CATEGORIES } from "@/lib/tag-categories.ts";

@@ -10,7 +10,7 @@ If you have not set up the app yet, start with [Development](./DEVELOPMENT.md). 
 
 1. Branch from latest `master`.
 2. Keep changes focused — one concern per PR when possible.
-3. Run `pnpm typecheck` (and `pnpm test` if you touched `scripts/`).
+3. Run `pnpm typecheck` and `pnpm test` (tests live in `tests/`).
 4. Prefer matching existing naming (`src/server/services/*`, `src/routes/api/*`, `*.server.ts`, Kami CSS tokens).
 5. Never commit `.env`, secrets, or real user data dumps.
 
@@ -60,7 +60,7 @@ export const doThingBody = z.object({ /* … */ });
 ```ts
 import "@tanstack/react-start/server-only";
 import { z } from "zod";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { invalidateUserCache } from "@/lib/cache.server";
 import { notFound } from "@/server/http";
 import { doThingBody } from "@/lib/api/schemas/<domain>";

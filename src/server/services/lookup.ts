@@ -10,7 +10,7 @@ import {
   invalidateUserCache,
 } from "@/lib/cache.server.ts";
 import { and, eq, isNull } from "drizzle-orm";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { books } from "@/lib/schema";
 import { findOwnedItem } from "@/lib/shelves-db.server.ts";
 import { notFound } from "@/server/http";

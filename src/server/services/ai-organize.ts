@@ -2,7 +2,7 @@ import "@tanstack/react-start/server-only";
 import { and, asc, eq, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { OrganizeProgress } from "@/lib/api/ai";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { enforceRateLimit } from "@/lib/rate-limit.server.ts";
 import { articles, folders } from "@/lib/schema";
 import { TAG_CATEGORIES } from "@/lib/tag-categories.ts";

@@ -3,7 +3,7 @@ import { and, count, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { LibrarySnapshot } from "@/lib/api/types";
 import { invalidateUserCache } from "@/lib/cache.server.ts";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { articles, folders } from "@/lib/schema";
 import {
   LIBRARY_LIMITS as L,

@@ -3,7 +3,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { ShelfDuplicate } from "@/lib/api/types";
 import { invalidateUserCache } from "@/lib/cache.server.ts";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { activity, books, movies, places, restaurants, tvShows, wishlistItems } from "@/lib/schema";
 import {
   clampShelfItemInput,

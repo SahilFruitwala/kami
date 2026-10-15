@@ -3,7 +3,7 @@ import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { JOURNAL_IMPORT_MAX } from "@/lib/api/types";
 import { CacheTTL, cacheKey, cached, invalidateUserCache } from "@/lib/cache.server.ts";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { JOURNAL_TEXT_MAX, type JournalEntry } from "@/lib/journal";
 import { journalEntries } from "@/lib/schema";
 import { uid } from "@/lib/id";

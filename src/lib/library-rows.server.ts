@@ -6,7 +6,7 @@ import {
   cacheKey,
   cached,
 } from "@/lib/cache.server.ts";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { articles, folders } from "@/lib/schema";
 import {
   LIBRARY_LIMITS as L,

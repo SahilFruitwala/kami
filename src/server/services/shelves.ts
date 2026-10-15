@@ -9,7 +9,7 @@ import {
   hashKeyPart,
   normalizeCacheQuery,
 } from "@/lib/cache.server.ts";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import {
   bookGenres,
   books,

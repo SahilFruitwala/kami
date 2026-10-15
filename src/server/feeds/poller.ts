@@ -1,7 +1,7 @@
 import "@tanstack/react-start/server-only";
 import { and, eq, sql } from "drizzle-orm";
-import type { AppDb } from "@/lib/db";
-import { getDb } from "@/lib/db";
+import type { AppDb } from "@/lib/db.server";
+import { getDb } from "@/lib/db.server";
 import { safeFetch } from "@/lib/fetch-text.server.ts";
 import { parseFeed, type ParsedEntry, type ParsedFeed } from "@/lib/feed-parse.server.ts";
 import {

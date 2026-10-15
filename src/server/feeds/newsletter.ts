@@ -1,7 +1,7 @@
 import "@tanstack/react-start/server-only";
 import { randomBytes } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import {
   emailToEntry,
   normalizeInbound,

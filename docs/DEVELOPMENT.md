@@ -77,7 +77,7 @@ Env loading: `scripts/with-app-env.mjs` and `scripts/load-dotenv.mjs` load `.env
 | `pnpm db:up` / `db:down` / `db:logs` | Docker Compose Postgres lifecycle |
 | `pnpm db:migrate` | Apply pending `migrations/*.sql` |
 | `pnpm typecheck` | TypeScript check |
-| `pnpm test` | `node --test` on `scripts/**/*.test.mjs` |
+| `pnpm test` | `node --test` on `tests/**/*.test.mjs` (`tests/support/register.mjs` resolves `@/` imports, so server modules are testable) |
 | `pnpm lint` | ESLint |
 | `pnpm format` | Prettier write |
 
@@ -100,7 +100,7 @@ src/
     *.server.ts    # Server-only (do not import from client)
     auth/          # Clerk provider, gates, server session checks
     schema.ts      # Drizzle tables
-    db.ts          # getDb() — Postgres via pg pool
+    db.server.ts   # getDb() — Postgres via pg pool (server-only)
     library-item.ts # Library domain types, LIBRARY_LIMITS, clamp (isomorphic)
     id.ts          # uid()
     store.ts       # Zustand library (client only)
