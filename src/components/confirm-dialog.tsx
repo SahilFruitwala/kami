@@ -16,6 +16,7 @@ export function ConfirmHost() {
   const last = useRef(open);
   if (open) last.current = open;
   const req = open ?? last.current;
+  const destructive = req?.destructive !== false;
   return (
     <Dialog open={open !== null} onOpenChange={(open) => !open && settleConfirm(false)}>
       <DialogContent showCloseButton={false}>
@@ -24,13 +25,14 @@ export function ConfirmHost() {
           {req?.description ? <DialogDescription>{req.description}</DialogDescription> : null}
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" onClick={() => settleConfirm(false)}>
+          {/* Destructive asks start on Cancel, so a stray Enter can't delete. */}
+          <Button variant="outline" onClick={() => settleConfirm(false)} autoFocus={destructive}>
             Cancel
           </Button>
           <Button
-            variant={req?.destructive === false ? "default" : "destructive"}
+            variant={destructive ? "destructive" : "default"}
             onClick={() => settleConfirm(true)}
-            autoFocus
+            autoFocus={!destructive}
           >
             {req?.confirmLabel ?? "Confirm"}
           </Button>
