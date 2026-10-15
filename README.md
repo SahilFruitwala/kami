@@ -21,13 +21,13 @@ pnpm dev              # http://0.0.0.0:8080
 
 `DATABASE_URL` is required (local Docker Postgres or hosted Postgres/Neon).
 
-| Script                      | What it does                                     |
-| --------------------------- | ------------------------------------------------ |
-| `pnpm dev`                  | Vite + TanStack Start on port **8080**           |
-| `pnpm build`                | Production build → Vercel Nitro output + migrate |
-| `pnpm typecheck`            | `tsc --noEmit`                                   |
-| `pnpm test`                 | Node tests under `scripts/**/*.test.mjs`         |
-| `pnpm lint` / `pnpm format` | ESLint / Prettier                                |
+| Script                                            | What it does                                                    |
+| ------------------------------------------------- | --------------------------------------------------------------- |
+| `pnpm dev`                                        | Vite + TanStack Start on port **8080**                          |
+| `pnpm build`                                      | Production build → Vercel Nitro output + migrate                |
+| `pnpm typecheck`                                  | `tsc --noEmit`                                                  |
+| `pnpm test`                                       | Node tests under `scripts/**/*.test.mjs`                        |
+| `pnpm lint` / `pnpm format` / `pnpm format:check` | ESLint / Prettier (CI runs typecheck, lint, format:check, test) |
 
 ---
 
