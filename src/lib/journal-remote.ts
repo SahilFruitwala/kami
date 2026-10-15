@@ -5,7 +5,9 @@ import { createSyncQueue, localOnceFlag } from "@/lib/sync-queue";
 const LOCAL_KEY = "quarto-journal";
 const MIGRATED_FLAG = "quarto-journal-migrated-v1";
 
-const queue = createSyncQueue("journal");
+type JournalOp = { kind: "upsert"; entry: JournalEntry };
+
+const queue = createSyncQueue<JournalOp>("journal", (op) => journalApi.upsert(op.entry));
 const sync = queue.sync;
 const legacyMigrated = localOnceFlag(MIGRATED_FLAG);
 
@@ -70,7 +72,7 @@ export async function bootstrapJournalFromServer(userId: string): Promise<void> 
     return;
   }
   bootInflight = (async () => {
-    queue.setEnabled(true);
+    queue.start(userId);
     let remote = await journalApi.list();
     const local = readLocalEntries();
     const localList = Object.values(local);
@@ -87,13 +89,10 @@ export async function bootstrapJournalFromServer(userId: string): Promise<void> 
     for (const entry of Object.values(merged)) {
       const server = remoteByDate[entry.date];
       if (!server || entry.updatedAt > server.updatedAt) {
-        sync("entry", () =>
-          journalApi.upsert({
-            date: entry.date,
-            text: entry.text,
-            updatedAt: entry.updatedAt,
-          }),
-        );
+        sync("entry", {
+          kind: "upsert",
+          entry: { date: entry.date, text: entry.text, updatedAt: entry.updatedAt },
+        });
       }
     }
 
@@ -108,11 +107,11 @@ export async function bootstrapJournalFromServer(userId: string): Promise<void> 
 }
 
 export function syncUpsertEntry(date: string, text: string, updatedAt: number) {
-  sync("entry", () => journalApi.upsert({ date, text, updatedAt }));
+  sync("entry", { kind: "upsert", entry: { date, text, updatedAt } });
 }
 
 export function clearJournalLocal() {
   bootedUserId = null;
-  queue.setEnabled(false);
+  queue.stop();
   useJournalStore.getState().clearAll();
 }

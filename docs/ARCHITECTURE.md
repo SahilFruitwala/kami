@@ -182,6 +182,8 @@ flowchart TB
 | Shelves | React Query | Server-authoritative lists, easy invalidation |
 | Lookups | React Query | External APIs with TTLs |
 
+**Outbox** (`src/lib/sync-queue.ts`): library and journal writes are plain-data ops (`{ kind: "patch", id, patch }`, …). Each runs immediately; on failure or while offline it is queued, saved to localStorage under the signed-in user's id, and retried on reconnect, on the next boot for that same user, or from the offline pill. Ops older than 7 days are dropped instead of replayed, and wiping the library discards the queue.
+
 ---
 
 ## Article capture pipeline
