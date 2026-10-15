@@ -25,7 +25,7 @@ import {
   LyingBooks,
   TopicIcon,
 } from "@/components/gloss/book.tsx";
-import { TopicPage, TopicsGrid, type TopicBucket } from "@/components/gloss/topics.tsx";
+import { TopicPage, TopicsGrid } from "@/components/gloss/topics.tsx";
 import { useAutoOrganize } from "@/hooks/use-ai.ts";
 import { useCurrentUserState } from "@/lib/auth/use-current-user.ts";
 import { minutesLabel } from "@/lib/gloss/format.ts";
@@ -39,8 +39,6 @@ import {
 } from "@/lib/filter-library.ts";
 import {
   bookSpineLook,
-  hueOf,
-  compareTopics,
   topicFamily,
   topicLabel,
   topicOf,
@@ -51,6 +49,13 @@ import type { LibraryItem } from "@/lib/library-item.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { usePersistedPref } from "@/lib/local-pref.ts";
 import { cn } from "@/lib/utils.ts";
+import {
+  arrangeShelf,
+  groupByTopic,
+  libraryStats,
+  type ShelfArrange,
+} from "@/lib/library-shelves.ts";
+import { useLibrarySelection } from "@/hooks/use-library-selection.ts";
 
 const SORT_LABELS: { id: LibrarySort; label: string }[] = [
   { id: "newest", label: "Newest" },
@@ -61,7 +66,7 @@ const SORT_LABELS: { id: LibrarySort; label: string }[] = [
 ];
 
 const VIEWS = ["shelf", "topics", "list"] as const;
-const ARRANGES = ["topic", "colour", "recent", "length"] as const;
+const ARRANGES = ["topic", "colour", "recent", "length"] as const satisfies readonly ShelfArrange[];
 type View = (typeof VIEWS)[number];
 type Arrange = (typeof ARRANGES)[number];
 
@@ -106,8 +111,6 @@ export function LibraryHome({
   const removeItem = useLibraryStore((s) => s.removeItem);
   const archiveItem = useLibraryStore((s) => s.archiveItem);
   const setFavorited = useLibraryStore((s) => s.setFavorited);
-  const setItemFolder = useLibraryStore((s) => s.setItemFolder);
-  const upsertItem = useLibraryStore((s) => s.upsertItem);
   const folders = useLibraryStore((s) => s.folders);
   const { user } = useCurrentUserState();
 
@@ -126,13 +129,11 @@ export function LibraryHome({
   const [topic, setTopic] = useState<TopicId | "all">("all");
   const [topicPage, setTopicPage] = useState<TopicId | null>(null);
   const [picked, setPicked] = useState<Picked | null>(null);
-  const [selectMode, setSelectMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selection = useLibrarySelection();
 
   function setView(next: View) {
     setViewState(next);
-    if (next !== "list") exitSelect();
+    if (next !== "list") selection.exit();
   }
 
   const baseVisible = useMemo(
@@ -154,26 +155,7 @@ export function LibraryHome({
     ],
   );
 
-  // Topic of every visible piece, computed once.
-  const topicById = useMemo(() => {
-    const m = new Map<string, TopicId>();
-    for (const it of baseVisible) m.set(it.id, topicOf(it));
-    return m;
-  }, [baseVisible]);
-
-  const buckets: TopicBucket[] = useMemo(() => {
-    const by = new Map<TopicId, LibraryItem[]>();
-    for (const it of baseVisible) {
-      const t = topicById.get(it.id)!;
-      const list = by.get(t);
-      if (list) list.push(it);
-      else by.set(t, [it]);
-    }
-    return [...by.keys()].sort(compareTopics).map((t) => ({
-      topic: t,
-      items: [...by.get(t)!].sort((a, b) => b.savedAt - a.savedAt),
-    }));
-  }, [baseVisible, topicById]);
+  const { topicById, buckets } = useMemo(() => groupByTopic(baseVisible), [baseVisible]);
 
   // A chip for a topic that just emptied (search, archive) falls back to All.
   useEffect(() => {
@@ -199,18 +181,7 @@ export function LibraryHome({
         ),
       }));
     }
-    const sorted = [...scoped];
-    if (arrange === "colour") {
-      const key = (it: LibraryItem) => {
-        const look = bookSpineLook(it, topicById.get(it.id)!);
-        return hueOf(look.color);
-      };
-      sorted.sort((a, b) => key(a) - key(b));
-    } else if (arrange === "length") {
-      sorted.sort((a, b) => b.readingMinutes - a.readingMinutes);
-    } else {
-      sorted.sort((a, b) => b.savedAt - a.savedAt);
-    }
+    const sorted = arrangeShelf(scoped, arrange, topicById);
     return [{ id: String(topic), items: sorted }];
   }, [baseVisible, buckets, topic, arrange, topicById]);
 
@@ -219,53 +190,10 @@ export function LibraryHome({
     [baseVisible, filters.sort],
   );
 
-  const stats = useMemo(() => {
-    const minutes = library.reduce((n, it) => n + (it.archived ? 0 : it.readingMinutes || 0), 0);
-    const topics = new Set(library.map((it) => topicOf(it))).size;
-    const inProgress = library.filter(
-      (it) => !it.archived && (it.highlights?.length ?? 0) > 0,
-    ).length;
-    return { minutes, topics, inProgress };
-  }, [library]);
+  const stats = useMemo(() => libraryStats(library), [library]);
 
   const pickedItem = picked ? (library.find((it) => it.id === picked.id) ?? null) : null;
   const pickedTopic = pickedItem ? topicOf(pickedItem) : "unsorted";
-
-  function toggleSelect(id: string) {
-    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
-  }
-  function exitSelect() {
-    setSelectMode(false);
-    setSelectedIds([]);
-  }
-  function bulkArchive(archived: boolean) {
-    for (const id of selectedIds) archiveItem(id, archived);
-    toast.success(
-      archived
-        ? `Archived ${selectedIds.length} works`
-        : `Moved ${selectedIds.length} works to inbox`,
-    );
-    exitSelect();
-  }
-  function bulkFavorite() {
-    for (const id of selectedIds) setFavorited(id, true);
-    toast.success(`Favorited ${selectedIds.length} works`);
-    exitSelect();
-  }
-  function bulkDelete() {
-    const snapshots = listVisible.filter((row) => selectedSet.has(row.id));
-    for (const row of snapshots) removeItem(row.id);
-    const n = snapshots.length;
-    exitSelect();
-    toast.success(`Removed ${n} works`, {
-      action: { label: "Undo", onClick: () => snapshots.forEach((row) => upsertItem(row)) },
-    });
-  }
-  function bulkFolder(folderId: string | null) {
-    for (const id of selectedIds) setItemFolder(id, folderId);
-    toast.success(`Filed ${selectedIds.length} works`);
-    exitSelect();
-  }
 
   const animateKey = `${filters.tab}|${topic}|${arrange}|${filters.folderFilter}|${filters.tagFilter}|${filters.favoritesOnly}`;
   const totalShown = baseVisible.length;
@@ -393,17 +321,17 @@ export function LibraryHome({
           <button
             type="button"
             className="g-btn g-btn--ghost h-[34px] px-3 text-[13px]"
-            aria-pressed={selectMode}
+            aria-pressed={selection.active}
             onClick={() => {
-              if (selectMode) exitSelect();
+              if (selection.active) selection.exit();
               else {
                 setView("list");
-                setSelectMode(true);
+                selection.start();
               }
             }}
           >
             <CheckSquare className="size-3.5" aria-hidden="true" />
-            {selectMode ? "Done" : "Select"}
+            {selection.active ? "Done" : "Select"}
           </button>
           {onOpenBulk ? (
             <button
@@ -493,16 +421,16 @@ export function LibraryHome({
           )
         ) : (
           <>
-            {selectMode ? (
+            {selection.active ? (
               <SelectBar
-                count={selectedIds.length}
+                count={selection.selectedIds.length}
                 archiveLabel={filters.tab === "archive" ? "Move to inbox" : "Archive"}
                 folders={folders}
-                onArchive={() => bulkArchive(filters.tab !== "archive")}
-                onFavorite={bulkFavorite}
-                onFolder={bulkFolder}
-                onDelete={bulkDelete}
-                onClear={exitSelect}
+                onArchive={() => selection.archive(filters.tab !== "archive")}
+                onFavorite={selection.favorite}
+                onFolder={selection.file}
+                onDelete={() => selection.remove(listVisible)}
+                onClear={selection.exit}
               />
             ) : null}
             <div className="mt-2">
@@ -512,9 +440,9 @@ export function LibraryHome({
                 emptyCopy={emptyCopy}
                 onOpen={onOpenItem}
                 onRemove={removeItem}
-                selectMode={selectMode}
-                selectedIds={selectedSet}
-                onToggleSelect={toggleSelect}
+                selectMode={selection.active}
+                selectedIds={selection.selectedSet}
+                onToggleSelect={selection.toggle}
               />
             </div>
           </>
