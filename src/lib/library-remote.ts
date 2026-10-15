@@ -1,4 +1,4 @@
-import { libraryApi, type LibraryItemPatch } from "@/lib/api/library";
+import { libraryApi, type LibraryItemPatch, type LibraryTagOp } from "@/lib/api/library";
 import { LIBRARY_BOOT_LIMIT, type LibraryCursor, type LibrarySnapshot } from "@/lib/api/types";
 import { useLibraryStore } from "@/lib/store";
 import { clampLibraryItem, type Folder, type LibraryItem } from "@/lib/library-item";
@@ -192,6 +192,10 @@ export function syncRemoveItem(id: string) {
 
 export function syncPatchItem(id: string, patch: LibraryItemPatch) {
   sync("update", () => libraryApi.items.patch(id, patch));
+}
+
+export function syncTagEverywhere(op: LibraryTagOp) {
+  sync("tags", () => libraryApi.tagEverywhere(op));
 }
 
 export function syncAddFolder(folder: Folder) {

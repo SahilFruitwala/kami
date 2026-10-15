@@ -52,6 +52,7 @@ import { Route as ApiLibraryBulkRouteImport } from './routes/api/library/bulk'
 import { Route as ApiLibraryExportRouteImport } from './routes/api/library/export'
 import { Route as ApiLibraryImportRouteImport } from './routes/api/library/import'
 import { Route as ApiLibrarySaveRouteImport } from './routes/api/library/save'
+import { Route as ApiLibraryTagsRouteImport } from './routes/api/library/tags'
 import { Route as ApiLookupBooksRouteImport } from './routes/api/lookup/books'
 import { Route as ApiLookupLinkRouteImport } from './routes/api/lookup/link'
 import { Route as ApiLookupTmdbRouteImport } from './routes/api/lookup/tmdb'
@@ -312,6 +313,11 @@ const ApiLibraryImportRoute = ApiLibraryImportRouteImport.update({
 const ApiLibrarySaveRoute = ApiLibrarySaveRouteImport.update({
   id: '/api/library/save',
   path: '/api/library/save',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLibraryTagsRoute = ApiLibraryTagsRouteImport.update({
+  id: '/api/library/tags',
+  path: '/api/library/tags',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiLookupBooksRoute = ApiLookupBooksRouteImport.update({
@@ -595,6 +601,7 @@ export interface FileRoutesByFullPath {
   '/api/library/export': typeof ApiLibraryExportRoute
   '/api/library/import': typeof ApiLibraryImportRoute
   '/api/library/save': typeof ApiLibrarySaveRoute
+  '/api/library/tags': typeof ApiLibraryTagsRoute
   '/api/lookup/books': typeof ApiLookupBooksRoute
   '/api/lookup/link': typeof ApiLookupLinkRoute
   '/api/lookup/tmdb': typeof ApiLookupTmdbRoute
@@ -685,6 +692,7 @@ export interface FileRoutesByTo {
   '/api/library/export': typeof ApiLibraryExportRoute
   '/api/library/import': typeof ApiLibraryImportRoute
   '/api/library/save': typeof ApiLibrarySaveRoute
+  '/api/library/tags': typeof ApiLibraryTagsRoute
   '/api/lookup/books': typeof ApiLookupBooksRoute
   '/api/lookup/link': typeof ApiLookupLinkRoute
   '/api/lookup/tmdb': typeof ApiLookupTmdbRoute
@@ -777,6 +785,7 @@ export interface FileRoutesById {
   '/api/library/export': typeof ApiLibraryExportRoute
   '/api/library/import': typeof ApiLibraryImportRoute
   '/api/library/save': typeof ApiLibrarySaveRoute
+  '/api/library/tags': typeof ApiLibraryTagsRoute
   '/api/lookup/books': typeof ApiLookupBooksRoute
   '/api/lookup/link': typeof ApiLookupLinkRoute
   '/api/lookup/tmdb': typeof ApiLookupTmdbRoute
@@ -870,6 +879,7 @@ export interface FileRouteTypes {
     | '/api/library/export'
     | '/api/library/import'
     | '/api/library/save'
+    | '/api/library/tags'
     | '/api/lookup/books'
     | '/api/lookup/link'
     | '/api/lookup/tmdb'
@@ -960,6 +970,7 @@ export interface FileRouteTypes {
     | '/api/library/export'
     | '/api/library/import'
     | '/api/library/save'
+    | '/api/library/tags'
     | '/api/lookup/books'
     | '/api/lookup/link'
     | '/api/lookup/tmdb'
@@ -1051,6 +1062,7 @@ export interface FileRouteTypes {
     | '/api/library/export'
     | '/api/library/import'
     | '/api/library/save'
+    | '/api/library/tags'
     | '/api/lookup/books'
     | '/api/lookup/link'
     | '/api/lookup/tmdb'
@@ -1141,6 +1153,7 @@ export interface RootRouteChildren {
   ApiLibraryExportRoute: typeof ApiLibraryExportRoute
   ApiLibraryImportRoute: typeof ApiLibraryImportRoute
   ApiLibrarySaveRoute: typeof ApiLibrarySaveRoute
+  ApiLibraryTagsRoute: typeof ApiLibraryTagsRoute
   ApiLookupBooksRoute: typeof ApiLookupBooksRoute
   ApiLookupLinkRoute: typeof ApiLookupLinkRoute
   ApiLookupTmdbRoute: typeof ApiLookupTmdbRoute
@@ -1479,6 +1492,13 @@ declare module '@tanstack/react-router' {
       path: '/api/library/save'
       fullPath: '/api/library/save'
       preLoaderRoute: typeof ApiLibrarySaveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/library/tags': {
+      id: '/api/library/tags'
+      path: '/api/library/tags'
+      fullPath: '/api/library/tags'
+      preLoaderRoute: typeof ApiLibraryTagsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/lookup/books': {
@@ -1947,6 +1967,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLibraryExportRoute: ApiLibraryExportRoute,
   ApiLibraryImportRoute: ApiLibraryImportRoute,
   ApiLibrarySaveRoute: ApiLibrarySaveRoute,
+  ApiLibraryTagsRoute: ApiLibraryTagsRoute,
   ApiLookupBooksRoute: ApiLookupBooksRoute,
   ApiLookupLinkRoute: ApiLookupLinkRoute,
   ApiLookupTmdbRoute: ApiLookupTmdbRoute,

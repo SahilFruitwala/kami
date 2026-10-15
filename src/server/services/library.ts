@@ -28,6 +28,7 @@ import { uid } from "@/lib/id";
 import {
   libraryItemBody,
   libraryItemPatch,
+  libraryTagOpBody,
   type libraryItemSchema,
 } from "@/lib/api/schemas/library";
 import {
@@ -56,7 +57,7 @@ export const libraryPageQuery = z
         : undefined,
   }));
 
-export { libraryItemBody, libraryItemPatch };
+export { libraryItemBody, libraryItemPatch, libraryTagOpBody };
 
 /**
  * Keyset-paginated library read: `WHERE user_id` + tuple cursor on
@@ -348,4 +349,38 @@ export async function removeLibraryItem(userId: string, id: string): Promise<voi
   const db = await getDb();
   await db.delete(articles).where(and(eq(articles.id, id), eq(articles.userId, userId)));
   await invalidateUserCache(userId);
+}
+
+/**
+ * Rename or remove a tag on every article that carries it (case-insensitive),
+ * in one transaction. Covers rows the client hasn't paged in yet.
+ */
+export async function applyTagOpEverywhere(
+  userId: string,
+  op: z.output<typeof libraryTagOpBody>,
+): Promise<{ affected: number }> {
+  const db = await getDb();
+  const tag = op.op === "rename" ? op.from : op.tag;
+  if (!tag) return { affected: 0 };
+  const affected = await db.transaction(async (tx) => {
+    const rows = await tx
+      .select({ id: articles.id, tags: articles.tags })
+      .from(articles)
+      .where(
+        and(
+          eq(articles.userId, userId),
+          sql`exists (select 1 from jsonb_array_elements_text(${articles.tags}) t where lower(t) = lower(${tag}))`,
+        ),
+      )
+      .for("update");
+    for (const row of rows) {
+      await tx
+        .update(articles)
+        .set({ tags: applyTagOps(row.tags ?? [], [op]) })
+        .where(and(eq(articles.id, row.id), eq(articles.userId, userId)));
+    }
+    return rows.length;
+  });
+  if (affected > 0) await invalidateUserCache(userId);
+  return { affected };
 }
