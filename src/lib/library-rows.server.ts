@@ -3,7 +3,7 @@ import {
   MAX_CACHED_SNAPSHOT_BYTES,
   approxJsonBytes,
   CacheTTL,
-  cacheKey,
+  userFeatureKey,
   cached,
 } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db.server";
@@ -129,7 +129,7 @@ export async function loadSnapshot(userId: string): Promise<LibrarySnapshot> {
   // via `getArticleContent` when the reader opens a work — that keeps cold
   // start and Redis entries small even for large libraries.
   return cached(
-    cacheKey("u", userId, "library", "snapshot-meta"),
+    userFeatureKey(userId, "library", "snapshot-meta"),
     CacheTTL.library,
     async () => {
       const db = await getDb();

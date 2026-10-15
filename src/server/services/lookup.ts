@@ -589,6 +589,6 @@ export async function fillBookPageCount(
     .update(books)
     .set({ pageCount: pages })
     .where(and(eq(books.id, data.id), isNull(books.pageCount)));
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "shelves");
   return { pageCount: pages };
 }

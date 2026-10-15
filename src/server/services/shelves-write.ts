@@ -211,7 +211,7 @@ export async function addShelfItem(
     throw err;
   }
 
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "shelves");
   return { id, listId, type: data.type, status };
 }
 
@@ -292,7 +292,7 @@ export async function setShelfItemStatus(
     });
   }
 
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "shelves");
   return { id: data.id, type: data.type, status: data.status };
 }
 
@@ -314,7 +314,7 @@ export async function deleteShelfItem(userId: string, data: { type: ShelfType; i
       itemType: data.type,
     });
   });
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "shelves");
   return { deleted: true };
 }
 
@@ -375,7 +375,7 @@ export async function setBookProgress(
     });
   }
 
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "shelves");
   return { status, percent: finished ? 100 : Math.min(percent, 99) };
 }
 
@@ -452,7 +452,7 @@ export async function importBooks(
         itemType: "book",
       });
     });
-    await invalidateUserCache(userId);
+    await invalidateUserCache(userId, "shelves");
   }
 
   return { imported: rows.length, skipped: data.books.length - rows.length };

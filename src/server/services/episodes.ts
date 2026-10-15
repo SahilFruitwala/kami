@@ -2,7 +2,13 @@ import "@tanstack/react-start/server-only";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import type { EpisodeRow, SeasonRow, ShowSeasons } from "@/lib/api/types";
-import { CacheTTL, cacheKey, cached, invalidateUserCache } from "@/lib/cache.server.ts";
+import {
+  CacheTTL,
+  cacheKey,
+  userFeatureKey,
+  cached,
+  invalidateUserCache,
+} from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db.server";
 import { listMembers, tvShows, watchedEpisodes } from "@/lib/schema";
 import { notFound } from "@/server/http";
@@ -161,7 +167,7 @@ export async function getShowSeasons(userId: string, itemId: string): Promise<Sh
   // merged result per user; episode mutations invalidate the prefix.
   // (The totalEpisodes self-heal below then runs at most once per TTL.)
   return cached(
-    cacheKey("u", userId, "shelves", "seasons", data.itemId),
+    userFeatureKey(userId, "shelves", "seasons", data.itemId),
     CacheTTL.shelfReads,
     async () => {
       const { db, item } = await requireShow(userId, data.itemId);
@@ -218,7 +224,7 @@ export async function getSeasonEpisodes(
   // Episode rows merge shared TMDB data with per-user ticks — same
   // per-user caching as seasons; ticks invalidate on toggle below.
   return cached(
-    cacheKey("u", userId, "shelves", "episodes", data.itemId, String(data.season)),
+    userFeatureKey(userId, "shelves", "episodes", data.itemId, String(data.season)),
     CacheTTL.shelfReads,
     async (): Promise<EpisodeRow[]> => {
       const { db, item } = await requireShow(userId, data.itemId);
@@ -270,7 +276,7 @@ export async function toggleEpisode(
   if (existing[0]) {
     await db.delete(watchedEpisodes).where(eq(watchedEpisodes.id, existing[0].id));
     await syncShowProgress(data.itemId);
-    await invalidateUserCache(userId);
+    await invalidateUserCache(userId, "shelves");
     return { watched: false };
   }
 
@@ -286,7 +292,7 @@ export async function toggleEpisode(
     .onConflictDoNothing();
 
   await syncShowProgress(data.itemId);
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "shelves");
   return { watched: true };
 }
 
@@ -327,7 +333,7 @@ export async function setSeasonWatched(
   }
 
   await syncShowProgress(data.itemId);
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "shelves");
 }
 
 /** Mark every TMDB episode watched, or clear all ticks. Also sets show status. */
@@ -344,7 +350,7 @@ export async function setShowWatched(
       .update(tvShows)
       .set({ status: "to_try", completedAt: null })
       .where(eq(tvShows.id, data.itemId));
-    await invalidateUserCache(userId);
+    await invalidateUserCache(userId, "shelves");
     return;
   }
 
@@ -386,5 +392,5 @@ export async function setShowWatched(
     .update(tvShows)
     .set({ status: "done", completedAt: new Date() })
     .where(eq(tvShows.id, data.itemId));
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "shelves");
 }

@@ -538,7 +538,7 @@ capture flow; **Skip** closes the tab.
 `src/lib/cache.server.ts` — enabled only when both Upstash env vars are set.
 
 - Key shape: `quarto:v1:u:<userId>:…`
-- Read-through via `cached()`; writes call `invalidateUserCache(userId)`
+- Read-through via `cached()` on per-user keys built with `userFeatureKey(userId, feature, …)`; writes call `invalidateUserCache(userId, feature)`, which drops only that feature ("library" | "shelves" | "journal") for that user
 - Oversized library snapshots skip cache
 - Lookups (TMDB, books, previews) use longer TTLs
 
