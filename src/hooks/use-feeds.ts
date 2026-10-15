@@ -18,6 +18,7 @@ import { persistArticleItem } from "@/lib/library-remote.ts";
 import { queryKeys } from "@/lib/query-client.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { articleToItem, type LibraryItem } from "@/lib/library-item.ts";
+import { toastError } from "@/lib/errors";
 
 export const FEED_PAGE_SIZE = 30;
 /** Batches one Refresh click may run (the server polls up to 20 feeds each). */
@@ -100,7 +101,7 @@ export function useFeedActions() {
       toast.success(added ? `Following ${feed.title}` : `Already following ${feed.title}`);
       void invalidate();
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not add that feed."),
+    onError: (err) => toastError(err, "Could not add that feed."),
   });
 
   /**
@@ -136,7 +137,7 @@ export function useFeedActions() {
       });
       void invalidate();
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Refresh failed."),
+    onError: (err) => toastError(err, "Refresh failed."),
   });
 
   const remove = useMutation({
@@ -145,13 +146,13 @@ export function useFeedActions() {
       toast.success("Unsubscribed");
       void invalidate();
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not unsubscribe."),
+    onError: (err) => toastError(err, "Could not unsubscribe."),
   });
 
   const rename = useMutation({
     mutationFn: ({ id, title }: { id: string; title: string | null }) => feedsApi.rename(id, title),
     onSuccess: () => void invalidate(),
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not rename."),
+    onError: (err) => toastError(err, "Could not rename."),
   });
 
   const markRead = useMutation({
@@ -169,13 +170,13 @@ export function useFeedActions() {
       toast.success("Marked all as read");
       void invalidate();
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not mark as read."),
+    onError: (err) => toastError(err, "Could not mark as read."),
   });
 
   const inbox = useMutation({
     mutationFn: (rotate: boolean) => feedsApi.inbox(rotate),
     onSuccess: () => void invalidate(),
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not create address."),
+    onError: (err) => toastError(err, "Could not create address."),
   });
 
   const importOpml = useMutation({
@@ -187,7 +188,7 @@ export function useFeedActions() {
       );
       void invalidate();
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Import failed."),
+    onError: (err) => toastError(err, "Import failed."),
   });
 
   /**
@@ -211,8 +212,7 @@ export function useFeedActions() {
       return persistArticleItem(articleToItem(result.article));
     },
     onSuccess: (_item, entry) => patch([entry.id], "saved"),
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Could not save that entry."),
+    onError: (err) => toastError(err, "Could not save that entry."),
   });
 
   return { add, refresh, remove, rename, markRead, markAllRead, inbox, importOpml, save };

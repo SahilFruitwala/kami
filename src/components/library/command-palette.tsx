@@ -39,6 +39,7 @@ import type { LibraryItem } from "@/lib/library-item.ts";
 import { libraryApi } from "@/lib/api/library";
 import { shelfPath, type ShelfTab } from "@/lib/shelves.ts";
 import type { LookupResult, SaveUrlResult } from "@/lib/api/types";
+import { errorMessage } from "@/lib/errors";
 
 type AddPage = "home" | ShelfTab;
 
@@ -250,7 +251,7 @@ export function CommandPalette({ onOpenItem }: { onOpenItem: (item: LibraryItem)
       });
       close();
     } catch (e) {
-      const message = e instanceof Error ? e.message : "Couldn't save that item.";
+      const message = errorMessage(e, "Couldn't save that item.");
       if (message === "Already on your shelf") {
         toast.message(`“${r.title}” is already on your shelf`, {
           action: {

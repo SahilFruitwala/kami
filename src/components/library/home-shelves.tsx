@@ -20,6 +20,7 @@ import { queryKeys } from "@/lib/query-client.ts";
 import { shelfPath, type ShelfTab } from "@/lib/shelves.ts";
 import { lookupApi } from "@/lib/api/lookup";
 import type { LookupResult } from "@/lib/api/types";
+import { toastError } from "@/lib/errors";
 
 export type HomeCaptureType = "article" | ShelfTab;
 
@@ -126,7 +127,7 @@ export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
       setQuery("");
       setDebounced("");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't save that item.");
+      toastError(e, "Couldn't save that item.");
     } finally {
       setAddingKey(null);
     }
@@ -168,7 +169,7 @@ export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
         setAddingKey(null);
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't save that link.");
+      toastError(e, "Couldn't save that link.");
     } finally {
       setFetchingLink(false);
     }

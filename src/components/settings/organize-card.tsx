@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useLibraryStore } from "@/lib/store.ts";
 import { collectLibraryTags } from "@/lib/filter-library.ts";
 import { Card, FieldLabel, MiniButton } from "@/components/settings/settings-ui.tsx";
+import { confirmAction } from "@/lib/confirm.ts";
 
 export function OrganizeCard() {
   const library = useLibraryStore((s) => s.library);
@@ -93,11 +94,13 @@ export function OrganizeCard() {
                     </MiniButton>
                     <MiniButton
                       danger
-                      onClick={() => {
-                        if (
-                          !window.confirm(`Delete slipcase “${f.name}”? ${n} works become Unfiled.`)
-                        )
-                          return;
+                      onClick={async () => {
+                        const ok = await confirmAction({
+                          title: `Delete slipcase “${f.name}”?`,
+                          description: `${n} works become Unfiled.`,
+                          confirmLabel: "Delete",
+                        });
+                        if (!ok) return;
                         removeFolder(f.id);
                         toast.success(`Deleted slipcase “${f.name}”`);
                       }}
@@ -181,8 +184,12 @@ export function OrganizeCard() {
                     </MiniButton>
                     <MiniButton
                       danger
-                      onClick={() => {
-                        if (!window.confirm(`Remove tag #${t} from every work?`)) return;
+                      onClick={async () => {
+                        const ok = await confirmAction({
+                          title: `Remove tag #${t} from every work?`,
+                          confirmLabel: "Remove",
+                        });
+                        if (!ok) return;
                         const n = removeTagEverywhere(t);
                         toast.success(`Removed #${t} from ${n} works`);
                       }}

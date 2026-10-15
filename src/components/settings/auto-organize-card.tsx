@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { useAiStatus, organizeLibrary } from "@/hooks/use-ai.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { Card, ExportButton } from "@/components/settings/settings-ui.tsx";
+import { toastError } from "@/lib/errors";
 
 /** Waiting articles: no tags, no folder (link-only stubs can't be read, so they're skipped). */
 export function AutoOrganizeCard() {
@@ -26,7 +27,7 @@ export function AutoOrganizeCard() {
         filed > 0 ? `Filed ${filed} ${filed === 1 ? "work" : "works"}` : "Nothing new to file",
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not organize the library.");
+      toastError(err, "Could not organize the library.");
     } finally {
       setRunning(false);
       setLeft(null);

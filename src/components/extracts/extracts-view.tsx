@@ -20,6 +20,8 @@ import { useExtractActions, useExtractResults, useExtractsOverview } from "@/hoo
 import type { ExtractResult, ExtractSource, ExtractSourceInput } from "@/lib/api/extracts";
 import { relativeTime } from "@/lib/time.ts";
 import { cn } from "@/lib/utils.ts";
+import { errorMessage } from "@/lib/errors";
+import { confirmAction } from "@/lib/confirm.ts";
 
 type Actions = ReturnType<typeof useExtractActions>;
 
@@ -65,7 +67,7 @@ export function ExtractsView({
           <div className="kami-sheet h-40 animate-pulse opacity-60" aria-hidden="true" />
         ) : overview.isError ? (
           <p className="kami-sheet p-6 font-body text-sm text-ink-soft">
-            {overview.error instanceof Error ? overview.error.message : "Could not load extracts."}
+            {errorMessage(overview.error, "Could not load extracts.")}
           </p>
         ) : !selected ? (
           <EmptyExtracts actions={actions} onSaved={onSelect} />
@@ -298,14 +300,13 @@ function SourceDetail({
                 </IconButton>
                 <IconButton
                   title="Delete extract"
-                  onClick={() => {
-                    if (
-                      window.confirm(
-                        `Delete “${source.name}” and its ${source.acceptedCount} saved results?`,
-                      )
-                    ) {
-                      actions.remove.mutate(source.id, { onSuccess: onDeleted });
-                    }
+                  onClick={async () => {
+                    const ok = await confirmAction({
+                      title: `Delete “${source.name}”?`,
+                      description: `Its ${source.acceptedCount} saved results are deleted too.`,
+                      confirmLabel: "Delete",
+                    });
+                    if (ok) actions.remove.mutate(source.id, { onSuccess: onDeleted });
                   }}
                 >
                   <Trash2 className="size-3.5" aria-hidden="true" />
@@ -434,9 +435,13 @@ function History({
                 <CopyMarkdown markdown={r.markdown} />
                 <IconButton
                   title="Delete result"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.preventDefault();
-                    if (window.confirm("Delete this saved result?")) actions.discard.mutate(r.id);
+                    const ok = await confirmAction({
+                      title: "Delete this saved result?",
+                      confirmLabel: "Delete",
+                    });
+                    if (ok) actions.discard.mutate(r.id);
                   }}
                 >
                   <Trash2 className="size-3.5" aria-hidden="true" />

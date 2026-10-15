@@ -9,6 +9,7 @@ import { SiteHeader, type SitePane } from "@/components/site-header.tsx";
 import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
 import { flushAllSyncQueues, pendingSyncCount, subscribeSyncQueues } from "@/lib/sync-queue.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
+import { usePersistedPref } from "@/lib/local-pref.ts";
 
 // ⌘K palette is heavy (~600 lines + shelf lookup hooks) and unused until
 // opened — keep it out of the initial authenticated shell chunk.
@@ -44,22 +45,15 @@ export function AppShell({
   requireLibrary?: boolean;
 }) {
   const tools = useCaptureTools();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.localStorage.getItem("kami-sidebar-collapsed") === "1",
+  const [collapsedPref, setCollapsedPref] = usePersistedPref(
+    "kami-sidebar-collapsed",
+    ["1", "0"] as const,
+    "0",
   );
+  const sidebarCollapsed = collapsedPref === "1";
 
   function toggleSidebar() {
-    setSidebarCollapsed((prev) => {
-      const next = !prev;
-      try {
-        window.localStorage.setItem("kami-sidebar-collapsed", next ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
+    setCollapsedPref(sidebarCollapsed ? "0" : "1");
   }
 
   const contentPad = sidebarCollapsed ? "lg:pl-0" : "lg:pl-60";

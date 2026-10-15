@@ -17,6 +17,7 @@ import { queryKeys } from "@/lib/query-client.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
 import { cn } from "@/lib/utils.ts";
+import { toastError } from "@/lib/errors";
 
 /**
  * "Remove ads & clutter": the model picks the blocks to drop, then the
@@ -33,7 +34,7 @@ export function TidyButton({ item }: { item: LibraryItem }) {
       }
       setResult(res);
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not tidy this copy."),
+    onError: (err) => toastError(err, "Could not tidy this copy."),
   });
   return (
     <>

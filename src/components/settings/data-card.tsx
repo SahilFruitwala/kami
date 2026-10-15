@@ -18,6 +18,8 @@ import { shelvesApi } from "@/lib/api/shelves";
 import { parseBookCsv } from "@/lib/goodreads.ts";
 import { invalidateShelves } from "@/lib/query-client";
 import { Card, ExportButton, FieldLabel, MiniButton } from "@/components/settings/settings-ui.tsx";
+import { toastError } from "@/lib/errors";
+import { confirmAction } from "@/lib/confirm.ts";
 
 export function DataCard() {
   const library = useLibraryStore((s) => s.library);
@@ -89,7 +91,7 @@ export function DataCard() {
         toast.success(`Imported ${rows.length} works from JSON`);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not read that file.");
+      toastError(err, "Could not read that file.");
     }
   }
 
@@ -109,7 +111,7 @@ export function DataCard() {
           (skipped ? ` (${skipped} already on your shelf)` : ""),
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not import that file.");
+      toastError(err, "Could not import that file.");
     } finally {
       setGoodreadsBusy(false);
     }
@@ -227,13 +229,19 @@ export function DataCard() {
         </p>
         <button
           type="button"
-          onClick={() => {
-            if (!window.confirm("Delete your entire library? This cannot be undone. Export first."))
-              return;
-            if (
-              !window.confirm("Really delete everything, including the server copy? Last chance.")
-            )
-              return;
+          onClick={async () => {
+            const first = await confirmAction({
+              title: "Delete your entire library?",
+              description: "This cannot be undone. Export first.",
+              confirmLabel: "Continue",
+            });
+            if (!first) return;
+            const last = await confirmAction({
+              title: "Really delete everything?",
+              description: "This includes the server copy. Last chance.",
+              confirmLabel: "Delete everything",
+            });
+            if (!last) return;
             void (async () => {
               try {
                 await wipeLibraryAccount();

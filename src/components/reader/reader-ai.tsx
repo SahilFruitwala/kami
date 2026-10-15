@@ -7,6 +7,7 @@ import { queryKeys } from "@/lib/query-client.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
 import { useAiStatus } from "@/hooks/use-ai.ts";
+import { toastError } from "@/lib/errors";
 
 const chip =
   "inline-flex min-h-9 items-center gap-1 rounded-full bg-surface px-3 font-sans text-xs font-medium text-ink shadow-border transition-colors hover:bg-paper-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30";
@@ -30,8 +31,7 @@ function SummaryCard({ item }: { item: LibraryItem }) {
   const summarize = useMutation({
     mutationFn: () => aiApi.summarize(item.id),
     onSuccess: (summary) => client.setQueryData(key, summary),
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Could not summarize this article."),
+    onError: (err) => toastError(err, "Could not summarize this article."),
   });
   const summary = query.data ?? null;
 
@@ -106,8 +106,7 @@ function AutoTagButton({ item }: { item: LibraryItem }) {
           : "Already tagged with the best-fit categories",
       );
     },
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Could not auto-tag this article."),
+    onError: (err) => toastError(err, "Could not auto-tag this article."),
   });
   return (
     <button

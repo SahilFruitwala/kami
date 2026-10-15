@@ -53,6 +53,8 @@ import {
   TextInput,
 } from "./trip-fields.tsx";
 import { TripMap, type MapDay } from "./trip-map.tsx";
+import { errorMessage } from "@/lib/errors";
+import { confirmAction } from "@/lib/confirm.ts";
 
 type Actions = ReturnType<typeof useTripActions>;
 
@@ -96,7 +98,7 @@ export function TripBoard({ tripId, onDeleted }: { tripId: string; onDeleted: ()
   if (query.isError) {
     return (
       <p className="kami-sheet p-6 font-body text-sm text-ink-soft">
-        {query.error instanceof Error ? query.error.message : "Could not load this trip."}
+        {errorMessage(query.error, "Could not load this trip.")}
       </p>
     );
   }
@@ -153,10 +155,13 @@ function TripDetails({
           <IconButton
             title="Delete trip"
             disabled={actions.remove.isPending}
-            onClick={() => {
-              if (window.confirm(`Delete “${trip.title}” with its hotels and plans?`)) {
-                actions.remove.mutate(undefined, { onSuccess: onDeleted });
-              }
+            onClick={async () => {
+              const ok = await confirmAction({
+                title: `Delete “${trip.title}”?`,
+                description: "Its hotels and plans are deleted too.",
+                confirmLabel: "Delete trip",
+              });
+              if (ok) actions.remove.mutate(undefined, { onSuccess: onDeleted });
             }}
           >
             <Trash2 className="size-3.5" aria-hidden="true" />

@@ -6,6 +6,7 @@ import {
   clearLibraryLocal,
   isLibraryBootstrapped,
 } from "@/lib/library-remote";
+import { errorMessage } from "@/lib/errors";
 
 /**
  * Session gate shared by every app page. Auth-only: sends signed-out visitors
@@ -75,7 +76,7 @@ export function LibraryGate({ children }: { children: React.ReactNode }) {
       })
       .catch((error: unknown) => {
         if (cancelled) return;
-        const message = error instanceof Error ? error.message : "Could not load your library.";
+        const message = errorMessage(error, "Could not load your library.");
         setLibraryError(message);
       });
     return () => {
@@ -97,8 +98,7 @@ export function LibraryGate({ children }: { children: React.ReactNode }) {
           void bootstrapLibraryFromServer(userId)
             .then(() => setReadyForUser(userId))
             .catch((error: unknown) => {
-              const message =
-                error instanceof Error ? error.message : "Could not load your library.";
+              const message = errorMessage(error, "Could not load your library.");
               setLibraryError(message);
             });
         }}

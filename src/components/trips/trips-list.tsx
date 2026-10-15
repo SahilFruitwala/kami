@@ -6,6 +6,7 @@ import type { Trip } from "@/lib/api/trips";
 import { relativeTime } from "@/lib/time.ts";
 import { formatRange, MAX_TRIP_DAYS } from "@/lib/trip-days.ts";
 import { PrimaryButton, TextInput } from "./trip-fields.tsx";
+import { errorMessage } from "@/lib/errors";
 
 export function TripsList({ onCreated }: { onCreated: (trip: Trip) => void }) {
   const list = useTripsList();
@@ -24,7 +25,7 @@ export function TripsList({ onCreated }: { onCreated: (trip: Trip) => void }) {
           <div className="kami-sheet h-40 animate-pulse opacity-60" aria-hidden="true" />
         ) : list.isError ? (
           <p className="kami-sheet p-6 font-body text-sm text-ink-soft">
-            {list.error instanceof Error ? list.error.message : "Could not load your trips."}
+            {errorMessage(list.error, "Could not load your trips.")}
           </p>
         ) : trips.length === 0 ? (
           <div className="kami-sheet space-y-2 p-6">
