@@ -98,3 +98,9 @@ export const libraryItemPatch = z.object({
   tagOps: z.array(tagOpSchema).max(50).optional(),
   highlightOps: z.array(highlightOpSchema).max(50).optional(),
 });
+
+/** `POST /api/library/tags` — rename or remove one tag across the whole library. */
+export const libraryTagOpBody = z.discriminatedUnion("op", [
+  z.object({ op: z.literal("rename"), from: tagSchema, to: tagSchema }),
+  z.object({ op: z.literal("remove"), tag: tagSchema }),
+]);

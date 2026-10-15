@@ -11,7 +11,7 @@ import {
   type LibraryItem,
 } from "./library-item.ts";
 import { isPaperTone, type PaperTone } from "./paper-tones.ts";
-import { applyHighlightOps, applyTagOps } from "./item-ops.ts";
+import { applyHighlightOps, applyTagOps, type TagOp } from "./item-ops.ts";
 
 function remoteSync(run: (m: typeof import("./library-remote.ts")) => void) {
   void import("./library-remote.ts").then(run).catch((err) => console.error("[library]", err));
@@ -190,6 +190,28 @@ function mapItem(
   return library.map((row) => (row.id === id ? fn(row) : row));
 }
 
+/**
+ * Apply one tag rename/remove to every loaded row, then send it to the server
+ * once (`POST /api/library/tags`), which also covers rows not paged in yet.
+ * Returns how many loaded rows changed.
+ */
+function applyTagEverywhere(
+  set: (fn: (state: LibraryState) => Partial<LibraryState>) => void,
+  op: Extract<TagOp, { op: "rename" | "remove" }>,
+): number {
+  const target = (op.op === "rename" ? op.from : op.tag).toLowerCase();
+  let affected = 0;
+  set((state) => ({
+    library: state.library.map((row) => {
+      if (!row.tags.some((t) => t.toLowerCase() === target)) return row;
+      affected += 1;
+      return { ...row, tags: applyTagOps(row.tags, [op]) };
+    }),
+  }));
+  remoteSync((m) => m.syncTagEverywhere(op));
+  return affected;
+}
+
 export const useLibraryStore = create<LibraryState>()(
   persist(
     (set, get) => ({
@@ -325,48 +347,9 @@ export const useLibraryStore = create<LibraryState>()(
       renameTagEverywhere: (oldTag, newTag) => {
         const next = normalizeTag(newTag);
         if (!next) return 0;
-        const old = oldTag.toLowerCase();
-        let affected = 0;
-        const touched: Array<{ id: string; tags: string[] }> = [];
-        set((state) => ({
-          library: state.library.map((row) => {
-            if (!row.tags.some((t) => t.toLowerCase() === old)) return row;
-            affected += 1;
-            const tags = row.tags
-              .map((t) => (t.toLowerCase() === old ? next : t))
-              .filter(
-                (t, i, arr) => arr.findIndex((x) => x.toLowerCase() === t.toLowerCase()) === i,
-              )
-              .slice(0, LIBRARY_LIMITS.tags);
-            touched.push({ id: row.id, tags });
-            return { ...row, tags };
-          }),
-        }));
-        for (const t of touched) {
-          remoteSync((m) =>
-            m.syncPatchItem(t.id, { tagOps: [{ op: "rename", from: oldTag, to: next }] }),
-          );
-        }
-        return affected;
+        return applyTagEverywhere(set, { op: "rename", from: oldTag, to: next });
       },
-      removeTagEverywhere: (tag) => {
-        const old = tag.toLowerCase();
-        let affected = 0;
-        const touched: Array<{ id: string; tags: string[] }> = [];
-        set((state) => ({
-          library: state.library.map((row) => {
-            if (!row.tags.some((t) => t.toLowerCase() === old)) return row;
-            affected += 1;
-            const tags = row.tags.filter((t) => t.toLowerCase() !== old);
-            touched.push({ id: row.id, tags });
-            return { ...row, tags };
-          }),
-        }));
-        for (const t of touched) {
-          remoteSync((m) => m.syncPatchItem(t.id, { tagOps: [{ op: "remove", tag }] }));
-        }
-        return affected;
-      },
+      removeTagEverywhere: (tag) => applyTagEverywhere(set, { op: "remove", tag }),
       mergeItems: (keepId, dropId) => {
         const state = get();
         const keep = state.library.find((row) => row.id === keepId);
