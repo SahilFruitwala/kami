@@ -91,7 +91,11 @@ async function capture(tab, intent = "save") {
     // Browser-internal pages, the extension store, PDFs, etc.
   }
   if (!payload || !payload.html) {
-    await flag(tab.id, "!", "KAMI can't capture this page (browser pages and stores are off-limits).");
+    await flag(
+      tab.id,
+      "!",
+      "KAMI can't capture this page (browser pages and stores are off-limits).",
+    );
     return;
   }
 

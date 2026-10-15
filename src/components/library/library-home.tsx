@@ -1,12 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  CheckSquare,
-  Layers,
-  LayoutGrid,
-  LibraryBig,
-  List,
-  SlidersHorizontal,
-} from "lucide-react";
+import { CheckSquare, Layers, LayoutGrid, LibraryBig, List, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import { ArticleList } from "@/components/article-list.tsx";
 import { LibraryFilters } from "@/components/library-filters.tsx";

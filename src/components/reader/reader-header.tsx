@@ -1,10 +1,4 @@
-import {
-  Archive,
-  ArrowLeft,
-  Inbox,
-  Star,
-  Type,
-} from "lucide-react";
+import { Archive, ArrowLeft, Inbox, Star, Type } from "lucide-react";
 import { KAMI_GLYPH } from "@/components/kami.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
@@ -46,7 +40,10 @@ export function ReaderHeader({
           <ArrowLeft className="size-4" aria-hidden="true" />
           <span className="hidden sm:inline">Library</span>
         </Button>
-        <span className="ml-1 hidden items-center gap-2 font-display text-sm text-ink-soft md:flex" aria-hidden="true">
+        <span
+          className="ml-1 hidden items-center gap-2 font-display text-sm text-ink-soft md:flex"
+          aria-hidden="true"
+        >
           <span
             className="kami-hanko flex size-5 items-center justify-center rounded-lg text-[10px] font-bold leading-none"
             lang="ja"
@@ -55,7 +52,11 @@ export function ReaderHeader({
           </span>
           Reader
         </span>
-        <div className="ml-auto flex items-center gap-1" role="toolbar" aria-label="Reading controls">
+        <div
+          className="ml-auto flex items-center gap-1"
+          role="toolbar"
+          aria-label="Reading controls"
+        >
           <Button
             variant="ghost"
             size="icon"
@@ -63,7 +64,10 @@ export function ReaderHeader({
             aria-pressed={favorited}
             onClick={onToggleFavorite}
           >
-            <Star className={cn("size-4", favorited && "fill-hanko text-hanko")} aria-hidden="true" />
+            <Star
+              className={cn("size-4", favorited && "fill-hanko text-hanko")}
+              aria-hidden="true"
+            />
           </Button>
           <ThemeToggle className="size-11" />
           <div className="relative" ref={prefsRef}>

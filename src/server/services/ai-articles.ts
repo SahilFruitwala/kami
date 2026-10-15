@@ -244,7 +244,10 @@ const autoTagSchema = z.object({
 });
 
 /** Tag an article with one to three categories from the fixed list. */
-export async function autoTagArticle(userId: string, articleId: string): Promise<{ tags: string[] }> {
+export async function autoTagArticle(
+  userId: string,
+  articleId: string,
+): Promise<{ tags: string[] }> {
   const { patchLibraryItem } = await import("@/server/services/library");
   const article = await loadArticleForAi(userId, articleId);
   const { output } = await generateJson(autoTagSchema, {

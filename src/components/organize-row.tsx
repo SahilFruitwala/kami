@@ -50,7 +50,11 @@ export function OrganizeRow({ item }: { item: LibraryItem }) {
 
   return (
     <div ref={boxRef} className="relative mt-5">
-      <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Article organization">
+      <div
+        className="flex flex-wrap items-center gap-2"
+        role="toolbar"
+        aria-label="Article organization"
+      >
         <button
           type="button"
           aria-haspopup="menu"

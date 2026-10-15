@@ -61,7 +61,8 @@ export function syncReaderPaper(theme: Theme) {
 export const useThemeStore = create<ThemeState>()(
   combine(
     {
-      theme: typeof window === "undefined" ? ("light" as Theme) : (getStoredTheme() ?? getSystemTheme()),
+      theme:
+        typeof window === "undefined" ? ("light" as Theme) : (getStoredTheme() ?? getSystemTheme()),
       isSystem: typeof window === "undefined" ? true : getStoredTheme() == null,
     },
     (set, get) => ({

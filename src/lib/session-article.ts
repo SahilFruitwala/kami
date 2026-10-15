@@ -55,7 +55,13 @@ export function parseBulkUrls(raw: string): string[] {
   const tokens = raw
     .replace(/[<>"]/g, " ")
     .split(/[\s,;]+/)
-    .map((t) => t.trim().replace(/^[\s]*[-*•\d.)\]]+\s*/, "").replace(/^[([{'"“‘]+|[)\]}'"”‘.,!?]+$/g, "").trim())
+    .map((t) =>
+      t
+        .trim()
+        .replace(/^[\s]*[-*•\d.)\]]+\s*/, "")
+        .replace(/^[([{'"“‘]+|[)\]}'"”‘.,!?]+$/g, "")
+        .trim(),
+    )
     .filter(Boolean);
   for (const token of tokens) {
     // Skip bare words / fragments that can't be URLs.

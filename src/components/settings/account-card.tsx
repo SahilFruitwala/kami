@@ -7,10 +7,15 @@ import { Card, FieldLabel } from "@/components/settings/settings-ui.tsx";
 export function AccountCard() {
   const { user } = useCurrentUserState();
   if (!user) return null;
-  const initial = (user.displayName ?? user.primaryEmail ?? "?").trim().charAt(0).toUpperCase() || "?";
+  const initial =
+    (user.displayName ?? user.primaryEmail ?? "?").trim().charAt(0).toUpperCase() || "?";
 
   return (
-    <Card id="account" title="Account" copy="Your name shows in the sidebar next to your avatar. Change it here anytime.">
+    <Card
+      id="account"
+      title="Account"
+      copy="Your name shows in the sidebar next to your avatar. Change it here anytime."
+    >
       <div className="flex items-center gap-3">
         {user.profileImageUrl ? (
           <img
