@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { selectionMenu, type SelMenu } from "@/lib/selection-menu.ts";
-import { useLibraryStore } from "@/lib/store.ts";
+import { useReaderPrefs } from "@/lib/reader-prefs.ts";
 
 export function useReaderProgress(canonicalUrl: string, itemId?: string) {
   const [progress, setProgressState] = useState(0);
@@ -17,7 +17,7 @@ export function useReaderProgress(canonicalUrl: string, itemId?: string) {
         if (now - lastPersist.current > 500 || next >= 0.99) {
           lastPersist.current = now;
           try {
-            useLibraryStore.getState().setProgress(itemId, next);
+            useReaderPrefs.getState().setProgress(itemId, next);
           } catch {
             // store unavailable — ignore
           }

@@ -1,4 +1,4 @@
-import { useLibraryStore, READER_FONTS, READER_FONT_SIZES } from "@/lib/store.ts";
+import { READER_FONTS, READER_FONT_SIZES, useReaderPrefs } from "@/lib/reader-prefs.ts";
 import { HIGHLIGHT_COLORS } from "@/lib/library-item.ts";
 import { PAPER_TONES } from "@/lib/paper-tones.ts";
 import { useTheme } from "@/hooks/use-theme.ts";
@@ -7,14 +7,14 @@ import { Card, FieldLabel } from "@/components/settings/settings-ui.tsx";
 
 export function AppearanceCard() {
   const { theme, isSystem, setTheme, followSystem } = useTheme();
-  const readerFontSize = useLibraryStore((s) => s.readerFontSize);
-  const readerFont = useLibraryStore((s) => s.readerFont);
-  const highlightColor = useLibraryStore((s) => s.highlightColor);
-  const paperTone = useLibraryStore((s) => s.paperTone);
-  const bumpReaderFontSize = useLibraryStore((s) => s.bumpReaderFontSize);
-  const setReaderFont = useLibraryStore((s) => s.setReaderFont);
-  const setHighlightColor = useLibraryStore((s) => s.setHighlightColor);
-  const setPaperTone = useLibraryStore((s) => s.setPaperTone);
+  const readerFontSize = useReaderPrefs((s) => s.readerFontSize);
+  const readerFont = useReaderPrefs((s) => s.readerFont);
+  const highlightColor = useReaderPrefs((s) => s.highlightColor);
+  const paperTone = useReaderPrefs((s) => s.paperTone);
+  const bumpReaderFontSize = useReaderPrefs((s) => s.bumpReaderFontSize);
+  const setReaderFont = useReaderPrefs((s) => s.setReaderFont);
+  const setHighlightColor = useReaderPrefs((s) => s.setHighlightColor);
+  const setPaperTone = useReaderPrefs((s) => s.setPaperTone);
 
   return (
     <Card

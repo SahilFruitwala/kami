@@ -253,7 +253,6 @@ export async function wipeLibraryAccount(): Promise<void> {
   useLibraryStore.setState({
     library: [],
     folders: [],
-    openId: null,
     libraryTotal: 0,
     libraryComplete: true,
   });
@@ -267,7 +266,6 @@ export function clearLibraryLocal() {
   useLibraryStore.setState({
     library: [],
     folders: [],
-    openId: null,
     libraryTotal: null,
     libraryComplete: false,
   });

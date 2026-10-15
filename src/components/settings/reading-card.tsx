@@ -1,9 +1,9 @@
-import { useLibraryStore } from "@/lib/store.ts";
 import { Card } from "@/components/settings/settings-ui.tsx";
+import { useReaderPrefs } from "@/lib/reader-prefs.ts";
 
 export function ReadingCard() {
-  const resumeEnabled = useLibraryStore((s) => s.resumeEnabled);
-  const setResumeEnabled = useLibraryStore((s) => s.setResumeEnabled);
+  const resumeEnabled = useReaderPrefs((s) => s.resumeEnabled);
+  const setResumeEnabled = useReaderPrefs((s) => s.setResumeEnabled);
 
   return (
     <Card id="reading" title="Reading" copy="Scroll-resume behavior in the reader.">

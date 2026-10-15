@@ -1,4 +1,4 @@
-import { READER_FONTS } from "@/lib/store.ts";
+import { READER_FONTS } from "@/lib/reader-prefs.ts";
 import {
   memo,
   type CSSProperties,

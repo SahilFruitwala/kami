@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
-import { useLibraryStore } from "@/lib/store.ts";
 import { isPaperTone } from "@/lib/paper-tones.ts";
 import { readLocal, writeLocal } from "@/lib/local-pref.ts";
+import { useReaderPrefs } from "@/lib/reader-prefs.ts";
 
 export type Theme = "light" | "dark";
 
@@ -42,15 +42,15 @@ type ThemeState = {
  */
 export function syncReaderPaper(theme: Theme) {
   try {
-    const lib = useLibraryStore.getState();
+    const prefs = useReaderPrefs.getState();
     if (theme === "dark") {
-      if (lib.paperTone !== "sumi") lib.setPaperTone("sumi");
-    } else if (lib.paperTone === "sumi") {
-      const light = lib.preferredLightTone;
-      lib.setPaperTone(isPaperTone(light) && light !== "sumi" ? light : "pale");
+      if (prefs.paperTone !== "sumi") prefs.setPaperTone("sumi");
+    } else if (prefs.paperTone === "sumi") {
+      const light = prefs.preferredLightTone;
+      prefs.setPaperTone(isPaperTone(light) && light !== "sumi" ? light : "pale");
     }
   } catch {
-    // library store unavailable (SSR) — nothing to sync
+    // prefs store unavailable (SSR) — nothing to sync
   }
 }
 

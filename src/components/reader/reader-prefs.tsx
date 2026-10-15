@@ -1,5 +1,5 @@
 import { Minus, Plus } from "lucide-react";
-import { READER_FONTS, READER_FONT_SIZES, type ReaderFontId } from "@/lib/store.ts";
+import { READER_FONTS, READER_FONT_SIZES, type ReaderFontId } from "@/lib/reader-prefs.ts";
 import { HIGHLIGHT_COLORS, type HighlightColorId } from "@/lib/library-item.ts";
 import { PAPER_TONES, type PaperTone } from "@/lib/paper-tones.ts";
 import { Button } from "@/components/ui/button.tsx";
