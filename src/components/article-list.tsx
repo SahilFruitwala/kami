@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { ViewTransition } from "react";
+import { useEffect, useState, ViewTransition } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { BookOpen, Clock3, Highlighter, Star, Trash2 } from "lucide-react";
 import { toast } from "sonner";

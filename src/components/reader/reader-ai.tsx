@@ -1,13 +1,10 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tags, Folder, LoaderCircle, RotateCcw, Sparkles } from "lucide-react";
 import { TidyButton } from "@/components/reader/tidy-review.tsx";
 import { toast } from "sonner";
-import { aiApi, type ArticleSummary } from "@/lib/api/ai";
-import { queryKeys } from "@/lib/query-client.ts";
+import { type ArticleSummary } from "@/lib/api/ai";
 import { useLibraryStore } from "@/lib/store.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
-import { useAiStatus } from "@/hooks/use-ai.ts";
-import { toastError } from "@/lib/errors";
+import { useAiStatus, useArticleSummary, useAutoTag } from "@/hooks/use-ai.ts";
 
 const chip =
   "inline-flex min-h-9 items-center gap-1 rounded-full bg-surface px-3 font-sans text-xs font-medium text-ink shadow-border transition-colors hover:bg-paper-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30";
@@ -20,19 +17,7 @@ export function ReaderAi({ item }: { item: LibraryItem }) {
 }
 
 function SummaryCard({ item }: { item: LibraryItem }) {
-  const client = useQueryClient();
-  const key = queryKeys.ai.summary(item.id);
-  const query = useQuery({
-    queryKey: key,
-    queryFn: () => aiApi.summary(item.id),
-    staleTime: Infinity,
-    retry: false,
-  });
-  const summarize = useMutation({
-    mutationFn: () => aiApi.summarize(item.id),
-    onSuccess: (summary) => client.setQueryData(key, summary),
-    onError: (err) => toastError(err, "Could not summarize this article."),
-  });
+  const { query, summarize } = useArticleSummary(item.id);
   const summary = query.data ?? null;
 
   return (
@@ -94,20 +79,7 @@ function SummaryCard({ item }: { item: LibraryItem }) {
 
 /** Tag the article with up to three categories from a fixed list. */
 function AutoTagButton({ item }: { item: LibraryItem }) {
-  const upsertItem = useLibraryStore((s) => s.upsertItem);
-  const autoTag = useMutation({
-    mutationFn: () => aiApi.autoTag(item.id),
-    onSuccess: ({ tags }) => {
-      const added = tags.filter((t) => !item.tags.includes(t));
-      upsertItem({ ...item, tags });
-      toast.success(
-        added.length
-          ? `Tagged: ${added.join(", ")}`
-          : "Already tagged with the best-fit categories",
-      );
-    },
-    onError: (err) => toastError(err, "Could not auto-tag this article."),
-  });
+  const autoTag = useAutoTag(item);
   return (
     <button
       type="button"

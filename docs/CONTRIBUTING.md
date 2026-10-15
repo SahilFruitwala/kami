@@ -119,7 +119,7 @@ Checklist:
 - [ ] REST shape: `GET` reads, `POST` create/actions, `PATCH` partial update, `PUT` replace/set, `DELETE` remove; 404 for missing-or-not-yours
 - [ ] Endpoint listed in [`docs/API.md`](./API.md)
 
-For shelves, prefer React Query hooks in `src/hooks/use-shelf-queries.ts` and keys in `src/lib/query-client.ts`. For library/journal, go through `*-remote.ts` so the outbox stays consistent.
+Server data in components goes through hooks in `src/hooks/` (`use-shelf-queries.ts`, `use-ai.ts`, `use-feeds.ts`, …): every `useQuery` / `useMutation` lives there, keyed through the `queryKeys` factory in `src/lib/query-client.ts`, with its invalidation and error toast. ESLint rejects React Query hooks imported straight into components or pages. One-off imperative calls (export a file, save on click) may call `src/lib/api` directly. For library/journal, go through `*-remote.ts` so the outbox stays consistent.
 
 ### 3. Change the database schema
 

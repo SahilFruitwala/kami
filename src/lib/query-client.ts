@@ -66,8 +66,11 @@ export const queryKeys = {
       ] as const,
     detail: (type: ShelfTab, id: string) => [...queryKeys.shelves.all, "detail", type, id] as const,
     seasons: (itemId: string) => [...queryKeys.shelves.all, "seasons", itemId] as const,
+    /** Every season's episode list for one show (invalidation prefix). */
+    episodesAll: (itemId: string) => [...queryKeys.shelves.all, "episodes", itemId] as const,
     episodes: (itemId: string, season: number) =>
       [...queryKeys.shelves.all, "episodes", itemId, season] as const,
+    pageCount: (bookId: string) => [...queryKeys.shelves.all, "page-count", bookId] as const,
   },
   lookup: {
     all: ["lookup"] as const,
@@ -75,6 +78,8 @@ export const queryKeys = {
       [...queryKeys.lookup.all, "tmdb", kind, query] as const,
     books: (query: string) => [...queryKeys.lookup.all, "books", query] as const,
     link: (url: string) => [...queryKeys.lookup.all, "link", url] as const,
+    watchProviders: (kind: "movie" | "tv", tmdbId: string) =>
+      [...queryKeys.lookup.all, "watch-providers", kind, tmdbId] as const,
   },
 } as const;
 
