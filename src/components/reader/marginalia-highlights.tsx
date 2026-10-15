@@ -1,6 +1,6 @@
 import { PenLine } from "lucide-react";
 import { HIGHLIGHT_NOTE_MAX } from "@/lib/item-ops.ts";
-import { type LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 
 /** Grow a textarea with its content (capped) so long notes stay readable. */
 function autosize(el: HTMLTextAreaElement | null) {

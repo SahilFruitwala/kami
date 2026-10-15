@@ -1,5 +1,5 @@
 import { TAG_CATEGORIES, type TagCategory } from "@/lib/tag-categories.ts";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import type { ItemStatus } from "@/lib/schema.ts";
 
 /**

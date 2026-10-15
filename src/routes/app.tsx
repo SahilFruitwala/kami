@@ -21,7 +21,7 @@ import {
   writeDraftUrl,
 } from "@/lib/session-article.ts";
 import { persistArticleItem } from "@/lib/library-remote.ts";
-import { articleToItem, type LibraryItem } from "@/lib/store.ts";
+import { articleToItem, type LibraryItem } from "@/lib/library-item.ts";
 
 type HomeSearch = {
   /**

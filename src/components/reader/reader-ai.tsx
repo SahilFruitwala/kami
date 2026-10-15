@@ -4,7 +4,8 @@ import { TidyButton } from "@/components/reader/tidy-review.tsx";
 import { toast } from "sonner";
 import { aiApi, type ArticleSummary } from "@/lib/api/ai";
 import { queryKeys } from "@/lib/query-client.ts";
-import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import { useLibraryStore } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import { useAiStatus } from "@/hooks/use-ai.ts";
 
 const chip =

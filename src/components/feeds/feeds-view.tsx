@@ -26,7 +26,7 @@ import { useAiStatus } from "@/hooks/use-ai.ts";
 import { useFeedActions, useFeedEntries, useFeedsOverview } from "@/hooks/use-feeds.ts";
 import type { FeedEntry, FeedEntryView, FeedSummary } from "@/lib/api/feeds";
 import { previewImageSrc } from "@/lib/image-url.ts";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import { relativeTime } from "@/lib/time.ts";
 import { cn } from "@/lib/utils.ts";
 

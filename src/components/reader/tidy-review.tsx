@@ -14,7 +14,8 @@ import {
 import { aiApi, type TidyResult } from "@/lib/api/ai";
 import { rewriteHtmlImages } from "@/lib/image-url.ts";
 import { queryKeys } from "@/lib/query-client.ts";
-import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import { useLibraryStore } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import { cn } from "@/lib/utils.ts";
 
 /**

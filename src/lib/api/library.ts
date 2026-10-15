@@ -1,5 +1,5 @@
 import type { HighlightOp, TagOp } from "@/lib/item-ops";
-import type { Folder, Highlight, LibraryItem } from "@/lib/store";
+import type { Folder, Highlight, LibraryItem } from "@/lib/library-item";
 import { http, orNull, seg } from "./client";
 import {
   LIBRARY_BOOT_LIMIT,

@@ -6,7 +6,7 @@ import { GlossHeader } from "@/components/gloss/primitives.tsx";
 import { TranscribeDialog } from "@/components/library/library-dialogs.tsx";
 import { VaultView } from "@/components/library/vault-view.tsx";
 import { useDeskStats } from "@/hooks/use-desk-stats.ts";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 
 type VaultSearch = {
   mode?: string;

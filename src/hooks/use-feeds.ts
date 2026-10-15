@@ -16,7 +16,8 @@ import {
 import { libraryApi } from "@/lib/api/library";
 import { persistArticleItem } from "@/lib/library-remote.ts";
 import { queryKeys } from "@/lib/query-client.ts";
-import { articleToItem, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import { useLibraryStore } from "@/lib/store.ts";
+import { articleToItem, type LibraryItem } from "@/lib/library-item.ts";
 
 export const FEED_PAGE_SIZE = 30;
 /** Batches one Refresh click may run (the server polls up to 20 feeds each). */

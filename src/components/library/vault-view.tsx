@@ -3,7 +3,7 @@ import { Download, Network, LayoutGrid, PenLine, Search, Tag, User, Waves } from
 import { toast } from "sonner";
 import { Hanko } from "@/components/kami.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
 

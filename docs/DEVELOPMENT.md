@@ -101,7 +101,9 @@ src/
     auth/          # Clerk provider, gates, server session checks
     schema.ts      # Drizzle tables
     db.ts          # getDb() — Postgres via pg pool
-    store.ts       # Zustand library
+    library-item.ts # Library domain types, LIBRARY_LIMITS, clamp (isomorphic)
+    id.ts          # uid()
+    store.ts       # Zustand library (client only)
     journal.ts     # Zustand journal
   styles.css       # Tailwind + Kami design tokens
 migrations/        # Ordered SQL

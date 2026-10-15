@@ -2,7 +2,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { articlesApi } from "@/lib/api/articles";
 import { persistArticleItem } from "@/lib/library-remote.ts";
-import { articleToItem } from "@/lib/store.ts";
+import { articleToItem } from "@/lib/library-item.ts";
 
 export function usePasteImport(goOpen: (id: string | null, replace?: boolean) => void) {
   const [pasteOpen, setPasteOpen] = useState(false);

@@ -22,13 +22,8 @@ import { toast } from "sonner";
 import type { Article } from "@/lib/article-types.ts";
 import { applyHighlights } from "@/lib/highlight-html.ts";
 import { rewriteHtmlImages, previewImageSrc } from "@/lib/image-url.ts";
-import {
-  READER_FONTS,
-  READER_FONT_SIZES,
-  useLibraryStore,
-  type HighlightColorId,
-  type LibraryItem,
-} from "@/lib/store.ts";
+import { READER_FONTS, READER_FONT_SIZES, useLibraryStore } from "@/lib/store.ts";
+import type { HighlightColorId, LibraryItem } from "@/lib/library-item.ts";
 import { OrganizeRow } from "@/components/organize-row.tsx";
 import { HighlightMenu } from "@/components/reader/highlight-menu.tsx";
 import { ReaderBody } from "@/components/reader/reader-body.tsx";

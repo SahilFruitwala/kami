@@ -6,7 +6,8 @@ import { DirectionalTransition } from "@/components/directional-transition.tsx";
 import { ReaderView } from "@/components/reader-view.tsx";
 import { articlesApi } from "@/lib/api/articles";
 import { libraryApi } from "@/lib/api/library";
-import { articleToItem, itemToArticle, useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import { useLibraryStore } from "@/lib/store.ts";
+import { articleToItem, itemToArticle, type LibraryItem } from "@/lib/library-item.ts";
 
 type ReadSearch = {
   id?: string;
