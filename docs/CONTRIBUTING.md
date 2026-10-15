@@ -45,9 +45,17 @@ function MyFeaturePage() {
 
 ### 2. Add an API endpoint
 
-An endpoint is three small pieces — keep business logic out of the route file.
+An endpoint is a few small pieces — keep business logic out of the route file.
 
-**a. Service** — `src/server/services/<domain>.ts` (plain async functions, server-only):
+**a. Request schema** — `src/lib/api/schemas/<domain>.ts` (isomorphic: Zod + `src/lib` pure helpers only, no DB or server imports). The server validates with it and the client derives its request type from it, so the two can't drift (see `schemas/library.ts`, `schemas/trips.ts`):
+
+```ts
+import { z } from "zod";
+
+export const doThingBody = z.object({ /* … */ });
+```
+
+**b. Service** — `src/server/services/<domain>.ts` (plain async functions, server-only):
 
 ```ts
 import "@tanstack/react-start/server-only";
@@ -55,8 +63,9 @@ import { z } from "zod";
 import { getDb } from "@/lib/db";
 import { invalidateUserCache } from "@/lib/cache.server";
 import { notFound } from "@/server/http";
+import { doThingBody } from "@/lib/api/schemas/<domain>";
 
-export const doThingBody = z.object({ /* … */ });
+export { doThingBody }; // routes import schemas from the service
 
 export async function doThing(userId: string, id: string, data: z.output<typeof doThingBody>) {
   const db = await getDb();
@@ -67,7 +76,7 @@ export async function doThing(userId: string, id: string, data: z.output<typeof 
 }
 ```
 
-**b. Route** — `src/routes/api/<domain>/$id/thing.ts`:
+**c. Route** — `src/routes/api/<domain>/$id/thing.ts`:
 
 ```ts
 import { createFileRoute } from "@tanstack/react-router";
@@ -88,9 +97,14 @@ export const Route = createFileRoute("/api/<domain>/$id/thing")({
 });
 ```
 
-**c. Client** — add a method to `src/lib/api/<domain>.ts`:
+**d. Client** — add a method to `src/lib/api/<domain>.ts`, typing the body from the schema (type-only import — ESLint rejects a value import here, so Zod stays out of the bundle):
 
 ```ts
+import type { z } from "zod";
+import type { doThingBody } from "./schemas/<domain>";
+
+export type DoThingInput = z.input<typeof doThingBody>;
+
 doThing: (id: string, input: DoThingInput) => http.post<{ ok: true }>(`/api/<domain>/${seg(id)}/thing`, input),
 ```
 
@@ -100,7 +114,8 @@ Checklist:
 - [ ] `rateLimit: "lookup" | "extract"` when the service fetches from the outside world
 - [ ] Queries/mutations filtered by `userId` (or verified list membership)
 - [ ] Writes call `invalidateUserCache(userId)`
-- [ ] Shared response types live in `src/lib/api/types.ts` — never import `src/server/**` from client code
+- [ ] Request body schema lives in `src/lib/api/schemas/`; the client type is `z.input<>` of it
+- [ ] Shared response types live in `src/lib/api/types.ts` — never import `src/server/**` from client code (ESLint enforces this)
 - [ ] REST shape: `GET` reads, `POST` create/actions, `PATCH` partial update, `PUT` replace/set, `DELETE` remove; 404 for missing-or-not-yours
 - [ ] Endpoint listed in [`docs/API.md`](./API.md)
 
