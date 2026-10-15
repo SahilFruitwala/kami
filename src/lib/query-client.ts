@@ -29,6 +29,11 @@ export function getAppQueryClient() {
 }
 
 export const queryKeys = {
+  library: {
+    all: ["library"] as const,
+    /** The one-time library boot for a signed-in user (see useLibraryBoot). */
+    boot: (userId: string) => [...queryKeys.library.all, "boot", userId] as const,
+  },
   ai: {
     all: ["ai"] as const,
     status: () => [...queryKeys.ai.all, "status"] as const,

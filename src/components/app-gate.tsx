@@ -1,37 +1,26 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Navigate } from "@tanstack/react-router";
+import { useClearLibrarySession, useLibraryBoot } from "@/hooks/use-library-boot";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import {
-  bootstrapLibraryFromServer,
-  clearLibraryLocal,
-  isLibraryBootstrapped,
-} from "@/lib/library-remote";
 import { errorMessage } from "@/lib/errors";
 
 /**
  * Session gate shared by every app page. Auth-only: sends signed-out visitors
  * to login and renders children as soon as the session resolves. The library
- * boots in the background (fire-and-forget) so pages that don't need it —
- * e.g. Home capture — never block on `getLibrary`. Pages that DO need the
- * library opt in via <LibraryGate>.
+ * boots in the background so pages that don't need it (Home capture) never
+ * wait on it; pages that do opt in via <LibraryGate>.
  */
 export function AppGate({ children }: { children: React.ReactNode }) {
   const { user, isPending } = useCurrentUserState();
   const userId = user?.id;
+  const clearSession = useClearLibrarySession();
 
-  // Kick off the library boot without blocking first paint. Pages behind
-  // <LibraryGate> await it locally; everyone else renders immediately and
-  // picks up store rows when they land. `bootstrapLibraryFromServer` is
-  // guarded per-user + dedupes inflight calls, so this is safe to fire from
-  // every remount.
+  // Starts (or reuses) the per-user boot; never blocks this render.
+  useLibraryBoot(isPending ? undefined : userId);
+
   useEffect(() => {
-    if (isPending) return;
-    if (!userId) {
-      clearLibraryLocal();
-      return;
-    }
-    if (isLibraryBootstrapped(userId)) return;
-    void bootstrapLibraryFromServer(userId).catch(() => undefined);
+    if (!isPending && !userId) clearSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, isPending]);
 
   if (isPending) {
@@ -46,67 +35,27 @@ export function AppGate({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * Opt-in data gate for pages that read `useLibraryStore().library`:
- * Library, Vault, Reader. Shows the full-screen "Loading your library…"
- * skeleton only there — Home / Shelves / Settings render without waiting.
+ * Opt-in data gate for pages that read the library store: Library, Vault,
+ * Reader. Shows the full-screen "Loading your library…" skeleton only there;
+ * once booted for this user it renders straight away on every remount.
  */
 export function LibraryGate({ children }: { children: React.ReactNode }) {
   const { user } = useCurrentUserState();
-  const userId = user?.id;
-  // Per-mount ready flag (see AppGate history): remounts must not flash the
-  // skeleton when the store is already booted for this user.
-  const [readyForUser, setReadyForUser] = useState<string | null>(null);
-  const [libraryError, setLibraryError] = useState<string | null>(null);
+  const boot = useLibraryBoot(user?.id);
 
-  const libraryReady =
-    Boolean(userId && isLibraryBootstrapped(userId)) || Boolean(userId && readyForUser === userId);
+  if (!user) return <>{children}</>;
 
-  useEffect(() => {
-    if (!userId) return;
-    let cancelled = false;
-    if (isLibraryBootstrapped(userId)) {
-      setReadyForUser(userId);
-      setLibraryError(null);
-      return;
-    }
-    setLibraryError(null);
-    void bootstrapLibraryFromServer(userId)
-      .then(() => {
-        if (!cancelled) setReadyForUser(userId);
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
-        const message = errorMessage(error, "Could not load your library.");
-        setLibraryError(message);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  if (!userId) return <>{children}</>;
-
-  if (libraryError) {
+  if (boot.isError) {
     return (
       <GateLoading
-        label={libraryError}
+        label={errorMessage(boot.error, "Could not load your library.")}
         actionLabel="Try again"
-        onAction={() => {
-          setLibraryError(null);
-          setReadyForUser(null);
-          if (!userId) return;
-          void bootstrapLibraryFromServer(userId)
-            .then(() => setReadyForUser(userId))
-            .catch((error: unknown) => {
-              const message = errorMessage(error, "Could not load your library.");
-              setLibraryError(message);
-            });
-        }}
+        onAction={() => void boot.refetch()}
       />
     );
   }
 
-  if (!libraryReady) {
+  if (!boot.isSuccess) {
     return <GateLoading label="Loading your library…" />;
   }
 
