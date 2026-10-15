@@ -1,12 +1,10 @@
 import "@tanstack/react-start/server-only";
 import { z } from "zod";
-import type { PagePeek } from "@/lib/api/ai";
 import type { Article } from "@/lib/article-types.ts";
 import type { ExtractFallback } from "@/lib/extract.server.ts";
 import { aiConfigured } from "@/lib/llm.server.ts";
 import { enforceRateLimit, RateLimitError } from "@/lib/rate-limit.server.ts";
 import { asDocument, generateJson } from "@/server/ai";
-import { badRequest } from "@/server/http";
 
 /**
  * AI fallback for page extraction: when Readability can't find the article
@@ -77,65 +75,5 @@ export function aiExtractFallback(userId: string): ExtractFallback | undefined {
       source,
       heroImage: null,
     });
-  };
-}
-
-// ---------- Peek (extension "Summarize page") ----------
-
-export const peekInput = z.object({
-  url: z.string().trim().max(2000).optional(),
-  title: z.string().trim().min(1).max(300),
-  html: z.string().min(1).max(1_500_000),
-});
-
-const peekSchema = z.object({
-  tldr: z.string().describe("Two or three plain sentences: what the page says."),
-  keyPoints: z.array(z.string()).describe("Three to five short key points."),
-  verdict: z
-    .string()
-    .describe("Half a sentence on who would find this worth a full read, or that it's thin."),
-});
-
-/**
- * Summarize a page captured in the browser before deciding to save it.
- * Extraction runs as for a real capture; nothing is stored.
- */
-export async function peekPage(
-  _userId: string,
-  data: z.output<typeof peekInput>,
-): Promise<PagePeek> {
-  const { articleFromCapturedPage } = await import("@/lib/extract.server.ts");
-  const { textFromHtml } = await import("@/lib/article-build.server.ts");
-  const { clipText } = await import("@/lib/model-fallback.ts");
-  let article: Article;
-  try {
-    article = articleFromCapturedPage({ url: data.url, title: data.title, html: data.html });
-  } catch {
-    throw badRequest("Couldn't find readable text on that page.");
-  }
-  const text = textFromHtml(article.contentHtml);
-  if (text.split(/\s+/).length < 60) throw badRequest("That page is too short to summarize.");
-  const { output } = await generateJson(peekSchema, {
-    instructions: [
-      "You give a quick preview of a web page so the reader can decide whether to save it.",
-      "Write in the page's language, plainly and without hype.",
-    ].join("\n"),
-    prompt: asDocument(clipText(text, 20_000), {
-      title: article.title,
-      site: article.siteName || undefined,
-    }),
-    maxOutputTokens: 600,
-  });
-  return {
-    title: article.title,
-    siteName: article.siteName,
-    url: article.canonicalUrl || article.url,
-    readingMinutes: article.readingMinutes,
-    tldr: output.tldr.trim(),
-    keyPoints: output.keyPoints
-      .map((p) => p.trim())
-      .filter(Boolean)
-      .slice(0, 5),
-    verdict: output.verdict.trim(),
   };
 }
