@@ -17,7 +17,7 @@ src/server/services/*  (business logic)
         └─ cache.server.ts → Upstash Redis (optional)
 ```
 
-Signed-in users pass **`AppGate`**, which loads a per-user library + journal snapshot into **Zustand**. Mutations update the store immediately and sync through the **REST API (`/api/*`) + Drizzle**, always scoped by Clerk **`userId`**. Shelves skip the optimistic store and use **React Query**. Article HTML is produced only on the server.
+Signed-in users pass **`AppGate`**, which starts the per-user library boot (`useLibraryBoot`: a React Query entry that runs `bootstrapLibraryFromServer` once per user and fills the **Zustand** library store); pages that need the library wait on it through **`LibraryGate`**. Mutations update the store immediately and sync through the **REST API (`/api/*`) + Drizzle**, always scoped by Clerk **`userId`**. Shelves skip the optimistic store and use **React Query**. Article HTML is produced only on the server.
 
 ---
 
@@ -570,7 +570,7 @@ flowchart TB
 ```
 
 - **`AppShell`**: header, nav panes, command palette, offline banner.
-- **`AppGate`**: wait for auth + bootstrap library/journal once per user.
+- **`AppGate`**: wait for auth; start the library boot once per user (`useLibraryBoot`). **`LibraryGate`**: show the loading / retry screen until that boot succeeds.
 - **`/read`**: immersive — gate without full chrome.
 
 File routes under `src/routes/` regenerate `src/routeTree.gen.ts` via the Vite router plugin. Do not hand-edit the generated tree.

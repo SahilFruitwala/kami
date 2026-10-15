@@ -67,81 +67,60 @@ function readLegacySnapshot(): LibrarySnapshot | null {
   }
 }
 
-export function isLibraryBootstrapped(userId: string): boolean {
-  return bootedUserId === userId;
-}
-
-/** Load the signed-in user's library; one-time import from old localStorage if empty.
- *
- * Boot is paged: the first page (100 newest) unblocks first paint, then the
- * remaining pages stream in in the background. Guarded per user: every page
- * mounts its own AppGate, so without this each navigation would refetch +
- * replace the store — wiping an item that was just saved optimistically a
- * moment before its server round-trip lands.
+/**
+ * Paging state for the signed-in session. `bootSeq` is bumped on every boot
+ * and on sign-out; page appends check it, so a late page can never
+ * repopulate the store after sign-out or an account switch.
  */
-let bootedUserId: string | null = null;
-let bootInflight: Promise<void> | null = null;
+let bootSeq = 0;
 /** Cursor for the next background/on-demand page; null once the end is reached. */
 let nextPageCursor: LibraryCursor | null | undefined;
 let fillInflight: Promise<void> | null = null;
+
 /**
- * Bumped on every boot and on sign-out. Background/on-demand page appends
- * verify it hasn't changed, so a late page can never repopulate the store
- * after sign-out or an account switch.
+ * Load the signed-in user's library (one-time import from old localStorage
+ * if the account is empty). Call it through `useLibraryBoot`, which runs it
+ * once per user and caches the result: re-running would replace the store
+ * and drop an item saved optimistically a moment before.
+ *
+ * Paged: the first page (100 newest) unblocks first paint, then the rest
+ * streams in the background.
  */
-let bootSeq = 0;
-
 export async function bootstrapLibraryFromServer(userId: string): Promise<void> {
-  if (bootedUserId === userId) return;
-  if (bootInflight) {
-    await bootInflight;
-    return;
-  }
-  bootInflight = (async () => {
-    bootSeq += 1;
-    queue.start(userId);
-    const page = await libraryApi.page({ limit: LIBRARY_BOOT_LIMIT });
+  const seq = ++bootSeq;
+  queue.start(userId);
+  const page = await libraryApi.page({ limit: LIBRARY_BOOT_LIMIT });
+  if (seq !== bootSeq) return;
 
-    if ((page.total ?? 0) === 0 && page.folders.length === 0 && !legacyMigrated.isSet()) {
-      const legacy = readLegacySnapshot();
-      if (legacy && (legacy.library.length > 0 || legacy.folders.length > 0)) {
-        const snapshot = await libraryApi.import(legacy);
-        legacyMigrated.set();
-        hydrateLibrary(snapshot);
-        nextPageCursor = null;
-        bootedUserId = userId;
-        return;
-      }
+  if ((page.total ?? 0) === 0 && page.folders.length === 0 && !legacyMigrated.isSet()) {
+    const legacy = readLegacySnapshot();
+    if (legacy && (legacy.library.length > 0 || legacy.folders.length > 0)) {
+      const snapshot = await libraryApi.import(legacy);
       legacyMigrated.set();
+      if (seq !== bootSeq) return;
+      hydrateLibrary(snapshot);
+      nextPageCursor = null;
+      return;
     }
-
-    const complete = page.nextCursor == null;
-    useLibraryStore.getState().setLibrarySnapshot(page.library, page.folders, page.total, complete);
-    nextPageCursor = page.nextCursor;
-    bootedUserId = userId;
-    // Stream the rest without blocking first paint; failures surface via the
-    // Load-more affordance (the cursor is preserved).
-    if (page.nextCursor) void fillRemainingLibrary(userId).catch(() => undefined);
-  })();
-  try {
-    await bootInflight;
-  } finally {
-    bootInflight = null;
+    legacyMigrated.set();
   }
+
+  const complete = page.nextCursor == null;
+  useLibraryStore.getState().setLibrarySnapshot(page.library, page.folders, page.total, complete);
+  nextPageCursor = page.nextCursor;
+  // Stream the rest without blocking first paint; failures surface via the
+  // Load-more affordance (the cursor is preserved).
+  if (page.nextCursor) void fillRemainingLibrary().catch(() => undefined);
 }
 
 /** Sequentially fetch every remaining page in the background. */
-async function fillRemainingLibrary(userId: string): Promise<void> {
-  if (fillInflight) {
-    await fillInflight;
-    return;
-  }
+async function fillRemainingLibrary(): Promise<void> {
+  if (fillInflight) return fillInflight;
+  const seq = bootSeq;
   fillInflight = (async () => {
-    const seq = bootSeq;
-    while (nextPageCursor) {
-      // Signed out or switched account mid-fill — stop; the new boot restarts.
-      if (bootedUserId !== userId || seq !== bootSeq) return;
+    while (nextPageCursor && seq === bootSeq) {
       const page = await libraryApi.page({ limit: LIBRARY_BOOT_LIMIT, cursor: nextPageCursor });
+      // Signed out or switched account mid-fill: stop; the new boot restarts.
       if (seq !== bootSeq) return;
       useLibraryStore.getState().appendLibraryItems(page.library, page.nextCursor == null);
       nextPageCursor = page.nextCursor;
@@ -259,7 +238,6 @@ export async function wipeLibraryAccount(): Promise<void> {
 }
 
 export function clearLibraryLocal() {
-  bootedUserId = null;
   queue.stop();
   nextPageCursor = undefined;
   bootSeq += 1;
