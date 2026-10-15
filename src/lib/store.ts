@@ -260,23 +260,6 @@ function migrateFontSize(raw: Persisted): number {
   return DEFAULT_READER_FONT_SIZE;
 }
 
-function trimLibrary(items: LibraryItem[], max = 200): LibraryItem[] {
-  if (items.length <= max) return items;
-  const next = [...items];
-  while (next.length > max) {
-    let idx = -1;
-    for (let i = next.length - 1; i >= 0; i -= 1) {
-      if (next[i].archived && !next[i].favorited) {
-        idx = i;
-        break;
-      }
-    }
-    if (idx < 0) idx = next.length - 1;
-    next.splice(idx, 1);
-  }
-  return next;
-}
-
 function mapItem(library: LibraryItem[], id: string, fn: (row: LibraryItem) => LibraryItem): LibraryItem[] {
   return library.map((row) => (row.id === id ? fn(row) : row));
 }
@@ -317,7 +300,7 @@ export const useLibraryStore = create<LibraryState>()(
             note: existing?.note || item.note || "",
           };
           const rest = state.library.filter((row) => row.id !== merged.id && row.url !== merged.url);
-          return { library: trimLibrary([merged, ...rest]) };
+          return { library: [merged, ...rest] };
         });
         if (opts?.sync === false) return;
         remoteSync((m) => m.syncUpsertItem(merged));
