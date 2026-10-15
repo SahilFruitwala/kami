@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { useBookPageCountLookup, useSetBookProgress } from "@/hooks/use-shelf-queries.ts";
 import { cn } from "@/lib/utils.ts";
+import { toastError } from "@/lib/errors";
 
 type Mode = "pages" | "percent";
 
@@ -69,7 +70,7 @@ export function BookProgress({
             : `Progress saved · ${res.percent}%`,
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't save progress.");
+      toastError(err, "Couldn't save progress.");
     }
   }
 

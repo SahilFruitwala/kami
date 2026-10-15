@@ -3,6 +3,7 @@ import { create } from "zustand";
 import { combine } from "zustand/middleware";
 import { useLibraryStore } from "@/lib/store.ts";
 import { isPaperTone } from "@/lib/paper-tones.ts";
+import { readLocal, writeLocal } from "@/lib/local-pref.ts";
 
 export type Theme = "light" | "dark";
 
@@ -16,13 +17,8 @@ function getSystemTheme(): Theme {
 }
 
 function getStoredTheme(): Theme | null {
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (stored === "light" || stored === "dark") return stored;
-  } catch {
-    // ignore (private mode, SSR)
-  }
-  return null;
+  const stored = readLocal(STORAGE_KEY);
+  return stored === "light" || stored === "dark" ? stored : null;
 }
 
 export function applyTheme(theme: Theme) {
@@ -67,32 +63,20 @@ export const useThemeStore = create<ThemeState>()(
     },
     (set, get) => ({
       setTheme: (next: Theme) => {
-        try {
-          window.localStorage.setItem(STORAGE_KEY, next);
-        } catch {
-          // ignore
-        }
+        writeLocal(STORAGE_KEY, next);
         applyTheme(next);
         set({ theme: next, isSystem: false });
         syncReaderPaper(next);
       },
       toggleTheme: () => {
         const next: Theme = get().theme === "dark" ? "light" : "dark";
-        try {
-          window.localStorage.setItem(STORAGE_KEY, next);
-        } catch {
-          // ignore
-        }
+        writeLocal(STORAGE_KEY, next);
         applyTheme(next);
         set({ theme: next, isSystem: false });
         syncReaderPaper(next);
       },
       followSystem: () => {
-        try {
-          window.localStorage.removeItem(STORAGE_KEY);
-        } catch {
-          // ignore
-        }
+        writeLocal(STORAGE_KEY, null);
         const next = getSystemTheme();
         applyTheme(next);
         set({ theme: next, isSystem: true });

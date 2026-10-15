@@ -13,6 +13,7 @@ import { getAppQueryClient } from "@/lib/query-client";
 import { Toaster } from "sonner";
 import { useTheme } from "@/hooks/use-theme.ts";
 import appCss from "../styles.css?url";
+import { ConfirmHost } from "@/components/confirm-dialog.tsx";
 
 const APP_NAME = "KAMI";
 
@@ -112,6 +113,7 @@ function ThemeShell() {
   return (
     <>
       <Outlet />
+      <ConfirmHost />
       <Toaster
         position="bottom-center"
         closeButton

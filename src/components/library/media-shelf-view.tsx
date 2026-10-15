@@ -63,10 +63,15 @@ import { mediaCoverSize, mediaDepthRatio, STATUS_DOT } from "@/lib/gloss/palette
 import { statusLabels, statusText } from "@/lib/shelf-labels.ts";
 import { shelfPath, type ShelfCard } from "@/lib/shelves.ts";
 import type { ShelvesSearch } from "@/lib/shelves-search.ts";
+import { toastError } from "@/lib/errors";
+import { usePersistedPref } from "@/lib/local-pref.ts";
+import { confirmAction } from "@/lib/confirm.ts";
 
 type MediaTab = "movie" | "tv" | "book" | "wishlist";
-type View = "shelf" | "covers";
-type Arrange = "status" | "title" | "year" | "added";
+const VIEWS = ["shelf", "covers"] as const;
+const ARRANGES = ["status", "title", "year", "added"] as const;
+type View = (typeof VIEWS)[number];
+type Arrange = (typeof ARRANGES)[number];
 
 /** A shelf holds far more than a grid page; fetch in bigger bites. */
 const MEDIA_PAGE = SHELF_PAGE_SIZE * 5;
@@ -126,8 +131,12 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
   const [status, setStatus] = useState<StatusFilter>(() => parseStatusFilter(search.status, tab));
   const [limit, setLimit] = useState(MEDIA_PAGE);
   const deferredQuery = useDeferredValue(query);
-  const [view, setView] = useState<View>("shelf");
-  const [arrange, setArrange] = useState<Arrange>("status");
+  const [view, setView] = usePersistedPref<View>(`kami-${tab}-view`, VIEWS, "shelf");
+  const [arrange, setArrange] = usePersistedPref<Arrange>(
+    `kami-${tab}-arrange`,
+    ARRANGES,
+    "status",
+  );
   const [picked, setPicked] = useState<Picked | null>(null);
   const [opening, setOpening] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
@@ -161,14 +170,6 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
     syncedFromUrl.current = true;
     if (typeof search.q === "string") setQuery(search.q);
     setStatus(parseStatusFilter(search.status, tab));
-    try {
-      const v = window.localStorage.getItem(`kami-${tab}-view`);
-      if (v === "shelf" || v === "covers") setView(v);
-      const a = window.localStorage.getItem(`kami-${tab}-arrange`);
-      if (a === "status" || a === "title" || a === "year" || a === "added") setArrange(a);
-    } catch {
-      /* private mode */
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -191,14 +192,6 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
   }, [tab, query, status, navigate]);
 
   useEffect(() => setLimit(MEDIA_PAGE), [tab, status, deferredQuery]);
-
-  function remember(key: string, value: string) {
-    try {
-      window.localStorage.setItem(`kami-${tab}-${key}`, value);
-    } catch {
-      /* private mode */
-    }
-  }
 
   const listSearch: ShelvesSearch = {
     q: query ? query : undefined,
@@ -250,18 +243,22 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
       );
     } catch (err) {
       setPicked((p) => (p && p.card.id === card.id ? { ...p, card } : p));
-      toast.error(err instanceof Error ? err.message : "Couldn't update status.");
+      toastError(err, "Couldn't update status.");
     }
   }
 
   async function removeItem(card: ShelfCard, close: () => void) {
-    if (!window.confirm(`Remove “${card.title}” from your shelf?`)) return;
+    const ok = await confirmAction({
+      title: `Remove “${card.title}” from your shelf?`,
+      confirmLabel: "Remove",
+    });
+    if (!ok) return;
     try {
       await deleteItem.mutateAsync({ type: tab, id: card.id });
       toast.success(`Removed “${card.title}”`);
       close();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't delete that item.");
+      toastError(err, "Couldn't delete that item.");
     }
   }
 
@@ -347,10 +344,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
             <Segmented<View>
               label="Shelf view"
               value={view}
-              onChange={(v) => {
-                setView(v);
-                remember("view", v);
-              }}
+              onChange={setView}
               options={[
                 {
                   id: "shelf",
@@ -384,10 +378,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 size="sm"
                 label="Arrange by"
                 value={arrange}
-                onChange={(a) => {
-                  setArrange(a);
-                  remember("arrange", a);
-                }}
+                onChange={setArrange}
                 options={[
                   { id: "status", label: "Status" },
                   { id: "title", label: "Title" },

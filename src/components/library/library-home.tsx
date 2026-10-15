@@ -49,6 +49,7 @@ import {
 import { loadMoreLibrary } from "@/lib/library-remote.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
 import { useLibraryStore } from "@/lib/store.ts";
+import { usePersistedPref } from "@/lib/local-pref.ts";
 import { cn } from "@/lib/utils.ts";
 
 const SORT_LABELS: { id: LibrarySort; label: string }[] = [
@@ -59,28 +60,10 @@ const SORT_LABELS: { id: LibrarySort; label: string }[] = [
   { id: "title", label: "Title A–Z" },
 ];
 
-type View = "shelf" | "topics" | "list";
-type Arrange = "topic" | "colour" | "recent" | "length";
-
-const VIEW_KEY = "kami-library-view";
-const ARRANGE_KEY = "kami-library-arrange";
-
-function readPref<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
-  try {
-    const v = window.localStorage.getItem(key);
-    return allowed.includes(v as T) ? (v as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function writePref(key: string, value: string) {
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    /* private mode */
-  }
-}
+const VIEWS = ["shelf", "topics", "list"] as const;
+const ARRANGES = ["topic", "colour", "recent", "length"] as const;
+type View = (typeof VIEWS)[number];
+type Arrange = (typeof ARRANGES)[number];
 
 type ShelfFilters = {
   tab: LibraryTab;
@@ -134,8 +117,12 @@ export function LibraryHome({
   const [moreOpen, setMoreOpen] = useState(
     () => filters.folderFilter !== "all" || filters.tagFilter != null || filters.favoritesOnly,
   );
-  const [view, setViewState] = useState<View>("shelf");
-  const [arrange, setArrangeState] = useState<Arrange>("topic");
+  const [view, setViewState] = usePersistedPref<View>("kami-library-view", VIEWS, "shelf");
+  const [arrange, setArrange] = usePersistedPref<Arrange>(
+    "kami-library-arrange",
+    ARRANGES,
+    "topic",
+  );
   const [topic, setTopic] = useState<TopicId | "all">("all");
   const [topicPage, setTopicPage] = useState<TopicId | null>(null);
   const [picked, setPicked] = useState<Picked | null>(null);
@@ -143,22 +130,9 @@ export function LibraryHome({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
 
-  // Per-viewer conveniences; read after mount so SSR markup stays stable.
-  useEffect(() => {
-    setViewState(readPref(VIEW_KEY, ["shelf", "topics", "list"] as const, "shelf"));
-    setArrangeState(
-      readPref(ARRANGE_KEY, ["topic", "colour", "recent", "length"] as const, "topic"),
-    );
-  }, []);
-
   function setView(next: View) {
     setViewState(next);
-    writePref(VIEW_KEY, next);
     if (next !== "list") exitSelect();
-  }
-  function setArrange(next: Arrange) {
-    setArrangeState(next);
-    writePref(ARRANGE_KEY, next);
   }
 
   const baseVisible = useMemo(

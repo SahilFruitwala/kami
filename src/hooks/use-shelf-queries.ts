@@ -1,5 +1,4 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import { lookupApi } from "@/lib/api/lookup";
 import {
   shelvesApi,
@@ -10,6 +9,7 @@ import {
 import type { ItemStatus } from "@/lib/schema";
 import type { ShelfTab } from "@/lib/shelves";
 import { invalidateShelves, queryKeys } from "@/lib/query-client";
+import { toastError } from "@/lib/errors";
 
 export function useShelfCounts() {
   return useQuery({
@@ -140,7 +140,7 @@ export function useToggleEpisode(itemId: string) {
   return useMutation({
     mutationFn: (data: { season: number; number: number }) =>
       shelvesApi.tv.toggleEpisode(itemId, data.season, data.number),
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't update episodes."),
+    onError: (e) => toastError(e, "Couldn't update episodes."),
     onSuccess: () => {
       void invalidateShelves(client);
       void client.invalidateQueries({ queryKey: queryKeys.shelves.seasons(itemId) });
@@ -156,7 +156,7 @@ export function useSetSeasonWatched(itemId: string) {
   return useMutation({
     mutationFn: (data: { season: number; numbers: number[]; watched: boolean }) =>
       shelvesApi.tv.setSeasonWatched(itemId, data.season, data.numbers, data.watched),
-    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't update episodes."),
+    onError: (e) => toastError(e, "Couldn't update episodes."),
     onSuccess: () => {
       void invalidateShelves(client);
       void client.invalidateQueries({ queryKey: queryKeys.shelves.seasons(itemId) });

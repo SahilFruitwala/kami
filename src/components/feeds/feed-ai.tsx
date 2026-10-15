@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import { aiApi } from "@/lib/api/ai";
 import { queryKeys } from "@/lib/query-client.ts";
+import { errorMessage } from "@/lib/errors";
 
 /** A short summary of one entry, fetched (and cached server-side) on first open. */
 export function EntrySummary({ entryId }: { entryId: string }) {
@@ -22,7 +23,7 @@ export function EntrySummary({ entryId }: { entryId: string }) {
   if (query.isError) {
     return (
       <p className="mt-3 font-sans text-xs text-hanko">
-        {query.error instanceof Error ? query.error.message : "Could not summarize this entry."}
+        {errorMessage(query.error, "Could not summarize this entry.")}
       </p>
     );
   }

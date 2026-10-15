@@ -17,6 +17,7 @@ import { type ShelfTab } from "@/lib/shelves.ts";
 import { lookupApi } from "@/lib/api/lookup";
 import type { LookupResult } from "@/lib/api/types";
 import { cn } from "@/lib/utils.ts";
+import { errorMessage } from "@/lib/errors";
 
 const ADD_TYPE_META: { id: ShelfTab; label: string; hint: string }[] = [
   { id: "movie", label: "Movie", hint: "Search TMDB by title" },
@@ -160,7 +161,7 @@ export function AddShelfDialog({
           return;
         }
       } catch (e) {
-        setSaveError(e instanceof Error ? e.message : "Duplicate check failed.");
+        setSaveError(errorMessage(e, "Duplicate check failed."));
         return;
       }
     } else if (blockDuplicates) {
@@ -181,7 +182,7 @@ export function AddShelfDialog({
       });
       onAdded();
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "Couldn't save that item.");
+      setSaveError(errorMessage(e, "Couldn't save that item."));
     }
   }
 

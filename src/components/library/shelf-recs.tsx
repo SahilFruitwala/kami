@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { useAddShelfItem } from "@/hooks/use-shelf-queries.ts";
 import { aiApi, type ShelfRec } from "@/lib/api/ai";
 import { previewImageSrc } from "@/lib/image-url.ts";
+import { errorMessage, toastError } from "@/lib/errors";
 
 type RecType = "movie" | "tv" | "book";
 
@@ -12,8 +13,7 @@ type RecType = "movie" | "tv" | "book";
 export function ShelfRecs({ type, onClose }: { type: RecType; onClose: () => void }) {
   const recs = useMutation({
     mutationFn: () => aiApi.recommend(type),
-    onError: (err) =>
-      toast.error(err instanceof Error ? err.message : "Could not get suggestions."),
+    onError: (err) => toastError(err, "Could not get suggestions."),
   });
   // Ask once when the panel opens; "More" asks again.
   const started = useRef(false);
@@ -68,7 +68,7 @@ export function ShelfRecs({ type, onClose }: { type: RecType; onClose: () => voi
         )
       ) : recs.isError ? (
         <p className="font-body text-sm text-ink-muted">
-          {recs.error instanceof Error ? recs.error.message : "Could not get suggestions."}
+          {errorMessage(recs.error, "Could not get suggestions.")}
         </p>
       ) : null}
     </section>
@@ -96,7 +96,7 @@ function RecCard({ type, rec }: { type: RecType; rec: ShelfRec }) {
       setAdded(true);
       toast.success(`Added “${rec.title}”`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't add that.");
+      toastError(err, "Couldn't add that.");
     }
   }
 
