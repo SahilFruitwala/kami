@@ -31,7 +31,7 @@ import {
   feeds,
   newsletterInboxes,
 } from "@/lib/schema";
-import { uid } from "@/lib/store";
+import { uid } from "@/lib/id";
 import { xmlEscape } from "@/lib/xml.ts";
 import { badRequest, notFound, HttpError } from "@/server/http";
 import { inboundDomain, newInboxToken } from "@/server/feeds/newsletter";

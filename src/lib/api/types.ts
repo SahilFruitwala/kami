@@ -5,7 +5,7 @@
  * Keep this file free of runtime dependencies on server code — it ships to
  * the browser. Types only, plus a few plain constants both sides need.
  */
-import type { Folder, LibraryItem } from "@/lib/store";
+import type { Folder, LibraryItem } from "@/lib/library-item";
 
 /* ---------- Library ---------- */
 

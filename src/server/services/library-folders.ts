@@ -5,24 +5,24 @@ import type { LibrarySnapshot } from "@/lib/api/types";
 import { invalidateUserCache } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db";
 import { articles, folders } from "@/lib/schema";
-import type { Folder } from "@/lib/store";
-import { normalizeTag, uid } from "@/lib/store";
 import {
-  clampLibraryItemInput,
-  libraryItemSchema,
-  loadSnapshot,
-  sanitizeStoredHtml,
-} from "@/lib/library-rows.server.ts";
+  LIBRARY_LIMITS as L,
+  clampLibraryItem,
+  normalizeTag,
+  type Folder,
+} from "@/lib/library-item";
+import { uid } from "@/lib/id";
+import { libraryItemSchema, loadSnapshot, sanitizeStoredHtml } from "@/lib/library-rows.server.ts";
 import { conflict } from "@/server/http";
 
 export const folderIdParams = z.object({ id: z.string().min(1).max(200) });
 
 export const addFolderBody = z.object({
   id: z.string().min(1).max(200).optional(),
-  name: z.string().trim().min(1).max(32),
+  name: z.string().trim().min(1).max(L.folderName),
 });
 
-export const renameFolderBody = z.object({ name: z.string().trim().min(1).max(32) });
+export const renameFolderBody = z.object({ name: z.string().trim().min(1).max(L.folderName) });
 
 export const importSnapshotBody = z.preprocess(
   (input) => {
@@ -31,15 +31,17 @@ export const importSnapshotBody = z.preprocess(
         ? (input as { library?: unknown; folders?: unknown })
         : null;
     return {
-      library: Array.isArray(raw?.library) ? raw.library.map(clampLibraryItemInput) : raw?.library,
+      library: Array.isArray(raw?.library) ? raw.library.map(clampLibraryItem) : raw?.library,
       folders: raw?.folders,
     };
   },
   z.object({
     library: z.array(libraryItemSchema).max(200),
     folders: z
-      .array(z.object({ id: z.string().min(1).max(200), name: z.string().min(1).max(32) }))
-      .max(24),
+      .array(
+        z.object({ id: z.string().min(1).max(200), name: z.string().min(1).max(L.folderName) }),
+      )
+      .max(L.folders),
   }),
 );
 
@@ -60,7 +62,7 @@ export async function addLibraryFolder(
   data: z.output<typeof addFolderBody>,
 ): Promise<Folder> {
   const db = await getDb();
-  const name = data.name.trim().slice(0, 32);
+  const name = data.name.trim().slice(0, L.folderName);
   const existing = await db
     .select({ id: folders.id, name: folders.name })
     .from(folders)
@@ -72,7 +74,7 @@ export async function addLibraryFolder(
     .select({ value: count() })
     .from(folders)
     .where(eq(folders.userId, userId));
-  if (Number(folderCount) >= 24) {
+  if (Number(folderCount) >= L.folders) {
     throw conflict("Folder limit reached.");
   }
 
@@ -114,7 +116,7 @@ export async function renameLibraryFolder(
   data: z.output<typeof renameFolderBody>,
 ): Promise<void> {
   const db = await getDb();
-  const name = data.name.trim().slice(0, 32);
+  const name = data.name.trim().slice(0, L.folderName);
   await db
     .update(folders)
     .set({ name })
@@ -158,7 +160,7 @@ export async function importLibrarySnapshot(
   );
 
   await db.transaction(async (tx) => {
-    for (const folder of data.folders.slice(0, 24)) {
+    for (const folder of data.folders.slice(0, L.folders)) {
       // Remap ids already taken by another tenant so we never link to (or
       // silently collide with) a foreign folder row.
       const taken = await tx
@@ -178,7 +180,7 @@ export async function importLibrarySnapshot(
         .values({
           id: folderId,
           userId: userId,
-          name: folder.name.trim().slice(0, 32),
+          name: folder.name.trim().slice(0, L.folderName),
         })
         .onConflictDoNothing({ target: folders.id });
     }
@@ -190,8 +192,8 @@ export async function importLibrarySnapshot(
     );
 
     for (const [index, item] of items.entries()) {
-      const tags = item.tags.map(normalizeTag).filter(Boolean).slice(0, 12);
-      const highlights = item.highlights.slice(0, 80);
+      const tags = item.tags.map(normalizeTag).filter(Boolean).slice(0, L.tags);
+      const highlights = item.highlights.slice(0, L.highlights);
       const folderId = item.folderId && ownedFolderIds.has(item.folderId) ? item.folderId : null;
       const contentHtml = bodies[index]!;
       // An id owned by another user gets one retry with a fresh id; a

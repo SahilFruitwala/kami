@@ -5,7 +5,7 @@ import { AppShell } from "@/components/app-shell.tsx";
 import { GlossHeader } from "@/components/gloss/primitives.tsx";
 import { FeedsView } from "@/components/feeds/feeds-view.tsx";
 import type { FeedEntryView } from "@/lib/api/feeds";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 
 type FeedsSearch = { feed?: string; view?: FeedEntryView };
 

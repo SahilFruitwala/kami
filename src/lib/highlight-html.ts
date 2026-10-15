@@ -1,4 +1,4 @@
-import type { Highlight } from "./store.ts";
+import type { Highlight } from "./library-item.ts";
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

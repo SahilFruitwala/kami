@@ -15,7 +15,7 @@ import {
   type TripRow,
   type TripSlot,
 } from "@/lib/schema";
-import { uid } from "@/lib/store";
+import { uid } from "@/lib/id";
 import {
   compareItems,
   daysBetween,

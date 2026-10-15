@@ -6,8 +6,8 @@ import { invalidateUserCache } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db";
 import { articles } from "@/lib/schema";
 import type { Article } from "@/lib/article-types";
-import type { LibraryItem } from "@/lib/store";
-import { uid } from "@/lib/store";
+import { uid } from "@/lib/id";
+import { articleToItem, clampLibraryItem, type LibraryItem } from "@/lib/library-item";
 
 export const bulkSaveBody = z.object({
   urls: z.array(z.string().trim().min(4).max(2000)).min(1).max(50),
@@ -51,7 +51,6 @@ export async function bulkSaveLinks(
 ): Promise<BulkSaveLinksResult> {
   const { assertPublicHttpUrl } = await import("@/lib/safe-url.ts");
   const { extractArticleFromUrl } = await import("@/lib/extract.server.ts");
-  const { articleToItem } = await import("@/lib/store.ts");
   const db = await getDb();
   const saved: LibraryItem[] = [];
   const skipped: string[] = [];
@@ -135,24 +134,12 @@ export async function bulkSaveLinks(
         source: "blog",
         heroImage: null,
       };
-      // Mirror the single-upsert clamp so extractor output always fits the row.
-      const item = articleToItem(
-        {
-          url: article.url,
-          canonicalUrl: article.canonicalUrl,
-          title: article.title.trim().slice(0, 500) || job.host,
-          author: article.author.slice(0, 300),
-          siteName: article.siteName.slice(0, 200),
-          published: article.published ? article.published.slice(0, 100) : null,
-          excerpt: article.excerpt.slice(0, 4000),
-          contentHtml: article.contentHtml.slice(0, 1_500_000),
-          wordCount: article.wordCount,
-          readingMinutes: article.readingMinutes,
-          source: article.source,
-          heroImage:
-            article.heroImage && article.heroImage.length <= 2000 ? article.heroImage : null,
-        },
-        { savedAt: now - job.index },
+      // Same clamp as the single upsert, so extractor output always fits the row.
+      const item = clampLibraryItem(
+        articleToItem(
+          { ...article, title: article.title.trim() || job.host },
+          { savedAt: now - job.index },
+        ),
       );
       // Conflict-tolerant: a URL whose canonical form was already saved (or
       // that two inputs resolved to) is skipped instead of aborting the batch

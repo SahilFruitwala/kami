@@ -13,7 +13,7 @@ import {
   type ExtractResultRow,
   type ExtractSourceRow,
 } from "@/lib/schema";
-import { uid } from "@/lib/store";
+import { uid } from "@/lib/id";
 import { badRequest, HttpError, notFound } from "@/server/http";
 
 /**

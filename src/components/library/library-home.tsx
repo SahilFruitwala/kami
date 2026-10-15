@@ -47,7 +47,7 @@ import {
   type TopicId,
 } from "@/lib/gloss/palette.ts";
 import { loadMoreLibrary } from "@/lib/library-remote.ts";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { cn } from "@/lib/utils.ts";
 

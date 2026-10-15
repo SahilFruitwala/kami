@@ -10,7 +10,7 @@ import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
 import { isLibrarySort } from "@/lib/filter-library.ts";
 import { parseBulkUrls } from "@/lib/session-article.ts";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 
 type LibrarySearch = {
   folder?: string;

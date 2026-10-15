@@ -18,11 +18,15 @@ import {
 } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db";
 import { articles, folders } from "@/lib/schema";
-import type { LibraryItem } from "@/lib/store";
-import { normalizeTag, uid } from "@/lib/store";
+import {
+  LIBRARY_LIMITS as L,
+  clampLibraryItem,
+  normalizeTag,
+  type LibraryItem,
+} from "@/lib/library-item";
+import { uid } from "@/lib/id";
 import {
   articleListColumns,
-  clampLibraryItemInput,
   highlightOpSchema,
   highlightSchema,
   libraryItemSchema,
@@ -34,14 +38,14 @@ import {
 import { applyHighlightOps, applyTagOps } from "@/lib/item-ops.ts";
 import { conflict, notFound } from "@/server/http";
 
-export const articleIdParams = z.object({ id: z.string().min(1).max(2000) });
+export const articleIdParams = z.object({ id: z.string().min(1).max(L.id) });
 
 /** `GET /api/library?limit=&cursorSavedAt=&cursorId=` */
 export const libraryPageQuery = z
   .object({
     limit: z.coerce.number().int().min(1).max(200).default(LIBRARY_BOOT_LIMIT),
     cursorSavedAt: z.coerce.number().int().nonnegative().optional(),
-    cursorId: z.string().min(1).max(2000).optional(),
+    cursorId: z.string().min(1).max(L.id).optional(),
   })
   .transform(({ limit, cursorSavedAt, cursorId }) => ({
     limit,
@@ -51,17 +55,17 @@ export const libraryPageQuery = z
         : undefined,
   }));
 
-export const libraryItemBody = z.preprocess(clampLibraryItemInput, libraryItemSchema);
+export const libraryItemBody = z.preprocess(clampLibraryItem, libraryItemSchema);
 
 export const libraryItemPatch = z.object({
   archived: z.boolean().optional(),
   favorited: z.boolean().optional(),
-  note: z.string().max(2000).optional(),
+  note: z.string().max(L.note).optional(),
   folderId: z.string().max(200).nullable().optional(),
   /** Full replacement — prefer `tagOps` so concurrent edits merge. */
-  tags: z.array(z.string().max(28)).max(12).optional(),
+  tags: z.array(z.string().max(L.tagLength)).max(L.tags).optional(),
   /** Full replacement — prefer `highlightOps` so concurrent edits merge. */
-  highlights: z.array(highlightSchema).max(80).optional(),
+  highlights: z.array(highlightSchema).max(L.highlights).optional(),
   tagOps: z.array(tagOpSchema).max(50).optional(),
   highlightOps: z.array(highlightOpSchema).max(50).optional(),
 });
@@ -174,20 +178,12 @@ export async function upsertLibraryItem(
   data: z.output<typeof libraryItemSchema>,
 ): Promise<LibraryItem> {
   const db = await getDb();
-  // Fields are pre-clamped in the validator; keep a defensive pass here so
-  // identity fields stay intact and tags/highlights stay bounded.
-  const title = data.title.trim().slice(0, 500) || "Untitled";
-  const excerpt = data.excerpt.slice(0, 4000);
-  const contentHtml = await sanitizeStoredHtml(
-    data.contentHtml.slice(0, 1_500_000),
-    data.canonicalUrl || data.url,
-  );
-  const heroImage = data.heroImage && data.heroImage.length <= 2000 ? data.heroImage : null;
-  const author = data.author.slice(0, 300);
-  const siteName = data.siteName.slice(0, 200);
-  const note = data.note.slice(0, 2000);
-  const tags = data.tags.map(normalizeTag).filter(Boolean).slice(0, 12);
-  const highlights = data.highlights.slice(0, 80);
+  // `libraryItemBody` already clamps; callers that build `data` themselves
+  // (save, bulk) get the same clamp here.
+  const clamped = clampLibraryItem(data);
+  const { title, excerpt, heroImage, author, siteName, note, highlights } = clamped;
+  const contentHtml = await sanitizeStoredHtml(clamped.contentHtml, data.canonicalUrl || data.url);
+  const tags = clamped.tags.map(normalizeTag).filter(Boolean);
   const savedAt = new Date(data.savedAt);
   const folderId = await ownedFolderId(db, userId, data.folderId);
 
@@ -331,13 +327,13 @@ export async function patchLibraryItem(
     const item = rowToItem(current, { includeBody: true });
     if (data.archived !== undefined) item.archived = data.archived;
     if (data.favorited !== undefined) item.favorited = data.favorited;
-    if (data.note !== undefined) item.note = data.note.slice(0, 2000);
+    if (data.note !== undefined) item.note = data.note;
     if (folderId !== undefined) item.folderId = folderId;
     if (data.tags !== undefined) {
-      item.tags = data.tags.map(normalizeTag).filter(Boolean).slice(0, 12);
+      item.tags = data.tags.map(normalizeTag).filter(Boolean);
     }
     if (data.tagOps?.length) item.tags = applyTagOps(item.tags, data.tagOps);
-    if (data.highlights !== undefined) item.highlights = data.highlights.slice(0, 80);
+    if (data.highlights !== undefined) item.highlights = data.highlights;
     if (data.highlightOps?.length) {
       item.highlights = applyHighlightOps(item.highlights, data.highlightOps);
     }

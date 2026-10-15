@@ -3,7 +3,7 @@ import { addTransitionType, startTransition } from "react";
 import { Settings as SettingsIcon } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { GlossHeader } from "@/components/gloss/primitives.tsx";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import { AccountCard } from "@/components/settings/account-card.tsx";
 import { AppearanceCard } from "@/components/settings/appearance-card.tsx";
 import { ReadingCard } from "@/components/settings/reading-card.tsx";

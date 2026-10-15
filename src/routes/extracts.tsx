@@ -4,7 +4,7 @@ import { ScanSearch } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { GlossHeader } from "@/components/gloss/primitives.tsx";
 import { ExtractsView } from "@/components/extracts/extracts-view.tsx";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 
 type ExtractsSearch = { source?: string };
 

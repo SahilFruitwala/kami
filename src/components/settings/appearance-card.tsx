@@ -1,4 +1,5 @@
-import { useLibraryStore, HIGHLIGHT_COLORS, READER_FONTS, READER_FONT_SIZES } from "@/lib/store.ts";
+import { useLibraryStore, READER_FONTS, READER_FONT_SIZES } from "@/lib/store.ts";
+import { HIGHLIGHT_COLORS } from "@/lib/library-item.ts";
 import { PAPER_TONES } from "@/lib/paper-tones.ts";
 import { useTheme } from "@/hooks/use-theme.ts";
 import { cn } from "@/lib/utils.ts";

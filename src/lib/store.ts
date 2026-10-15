@@ -1,8 +1,17 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Article, ArticleSource } from "./article-types.ts";
+import { uid } from "./id.ts";
+import {
+  HIGHLIGHT_COLORS,
+  LIBRARY_LIMITS,
+  normalizeTag,
+  type Folder,
+  type Highlight,
+  type HighlightColorId,
+  type LibraryItem,
+} from "./library-item.ts";
 import { isPaperTone, type PaperTone } from "./paper-tones.ts";
-import { HIGHLIGHT_NOTE_MAX, applyHighlightOps, applyTagOps } from "./item-ops.ts";
+import { applyHighlightOps, applyTagOps } from "./item-ops.ts";
 
 function remoteSync(run: (m: typeof import("./library-remote.ts")) => void) {
   void import("./library-remote.ts").then(run).catch((err) => console.error("[library]", err));
@@ -41,109 +50,6 @@ if (typeof window !== "undefined") {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") flushPendingNoteSyncs();
   });
-}
-
-/** Ink colors for highlights — Dokusho toolbar (Vermilion / Bamboo / Sumi). */
-export const HIGHLIGHT_COLORS = [
-  { id: "vermilion", label: "Vermilion", swatch: "#c84b31" },
-  { id: "bamboo", label: "Bamboo", swatch: "#6e7d6a" },
-  { id: "sumi", label: "Sumi", swatch: "#43403a" },
-] as const;
-
-export type HighlightColorId = (typeof HIGHLIGHT_COLORS)[number]["id"];
-
-export type Highlight = {
-  id: string;
-  text: string;
-  note: string;
-  createdAt: number;
-  color: HighlightColorId;
-};
-
-export type Folder = {
-  id: string;
-  name: string;
-};
-
-export type LibraryItem = {
-  id: string;
-  url: string;
-  canonicalUrl: string;
-  title: string;
-  author: string;
-  siteName: string;
-  source: ArticleSource;
-  wordCount: number;
-  readingMinutes: number;
-  excerpt: string;
-  contentHtml: string;
-  heroImage: string | null;
-  published: string | null;
-  savedAt: number;
-  archived: boolean;
-  tags: string[];
-  folderId: string | null;
-  highlights: Highlight[];
-  favorited: boolean;
-  note: string;
-};
-
-export function articleIdFromUrl(url: string): string {
-  return url.replace(/#.*$/, "");
-}
-
-export function uid(): string {
-  return (
-    crypto.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
-  );
-}
-
-export function normalizeTag(value: string): string {
-  return value.trim().replace(/\s+/g, " ").slice(0, 28);
-}
-
-export function itemToArticle(item: LibraryItem): Article {
-  return {
-    url: item.url,
-    canonicalUrl: item.canonicalUrl || item.url,
-    title: item.title,
-    author: item.author,
-    siteName: item.siteName,
-    published: item.published,
-    excerpt: item.excerpt,
-    contentHtml: item.contentHtml,
-    wordCount: item.wordCount,
-    readingMinutes: item.readingMinutes,
-    source: item.source,
-    heroImage: item.heroImage,
-  };
-}
-
-export function articleToItem(article: Article, extras: Partial<LibraryItem> = {}): LibraryItem {
-  const now = Date.now();
-  return {
-    id: articleIdFromUrl(article.canonicalUrl || article.url),
-    url: article.url,
-    canonicalUrl: article.canonicalUrl || article.url,
-    title: article.title,
-    author: article.author,
-    siteName: article.siteName,
-    source: article.source,
-    wordCount: article.wordCount,
-    readingMinutes: article.readingMinutes,
-    excerpt: article.excerpt,
-    contentHtml: article.contentHtml,
-    heroImage: article.heroImage,
-    published: article.published,
-    savedAt: now,
-    archived: false,
-    tags: [],
-    folderId: null,
-    highlights: [],
-    favorited: false,
-    note: "",
-    ...extras,
-  };
 }
 
 export const READER_FONTS = [
@@ -353,19 +259,21 @@ export const useLibraryStore = create<LibraryState>()(
         else set({ paperTone: next, preferredLightTone: next });
       },
       addFolder: (name) => {
-        const trimmed = name.trim().slice(0, 32);
+        const trimmed = name.trim().slice(0, LIBRARY_LIMITS.folderName);
         if (!trimmed) return "";
         const existing = get().folders.find(
           (folder) => folder.name.toLowerCase() === trimmed.toLowerCase(),
         );
         if (existing) return existing.id;
         const id = uid();
-        set((state) => ({ folders: [...state.folders, { id, name: trimmed }].slice(0, 24) }));
+        set((state) => ({
+          folders: [...state.folders, { id, name: trimmed }].slice(0, LIBRARY_LIMITS.folders),
+        }));
         remoteSync((m) => m.syncAddFolder({ id, name: trimmed }));
         return id;
       },
       renameFolder: (id, name) => {
-        const trimmed = name.trim().slice(0, 32);
+        const trimmed = name.trim().slice(0, LIBRARY_LIMITS.folderName);
         if (!trimmed) return;
         set((state) => ({
           folders: state.folders.map((folder) =>
@@ -429,7 +337,7 @@ export const useLibraryStore = create<LibraryState>()(
               .filter(
                 (t, i, arr) => arr.findIndex((x) => x.toLowerCase() === t.toLowerCase()) === i,
               )
-              .slice(0, 12);
+              .slice(0, LIBRARY_LIMITS.tags);
             touched.push({ id: row.id, tags });
             return { ...row, tags };
           }),
@@ -481,8 +389,8 @@ export const useLibraryStore = create<LibraryState>()(
         highlights.sort((a, b) => b.createdAt - a.createdAt);
         const merged: LibraryItem = {
           ...keep,
-          tags: tags.slice(0, 12),
-          highlights: highlights.slice(0, 80),
+          tags: tags.slice(0, LIBRARY_LIMITS.tags),
+          highlights: highlights.slice(0, LIBRARY_LIMITS.highlights),
           savedAt: Math.min(keep.savedAt, drop.savedAt),
           contentHtml: keep.contentHtml || drop.contentHtml,
           excerpt: keep.excerpt || drop.excerpt,
@@ -503,7 +411,7 @@ export const useLibraryStore = create<LibraryState>()(
         const picked = isHighlightColor(color) ? color : get().highlightColor;
         const highlight: Highlight = {
           id: uid(),
-          text: cleaned.slice(0, 800),
+          text: cleaned.slice(0, LIBRARY_LIMITS.highlightText),
           note: "",
           createdAt: Date.now(),
           color: picked,
@@ -515,7 +423,7 @@ export const useLibraryStore = create<LibraryState>()(
               highlights = row.highlights;
               return row;
             }
-            highlights = [highlight, ...row.highlights].slice(0, 80);
+            highlights = [highlight, ...row.highlights].slice(0, LIBRARY_LIMITS.highlights);
             return { ...row, highlights };
           }),
           highlightColor: picked,
@@ -569,7 +477,7 @@ export const useLibraryStore = create<LibraryState>()(
         }
       },
       setHighlightNote: (itemId, highlightId, note) => {
-        const cleaned = note.slice(0, HIGHLIGHT_NOTE_MAX);
+        const cleaned = note.slice(0, LIBRARY_LIMITS.highlightNote);
         let highlights: Highlight[] | undefined;
         set((state) => ({
           library: mapItem(state.library, itemId, (row) => {
@@ -594,7 +502,7 @@ export const useLibraryStore = create<LibraryState>()(
         remoteSync((m) => m.syncPatchItem(itemId, { favorited }));
       },
       setItemNote: (itemId, note) => {
-        const cleaned = note.slice(0, 2000);
+        const cleaned = note.slice(0, LIBRARY_LIMITS.note);
         set((state) => ({
           library: mapItem(state.library, itemId, (row) => ({ ...row, note: cleaned })),
         }));

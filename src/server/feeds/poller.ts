@@ -14,7 +14,7 @@ import {
   withJitter,
 } from "@/lib/feed-schedule.ts";
 import { feedEntries, feeds } from "@/lib/schema";
-import { uid } from "@/lib/store";
+import { uid } from "@/lib/id";
 
 /**
  * Feed poller — the only code that fetches feeds on a schedule.

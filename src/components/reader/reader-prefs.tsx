@@ -1,11 +1,6 @@
 import { Minus, Plus } from "lucide-react";
-import {
-  HIGHLIGHT_COLORS,
-  READER_FONTS,
-  READER_FONT_SIZES,
-  type HighlightColorId,
-  type ReaderFontId,
-} from "@/lib/store.ts";
+import { READER_FONTS, READER_FONT_SIZES, type ReaderFontId } from "@/lib/store.ts";
+import { HIGHLIGHT_COLORS, type HighlightColorId } from "@/lib/library-item.ts";
 import { PAPER_TONES, type PaperTone } from "@/lib/paper-tones.ts";
 import { Button } from "@/components/ui/button.tsx";
 import { cn } from "@/lib/utils.ts";

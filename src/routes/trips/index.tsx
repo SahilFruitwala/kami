@@ -4,7 +4,7 @@ import { Plane } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { GlossHeader } from "@/components/gloss/primitives.tsx";
 import { TripsList } from "@/components/trips/trips-list.tsx";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 
 export const Route = createFileRoute("/trips/")({
   component: TripsPage,

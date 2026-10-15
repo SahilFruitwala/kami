@@ -1,4 +1,4 @@
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 
 export type LibraryTab = "inbox" | "archive";
 export type FolderFilter = "all" | "none" | string;

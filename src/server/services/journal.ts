@@ -6,7 +6,7 @@ import { CacheTTL, cacheKey, cached, invalidateUserCache } from "@/lib/cache.ser
 import { getDb } from "@/lib/db";
 import { JOURNAL_TEXT_MAX, type JournalEntry } from "@/lib/journal";
 import { journalEntries } from "@/lib/schema";
-import { uid } from "@/lib/store";
+import { uid } from "@/lib/id";
 
 export const dateKeySchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date.");
 

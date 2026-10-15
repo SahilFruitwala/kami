@@ -5,6 +5,7 @@ import type { SaveUrlResult } from "@/lib/api/types";
 import { getDb } from "@/lib/db";
 import { articles } from "@/lib/schema";
 import { getArticle, libraryItemBody, upsertLibraryItem } from "@/server/services/library";
+import { articleToItem } from "@/lib/library-item";
 
 /**
  * Save a link to the library in one server-side step: fetch + extract the page
@@ -71,7 +72,6 @@ export async function saveArticleByUrl(
   const canonical = await findSavedId(userId, [article.url, article.canonicalUrl]);
   if (canonical) return { ok: true, item: await getArticle(userId, canonical), existed: true };
 
-  const { articleToItem } = await import("@/lib/store.ts");
   const item = await upsertLibraryItem(userId, libraryItemBody.parse(articleToItem(article)));
   return { ok: true, item, existed: false };
 }

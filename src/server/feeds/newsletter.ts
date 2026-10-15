@@ -9,7 +9,7 @@ import {
 } from "@/lib/newsletter-parse.server.ts";
 import { RateLimitError, enforceRateLimit } from "@/lib/rate-limit.server.ts";
 import { feedSubscriptions, feeds, newsletterInboxes } from "@/lib/schema";
-import { uid } from "@/lib/store";
+import { uid } from "@/lib/id";
 import { HttpError } from "@/server/http";
 import { insertEntries } from "./poller";
 

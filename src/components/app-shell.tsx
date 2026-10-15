@@ -8,7 +8,7 @@ import { NameOnboarding } from "@/components/name-onboarding.tsx";
 import { SiteHeader, type SitePane } from "@/components/site-header.tsx";
 import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
 import { flushSyncOutbox, pendingSyncCount, subscribeOutbox } from "@/lib/library-remote.ts";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 
 // ⌘K palette is heavy (~600 lines + shelf lookup hooks) and unused until
 // opened — keep it out of the initial authenticated shell chunk.

@@ -8,7 +8,7 @@ import { useLibraryStore } from "@/lib/store.ts";
 import { Hanko, WashiTag } from "@/components/kami.tsx";
 import { previewImageSrc } from "@/lib/image-url.ts";
 import { relativeTime } from "@/lib/time.ts";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import { cn } from "@/lib/utils.ts";
 
 const VIRTUALIZE_AFTER = 50;

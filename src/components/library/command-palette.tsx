@@ -34,7 +34,8 @@ import {
   useLinkPreview,
   useTmdbSearch,
 } from "@/hooks/use-shelf-queries.ts";
-import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import { useLibraryStore } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import { libraryApi } from "@/lib/api/library";
 import { shelfPath, type ShelfTab } from "@/lib/shelves.ts";
 import type { LookupResult, SaveUrlResult } from "@/lib/api/types";

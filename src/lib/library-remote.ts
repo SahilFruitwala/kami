@@ -1,7 +1,8 @@
 import { libraryApi } from "@/lib/api/library";
 import { LIBRARY_BOOT_LIMIT, type LibraryCursor, type LibrarySnapshot } from "@/lib/api/types";
 import type { HighlightOp, TagOp } from "@/lib/item-ops";
-import { useLibraryStore, type Folder, type LibraryItem } from "@/lib/store";
+import { useLibraryStore } from "@/lib/store";
+import { clampLibraryItem, type Folder, type LibraryItem } from "@/lib/library-item";
 
 const LEGACY_KEY = "quarto-library";
 const MIGRATED_FLAG = "quarto-library-migrated-v1";
@@ -244,21 +245,8 @@ export function syncUpsertItem(item: LibraryItem) {
  * surface it instead of toasting a success the next refresh can't see.
  */
 export async function persistArticleItem(item: LibraryItem): Promise<LibraryItem> {
-  // Mirror server clamp so local optimistic rows match what the DB will keep,
-  // and so a long og:image never trips the Zod max before the upsert handler.
-  const prepared: LibraryItem = {
-    ...item,
-    title: item.title.trim().slice(0, 500) || "Untitled",
-    author: item.author.slice(0, 300),
-    siteName: item.siteName.slice(0, 200),
-    excerpt: item.excerpt.slice(0, 4000),
-    contentHtml: item.contentHtml.slice(0, 1_500_000),
-    heroImage: item.heroImage && item.heroImage.length <= 2000 ? item.heroImage : null,
-    published: item.published ? item.published.slice(0, 100) : null,
-    note: item.note.slice(0, 2000),
-    tags: item.tags.slice(0, 12),
-    highlights: item.highlights.slice(0, 80),
-  };
+  // Same clamp as the server, so local optimistic rows match what the DB keeps.
+  const prepared = clampLibraryItem(item);
   const store = useLibraryStore.getState();
   store.upsertItem(prepared, { sync: false });
   let saved: LibraryItem;
