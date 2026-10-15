@@ -2,7 +2,7 @@ import "@tanstack/react-start/server-only";
 import { and, desc, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { JOURNAL_IMPORT_MAX } from "@/lib/api/types";
-import { CacheTTL, cacheKey, cached, invalidateUserCache } from "@/lib/cache.server.ts";
+import { CacheTTL, userFeatureKey, cached, invalidateUserCache } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db.server";
 import { JOURNAL_TEXT_MAX, type JournalEntry } from "@/lib/journal";
 import { journalEntries } from "@/lib/schema";
@@ -34,7 +34,7 @@ function rowToEntry(row: typeof journalEntries.$inferSelect): JournalEntry {
 async function loadEntries(userId: string): Promise<JournalEntry[]> {
   // Journal boots refetch the whole history; entries change rarely, so a
   // short per-user entry absorbs remount bursts. Writes invalidate it.
-  return cached(cacheKey("u", userId, "journal", "entries"), CacheTTL.journal, async () => {
+  return cached(userFeatureKey(userId, "journal", "entries"), CacheTTL.journal, async () => {
     const db = await getDb();
     const rows = await db
       .select()
@@ -101,7 +101,7 @@ export async function upsertJournalEntry(
   data: z.output<typeof entrySchema>,
 ): Promise<JournalEntry> {
   const entry = await upsertOwnedEntry(userId, data);
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "journal");
   return entry;
 }
 
@@ -112,6 +112,6 @@ export async function importJournalEntries(
   for (const entry of data.entries) {
     await upsertOwnedEntry(userId, entry);
   }
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "journal");
   return loadEntries(userId);
 }

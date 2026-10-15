@@ -55,7 +55,7 @@ export async function wipeLibrary(userId: string): Promise<void> {
     await tx.delete(articles).where(eq(articles.userId, userId));
     await tx.delete(folders).where(eq(folders.userId, userId));
   });
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "library");
 }
 
 export async function addLibraryFolder(
@@ -99,7 +99,7 @@ export async function addLibraryFolder(
     .insert(folders)
     .values({ id, userId: userId, name })
     .onConflictDoNothing({ target: folders.id });
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "library");
   // Confirm ownership (a concurrent insert winning the race returns its row
   // only when we own it; otherwise fall back to the name lookup above).
   const owned = await db
@@ -122,7 +122,7 @@ export async function renameLibraryFolder(
     .update(folders)
     .set({ name })
     .where(and(eq(folders.id, id), eq(folders.userId, userId)));
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "library");
 }
 
 export async function removeLibraryFolder(userId: string, id: string): Promise<void> {
@@ -134,7 +134,7 @@ export async function removeLibraryFolder(userId: string, id: string): Promise<v
       .where(and(eq(articles.userId, userId), eq(articles.folderId, id)));
     await tx.delete(folders).where(and(eq(folders.id, id), eq(folders.userId, userId)));
   });
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "library");
 }
 
 /** One-time import of a legacy local library — only when the account library is empty. */
@@ -238,6 +238,6 @@ export async function importLibrarySnapshot(
     }
   });
 
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "library");
   return loadSnapshot(userId);
 }

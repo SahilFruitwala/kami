@@ -71,7 +71,7 @@ export async function doThing(userId: string, id: string, data: z.output<typeof 
   const db = await getDb();
   // ALWAYS scope by userId; throw notFound()/conflict()/badRequest() for user-facing errors
   // …
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "library"); // the feature this write changes
   return { ok: true as const };
 }
 ```
@@ -113,7 +113,7 @@ Checklist:
 - [ ] Route wraps its handler in `apiHandler` (auth, same-site, JSON body, Zod, error mapping)
 - [ ] `rateLimit: "lookup" | "extract"` when the service fetches from the outside world
 - [ ] Queries/mutations filtered by `userId` (or verified list membership)
-- [ ] Writes call `invalidateUserCache(userId)`
+- [ ] Writes call `invalidateUserCache(userId, feature)` for each cached feature they change (cached reads use `userFeatureKey`)
 - [ ] Request body schema lives in `src/lib/api/schemas/`; the client type is `z.input<>` of it
 - [ ] Shared response types live in `src/lib/api/types.ts` — never import `src/server/**` from client code (ESLint enforces this)
 - [ ] REST shape: `GET` reads, `POST` create/actions, `PATCH` partial update, `PUT` replace/set, `DELETE` remove; 404 for missing-or-not-yours

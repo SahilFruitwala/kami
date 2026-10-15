@@ -11,7 +11,7 @@ import {
   MAX_CACHED_SNAPSHOT_BYTES,
   approxJsonBytes,
   CacheTTL,
-  cacheKey,
+  userFeatureKey,
   cached,
   hashKeyPart,
   invalidateUserCache,
@@ -72,8 +72,7 @@ export async function loadLibraryPage(
   const { limit, cursor } = opts;
   const firstPage = !cursor;
   return cached(
-    cacheKey(
-      "u",
+    userFeatureKey(
       userId,
       "library",
       "page",
@@ -222,7 +221,7 @@ export async function upsertLibraryItem(
       })
       .where(and(eq(articles.id, row.id), eq(articles.userId, userId)))
       .returning();
-    await invalidateUserCache(userId);
+    await invalidateUserCache(userId, "library");
     return rowToItem(updated!, { includeBody: true });
   };
 
@@ -275,7 +274,7 @@ export async function upsertLibraryItem(
     if (attempt === 2) throw conflict("Could not save this work. Please try again.");
   }
 
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "library");
   return {
     ...data,
     id,
@@ -341,14 +340,14 @@ export async function patchLibraryItem(
     return item;
   });
   if (!next) throw notFound("Article not found");
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "library");
   return next;
 }
 
 export async function removeLibraryItem(userId: string, id: string): Promise<void> {
   const db = await getDb();
   await db.delete(articles).where(and(eq(articles.id, id), eq(articles.userId, userId)));
-  await invalidateUserCache(userId);
+  await invalidateUserCache(userId, "library");
 }
 
 /**
@@ -381,6 +380,6 @@ export async function applyTagOpEverywhere(
     }
     return rows.length;
   });
-  if (affected > 0) await invalidateUserCache(userId);
+  if (affected > 0) await invalidateUserCache(userId, "library");
   return { affected };
 }

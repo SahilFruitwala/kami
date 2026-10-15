@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { JsonRow } from "@/lib/api/types";
 import {
   CacheTTL,
-  cacheKey,
+  userFeatureKey,
   cached,
   hashKeyPart,
   normalizeCacheQuery,
@@ -56,7 +56,7 @@ function jsonRow<T extends Record<string, unknown>>(row: T): JsonRow<T> {
 export async function getShelfCounts(userId: string): Promise<Record<ShelfTab, number>> {
   // Four COUNT queries on every shelves render — a 60s per-user entry
   // absorbs remount bursts; writes invalidate it below.
-  return cached(cacheKey("u", userId, "shelves", "counts"), CacheTTL.shelfReads, async () => {
+  return cached(userFeatureKey(userId, "shelves", "counts"), CacheTTL.shelfReads, async () => {
     const db = await getDb();
     const [[m], [t], [b], [w]] = await Promise.all([
       db
@@ -165,8 +165,7 @@ export async function listShelfItems(userId: string, data: ShelfListArgs): Promi
   // Filtered shelf lists are re-queried on every tab switch / keystroke.
   // Cache per user + filter for 60s; shelf writes invalidate the prefix.
   return cached(
-    cacheKey(
-      "u",
+    userFeatureKey(
       userId,
       "shelves",
       "list",
@@ -211,7 +210,7 @@ export async function getShelfItem(
   const detail = await cached(
     // Detail opens repeat the same 2-3 queries; cache per user + item.
     // Episode ticks and status changes invalidate the user prefix.
-    cacheKey("u", userId, "shelves", "detail", data.type, data.id),
+    userFeatureKey(userId, "shelves", "detail", data.type, data.id),
     CacheTTL.shelfReads,
     async (): Promise<ShelfDetail | null> => {
       const db = await getDb();

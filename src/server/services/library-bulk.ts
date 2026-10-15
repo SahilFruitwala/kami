@@ -199,7 +199,7 @@ export async function bulkSaveLinks(
       saved.push({ ...row, contentHtml: "" });
     }
   } finally {
-    if (saved.length > 0) await invalidateUserCache(userId);
+    if (saved.length > 0) await invalidateUserCache(userId, "library");
   }
   return { saved, skipped, errors };
 }
