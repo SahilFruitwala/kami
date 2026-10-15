@@ -38,6 +38,7 @@ import { cn } from "@/lib/utils.ts";
 import { FocusWave } from "@/components/reader/focus-wave.tsx";
 import { MarginaliaHighlights } from "@/components/reader/marginalia-highlights.tsx";
 import { ReaderAi } from "@/components/reader/reader-ai.tsx";
+import { nextInQueue } from "@/lib/filter-library.ts";
 
 export function ReaderView({
   item,
@@ -59,7 +60,8 @@ export function ReaderView({
   const [zen, setZen] = useState(false);
   const hasLeadImage = /<img\b/i.test(article.contentHtml.slice(0, 1200));
 
-  const library = useLibraryStore((s) => s.library);
+  // Select only the next item, so unrelated library changes don't re-render the reader.
+  const nextItem = useLibraryStore((s) => nextInQueue(s.library, item.id));
   const readerFontSize = useReaderPrefs((s) => s.readerFontSize);
   const readerFont = useReaderPrefs((s) => s.readerFont);
   const highlightColor = useReaderPrefs((s) => s.highlightColor);
@@ -186,14 +188,6 @@ export function ReaderView({
       // user dismissed share sheet or clipboard blocked — stay quiet
     }
   }
-
-  const nextItem = useMemo(() => {
-    const sorted = [...library]
-      .filter((row) => !row.archived)
-      .sort((a, b) => b.savedAt - a.savedAt);
-    const idx = sorted.findIndex((row) => row.id === item.id);
-    return idx >= 0 ? (sorted[idx + 1] ?? sorted[0] ?? null) : null;
-  }, [library, item.id]);
 
   useEffect(() => {
     if (!zen) return;
