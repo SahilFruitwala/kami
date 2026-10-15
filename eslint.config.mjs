@@ -63,6 +63,25 @@ export default tseslint.config(
       ],
     },
   },
+  // Components and pages get server data through hooks in src/hooks, so query
+  // keys, cache options and invalidation live in one place.
+  {
+    files: ["src/components/**", "src/routes/**/*.tsx"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@tanstack/react-query",
+              importNames: ["useQuery", "useMutation", "useQueryClient", "useInfiniteQuery"],
+              message: "Wrap queries and mutations in a hook under src/hooks.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Disable rules that conflict with Prettier formatting.
   prettier,
 );

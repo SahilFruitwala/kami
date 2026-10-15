@@ -1,20 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { Check, LoaderCircle, Plus, RotateCcw, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 import { useAddShelfItem } from "@/hooks/use-shelf-queries.ts";
-import { aiApi, type ShelfRec } from "@/lib/api/ai";
+import { type ShelfRec } from "@/lib/api/ai";
 import { previewImageSrc } from "@/lib/image-url.ts";
 import { errorMessage, toastError } from "@/lib/errors";
+import { useShelfRecs } from "@/hooks/use-ai.ts";
 
 type RecType = "movie" | "tv" | "book";
 
 /** "Suggest" on a movie, TV or book shelf: picks from the model, one tap to add. */
 export function ShelfRecs({ type, onClose }: { type: RecType; onClose: () => void }) {
-  const recs = useMutation({
-    mutationFn: () => aiApi.recommend(type),
-    onError: (err) => toastError(err, "Could not get suggestions."),
-  });
+  const recs = useShelfRecs(type);
   // Ask once when the panel opens; "More" asks again.
   const started = useRef(false);
   const { mutate } = recs;
