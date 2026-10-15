@@ -48,7 +48,10 @@ export function MarginaliaHighlights({
       <ul className="mt-4 space-y-4">
         {item.highlights.map((highlight) => (
           <li key={highlight.id} className="rounded-lg bg-ink/5 p-4 shadow-sm">
-            <p className="hl-quote rounded-sm px-1.5 py-0.5 font-body text-base leading-normal italic" data-hl={highlight.color}>
+            <p
+              className="hl-quote rounded-sm px-1.5 py-0.5 font-body text-base leading-normal italic"
+              data-hl={highlight.color}
+            >
               {highlight.text}
             </p>
             <label className="mt-2 block">

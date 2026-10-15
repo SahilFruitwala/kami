@@ -1,10 +1,4 @@
-const BLOCKED_HOSTS = new Set([
-  "localhost",
-  "127.0.0.1",
-  "0.0.0.0",
-  "::1",
-  "[::1]",
-]);
+const BLOCKED_HOSTS = new Set(["localhost", "127.0.0.1", "0.0.0.0", "::1", "[::1]"]);
 
 // Cloud metadata endpoints reachable via hostname (not just 169.254.169.254).
 const BLOCKED_EXACT_HOSTS = new Set([
@@ -187,12 +181,11 @@ function isPrivateIPv6(host: string): boolean {
  * server-side DNS resolution check.
  */
 export function isBlockedIpLiteral(host: string): boolean {
-  const bare = host.replace(/^\[|\]$/g, "").toLowerCase().replace(/\.$/, "");
-  return (
-    isPrivateIPv4(bare) ||
-    isObfuscatedPrivateIPv4(bare) ||
-    isPrivateIPv6(bare)
-  );
+  const bare = host
+    .replace(/^\[|\]$/g, "")
+    .toLowerCase()
+    .replace(/\.$/, "");
+  return isPrivateIPv4(bare) || isObfuscatedPrivateIPv4(bare) || isPrivateIPv6(bare);
 }
 
 export function assertPublicHttpUrl(raw: string): URL {

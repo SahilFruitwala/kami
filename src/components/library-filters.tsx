@@ -62,7 +62,8 @@ export function LibraryFilters({
             className="ml-1 flex size-11 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-paper-warm hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 sm:size-8"
             aria-label={`Delete folder ${folder.name}`}
             onClick={() => {
-              if (!window.confirm(`Delete slipcase “${folder.name}”? Works inside become Unfiled.`)) return;
+              if (!window.confirm(`Delete slipcase “${folder.name}”? Works inside become Unfiled.`))
+                return;
               if (folderFilter === folder.id) onFolder("all");
               removeFolder(folder.id);
             }}
@@ -122,12 +123,7 @@ function FilterChip({
   children: ReactNode;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className="g-chip px-3"
-    >
+    <button type="button" onClick={onClick} aria-pressed={active} className="g-chip px-3">
       {children}
     </button>
   );

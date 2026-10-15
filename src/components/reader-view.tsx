@@ -1,5 +1,23 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, ViewTransition } from "react";
-import { ArrowLeft, ArrowRight, BookmarkPlus, ExternalLink, Eye, EyeOff, PenLine, Printer, Share2 } from "lucide-react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type MouseEvent,
+  ViewTransition,
+} from "react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  BookmarkPlus,
+  ExternalLink,
+  Eye,
+  EyeOff,
+  PenLine,
+  Printer,
+  Share2,
+} from "lucide-react";
 import { toast } from "sonner";
 import type { Article } from "@/lib/article-types.ts";
 import { applyHighlights } from "@/lib/highlight-html.ts";
@@ -76,7 +94,11 @@ export function ReaderView({
   );
 
   const progress = useReaderProgress(article.canonicalUrl, item.id);
-  const { menu, onSelectEnd: onSelectEndRaw, clearMenu } = useSelectionMenu(article.canonicalUrl, bodyRef);
+  const {
+    menu,
+    onSelectEnd: onSelectEndRaw,
+    clearMenu,
+  } = useSelectionMenu(article.canonicalUrl, bodyRef);
 
   /** New text selection wins — dismiss the tap-to-edit menu. */
   function handleSelectEnd() {
@@ -147,7 +169,10 @@ export function ReaderView({
   function resumeReading() {
     const el = document.documentElement;
     const max = el.scrollHeight - el.clientHeight;
-    window.scrollTo({ top: Math.round(savedProgress * max), behavior: "instant" as ScrollBehavior });
+    window.scrollTo({
+      top: Math.round(savedProgress * max),
+      behavior: "instant" as ScrollBehavior,
+    });
     setResumeDismissed(true);
   }
 
@@ -279,7 +304,9 @@ export function ReaderView({
       `# ${article.title}`,
       `${article.author ? `By ${article.author} · ` : ""}${article.siteName || ""}`,
       "",
-      ...item.highlights.map((h) => `> ${h.text}${h.note ? `\n> \n> — marginalia: ${h.note}` : ""}`),
+      ...item.highlights.map(
+        (h) => `> ${h.text}${h.note ? `\n> \n> — marginalia: ${h.note}` : ""}`,
+      ),
       ...(item.note ? ["", `Notes: ${item.note}`] : []),
       "",
       `Source: ${article.canonicalUrl || article.url}`,
@@ -322,7 +349,10 @@ export function ReaderView({
       ) : null}
 
       {showResume && !zen ? (
-        <div className="fixed top-3 left-1/2 z-50 flex w-[92%] max-w-md -translate-x-1/2 items-center justify-between gap-3 rounded-full bg-ink px-4 py-2 text-paper shadow-[var(--shadow-raised)]" role="status">
+        <div
+          className="fixed top-3 left-1/2 z-50 flex w-[92%] max-w-md -translate-x-1/2 items-center justify-between gap-3 rounded-full bg-ink px-4 py-2 text-paper shadow-[var(--shadow-raised)]"
+          role="status"
+        >
           <p className="truncate font-sans text-xs">
             Resume at {Math.round(savedProgress * 100)}%?
           </p>
@@ -384,7 +414,12 @@ export function ReaderView({
         />
       ) : null}
 
-      <div className={cn("g-reader-in mx-auto w-full px-4 pb-32 sm:px-6", zen ? "max-w-3xl pt-14 sm:pt-20" : "max-w-6xl pt-6")}>
+      <div
+        className={cn(
+          "g-reader-in mx-auto w-full px-4 pb-32 sm:px-6",
+          zen ? "max-w-3xl pt-14 sm:pt-20" : "max-w-6xl pt-6",
+        )}
+      >
         {/* Reading sheet — in zen the card chrome falls away, leaving just text */}
         <div
           className={cn(
@@ -402,13 +437,24 @@ export function ReaderView({
             </div>
           ) : null}
 
-          <div className={cn("grid grid-cols-1 items-start gap-8", !zen && "lg:grid-cols-12 lg:gap-10")}>
-            <article className={cn("min-w-0 max-w-[680px]", zen ? "mx-auto w-full" : "lg:col-span-8")}>
+          <div
+            className={cn(
+              "grid grid-cols-1 items-start gap-8",
+              !zen && "lg:grid-cols-12 lg:gap-10",
+            )}
+          >
+            <article
+              className={cn("min-w-0 max-w-[680px]", zen ? "mx-auto w-full" : "lg:col-span-8")}
+            >
               <header className="space-y-4 pb-6">
                 {!zen ? (
                   <div className="flex flex-wrap items-center gap-2">
-                    <WashiTag tone="paper">{article.source === "x" ? "X" : article.siteName || "Article"}</WashiTag>
-                    <span className="text-xs text-current opacity-50" aria-hidden="true">·</span>
+                    <WashiTag tone="paper">
+                      {article.source === "x" ? "X" : article.siteName || "Article"}
+                    </WashiTag>
+                    <span className="text-xs text-current opacity-50" aria-hidden="true">
+                      ·
+                    </span>
                     <span className="font-sans text-[11px] text-current opacity-60">
                       {article.readingMinutes} min read
                     </span>
@@ -441,8 +487,12 @@ export function ReaderView({
                   ) : null}
                   {!zen ? (
                     <span className="inline-flex items-center gap-1.5 text-hanko">
-                      <span className="inline-block size-2 rounded-full bg-hanko" aria-hidden="true" />
-                      {item.highlights.length} Inked Passage{item.highlights.length === 1 ? "" : "s"}
+                      <span
+                        className="inline-block size-2 rounded-full bg-hanko"
+                        aria-hidden="true"
+                      />
+                      {item.highlights.length} Inked Passage
+                      {item.highlights.length === 1 ? "" : "s"}
                     </span>
                   ) : null}
                 </div>
@@ -515,92 +565,94 @@ export function ReaderView({
                 className="flex min-w-0 flex-col gap-6 lg:col-span-4 lg:sticky lg:top-24"
                 aria-label="Marginalia and reflection notes"
               >
-              <div className="flex items-center justify-between gap-2">
-                <p className="flex items-center gap-2 font-sans text-[11px] font-semibold tracking-wider uppercase opacity-60">
-                  <PenLine className="size-[18px] shrink-0" aria-hidden="true" />
-                  Marginalia &amp; Glanures
-                </p>
-                <span className="shrink-0 rounded-full bg-hanko/10 px-2 py-0.5 font-sans text-[11px] text-hanko">
-                  {item.highlights.length + (item.note ? 1 : 0)} Reflections
-                </span>
-              </div>
-
-              <ReaderAi item={item} />
-
-              {item.highlights.length === 0 && !item.note ? (
-                <p className="rounded-xl bg-ink/5 p-4 font-body text-sm italic opacity-70">
-                  Select any passage to ink it — your thoughts will gather in this margin.
-                </p>
-              ) : null}
-
-              {item.highlights.map((h) => (
-                <div
-                  key={h.id}
-                  className="space-y-2 rounded-xl bg-ink/5 p-4 shadow-sm"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="flex min-w-0 items-center gap-1 font-sans text-[11px] font-semibold text-hanko">
-                      <span className="size-1.5 shrink-0 rounded-full bg-hanko" aria-hidden="true" />
-                      <span className="truncate">
-                        On “{h.text.slice(0, 32)}{h.text.length > 32 ? "…" : ""}”
-                      </span>
-                    </span>
-                  </div>
-                  <p className="font-body text-sm leading-snug break-words text-current italic opacity-80">
-                    “{h.text}”
+                <div className="flex items-center justify-between gap-2">
+                  <p className="flex items-center gap-2 font-sans text-[11px] font-semibold tracking-wider uppercase opacity-60">
+                    <PenLine className="size-[18px] shrink-0" aria-hidden="true" />
+                    Marginalia &amp; Glanures
                   </p>
-                  {h.note ? (
-                    <p className="font-body text-sm leading-snug break-words">{h.note}</p>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        document
-                          .getElementById("inked-passages")
-                          ?.scrollIntoView({ behavior: "smooth", block: "start" })
-                      }
-                      className="font-sans text-[11px] text-current underline underline-offset-2 opacity-60 transition-opacity hover:opacity-100"
-                    >
-                      Add a note below ↓
-                    </button>
-                  )}
-                </div>
-              ))}
-
-              <label className="block rounded-xl bg-ink/5 p-4 shadow-sm">
-                <span className="kami-label opacity-60">Reading Note</span>
-                <textarea
-                  ref={notesRef}
-                  value={item.note || ""}
-                  onChange={(e) => setItemNote(item.id, e.target.value)}
-                  placeholder="Private notes for this article…"
-                  className="mt-2 min-h-24 w-full rounded-md bg-transparent px-1 py-1.5 font-body text-sm outline-none placeholder:italic placeholder:opacity-50 focus-visible:ring-2 focus-visible:ring-hanko/40"
-                />
-              </label>
-
-              <button
-                type="button"
-                onClick={() => notesRef.current?.focus()}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-ink/5 px-4 py-3 font-sans text-xs font-medium shadow-sm transition-colors hover:bg-ink/10 active:scale-[0.99]"
-              >
-                + Add thought to this margin
-              </button>
-
-              <div className="space-y-3 rounded-xl bg-ink/5 p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="kami-label opacity-60">Focus Rhythm</span>
-                  <span className="font-sans text-[11px] font-medium text-ok">
-                    {percent}% · {percent > 60 ? "Deep State" : percent > 20 ? "Settling In" : "Opening"}
+                  <span className="shrink-0 rounded-full bg-hanko/10 px-2 py-0.5 font-sans text-[11px] text-hanko">
+                    {item.highlights.length + (item.note ? 1 : 0)} Reflections
                   </span>
                 </div>
-                <FocusWave percent={percent} />
-                <p className="font-body text-xs leading-normal opacity-70">
-                  {percent > 60
-                    ? "Your reading velocity has slowed around the midpoint — ideal for internalizing nuance."
-                    : "Early in the scroll — let the first passages settle like sediment in clear water."}
-                </p>
-              </div>
-            </aside>
+
+                <ReaderAi item={item} />
+
+                {item.highlights.length === 0 && !item.note ? (
+                  <p className="rounded-xl bg-ink/5 p-4 font-body text-sm italic opacity-70">
+                    Select any passage to ink it — your thoughts will gather in this margin.
+                  </p>
+                ) : null}
+
+                {item.highlights.map((h) => (
+                  <div key={h.id} className="space-y-2 rounded-xl bg-ink/5 p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex min-w-0 items-center gap-1 font-sans text-[11px] font-semibold text-hanko">
+                        <span
+                          className="size-1.5 shrink-0 rounded-full bg-hanko"
+                          aria-hidden="true"
+                        />
+                        <span className="truncate">
+                          On “{h.text.slice(0, 32)}
+                          {h.text.length > 32 ? "…" : ""}”
+                        </span>
+                      </span>
+                    </div>
+                    <p className="font-body text-sm leading-snug break-words text-current italic opacity-80">
+                      “{h.text}”
+                    </p>
+                    {h.note ? (
+                      <p className="font-body text-sm leading-snug break-words">{h.note}</p>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          document
+                            .getElementById("inked-passages")
+                            ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                        }
+                        className="font-sans text-[11px] text-current underline underline-offset-2 opacity-60 transition-opacity hover:opacity-100"
+                      >
+                        Add a note below ↓
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                <label className="block rounded-xl bg-ink/5 p-4 shadow-sm">
+                  <span className="kami-label opacity-60">Reading Note</span>
+                  <textarea
+                    ref={notesRef}
+                    value={item.note || ""}
+                    onChange={(e) => setItemNote(item.id, e.target.value)}
+                    placeholder="Private notes for this article…"
+                    className="mt-2 min-h-24 w-full rounded-md bg-transparent px-1 py-1.5 font-body text-sm outline-none placeholder:italic placeholder:opacity-50 focus-visible:ring-2 focus-visible:ring-hanko/40"
+                  />
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => notesRef.current?.focus()}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-ink/5 px-4 py-3 font-sans text-xs font-medium shadow-sm transition-colors hover:bg-ink/10 active:scale-[0.99]"
+                >
+                  + Add thought to this margin
+                </button>
+
+                <div className="space-y-3 rounded-xl bg-ink/5 p-4 shadow-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="kami-label opacity-60">Focus Rhythm</span>
+                    <span className="font-sans text-[11px] font-medium text-ok">
+                      {percent}% ·{" "}
+                      {percent > 60 ? "Deep State" : percent > 20 ? "Settling In" : "Opening"}
+                    </span>
+                  </div>
+                  <FocusWave percent={percent} />
+                  <p className="font-body text-xs leading-normal opacity-70">
+                    {percent > 60
+                      ? "Your reading velocity has slowed around the midpoint — ideal for internalizing nuance."
+                      : "Early in the scroll — let the first passages settle like sediment in clear water."}
+                  </p>
+                </div>
+              </aside>
             ) : null}
           </div>
         </div>
@@ -619,7 +671,10 @@ export function ReaderView({
             >
               <ArrowLeft className="size-4" aria-hidden="true" />
             </button>
-            <span className="font-sans text-[11px] text-ink-muted tabular-nums" aria-label={`${percent}% read`}>
+            <span
+              className="font-sans text-[11px] text-ink-muted tabular-nums"
+              aria-label={`${percent}% read`}
+            >
               {percent}%
             </span>
             <button
@@ -640,44 +695,44 @@ export function ReaderView({
       ) : (
         /* Standard floating dock */
         <div className="g-bar-in fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-40 flex w-[calc(100%-1rem)] max-w-2xl -translate-x-1/2 items-center justify-between gap-2 rounded-2xl bg-surface/95 px-2 py-2 shadow-[var(--shadow-raised)] backdrop-blur-xl sm:bottom-[max(1.5rem,env(safe-area-inset-bottom))] sm:w-[90%] sm:gap-6 sm:rounded-full sm:px-6 sm:py-3">
-        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-          <button
-            type="button"
-            onClick={onBack}
-            aria-label="Back to library"
-            className="flex size-11 shrink-0 items-center justify-center rounded-full bg-paper-warm text-ink-soft transition-colors hover:text-hanko sm:size-8"
-          >
-            <ArrowLeft className="size-[18px]" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            onClick={() => nextItem && onOpenItem?.(nextItem)}
-            disabled={!nextItem || !onOpenItem}
-            className="flex min-w-0 flex-col text-left disabled:opacity-60"
-          >
-            <span className="kami-label truncate text-ink-muted">Next In Scroll</span>
-            <span className="truncate font-sans text-xs font-medium text-ink">
-              {nextItem ? nextItem.title : "End of the scroll"}
-            </span>
-          </button>
-          {nextItem && onOpenItem ? (
-            <ArrowRight className="size-4 shrink-0 text-ink-muted" aria-hidden="true" />
-          ) : null}
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setZen((v) => !v)}
-            aria-pressed={zen}
-            className={cn(
-              "flex size-11 items-center justify-center rounded-full font-sans text-xs transition-colors sm:size-auto sm:min-h-8 sm:gap-1.5 sm:px-3 sm:py-1.5",
-              zen ? "bg-hanko text-paper" : "bg-paper-warm text-ink-soft hover:text-ink",
-            )}
-          >
-            <Eye className="size-[18px]" aria-hidden="true" />
-            <span className="hidden sm:inline">Zen Focus</span>
-          </button>
-        </div>
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Back to library"
+              className="flex size-11 shrink-0 items-center justify-center rounded-full bg-paper-warm text-ink-soft transition-colors hover:text-hanko sm:size-8"
+            >
+              <ArrowLeft className="size-[18px]" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => nextItem && onOpenItem?.(nextItem)}
+              disabled={!nextItem || !onOpenItem}
+              className="flex min-w-0 flex-col text-left disabled:opacity-60"
+            >
+              <span className="kami-label truncate text-ink-muted">Next In Scroll</span>
+              <span className="truncate font-sans text-xs font-medium text-ink">
+                {nextItem ? nextItem.title : "End of the scroll"}
+              </span>
+            </button>
+            {nextItem && onOpenItem ? (
+              <ArrowRight className="size-4 shrink-0 text-ink-muted" aria-hidden="true" />
+            ) : null}
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setZen((v) => !v)}
+              aria-pressed={zen}
+              className={cn(
+                "flex size-11 items-center justify-center rounded-full font-sans text-xs transition-colors sm:size-auto sm:min-h-8 sm:gap-1.5 sm:px-3 sm:py-1.5",
+                zen ? "bg-hanko text-paper" : "bg-paper-warm text-ink-soft hover:text-ink",
+              )}
+            >
+              <Eye className="size-[18px]" aria-hidden="true" />
+              <span className="hidden sm:inline">Zen Focus</span>
+            </button>
+          </div>
         </div>
       )}
     </div>

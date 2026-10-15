@@ -36,14 +36,24 @@ export function VaultView({
   initialTag?: string;
   initialAuthor?: string;
   initialLocalQuery?: string;
-  onParamsChange?: (params: { mode: VaultViewMode; sort: VaultSort; tag: string | null; author: string | null; q: string }) => void;
+  onParamsChange?: (params: {
+    mode: VaultViewMode;
+    sort: VaultSort;
+    tag: string | null;
+    author: string | null;
+    q: string;
+  }) => void;
   onOpenItem: (item: LibraryItem) => void;
   onExitVault: () => void;
   onTranscribe: () => void;
 }) {
   const library = useLibraryStore((s) => s.library);
-  const [mode, setMode] = useState<VaultViewMode>(initialMode === "river" || initialMode === "web" ? initialMode : "tanzaku");
-  const [sort, setSort] = useState<VaultSort>(initialSort === "linked" || initialSort === "source" ? initialSort : "recent");
+  const [mode, setMode] = useState<VaultViewMode>(
+    initialMode === "river" || initialMode === "web" ? initialMode : "tanzaku",
+  );
+  const [sort, setSort] = useState<VaultSort>(
+    initialSort === "linked" || initialSort === "source" ? initialSort : "recent",
+  );
   const [tag, setTag] = useState<string | null>(initialTag ?? null);
   const [author, setAuthor] = useState<string | null>(initialAuthor ?? null);
   const [localQuery, setLocalQuery] = useState(initialLocalQuery ?? "");
@@ -65,9 +75,7 @@ export function VaultView({
 
   const slips = useMemo<Slip[]>(
     () =>
-      library.flatMap((item) =>
-        (item.highlights ?? []).map((highlight) => ({ item, highlight })),
-      ),
+      library.flatMap((item) => (item.highlights ?? []).map((highlight) => ({ item, highlight }))),
     [library],
   );
 
@@ -80,7 +88,14 @@ export function VaultView({
       if (author && (item.author || "").toLowerCase() !== author.toLowerCase()) return false;
       if (notesOnly && !highlight.note.trim()) return false;
       if (!q) return true;
-      return [highlight.text, highlight.note, item.title, item.author, item.siteName, ...(item.tags ?? [])]
+      return [
+        highlight.text,
+        highlight.note,
+        item.title,
+        item.author,
+        item.siteName,
+        ...(item.tags ?? []),
+      ]
         .join(" ")
         .toLowerCase()
         .includes(q);
@@ -119,10 +134,7 @@ export function VaultView({
     return [...map.values()].sort((a, b) => b.count - a.count).slice(0, 6);
   }, [slips]);
 
-  const articlesConnected = useMemo(
-    () => new Set(slips.map((s) => s.item.id)).size,
-    [slips],
-  );
+  const articlesConnected = useMemo(() => new Set(slips.map((s) => s.item.id)).size, [slips]);
 
   const journalTies = useMemo(
     () => slips.filter((s) => s.highlight.note.trim().length > 0).length,
@@ -144,7 +156,9 @@ export function VaultView({
         `> ${highlight.text}\n>\n> — ${item.author || item.siteName || "Unknown"}, *${item.title}*${highlight.note ? `\n\nMarginalia: ${highlight.note}` : ""}`,
     );
     downloadBlob(
-      new Blob([`# Highlight Vault — Inked Passages\n\n${lines.join("\n\n---\n\n")}\n`], { type: "text/markdown" }),
+      new Blob([`# Highlight Vault — Inked Passages\n\n${lines.join("\n\n---\n\n")}\n`], {
+        type: "text/markdown",
+      }),
       "highlight-vault.md",
     );
     toast.success("Vault exported as markdown");
@@ -161,10 +175,14 @@ export function VaultView({
         (item.tags ?? []).join("; "),
         highlight.text,
         highlight.note,
-      ].map(esc).join(","),
+      ]
+        .map(esc)
+        .join(","),
     );
     downloadBlob(
-      new Blob([`created_at,title,author,url,tags,passage,note\n${rows.join("\n")}\n`], { type: "text/csv" }),
+      new Blob([`created_at,title,author,url,tags,passage,note\n${rows.join("\n")}\n`], {
+        type: "text/csv",
+      }),
       "highlight-vault.csv",
     );
     toast.success("Vault exported as CSV");
@@ -174,10 +192,12 @@ export function VaultView({
     return (
       <div className="kami-sheet mx-auto flex max-w-2xl flex-col items-center gap-3 px-6 py-16 text-center">
         <Hanko glyph="V" className="size-12 text-xl" />
-        <p className="font-display text-2xl text-ink-soft italic">The vault awaits its first slip</p>
+        <p className="font-display text-2xl text-ink-soft italic">
+          The vault awaits its first slip
+        </p>
         <p className="max-w-sm font-body text-sm leading-relaxed text-ink-muted">
-          Open any work and select a passage — inked highlights are pressed here as
-          highlight slips, ready to cite in your journal.
+          Open any work and select a passage — inked highlights are pressed here as highlight slips,
+          ready to cite in your journal.
         </p>
         <button
           type="button"
@@ -277,7 +297,10 @@ export function VaultView({
       </div>
 
       <p className="font-sans text-xs text-ink-muted" role="status" aria-live="polite">
-        Showing {filtered.length} of {slips.length} slips{tag ? ` tagged #${tag}` : ""}{author ? ` by ${author}` : ""}{notesOnly ? " with notes" : ""}{q ? ` matching “${localQuery || query}”` : ""}
+        Showing {filtered.length} of {slips.length} slips{tag ? ` tagged #${tag}` : ""}
+        {author ? ` by ${author}` : ""}
+        {notesOnly ? " with notes" : ""}
+        {q ? ` matching “${localQuery || query}”` : ""}
       </p>
 
       {(tag || author || localQuery || notesOnly) && (

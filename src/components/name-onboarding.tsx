@@ -32,9 +32,7 @@ function NameOnboardingInner() {
   if (!isLoaded || skipped) return null;
   if (!isSignedIn || !user) return null;
 
-  const hasName = Boolean(
-    user.fullName?.trim() || user.firstName?.trim() || user.username?.trim(),
-  );
+  const hasName = Boolean(user.fullName?.trim() || user.firstName?.trim() || user.username?.trim());
   if (hasName) return null;
 
   const clerkUser = user;
@@ -61,15 +59,19 @@ function NameOnboardingInner() {
   }
 
   return (
-    <Dialog open onOpenChange={(open) => { if (!open) setSkipped(true); }}>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open) setSkipped(true);
+      }}
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle className="font-display text-lg text-ink">
             What should we call you?
           </DialogTitle>
           <DialogDescription className="font-body text-sm text-ink-muted">
-            Your name shows in the sidebar and settings. You can change it
-            anytime.
+            Your name shows in the sidebar and settings. You can change it anytime.
           </DialogDescription>
         </DialogHeader>
         <form

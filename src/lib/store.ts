@@ -5,9 +5,7 @@ import { isPaperTone, type PaperTone } from "./paper-tones.ts";
 import { HIGHLIGHT_NOTE_MAX, applyHighlightOps, applyTagOps } from "./item-ops.ts";
 
 function remoteSync(run: (m: typeof import("./library-remote.ts")) => void) {
-  void import("./library-remote.ts")
-    .then(run)
-    .catch((err) => console.error("[library]", err));
+  void import("./library-remote.ts").then(run).catch((err) => console.error("[library]", err));
 }
 
 /**
@@ -15,7 +13,10 @@ function remoteSync(run: (m: typeof import("./library-remote.ts")) => void) {
  * sentence is one PATCH, not forty. Pending writes flush when the tab hides.
  */
 const NOTE_SYNC_DELAY_MS = 700;
-const pendingNoteSyncs = new Map<string, { timer: ReturnType<typeof setTimeout>; run: () => void }>();
+const pendingNoteSyncs = new Map<
+  string,
+  { timer: ReturnType<typeof setTimeout>; run: () => void }
+>();
 
 function debouncedRemoteSync(key: string, run: (m: typeof import("./library-remote.ts")) => void) {
   const prev = pendingNoteSyncs.get(key);
@@ -92,7 +93,9 @@ export function articleIdFromUrl(url: string): string {
 }
 
 export function uid(): string {
-  return crypto.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  return (
+    crypto.randomUUID?.() ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`
+  );
 }
 
 export function normalizeTag(value: string): string {
@@ -146,9 +149,21 @@ export function articleToItem(article: Article, extras: Partial<LibraryItem> = {
 export const READER_FONTS = [
   { id: "newsreader", label: "Newsreader", family: '"Newsreader Variable", Georgia, serif' },
   { id: "literata", label: "Literata", family: '"Literata Variable", Georgia, serif' },
-  { id: "source-serif", label: "Source Serif", family: '"Source Serif 4 Variable", Georgia, serif' },
-  { id: "atkinson", label: "Atkinson", family: '"Atkinson Hyperlegible", ui-sans-serif, sans-serif' },
-  { id: "figtree", label: "Figtree", family: '"Figtree Variable", ui-sans-serif, system-ui, sans-serif' },
+  {
+    id: "source-serif",
+    label: "Source Serif",
+    family: '"Source Serif 4 Variable", Georgia, serif',
+  },
+  {
+    id: "atkinson",
+    label: "Atkinson",
+    family: '"Atkinson Hyperlegible", ui-sans-serif, sans-serif',
+  },
+  {
+    id: "figtree",
+    label: "Figtree",
+    family: '"Figtree Variable", ui-sans-serif, system-ui, sans-serif',
+  },
 ] as const;
 
 export type ReaderFontId = (typeof READER_FONTS)[number]["id"];
@@ -183,7 +198,8 @@ export type LibraryState = {
   /** File new, untagged articles with AI tags and a folder (needs server AI). */
   autoOrganize: boolean;
   setProgress: (id: string, progress: number) => void;
-  upsertItem: (item: LibraryItem, opts?: { sync?: boolean }) => void;  archiveItem: (id: string, archived: boolean) => void;
+  upsertItem: (item: LibraryItem, opts?: { sync?: boolean }) => void;
+  archiveItem: (id: string, archived: boolean) => void;
   removeItem: (id: string) => void;
   setOpenId: (id: string | null) => void;
   setReaderFontSize: (size: number) => void;
@@ -211,9 +227,7 @@ export type LibraryState = {
   setResumeEnabled: (enabled: boolean) => void;
   setAutoOrganize: (enabled: boolean) => void;
   /** Mirror tags/folders the server already saved (auto-organise), without syncing back. */
-  applyOrganized: (
-    done: Array<{ id: string; tags: string[]; folderId: string | null }>,
-  ) => void;
+  applyOrganized: (done: Array<{ id: string; tags: string[]; folderId: string | null }>) => void;
   clearLibrary: () => void;
   /** Replace the whole library (boot page 1 or a full snapshot). */
   setLibrarySnapshot: (
@@ -228,7 +242,9 @@ export type LibraryState = {
 
 type Persisted = {
   kindleEmail?: string;
-  library?: Array<Partial<LibraryItem> & { id?: string; url?: string; title?: string; preparedAt?: number }>;
+  library?: Array<
+    Partial<LibraryItem> & { id?: string; url?: string; title?: string; preparedAt?: number }
+  >;
   folders?: Folder[];
   openId?: string | null;
   readerSize?: "md" | "lg";
@@ -260,7 +276,11 @@ function migrateFontSize(raw: Persisted): number {
   return DEFAULT_READER_FONT_SIZE;
 }
 
-function mapItem(library: LibraryItem[], id: string, fn: (row: LibraryItem) => LibraryItem): LibraryItem[] {
+function mapItem(
+  library: LibraryItem[],
+  id: string,
+  fn: (row: LibraryItem) => LibraryItem,
+): LibraryItem[] {
   return library.map((row) => (row.id === id ? fn(row) : row));
 }
 
@@ -292,14 +312,18 @@ export const useLibraryStore = create<LibraryState>()(
           const existing = state.library.find((row) => row.id === item.id || row.url === item.url);
           merged = {
             ...item,
-            tags: existing?.tags?.length ? existing.tags : item.tags ?? [],
+            tags: existing?.tags?.length ? existing.tags : (item.tags ?? []),
             folderId: existing?.folderId ?? item.folderId ?? null,
-            highlights: existing?.highlights?.length ? existing.highlights : item.highlights ?? [],
+            highlights: existing?.highlights?.length
+              ? existing.highlights
+              : (item.highlights ?? []),
             archived: existing?.archived ?? item.archived,
             favorited: existing?.favorited ?? item.favorited ?? false,
             note: existing?.note || item.note || "",
           };
-          const rest = state.library.filter((row) => row.id !== merged.id && row.url !== merged.url);
+          const rest = state.library.filter(
+            (row) => row.id !== merged.id && row.url !== merged.url,
+          );
           return { library: [merged, ...rest] };
         });
         if (opts?.sync === false) return;
@@ -331,7 +355,9 @@ export const useLibraryStore = create<LibraryState>()(
       addFolder: (name) => {
         const trimmed = name.trim().slice(0, 32);
         if (!trimmed) return "";
-        const existing = get().folders.find((folder) => folder.name.toLowerCase() === trimmed.toLowerCase());
+        const existing = get().folders.find(
+          (folder) => folder.name.toLowerCase() === trimmed.toLowerCase(),
+        );
         if (existing) return existing.id;
         const id = uid();
         set((state) => ({ folders: [...state.folders, { id, name: trimmed }].slice(0, 24) }));
@@ -342,19 +368,25 @@ export const useLibraryStore = create<LibraryState>()(
         const trimmed = name.trim().slice(0, 32);
         if (!trimmed) return;
         set((state) => ({
-          folders: state.folders.map((folder) => (folder.id === id ? { ...folder, name: trimmed } : folder)),
+          folders: state.folders.map((folder) =>
+            folder.id === id ? { ...folder, name: trimmed } : folder,
+          ),
         }));
         remoteSync((m) => m.syncRenameFolder(id, trimmed));
       },
       removeFolder: (id) => {
         set((state) => ({
           folders: state.folders.filter((folder) => folder.id !== id),
-          library: state.library.map((row) => (row.folderId === id ? { ...row, folderId: null } : row)),
+          library: state.library.map((row) =>
+            row.folderId === id ? { ...row, folderId: null } : row,
+          ),
         }));
         remoteSync((m) => m.syncRemoveFolder(id));
       },
       setItemFolder: (itemId, folderId) => {
-        set((state) => ({ library: mapItem(state.library, itemId, (row) => ({ ...row, folderId })) }));
+        set((state) => ({
+          library: mapItem(state.library, itemId, (row) => ({ ...row, folderId })),
+        }));
         remoteSync((m) => m.syncPatchItem(itemId, { folderId }));
       },
       addTag: (itemId, tag) => {
@@ -394,7 +426,9 @@ export const useLibraryStore = create<LibraryState>()(
             affected += 1;
             const tags = row.tags
               .map((t) => (t.toLowerCase() === old ? next : t))
-              .filter((t, i, arr) => arr.findIndex((x) => x.toLowerCase() === t.toLowerCase()) === i)
+              .filter(
+                (t, i, arr) => arr.findIndex((x) => x.toLowerCase() === t.toLowerCase()) === i,
+              )
               .slice(0, 12);
             touched.push({ id: row.id, tags });
             return { ...row, tags };
@@ -523,9 +557,7 @@ export const useLibraryStore = create<LibraryState>()(
         let highlights: Highlight[] | undefined;
         set((state) => ({
           library: mapItem(state.library, itemId, (row) => {
-            highlights = row.highlights.map((h) =>
-              h.id === highlightId ? { ...h, color } : h,
-            );
+            highlights = row.highlights.map((h) => (h.id === highlightId ? { ...h, color } : h));
             return { ...row, highlights };
           }),
           highlightColor: color,
@@ -556,7 +588,9 @@ export const useLibraryStore = create<LibraryState>()(
         }
       },
       setFavorited: (itemId, favorited) => {
-        set((state) => ({ library: mapItem(state.library, itemId, (row) => ({ ...row, favorited })) }));
+        set((state) => ({
+          library: mapItem(state.library, itemId, (row) => ({ ...row, favorited })),
+        }));
         remoteSync((m) => m.syncPatchItem(itemId, { favorited }));
       },
       setItemNote: (itemId, note) => {
@@ -564,7 +598,9 @@ export const useLibraryStore = create<LibraryState>()(
         set((state) => ({
           library: mapItem(state.library, itemId, (row) => ({ ...row, note: cleaned })),
         }));
-        debouncedRemoteSync(`item-note:${itemId}`, (m) => m.syncPatchItem(itemId, { note: cleaned }));
+        debouncedRemoteSync(`item-note:${itemId}`, (m) =>
+          m.syncPatchItem(itemId, { note: cleaned }),
+        );
       },
       setResumeEnabled: (enabled) => set({ resumeEnabled: enabled }),
       setAutoOrganize: (enabled) => set({ autoOrganize: enabled }),

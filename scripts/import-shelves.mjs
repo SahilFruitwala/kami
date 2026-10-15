@@ -38,7 +38,10 @@ function flag(name) {
 const sqlitePath = flag("--sqlite") ?? process.env.SQLITE_PATH ?? "";
 const dryRun = args.includes("--dry-run");
 const limit = Number(flag("--limit") ?? "0") || 0;
-const only = (flag("--only") ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+const only = (flag("--only") ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl && !dryRun) {
@@ -93,7 +96,15 @@ const toJson = (v) => {
 // Source user.created_at/updated_at/deleted_at/purge_after are unixepoch ints.
 function mapRow(table, row) {
   const r = { ...row };
-  for (const k of ["created_at", "updated_at", "saved_at", "completed_at", "deleted_at", "purge_after", "watched_at"]) {
+  for (const k of [
+    "created_at",
+    "updated_at",
+    "saved_at",
+    "completed_at",
+    "deleted_at",
+    "purge_after",
+    "watched_at",
+  ]) {
     if (k in r) r[k] = toDate(r[k]);
   }
   // createdAt/updatedAt camelCase never appear in the sqlite source, but the
@@ -155,7 +166,9 @@ async function main() {
     if ((batch.user ?? []).length) {
       const kept = [];
       for (const u of batch.user) {
-        const found = await client.query('SELECT id FROM "user" WHERE email = $1 LIMIT 1', [u.email]);
+        const found = await client.query('SELECT id FROM "user" WHERE email = $1 LIMIT 1', [
+          u.email,
+        ]);
         if (found.rows[0] && found.rows[0].id !== u.id) {
           userRemap[u.id] = found.rows[0].id;
           console.log(`[import-shelves] remap user ${u.id} -> ${found.rows[0].id} (${u.email})`);
@@ -189,18 +202,26 @@ async function main() {
       for (const row of rows) {
         const vals = cols.map((c) => {
           const v = row[c];
-          return typeof v === "object" && v !== null && !(v instanceof Date) ? JSON.stringify(v) : v;
+          return typeof v === "object" && v !== null && !(v instanceof Date)
+            ? JSON.stringify(v)
+            : v;
         });
         const placeholders = cols.map((_, i) => `$${i + 1}`).join(", ");
         // Upsert by PK where we know it; join tables use full-row conflict guard.
         const conflict =
-          t === "movie_genres" ? `("movie_id","genre_id")` :
-          t === "tv_show_genres" ? `("tv_show_id","genre_id")` :
-          t === "book_genres" ? `("book_id","genre_id")` :
-          t === "item_reactions" ? `("item_id","user_id")` :
-          t === "watched_episodes" ? `("item_id","season","number")` :
-          t === "rate_limits" ? `("key")` :
-          `("id")`;
+          t === "movie_genres"
+            ? `("movie_id","genre_id")`
+            : t === "tv_show_genres"
+              ? `("tv_show_id","genre_id")`
+              : t === "book_genres"
+                ? `("book_id","genre_id")`
+                : t === "item_reactions"
+                  ? `("item_id","user_id")`
+                  : t === "watched_episodes"
+                    ? `("item_id","season","number")`
+                    : t === "rate_limits"
+                      ? `("key")`
+                      : `("id")`;
         const updates = cols
           .filter((c) => c !== "id" && c !== "key")
           .map((c) => `"${c}" = EXCLUDED."${c}"`)

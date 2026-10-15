@@ -3,10 +3,7 @@ import { describe, it } from "node:test";
 import { parseHTML } from "linkedom";
 import { articleFromCapturedPage } from "../src/lib/extract.server.ts";
 import { parseSrcset, pickImageSrc } from "../src/lib/image-url.ts";
-import {
-  buildBookmarklet,
-  parseCapturePayload,
-} from "../src/lib/bookmarklet.ts";
+import { buildBookmarklet, parseCapturePayload } from "../src/lib/bookmarklet.ts";
 
 const CDN =
   "https://substackcdn.com/image/fetch/$s_!AbCd!,w_1456,c_limit,f_auto,q_auto:good,fl_progressive:steep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fabc_1500x992.png";
@@ -69,15 +66,28 @@ describe("Substack extraction", () => {
   });
 
   it("drops subscribe widgets, buttons and image toolbars", () => {
-    for (const junk of ["Subscribe now", "Thanks for reading", "Expand", "Share", "<form", "<input"]) {
+    for (const junk of [
+      "Subscribe now",
+      "Thanks for reading",
+      "Expand",
+      "Share",
+      "<form",
+      "<input",
+    ]) {
       assert.ok(!article.contentHtml.includes(junk), `should not include ${junk}`);
     }
   });
 
   it("keeps images with their full CDN URL and caption", () => {
-    assert.match(article.contentHtml, new RegExp(`<img src="${CDN.replace(/[$!.?*+^()[\]{}|\\]/g, "\\$&")}"`));
+    assert.match(
+      article.contentHtml,
+      new RegExp(`<img src="${CDN.replace(/[$!.?*+^()[\]{}|\\]/g, "\\$&")}"`),
+    );
     assert.match(article.contentHtml, /<figcaption>A caption\.<\/figcaption>/);
-    assert.ok(!/<a [^>]*>\s*<div>\s*<img/.test(article.contentHtml), "image should not be wrapped in a link");
+    assert.ok(
+      !/<a [^>]*>\s*<div>\s*<img/.test(article.contentHtml),
+      "image should not be wrapped in a link",
+    );
   });
 
   it("renders footnotes as superscripts and embeds as links", () => {

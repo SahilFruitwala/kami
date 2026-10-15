@@ -41,7 +41,11 @@ export function OrganizeCard() {
   }
 
   return (
-    <Card id="organize" title="Organize — folders & tags" copy="Rename, merge, and delete from one table. Changes apply to every work at once.">
+    <Card
+      id="organize"
+      title="Organize — folders & tags"
+      copy="Rename, merge, and delete from one table. Changes apply to every work at once."
+    >
       <div>
         <FieldLabel>Folders ({folders.length})</FieldLabel>
         <ul className="mt-2 space-y-1.5">
@@ -53,7 +57,10 @@ export function OrganizeCard() {
           {folders.map((f) => {
             const n = library.filter((row) => row.folderId === f.id).length;
             return (
-              <li key={f.id} className="flex flex-wrap items-center gap-2 rounded-lg bg-bg/60 px-3 py-2 sm:flex-nowrap">
+              <li
+                key={f.id}
+                className="flex flex-wrap items-center gap-2 rounded-lg bg-bg/60 px-3 py-2 sm:flex-nowrap"
+              >
                 {editingFolder === f.id ? (
                   <>
                     <input
@@ -70,8 +77,12 @@ export function OrganizeCard() {
                   </>
                 ) : (
                   <>
-                    <span className="min-w-0 flex-1 truncate font-sans text-sm text-ink">{f.name}</span>
-                    <span className="font-sans text-[11px] text-ink-muted tabular-nums">{n} works</span>
+                    <span className="min-w-0 flex-1 truncate font-sans text-sm text-ink">
+                      {f.name}
+                    </span>
+                    <span className="font-sans text-[11px] text-ink-muted tabular-nums">
+                      {n} works
+                    </span>
                     <MiniButton
                       onClick={() => {
                         setEditingFolder(f.id);
@@ -83,7 +94,10 @@ export function OrganizeCard() {
                     <MiniButton
                       danger
                       onClick={() => {
-                        if (!window.confirm(`Delete slipcase “${f.name}”? ${n} works become Unfiled.`)) return;
+                        if (
+                          !window.confirm(`Delete slipcase “${f.name}”? ${n} works become Unfiled.`)
+                        )
+                          return;
                         removeFolder(f.id);
                         toast.success(`Deleted slipcase “${f.name}”`);
                       }}
@@ -133,7 +147,10 @@ export function OrganizeCard() {
         ) : (
           <ul className="mt-2 space-y-1.5">
             {tags.map((t) => (
-              <li key={t} className="flex flex-wrap items-center gap-2 rounded-lg bg-bg/60 px-3 py-2 sm:flex-nowrap">
+              <li
+                key={t}
+                className="flex flex-wrap items-center gap-2 rounded-lg bg-bg/60 px-3 py-2 sm:flex-nowrap"
+              >
                 {editingTag === t ? (
                   <>
                     <input
@@ -189,7 +206,9 @@ export function OrganizeCard() {
             >
               <option value="">From…</option>
               {tags.map((t) => (
-                <option key={t} value={t}>#{t}</option>
+                <option key={t} value={t}>
+                  #{t}
+                </option>
               ))}
             </select>
             <span className="font-sans text-xs text-ink-muted">into</span>
@@ -201,7 +220,9 @@ export function OrganizeCard() {
             >
               <option value="">Into…</option>
               {tags.map((t) => (
-                <option key={t} value={t}>#{t}</option>
+                <option key={t} value={t}>
+                  #{t}
+                </option>
               ))}
             </select>
             <MiniButton

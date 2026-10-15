@@ -134,30 +134,46 @@ export function LandingPage() {
             className="group inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
           >
             <Hanko glyph={KAMI_GLYPH} className="size-7 text-sm" title="Kami" />
-            <span className="hidden font-display text-[22px] leading-none tracking-tight min-[360px]:block" translate="no">
+            <span
+              className="hidden font-display text-[22px] leading-none tracking-tight min-[360px]:block"
+              translate="no"
+            >
               Kami
             </span>
           </Link>
-          <nav aria-label="Primary" className="hidden items-center gap-6 font-sans text-[13px] font-medium text-ink-soft lg:flex">
-            <a href="#features" className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+          <nav
+            aria-label="Primary"
+            className="hidden items-center gap-6 font-sans text-[13px] font-medium text-ink-soft lg:flex"
+          >
+            <a
+              href="#features"
+              className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            >
               Features
             </a>
-            <a href="#reader" className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+            <a
+              href="#reader"
+              className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            >
               Reader
             </a>
-            <a href="#organize" className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+            <a
+              href="#organize"
+              className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            >
               Organize
             </a>
-            <a href="#faq" className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+            <a
+              href="#faq"
+              className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            >
               FAQ
             </a>
           </nav>
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
             <Button type="button" variant="ghost" className="hidden h-10 sm:inline-flex" asChild>
-              <Link to="/login/$">
-                Sign In
-              </Link>
+              <Link to="/login/$">Sign In</Link>
             </Button>
             <Button
               type="button"
@@ -175,7 +191,11 @@ export function LandingPage() {
 
       <main id="main" className="pt-[calc(4rem+env(safe-area-inset-top))]">
         {/* Hero */}
-        <section aria-labelledby="hero-heading" id="philosophy" className="relative mx-auto w-full max-w-5xl scroll-mt-24 px-4 pt-10 pb-12 sm:px-6 sm:pt-16">
+        <section
+          aria-labelledby="hero-heading"
+          id="philosophy"
+          className="relative mx-auto w-full max-w-5xl scroll-mt-24 px-4 pt-10 pb-12 sm:px-6 sm:pt-16"
+        >
           <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]">
             <div>
               <div className="flex flex-wrap items-center gap-2">
@@ -190,8 +210,8 @@ export function LandingPage() {
                 A quiet digital sanctuary for reading, inking, and unhurried thought.
               </h1>
               <p className="kami-body mt-4 max-w-xl text-base leading-[1.85] text-pretty text-ink-soft sm:text-lg sm:leading-[1.85]">
-                Paste a link and get a clean, distraction-free page — then tag it, highlight
-                it in three inks, journal it, and find it in seconds.
+                Paste a link and get a clean, distraction-free page — then tag it, highlight it in
+                three inks, journal it, and find it in seconds.
               </p>
               <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:items-center">
                 <Button
@@ -224,13 +244,22 @@ export function LandingPage() {
             </div>
 
             {/* Hero folio — mirrors the real desk: capture bar + fresh saves */}
-            <div className="relative" aria-label="Preview of the KAMI desk, library and reader" role="img">
+            <div
+              className="relative"
+              aria-label="Preview of the KAMI desk, library and reader"
+              role="img"
+            >
               <div className="kami-sheet-raised kami-grain relative overflow-hidden p-4 sm:p-5">
-                <span aria-hidden="true" className="absolute top-0 right-8 h-9 w-3.5 rounded-b-[0.25rem] bg-hanko/90" />
+                <span
+                  aria-hidden="true"
+                  className="absolute top-0 right-8 h-9 w-3.5 rounded-b-[0.25rem] bg-hanko/90"
+                />
                 <div className="flex items-center gap-2 border-b border-line pb-3">
                   <Hanko glyph={KAMI_GLYPH} square className="size-7" />
                   <div className="min-w-0 flex-1">
-                    <p className="truncate font-display text-sm font-semibold" translate="no">KAMI</p>
+                    <p className="truncate font-display text-sm font-semibold" translate="no">
+                      KAMI
+                    </p>
                     <p className="kami-label mt-0.5 text-ink-muted">Fresh on the desk</p>
                   </div>
                   <WashiTag tone="vermilion">Inbox</WashiTag>
@@ -248,16 +277,38 @@ export function LandingPage() {
                 </div>
                 <ul className="mt-2 divide-y divide-line">
                   {[
-                    { tag: "Essay", tone: "bamboo", title: "How to Do Great Work", meta: "14 min · 2h ago" },
-                    { tag: "X", tone: "vermilion", title: "Notes on Distribution", meta: "6 min · yesterday" },
-                    { tag: "Blog", tone: "indigo", title: "A Field Guide to Focus", meta: "9 min · 3d ago" },
+                    {
+                      tag: "Essay",
+                      tone: "bamboo",
+                      title: "How to Do Great Work",
+                      meta: "14 min · 2h ago",
+                    },
+                    {
+                      tag: "X",
+                      tone: "vermilion",
+                      title: "Notes on Distribution",
+                      meta: "6 min · yesterday",
+                    },
+                    {
+                      tag: "Blog",
+                      tone: "indigo",
+                      title: "A Field Guide to Focus",
+                      meta: "9 min · 3d ago",
+                    },
                   ].map((row) => (
                     <li key={row.title} className="flex items-center gap-3 py-2.5">
-                      <span className="size-10 shrink-0 rounded-lg bg-paper-warm" aria-hidden="true" />
+                      <span
+                        className="size-10 shrink-0 rounded-lg bg-paper-warm"
+                        aria-hidden="true"
+                      />
                       <span className="min-w-0 flex-1">
                         <span className="flex items-center gap-2">
-                          <WashiTag tone={row.tone as "bamboo" | "vermilion" | "indigo"}>{row.tag}</WashiTag>
-                          <span className="font-sans text-[11px] text-ink-muted tabular-nums">{row.meta}</span>
+                          <WashiTag tone={row.tone as "bamboo" | "vermilion" | "indigo"}>
+                            {row.tag}
+                          </WashiTag>
+                          <span className="font-sans text-[11px] text-ink-muted tabular-nums">
+                            {row.meta}
+                          </span>
                         </span>
                         <span className="mt-0.5 block truncate font-display text-[15px] tracking-tight">
                           {row.title}
@@ -267,8 +318,13 @@ export function LandingPage() {
                   ))}
                 </ul>
               </div>
-              <div aria-hidden="true" className="kami-sheet-raised absolute -right-3 -bottom-5 hidden w-60 p-4 sm:block">
-                <p className="font-display text-sm leading-relaxed italic">“…the calmest way to read the web.”</p>
+              <div
+                aria-hidden="true"
+                className="kami-sheet-raised absolute -right-3 -bottom-5 hidden w-60 p-4 sm:block"
+              >
+                <p className="font-display text-sm leading-relaxed italic">
+                  “…the calmest way to read the web.”
+                </p>
                 <p className="kami-label mt-2 text-ink-muted">Dokusho reader · 5 fonts · 3 tones</p>
               </div>
             </div>
@@ -276,8 +332,8 @@ export function LandingPage() {
 
           <figure className="kami-sheet mx-auto mt-12 max-w-3xl p-6 text-center sm:p-8">
             <blockquote className="font-display text-lg leading-[1.8] text-ink-soft italic sm:text-xl">
-              “Teaism is a religion of the art of life… an homage to the fleeting perfection
-              of autumn leaves.”
+              “Teaism is a religion of the art of life… an homage to the fleeting perfection of
+              autumn leaves.”
             </blockquote>
             <figcaption className="kami-label mt-3 text-ink-muted">
               The Book of Tea · Okakura Kakuzō — leave one paragraph unread before bed
@@ -290,19 +346,32 @@ export function LandingPage() {
           <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-center gap-x-8 gap-y-2 px-4 py-4 font-sans text-sm text-ink-muted sm:px-6">
             <span className="kami-label text-ink-soft">Built for</span>
             <span>Essay collectors</span>
-            <span aria-hidden="true" className="text-faint">·</span>
+            <span aria-hidden="true" className="text-faint">
+              ·
+            </span>
             <span>Newsletter skimmers</span>
-            <span aria-hidden="true" className="text-faint">·</span>
+            <span aria-hidden="true" className="text-faint">
+              ·
+            </span>
             <span>X thread savers</span>
-            <span aria-hidden="true" className="text-faint">·</span>
+            <span aria-hidden="true" className="text-faint">
+              ·
+            </span>
             <span>Research rabbits</span>
           </div>
         </section>
 
         {/* Features — real capabilities only */}
-        <section aria-labelledby="features-heading" id="features" className="mx-auto w-full max-w-5xl scroll-mt-20 px-4 py-14 sm:px-6">
+        <section
+          aria-labelledby="features-heading"
+          id="features"
+          className="mx-auto w-full max-w-5xl scroll-mt-20 px-4 py-14 sm:px-6"
+        >
           <p className="kami-label text-hanko">Features</p>
-          <h2 id="features-heading" className="mt-2 max-w-xl font-display text-3xl font-normal tracking-tight text-balance sm:text-4xl">
+          <h2
+            id="features-heading"
+            className="mt-2 max-w-xl font-display text-3xl font-normal tracking-tight text-balance sm:text-4xl"
+          >
             Everything a Reading List Should Do
           </h2>
           <p className="kami-body mt-3 max-w-2xl text-base leading-[1.85] text-ink-soft">
@@ -314,11 +383,16 @@ export function LandingPage() {
                 key={f.title}
                 className="kami-sheet group relative overflow-hidden p-5 transition-shadow duration-150 hover:shadow-[var(--shadow-border-hover)]"
               >
-                <span aria-hidden="true" className="absolute top-0 right-6 h-7 w-2.5 rounded-b-[0.25rem] bg-hanko/70 opacity-0 transition-opacity group-hover:opacity-100" />
+                <span
+                  aria-hidden="true"
+                  className="absolute top-0 right-6 h-7 w-2.5 rounded-b-[0.25rem] bg-hanko/70 opacity-0 transition-opacity group-hover:opacity-100"
+                />
                 <span className="flex size-10 items-center justify-center rounded-lg bg-paper-warm text-hanko">
                   <f.icon className="size-5" aria-hidden="true" />
                 </span>
-                <h3 className="mt-4 font-display text-base font-semibold tracking-tight">{f.title}</h3>
+                <h3 className="mt-4 font-display text-base font-semibold tracking-tight">
+                  {f.title}
+                </h3>
                 <p className="kami-body mt-1.5 text-sm leading-[1.8] text-ink-soft">{f.copy}</p>
               </li>
             ))}
@@ -326,19 +400,31 @@ export function LandingPage() {
         </section>
 
         {/* How it works */}
-        <section aria-labelledby="how-heading" id="how-it-works" className="scroll-mt-20 border-y border-line bg-surface/60">
+        <section
+          aria-labelledby="how-heading"
+          id="how-it-works"
+          className="scroll-mt-20 border-y border-line bg-surface/60"
+        >
           <div className="mx-auto w-full max-w-5xl px-4 py-14 sm:px-6">
             <p className="kami-label text-hanko">How it works</p>
-            <h2 id="how-heading" className="mt-2 max-w-xl font-display text-3xl font-normal tracking-tight text-balance sm:text-4xl">
+            <h2
+              id="how-heading"
+              className="mt-2 max-w-xl font-display text-3xl font-normal tracking-tight text-balance sm:text-4xl"
+            >
               From Link to Library in Seconds
             </h2>
             <ol className="mt-8 grid gap-4 md:grid-cols-3">
               {STEPS.map((s) => (
                 <li key={s.n} className="kami-sheet p-5">
-                  <span className="kami-hanko flex size-9 items-center justify-center rounded-full font-display text-base" aria-hidden="true">
+                  <span
+                    className="kami-hanko flex size-9 items-center justify-center rounded-full font-display text-base"
+                    aria-hidden="true"
+                  >
                     {s.n}
                   </span>
-                  <h3 className="mt-4 font-display text-base font-semibold tracking-tight">{s.title}</h3>
+                  <h3 className="mt-4 font-display text-base font-semibold tracking-tight">
+                    {s.title}
+                  </h3>
                   <p className="kami-body mt-1.5 text-sm leading-[1.8] text-ink-soft">{s.copy}</p>
                 </li>
               ))}
@@ -350,9 +436,7 @@ export function LandingPage() {
                 className="h-11 w-full rounded-full bg-hanko px-5 text-paper hover:bg-shu sm:w-auto"
                 asChild
               >
-                <Link to="/sign-up/$">
-                  Try It Now — It’s Free
-                </Link>
+                <Link to="/sign-up/$">Try It Now — It’s Free</Link>
               </Button>
               <Button
                 type="button"
@@ -368,15 +452,23 @@ export function LandingPage() {
         </section>
 
         {/* Reader — Dokusho, exactly as built */}
-        <section aria-labelledby="reader-heading" id="reader" className="mx-auto w-full max-w-5xl scroll-mt-20 px-4 py-14 sm:px-6">
+        <section
+          aria-labelledby="reader-heading"
+          id="reader"
+          className="mx-auto w-full max-w-5xl scroll-mt-20 px-4 py-14 sm:px-6"
+        >
           <div className="grid items-center gap-8 lg:grid-cols-2">
             <div>
               <p className="kami-label text-hanko">Dokusho · Zen reader</p>
-              <h2 id="reader-heading" className="mt-2 font-display text-3xl font-normal tracking-tight text-balance sm:text-4xl">
+              <h2
+                id="reader-heading"
+                className="mt-2 font-display text-3xl font-normal tracking-tight text-balance sm:text-4xl"
+              >
                 Read Like It’s Printed for You
               </h2>
               <p className="kami-body mt-3 max-w-lg text-base leading-[1.85] text-ink-soft">
-                The browser dissolves into warm paper. Calibrate the sheet, then read at your own cadence.
+                The browser dissolves into warm paper. Calibrate the sheet, then read at your own
+                cadence.
               </p>
               <ul className="kami-body mt-5 space-y-2.5 text-sm text-ink-soft">
                 {READER_POINTS.map((r) => (
@@ -387,11 +479,17 @@ export function LandingPage() {
                 ))}
               </ul>
             </div>
-            <div className="kami-sheet-raised kami-grain relative overflow-hidden p-6 sm:p-8" aria-hidden="true">
-              <span aria-hidden="true" className="absolute top-0 right-10 h-10 w-3 rounded-b-[0.25rem] bg-hanko/80" />
+            <div
+              className="kami-sheet-raised kami-grain relative overflow-hidden p-6 sm:p-8"
+              aria-hidden="true"
+            >
+              <span
+                aria-hidden="true"
+                className="absolute top-0 right-10 h-10 w-3 rounded-b-[0.25rem] bg-hanko/80"
+              />
               <p className="font-display text-xl leading-[1.8] tracking-tight sm:text-2xl">
-                “The best interface is the one that disappears — leaving only the words the
-                author meant for you.”
+                “The best interface is the one that disappears — leaving only the words the author
+                meant for you.”
               </p>
               <div className="mt-4 flex items-center gap-2">
                 {[
@@ -406,18 +504,29 @@ export function LandingPage() {
                     style={{ backgroundColor: `color-mix(in oklab, ${c.swatch} 45%, transparent)` }}
                   />
                 ))}
-                <span className="ml-1 font-sans text-[11px] text-ink-muted">3 inks · notes on every slip</span>
+                <span className="ml-1 font-sans text-[11px] text-ink-muted">
+                  3 inks · notes on every slip
+                </span>
               </div>
-              <p className="mt-4 font-display text-sm text-ink-muted italic">Set in Literata · Pale Washi · Sumi-ready</p>
+              <p className="mt-4 font-display text-sm text-ink-muted italic">
+                Set in Literata · Pale Washi · Sumi-ready
+              </p>
             </div>
           </div>
         </section>
 
         {/* Organize — journal, vault, shelves as built */}
-        <section aria-labelledby="organize-heading" id="organize" className="scroll-mt-20 border-y border-line bg-surface/60">
+        <section
+          aria-labelledby="organize-heading"
+          id="organize"
+          className="scroll-mt-20 border-y border-line bg-surface/60"
+        >
           <div className="mx-auto w-full max-w-5xl px-4 py-14 sm:px-6">
             <p className="kami-label text-hanko">Organize</p>
-            <h2 id="organize-heading" className="mt-2 max-w-xl font-display text-3xl font-normal tracking-tight text-balance sm:text-4xl">
+            <h2
+              id="organize-heading"
+              className="mt-2 max-w-xl font-display text-3xl font-normal tracking-tight text-balance sm:text-4xl"
+            >
               Journal, Vault & Shelves
             </h2>
             <div className="mt-8 grid gap-4 lg:grid-cols-3">
@@ -427,9 +536,9 @@ export function LandingPage() {
                   Nisshi · evening ledger
                 </p>
                 <p className="kami-body mt-3 text-sm leading-[1.8] text-ink-soft">
-                  A month calendar with a micro-season label, up to 50,000 characters a day,
-                  and your active reading desk beside the entry — what moved you, what
-                  needs to rest overnight.
+                  A month calendar with a micro-season label, up to 50,000 characters a day, and
+                  your active reading desk beside the entry — what moved you, what needs to rest
+                  overnight.
                 </p>
                 <p className="kami-label mt-2 text-ink-faint">
                   Paused for now — existing entries stay saved.
@@ -441,10 +550,13 @@ export function LandingPage() {
                   Tanzaku · slip vault
                 </p>
                 <p className="kami-body mt-3 text-sm leading-[1.8] text-ink-soft">
-                  Every highlight from every article in one vault — filter, search, quote,
-                  and download filtered slips as CSV.
+                  Every highlight from every article in one vault — filter, search, quote, and
+                  download filtered slips as CSV.
                 </p>
-                <Link to="/vault" className="mt-3 inline-flex items-center gap-1.5 rounded-sm font-sans text-[13px] font-semibold text-hanko hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+                <Link
+                  to="/vault"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-sm font-sans text-[13px] font-semibold text-hanko hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+                >
                   Open Vault <ArrowRight className="size-3.5" aria-hidden="true" />
                 </Link>
               </div>
@@ -454,10 +566,13 @@ export function LandingPage() {
                   Tanacho · shelves
                 </p>
                 <p className="kami-body mt-3 text-sm leading-[1.8] text-ink-soft">
-                  Movies, TV shows, books, and a wishlist — TMDB and book search, episode
-                  tracking, where-to-watch, and to-try / done states.
+                  Movies, TV shows, books, and a wishlist — TMDB and book search, episode tracking,
+                  where-to-watch, and to-try / done states.
                 </p>
-                <Link to="/shelves/movies" className="mt-3 inline-flex items-center gap-1.5 rounded-sm font-sans text-[13px] font-semibold text-hanko hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40">
+                <Link
+                  to="/shelves/movies"
+                  className="mt-3 inline-flex items-center gap-1.5 rounded-sm font-sans text-[13px] font-semibold text-hanko hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+                >
                   Open Shelves <ArrowRight className="size-3.5" aria-hidden="true" />
                 </Link>
               </div>
@@ -500,9 +615,16 @@ export function LandingPage() {
         </section>
 
         {/* FAQ */}
-        <section aria-labelledby="faq-heading" id="faq" className="mx-auto w-full max-w-3xl scroll-mt-20 px-4 pb-14 sm:px-6">
+        <section
+          aria-labelledby="faq-heading"
+          id="faq"
+          className="mx-auto w-full max-w-3xl scroll-mt-20 px-4 pb-14 sm:px-6"
+        >
           <p className="kami-label text-hanko">Colophon · FAQ</p>
-          <h2 id="faq-heading" className="mt-2 font-display text-3xl font-normal tracking-tight text-balance sm:text-4xl">
+          <h2
+            id="faq-heading"
+            className="mt-2 font-display text-3xl font-normal tracking-tight text-balance sm:text-4xl"
+          >
             Questions, Answered
           </h2>
           <div className="kami-sheet mt-6 divide-y divide-line px-5 sm:px-6">
@@ -510,22 +632,38 @@ export function LandingPage() {
               <details key={f.q} className="group py-4">
                 <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-sm text-left font-display text-[15px] font-medium tracking-tight hover:text-hanko focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 [&::-webkit-details-marker]:hidden">
                   {f.q}
-                  <span aria-hidden="true" className="font-sans text-xl leading-none text-hanko transition-transform duration-150 group-open:rotate-45">+</span>
+                  <span
+                    aria-hidden="true"
+                    className="font-sans text-xl leading-none text-hanko transition-transform duration-150 group-open:rotate-45"
+                  >
+                    +
+                  </span>
                 </summary>
-                <p className="kami-body mt-2 max-w-2xl text-sm leading-[1.8] text-ink-soft">{f.a}</p>
+                <p className="kami-body mt-2 max-w-2xl text-sm leading-[1.8] text-ink-soft">
+                  {f.a}
+                </p>
               </details>
             ))}
           </div>
         </section>
 
         {/* Final CTA */}
-        <section aria-labelledby="cta-heading" className="mx-auto w-full max-w-5xl px-4 pb-16 sm:px-6">
+        <section
+          aria-labelledby="cta-heading"
+          className="mx-auto w-full max-w-5xl px-4 pb-16 sm:px-6"
+        >
           <div className="kami-sheet-raised kami-grain relative overflow-hidden px-6 py-12 text-center sm:px-12">
-            <span aria-hidden="true" className="absolute top-0 right-12 h-12 w-3.5 rounded-b-[0.25rem] bg-hanko" />
+            <span
+              aria-hidden="true"
+              className="absolute top-0 right-12 h-12 w-3.5 rounded-b-[0.25rem] bg-hanko"
+            />
             <div className="mx-auto flex justify-center">
               <Hanko glyph="S" square className="size-11 text-sm" title="Stillness" />
             </div>
-            <h2 id="cta-heading" className="mx-auto mt-4 max-w-xl font-display text-3xl font-normal tracking-tight text-balance sm:text-4xl">
+            <h2
+              id="cta-heading"
+              className="mx-auto mt-4 max-w-xl font-display text-3xl font-normal tracking-tight text-balance sm:text-4xl"
+            >
               Step into the stillness. Leave the noise behind.
             </h2>
             <p className="kami-body mx-auto mt-3 max-w-md text-base leading-[1.85] text-ink-soft">
@@ -538,9 +676,7 @@ export function LandingPage() {
                 className="h-11 w-full rounded-full bg-hanko px-5 text-paper hover:bg-shu sm:w-auto"
                 asChild
               >
-                <Link to="/sign-up/$">
-                  Begin Sanctuary
-                </Link>
+                <Link to="/sign-up/$">Begin Sanctuary</Link>
               </Button>
               <Button
                 type="button"
@@ -549,9 +685,7 @@ export function LandingPage() {
                 className="h-11 w-full border-line bg-surface text-ink hover:bg-paper-warm sm:w-auto"
                 asChild
               >
-                <Link to="/login/$">
-                  Sign In
-                </Link>
+                <Link to="/login/$">Sign In</Link>
               </Button>
             </div>
           </div>
@@ -563,7 +697,9 @@ export function LandingPage() {
           <div>
             <span className="inline-flex items-center gap-2">
               <Hanko glyph={KAMI_GLYPH} square className="size-6 text-[10px]" />
-              <span className="font-display font-semibold text-ink" translate="no">KAMI</span>
+              <span className="font-display font-semibold text-ink" translate="no">
+                KAMI
+              </span>
             </span>
             <p className="kami-body mt-3 max-w-xs text-sm leading-[1.8]">
               Your quiet reading list — washi & thought, set in Newsreader and Inter.
@@ -572,26 +708,64 @@ export function LandingPage() {
           <nav aria-label="Sanctuaries">
             <p className="kami-label text-ink-soft">Sanctuaries</p>
             <ul className="mt-3 space-y-2">
-              <li><Link to="/library" className="hover:text-hanko">Library</Link></li>
-              <li><Link to="/read" className="hover:text-hanko">Reader</Link></li>
-              <li><Link to="/vault" className="hover:text-hanko">Vault</Link></li>
-              <li><Link to="/shelves/movies" className="hover:text-hanko">Shelves</Link></li>
+              <li>
+                <Link to="/library" className="hover:text-hanko">
+                  Library
+                </Link>
+              </li>
+              <li>
+                <Link to="/read" className="hover:text-hanko">
+                  Reader
+                </Link>
+              </li>
+              <li>
+                <Link to="/vault" className="hover:text-hanko">
+                  Vault
+                </Link>
+              </li>
+              <li>
+                <Link to="/shelves/movies" className="hover:text-hanko">
+                  Shelves
+                </Link>
+              </li>
             </ul>
           </nav>
           <nav aria-label="Craft and philosophy">
             <p className="kami-label text-ink-soft">Craft</p>
             <ul className="mt-3 space-y-2">
-              <li><a href="#features" className="hover:text-hanko">Features</a></li>
-              <li><a href="#reader" className="hover:text-hanko">Reader calibration</a></li>
-              <li><a href="#organize" className="hover:text-hanko">Journal & shelves</a></li>
+              <li>
+                <a href="#features" className="hover:text-hanko">
+                  Features
+                </a>
+              </li>
+              <li>
+                <a href="#reader" className="hover:text-hanko">
+                  Reader calibration
+                </a>
+              </li>
+              <li>
+                <a href="#organize" className="hover:text-hanko">
+                  Journal & shelves
+                </a>
+              </li>
             </ul>
           </nav>
           <nav aria-label="Colophon">
             <p className="kami-label text-ink-soft">Colophon</p>
             <ul className="mt-3 space-y-2">
-              <li><a href="#faq" className="hover:text-hanko">FAQ</a></li>
-              <li><Link to="/login/$" className="hover:text-hanko">Sign In</Link></li>
-              <li><span aria-hidden="true">In Praise of Shadows · Tanizaki</span></li>
+              <li>
+                <a href="#faq" className="hover:text-hanko">
+                  FAQ
+                </a>
+              </li>
+              <li>
+                <Link to="/login/$" className="hover:text-hanko">
+                  Sign In
+                </Link>
+              </li>
+              <li>
+                <span aria-hidden="true">In Praise of Shadows · Tanizaki</span>
+              </li>
             </ul>
           </nav>
         </div>

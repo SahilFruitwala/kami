@@ -175,9 +175,7 @@ function DetailBody({
               {statusText(labels, item.status)}
             </span>
           </KamiEyebrow>
-          <h1 className="g-h1-topic text-balance text-ink">
-            {item.title}
-          </h1>
+          <h1 className="g-h1-topic text-balance text-ink">{item.title}</h1>
           {byline ? <p className="font-display text-lg text-ink-soft italic">{byline}</p> : null}
           {detail.genres.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
@@ -300,7 +298,9 @@ function DetailBody({
         {item.notes ? (
           <section className="rounded-lg border-l-2 border-hanko/40 bg-paper-warm p-4">
             <h2 className="kami-label text-ink-muted">Marginalia</h2>
-            <p className="mt-1.5 font-display text-base text-ink italic text-pretty">{item.notes}</p>
+            <p className="mt-1.5 font-display text-base text-ink italic text-pretty">
+              {item.notes}
+            </p>
           </section>
         ) : null}
 

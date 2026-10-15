@@ -51,7 +51,9 @@ function Vault() {
         eyebrow="Highlight vault"
         title="Your vault"
         description="Every passage you marked — filter by theme or voice, copy them out, or export the lot."
-        stats={[{ value: stats.vaultCount, label: stats.vaultCount === 1 ? "highlight" : "highlights" }]}
+        stats={[
+          { value: stats.vaultCount, label: stats.vaultCount === 1 ? "highlight" : "highlights" },
+        ]}
       />
 
       <div className="mx-auto w-full max-w-[1200px] px-4 pt-8 pb-10 sm:px-8">
@@ -80,10 +82,7 @@ function Vault() {
         />
       </div>
 
-      <TranscribeDialog
-        open={transcribeOpen}
-        onOpenChange={setTranscribeOpen}
-      />
+      <TranscribeDialog open={transcribeOpen} onOpenChange={setTranscribeOpen} />
     </AppShell>
   );
 }

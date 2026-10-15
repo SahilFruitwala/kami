@@ -10,7 +10,9 @@ function textNodes(root: HTMLElement): Text[] {
 
 export function collectSpokenText(root: HTMLElement | null): string {
   if (!root) return "";
-  return textNodes(root).map((node) => node.data).join("");
+  return textNodes(root)
+    .map((node) => node.data)
+    .join("");
 }
 
 function rangeFromOffsets(root: HTMLElement, start: number, end: number): Range | null {
@@ -37,7 +39,10 @@ function rangeFromOffsets(root: HTMLElement, start: number, end: number): Range 
   const range = root.ownerDocument.createRange();
   try {
     range.setStart(startNode, Math.min(startOff, startNode.data.length));
-    range.setEnd(endNode ?? startNode, Math.min(endOff || startOff + 1, (endNode ?? startNode).data.length));
+    range.setEnd(
+      endNode ?? startNode,
+      Math.min(endOff || startOff + 1, (endNode ?? startNode).data.length),
+    );
     return range;
   } catch {
     return null;
@@ -53,7 +58,10 @@ export function paintSpokenWord(root: HTMLElement | null, start: number, end: nu
   if (CSS.highlights && HighlightCtor) {
     CSS.highlights.set("spoken", new HighlightCtor(range));
   }
-  const node = range.startContainer instanceof Element ? range.startContainer : range.startContainer.parentElement;
+  const node =
+    range.startContainer instanceof Element
+      ? range.startContainer
+      : range.startContainer.parentElement;
   const rect = range.getBoundingClientRect();
   const inView = rect.top >= 96 && rect.bottom <= window.innerHeight - 24;
   if (!inView) node?.scrollIntoView({ block: "center", behavior: "smooth" });

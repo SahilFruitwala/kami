@@ -58,8 +58,7 @@ export function LibraryGate({ children }: { children: React.ReactNode }) {
   const [libraryError, setLibraryError] = useState<string | null>(null);
 
   const libraryReady =
-    Boolean(userId && isLibraryBootstrapped(userId)) ||
-    Boolean(userId && readyForUser === userId);
+    Boolean(userId && isLibraryBootstrapped(userId)) || Boolean(userId && readyForUser === userId);
 
   useEffect(() => {
     if (!userId) return;
@@ -76,8 +75,7 @@ export function LibraryGate({ children }: { children: React.ReactNode }) {
       })
       .catch((error: unknown) => {
         if (cancelled) return;
-        const message =
-          error instanceof Error ? error.message : "Could not load your library.";
+        const message = error instanceof Error ? error.message : "Could not load your library.";
         setLibraryError(message);
       });
     return () => {
@@ -100,9 +98,7 @@ export function LibraryGate({ children }: { children: React.ReactNode }) {
             .then(() => setReadyForUser(userId))
             .catch((error: unknown) => {
               const message =
-                error instanceof Error
-                  ? error.message
-                  : "Could not load your library.";
+                error instanceof Error ? error.message : "Could not load your library.";
               setLibraryError(message);
             });
         }}

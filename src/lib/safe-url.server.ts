@@ -19,7 +19,10 @@ export async function assertPublicFetchUrl(raw: string): Promise<URL> {
 }
 
 async function assertHostnameResolvesPublic(hostname: string): Promise<void> {
-  const host = hostname.replace(/^\[|\]$/g, "").toLowerCase().replace(/\.$/, "");
+  const host = hostname
+    .replace(/^\[|\]$/g, "")
+    .toLowerCase()
+    .replace(/\.$/, "");
   // Literal IPs were already vetted by assertPublicHttpUrl — no DNS needed.
   if (isBlockedIpLiteral(host) || looksLikeIpLiteral(host)) return;
 

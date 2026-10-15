@@ -233,10 +233,7 @@ function FeedHeader({
             aria-label="Feed name"
             className="h-9"
           />
-          <button
-            type="submit"
-            className="g-btn g-btn--ink h-9"
-          >
+          <button type="submit" className="g-btn g-btn--ink h-9">
             Save
           </button>
         </form>

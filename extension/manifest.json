@@ -3,7 +3,12 @@
   "name": "Save to KAMI",
   "version": "1.1.1",
   "description": "Send the page you're reading to KAMI — captured in your browser, so paywalls you're signed into and bot walls don't get in the way.",
-  "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
   "action": {
     "default_title": "Save to KAMI",
     "default_icon": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png" }

@@ -47,7 +47,9 @@ export function AutoOrganizeCard() {
           className="mt-1 size-4 accent-[#a6331b]"
         />
         <span>
-          <span className="font-sans text-sm font-medium text-ink">Organize new articles automatically</span>
+          <span className="font-sans text-sm font-medium text-ink">
+            Organize new articles automatically
+          </span>
           <span className="block font-body text-sm text-ink-muted">
             Runs when you save something and whenever the library opens. Articles saved from the
             extension are picked up on your next visit.

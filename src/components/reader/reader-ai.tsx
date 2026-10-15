@@ -1,11 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  Tags,
-  Folder,
-  LoaderCircle,
-  RotateCcw,
-  Sparkles,
-} from "lucide-react";
+import { Tags, Folder, LoaderCircle, RotateCcw, Sparkles } from "lucide-react";
 import { TidyButton } from "@/components/reader/tidy-review.tsx";
 import { toast } from "sonner";
 import { aiApi, type ArticleSummary } from "@/lib/api/ai";
@@ -105,9 +99,14 @@ function AutoTagButton({ item }: { item: LibraryItem }) {
     onSuccess: ({ tags }) => {
       const added = tags.filter((t) => !item.tags.includes(t));
       upsertItem({ ...item, tags });
-      toast.success(added.length ? `Tagged: ${added.join(", ")}` : "Already tagged with the best-fit categories");
+      toast.success(
+        added.length
+          ? `Tagged: ${added.join(", ")}`
+          : "Already tagged with the best-fit categories",
+      );
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not auto-tag this article."),
+    onError: (err) =>
+      toast.error(err instanceof Error ? err.message : "Could not auto-tag this article."),
   });
   return (
     <button

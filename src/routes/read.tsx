@@ -122,11 +122,7 @@ function Read() {
               ? "Choose a work from the Library and it will open here for quiet reading."
               : "This work may have been removed. Return to the library to keep reading."}
           </p>
-          <button
-            type="button"
-            onClick={goLibrary}
-            className="g-btn g-btn--ink mt-3"
-          >
+          <button type="button" onClick={goLibrary} className="g-btn g-btn--ink mt-3">
             Back to Library
           </button>
         </div>
@@ -142,7 +138,9 @@ function Read() {
           role={fetchError ? "alert" : "status"}
           aria-live="polite"
         >
-          <h1 className="font-display text-3xl leading-tight text-balance text-ink">{openItem.title}</h1>
+          <h1 className="font-display text-3xl leading-tight text-balance text-ink">
+            {openItem.title}
+          </h1>
           {openItem.author ? (
             <p className="font-display text-[17px] text-ink-soft italic">{openItem.author}</p>
           ) : null}
@@ -158,11 +156,7 @@ function Read() {
             </p>
           )}
           {fetchError ? (
-            <button
-              type="button"
-              onClick={goLibrary}
-              className="g-btn g-btn--ink mt-3"
-            >
+            <button type="button" onClick={goLibrary} className="g-btn g-btn--ink mt-3">
               Back to Library
             </button>
           ) : null}
