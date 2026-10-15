@@ -1,14 +1,12 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronRight, LoaderCircle } from "lucide-react";
 import {
   useSeasonEpisodes,
   useSetSeasonWatched,
   useShowSeasons,
   useToggleEpisode,
+  useFetchSeasonEpisodes,
 } from "@/hooks/use-shelf-queries.ts";
-import { shelvesApi } from "@/lib/api/shelves";
-import { queryKeys } from "@/lib/query-client.ts";
 import { cn } from "@/lib/utils.ts";
 
 function ProgressBar({ done, total }: { done: number; total: number }) {
@@ -114,7 +112,7 @@ function SeasonEpisodes({ itemId, season }: { itemId: string; season: number }) 
 
 /** Season accordion with per-episode ticks — Renzoku / shelf EpisodeTracker. */
 export function EpisodeTracker({ itemId }: { itemId: string }) {
-  const queryClient = useQueryClient();
+  const fetchSeasonEpisodes = useFetchSeasonEpisodes();
   const [openSeason, setOpenSeason] = useState<number | null>(null);
   const { data, isPending } = useShowSeasons(itemId);
   const seasonBulk = useSetSeasonWatched(itemId);
@@ -199,11 +197,7 @@ export function EpisodeTracker({ itemId }: { itemId: string }) {
                     aria-label={complete ? "Clear whole season" : "Mark whole season watched"}
                     onClick={() => {
                       void (async () => {
-                        const episodes = await queryClient.fetchQuery({
-                          queryKey: queryKeys.shelves.episodes(itemId, s.season),
-                          queryFn: () => shelvesApi.tv.episodes(itemId, s.season),
-                          staleTime: 60 * 60_000,
-                        });
+                        const episodes = await fetchSeasonEpisodes(itemId, s.season);
                         seasonBulk.mutate({
                           season: s.season,
                           numbers: episodes.map((e) => e.number),

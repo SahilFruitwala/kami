@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Folder, Plus, X } from "lucide-react";
 import { toast } from "sonner";
-import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import { useLibraryStore } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import { cn } from "@/lib/utils.ts";
 
 export function OrganizeRow({ item }: { item: LibraryItem }) {
@@ -50,7 +51,11 @@ export function OrganizeRow({ item }: { item: LibraryItem }) {
 
   return (
     <div ref={boxRef} className="relative mt-5">
-      <div className="flex flex-wrap items-center gap-2" role="toolbar" aria-label="Article organization">
+      <div
+        className="flex flex-wrap items-center gap-2"
+        role="toolbar"
+        aria-label="Article organization"
+      >
         <button
           type="button"
           aria-haspopup="menu"

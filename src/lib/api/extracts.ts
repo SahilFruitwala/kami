@@ -1,3 +1,5 @@
+import type { z } from "zod";
+import type { createSourceInput, runInput, updateSourceInput } from "./schemas/extracts";
 import { http, seg } from "./client";
 
 export type ExtractResultStatus = "pending" | "accepted";
@@ -37,7 +39,8 @@ export type ExtractsOverview = {
   sources: ExtractSource[];
 };
 
-export type ExtractSourceInput = { name?: string; url: string; question: string };
+export type ExtractSourceInput = z.input<typeof createSourceInput>;
+export type ExtractSourcePatch = z.input<typeof updateSourceInput>;
 
 const source = (id: string) => `/api/extracts/${seg(id)}`;
 const result = (id: string) => `/api/extracts/results/${seg(id)}`;
@@ -47,13 +50,12 @@ export const extractsApi = {
 
   create: (input: ExtractSourceInput) => http.post<ExtractSource>("/api/extracts", input),
 
-  update: (id: string, input: Partial<ExtractSourceInput>) =>
-    http.patch<ExtractSource>(source(id), input),
+  update: (id: string, input: ExtractSourcePatch) => http.patch<ExtractSource>(source(id), input),
 
   remove: (id: string) => http.delete<void>(source(id)),
 
   /** Ask Firecrawl now; the answer comes back as the source's pending result. */
-  run: (id: string, opts: { fresh?: boolean } = {}) =>
+  run: (id: string, opts: z.input<typeof runInput> = {}) =>
     http.post<ExtractResult>(`${source(id)}/run`, opts),
 
   /** Accepted results for a source, newest first. */

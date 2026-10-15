@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import type { ShelfRec } from "@/lib/api/ai";
 import type { LookupResult } from "@/lib/api/types";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { normalizeTitle } from "@/lib/shelves-db.server.ts";
 import { asDocument, generateJson } from "@/server/ai";
 import { badRequest } from "@/server/http";

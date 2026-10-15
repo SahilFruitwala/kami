@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Link2, LoaderCircle, PenLine, Search } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
@@ -11,12 +10,12 @@ import {
   useBookSearch,
   useFindShelfDuplicates,
   useTmdbSearch,
+  useFetchLinkPreview,
 } from "@/hooks/use-shelf-queries.ts";
-import { queryKeys } from "@/lib/query-client.ts";
 import { type ShelfTab } from "@/lib/shelves.ts";
-import { lookupApi } from "@/lib/api/lookup";
 import type { LookupResult } from "@/lib/api/types";
 import { cn } from "@/lib/utils.ts";
+import { errorMessage } from "@/lib/errors";
 
 const ADD_TYPE_META: { id: ShelfTab; label: string; hint: string }[] = [
   { id: "movie", label: "Movie", hint: "Search TMDB by title" },
@@ -59,7 +58,7 @@ export function AddShelfDialog({
 
   const addItem = useAddShelfItem();
   const findDupes = useFindShelfDuplicates();
-  const queryClient = useQueryClient();
+  const fetchLinkPreview = useFetchLinkPreview();
 
   const tmdbKind = type === "tv" ? "tv" : "movie";
   const searchEnabled = open && !manual && type !== "wishlist" && debounced.length >= 2;
@@ -129,10 +128,7 @@ export function AddShelfDialog({
     setFetchingLink(true);
     setLinkFetchError(null);
     try {
-      const r = await queryClient.fetchQuery({
-        queryKey: queryKeys.lookup.link(raw),
-        queryFn: () => lookupApi.link(raw),
-      });
+      const r = await fetchLinkPreview(raw);
       if (r) pick(r);
       else setLinkFetchError("Couldn't read that page — fill in the details below instead.");
     } catch {
@@ -160,7 +156,7 @@ export function AddShelfDialog({
           return;
         }
       } catch (e) {
-        setSaveError(e instanceof Error ? e.message : "Duplicate check failed.");
+        setSaveError(errorMessage(e, "Duplicate check failed."));
         return;
       }
     } else if (blockDuplicates) {
@@ -181,7 +177,7 @@ export function AddShelfDialog({
       });
       onAdded();
     } catch (e) {
-      setSaveError(e instanceof Error ? e.message : "Couldn't save that item.");
+      setSaveError(errorMessage(e, "Couldn't save that item."));
     }
   }
 

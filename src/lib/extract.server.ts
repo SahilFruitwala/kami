@@ -66,9 +66,9 @@ function extractJsonLd(document: Document): {
             ? author
             : Array.isArray(author)
               ? author
-                .map((a) => a?.name)
-                .filter(Boolean)
-                .join(", ")
+                  .map((a) => a?.name)
+                  .filter(Boolean)
+                  .join(", ")
               : author?.name;
         const image = typeof node.image === "string" ? node.image : node.image?.url;
         return {
@@ -309,7 +309,11 @@ export function articleFromManualImport(input: {
  * through the same extraction as a server fetch — site rules, Readability,
  * metadata — and only fall back to sanitizing the raw HTML if that fails.
  */
-export function articleFromCapturedPage(input: { url?: string; title: string; html: string }): Article {
+export function articleFromCapturedPage(input: {
+  url?: string;
+  title: string;
+  html: string;
+}): Article {
   let href = "";
   if (input.url?.trim()) href = assertPublicHttpUrl(input.url.trim()).href;
   if (href) {
@@ -319,7 +323,11 @@ export function articleFromCapturedPage(input: { url?: string; title: string; ht
       return { ...article, title: article.title || input.title.trim() };
     }
   }
-  return articleFromManualImport({ url: href || undefined, title: input.title, contentHtml: input.html });
+  return articleFromManualImport({
+    url: href || undefined,
+    title: input.title,
+    contentHtml: input.html,
+  });
 }
 
 /**
@@ -400,5 +408,3 @@ export async function extractArticleFromUrl(
         : "That post could not be read. It may be private, deleted, or behind a login.",
   };
 }
-
-

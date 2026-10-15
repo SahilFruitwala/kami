@@ -17,7 +17,7 @@ src/server/services/*  (business logic)
         └─ cache.server.ts → Upstash Redis (optional)
 ```
 
-Signed-in users pass **`AppGate`**, which loads a per-user library + journal snapshot into **Zustand**. Mutations update the store immediately and sync through the **REST API (`/api/*`) + Drizzle**, always scoped by Clerk **`userId`**. Shelves skip the optimistic store and use **React Query**. Article HTML is produced only on the server.
+Signed-in users pass **`AppGate`**, which starts the per-user library boot (`useLibraryBoot`: a React Query entry that runs `bootstrapLibraryFromServer` once per user and fills the **Zustand** library store); pages that need the library wait on it through **`LibraryGate`**. Mutations update the store immediately and sync through the **REST API (`/api/*`) + Drizzle**, always scoped by Clerk **`userId`**. Shelves skip the optimistic store and use **React Query**. Article HTML is produced only on the server.
 
 ---
 
@@ -107,7 +107,8 @@ sequenceDiagram
 | Routes | `src/routes/*.tsx` | URL, search params, compose shell + page |
 | UI | `src/components/**` | Presentation; call hooks / stores / `src/lib/api` |
 | Hooks | `src/hooks/**` | Capture, filters, shelf queries |
-| Client state | `store.ts`, `journal.ts`, `*-remote.ts` | Optimistic library/journal + offline outbox |
+| Domain | `library-item.ts`, `item-ops.ts`, `id.ts` | Isomorphic types, size limits, pure helpers — shared by client and server; never imports the store |
+| Client state | `store.ts`, `journal.ts`, `*-remote.ts`, `reader-prefs.ts` | Optimistic library/journal + offline outbox; per-device reader preferences |
 | API client | `src/lib/api/**` | Typed `fetch` wrappers + shared request/response types |
 | HTTP routes | `src/routes/api/**` | Method + path → service call; no business logic |
 | HTTP layer | `src/server/http.ts` | Auth, same-site, rate limit, Zod, error → status |
@@ -180,6 +181,8 @@ flowchart TB
 | Journal | Zustand + outbox | Same pattern |
 | Shelves | React Query | Server-authoritative lists, easy invalidation |
 | Lookups | React Query | External APIs with TTLs |
+
+**Outbox** (`src/lib/sync-queue.ts`): library and journal writes are plain-data ops (`{ kind: "patch", id, patch }`, …). Each runs immediately; on failure or while offline it is queued, saved to localStorage under the signed-in user's id, and retried on reconnect, on the next boot for that same user, or from the offline pill. Ops older than 7 days are dropped instead of replayed, and wiping the library discards the queue.
 
 ---
 
@@ -517,7 +520,7 @@ capture flow; **Skip** closes the tab.
 
 | Path | Role |
 |---|---|
-| `src/lib/model-fallback.ts` | Fallback model chain, prompt clipping (pure, tested in `scripts/ai.test.mjs`) |
+| `src/lib/model-fallback.ts` | Fallback model chain, prompt clipping (pure, tested in `tests/ai.test.mjs`) |
 | `src/lib/ai-models.ts`, `src/lib/llm.server.ts` | `AI_MODELS` parsing (pure, tested) and provider wiring for the chain |
 | `src/server/ai.ts` | Shared generation helpers and error mapping |
 | `src/server/services/ai-articles.ts` | Summaries, tag vocabulary, article-to-prompt helpers |
@@ -537,7 +540,7 @@ capture flow; **Skip** closes the tab.
 `src/lib/cache.server.ts` — enabled only when both Upstash env vars are set.
 
 - Key shape: `quarto:v1:u:<userId>:…`
-- Read-through via `cached()`; writes call `invalidateUserCache(userId)`
+- Read-through via `cached()` on per-user keys built with `userFeatureKey(userId, feature, …)`; writes call `invalidateUserCache(userId, feature)`, which drops only that feature ("library" | "shelves" | "journal") for that user
 - Oversized library snapshots skip cache
 - Lookups (TMDB, books, previews) use longer TTLs
 
@@ -567,7 +570,7 @@ flowchart TB
 ```
 
 - **`AppShell`**: header, nav panes, command palette, offline banner.
-- **`AppGate`**: wait for auth + bootstrap library/journal once per user.
+- **`AppGate`**: wait for auth; start the library boot once per user (`useLibraryBoot`). **`LibraryGate`**: show the loading / retry screen until that boot succeeds.
 - **`/read`**: immersive — gate without full chrome.
 
 File routes under `src/routes/` regenerate `src/routeTree.gen.ts` via the Vite router plugin. Do not hand-edit the generated tree.

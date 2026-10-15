@@ -11,6 +11,7 @@ import {
   type TripPatch,
 } from "@/lib/api/trips";
 import { queryKeys } from "@/lib/query-client.ts";
+import { errorMessage } from "@/lib/errors";
 
 export function useTripsList() {
   return useQuery({ queryKey: queryKeys.trips.list(), queryFn: () => tripsApi.list() });
@@ -20,8 +21,6 @@ export function useTrip(id: string) {
   return useQuery({ queryKey: queryKeys.trips.detail(id), queryFn: () => tripsApi.get(id) });
 }
 
-const message = (err: unknown, fallback: string) => (err instanceof Error ? err.message : fallback);
-
 export function useCreateTrip() {
   const client = useQueryClient();
   return useMutation({
@@ -30,7 +29,7 @@ export function useCreateTrip() {
       client.setQueryData(queryKeys.trips.detail(trip.id), trip);
       void client.invalidateQueries({ queryKey: queryKeys.trips.list() });
     },
-    onError: (err) => toast.error(message(err, "Could not create that trip.")),
+    onError: (err) => toast.error(errorMessage(err, "Could not create that trip.")),
   });
 }
 
@@ -44,7 +43,7 @@ export function useTripActions(tripId: string) {
     client.setQueryData(queryKeys.trips.detail(trip.id), trip);
     void client.invalidateQueries({ queryKey: queryKeys.trips.list() });
   };
-  const fail = (fallback: string) => (err: unknown) => toast.error(message(err, fallback));
+  const fail = (fallback: string) => (err: unknown) => toast.error(errorMessage(err, fallback));
 
   const update = useMutation({
     mutationFn: (patch: TripPatch) => tripsApi.update(tripId, patch),

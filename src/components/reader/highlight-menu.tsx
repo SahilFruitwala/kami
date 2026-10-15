@@ -1,5 +1,5 @@
 import { Trash2 } from "lucide-react";
-import { HIGHLIGHT_COLORS, type HighlightColorId } from "@/lib/store.ts";
+import { HIGHLIGHT_COLORS, type HighlightColorId } from "@/lib/library-item.ts";
 import type { EditMenu, SelMenu } from "@/lib/selection-menu.ts";
 import { cn } from "@/lib/utils.ts";
 

@@ -13,14 +13,16 @@ import { getAppQueryClient } from "@/lib/query-client";
 import { Toaster } from "sonner";
 import { useTheme } from "@/hooks/use-theme.ts";
 import appCss from "../styles.css?url";
+import { ConfirmHost } from "@/components/confirm-dialog.tsx";
 
 const APP_NAME = "KAMI";
 
 // Canonical public origin for absolute OG URLs. Set VITE_PUBLIC_HOSTNAME in
 // production (e.g. kami.sahilfruitwala.com); falls back to the production host.
-const PUBLIC_HOST =
-  import.meta.env.VITE_PUBLIC_HOSTNAME || "kami.sahilfruitwala.com";
-const SITE_URL = `https://${String(PUBLIC_HOST).replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
+const PUBLIC_HOST = import.meta.env.VITE_PUBLIC_HOSTNAME || "kami.sahilfruitwala.com";
+const SITE_URL = `https://${String(PUBLIC_HOST)
+  .replace(/^https?:\/\//, "")
+  .replace(/\/$/, "")}`;
 const OG_IMAGE = `${SITE_URL}/og.webp`;
 
 const THEME_INIT_SCRIPT = `(function(){try{var s=localStorage.getItem('quarto-theme');var t=s==='light'||s==='dark'?s:(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');if(t==='dark')document.documentElement.classList.add('dark');document.documentElement.style.colorScheme=t;}catch(e){}})();`;
@@ -111,6 +113,7 @@ function ThemeShell() {
   return (
     <>
       <Outlet />
+      <ConfirmHost />
       <Toaster
         position="bottom-center"
         closeButton

@@ -21,7 +21,8 @@ import {
   writeDraftUrl,
 } from "@/lib/session-article.ts";
 import { persistArticleItem } from "@/lib/library-remote.ts";
-import { articleToItem, type LibraryItem } from "@/lib/store.ts";
+import { articleToItem, type LibraryItem } from "@/lib/library-item.ts";
+import { toastError } from "@/lib/errors";
 
 type HomeSearch = {
   /**
@@ -172,7 +173,7 @@ function Home() {
           goRead(navigate, local.id);
         } else {
           paste.seedPaste(payload);
-          toast.error(err instanceof Error ? err.message : "Could not save that capture.");
+          toastError(err, "Could not save that capture.");
         }
       }
     } catch {

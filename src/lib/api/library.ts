@@ -1,5 +1,6 @@
-import type { HighlightOp, TagOp } from "@/lib/item-ops";
-import type { Folder, Highlight, LibraryItem } from "@/lib/store";
+import type { z } from "zod";
+import type { libraryItemPatch, libraryTagOpBody } from "./schemas/library";
+import type { Folder, LibraryItem } from "@/lib/library-item";
 import { http, orNull, seg } from "./client";
 import {
   LIBRARY_BOOT_LIMIT,
@@ -10,16 +11,8 @@ import {
   type SaveUrlResult,
 } from "./types";
 
-export type LibraryItemPatch = {
-  archived?: boolean;
-  favorited?: boolean;
-  note?: string;
-  folderId?: string | null;
-  tags?: string[];
-  highlights?: Highlight[];
-  tagOps?: TagOp[];
-  highlightOps?: HighlightOp[];
-};
+export type LibraryItemPatch = z.input<typeof libraryItemPatch>;
+export type LibraryTagOp = z.input<typeof libraryTagOpBody>;
 
 export const libraryApi = {
   /** One keyset page, newest first. The first page (no cursor) also carries folders + total. */
@@ -63,6 +56,9 @@ export const libraryApi = {
 
     remove: (id: string) => http.delete<void>(`/api/library/items/${seg(id)}`),
   },
+
+  /** Rename or remove a tag on every article (server-side, one transaction). */
+  tagEverywhere: (op: LibraryTagOp) => http.post<{ affected: number }>("/api/library/tags", op),
 
   folders: {
     add: (folder: { id?: string; name: string }) =>

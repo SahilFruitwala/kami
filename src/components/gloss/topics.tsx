@@ -8,7 +8,7 @@ import {
   topicLabel,
   type TopicId,
 } from "@/lib/gloss/palette.ts";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import { BookCover, TopicEngraving, TopicIcon } from "@/components/gloss/book.tsx";
 import { useTilt } from "@/hooks/use-tilt.ts";
 import { minutesLabel } from "@/lib/gloss/format.ts";

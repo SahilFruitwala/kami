@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { EntrySummary } from "@/lib/api/ai";
 import { textFromHtml } from "@/lib/article-build.server.ts";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { clipText } from "@/lib/model-fallback.ts";
 import { feedEntries, feedSubscriptions, feeds } from "@/lib/schema";
 import { asDocument, generateJson } from "@/server/ai";

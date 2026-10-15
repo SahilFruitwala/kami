@@ -11,7 +11,7 @@ import {
 } from "@/lib/gloss/palette.ts";
 import { minutesLabel, domainOf } from "@/lib/gloss/format.ts";
 import { topicIcon } from "@/lib/gloss/topic-icons.ts";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import { cn } from "@/lib/utils.ts";
 import { GlossCta, Ornament, type PullOutApi } from "@/components/gloss/index.ts";
 

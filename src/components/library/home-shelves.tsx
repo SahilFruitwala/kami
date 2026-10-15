@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   BookOpen,
@@ -15,11 +14,15 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
-import { useAddShelfItem, useBookSearch, useTmdbSearch } from "@/hooks/use-shelf-queries.ts";
-import { queryKeys } from "@/lib/query-client.ts";
+import {
+  useAddShelfItem,
+  useBookSearch,
+  useTmdbSearch,
+  useFetchLinkPreview,
+} from "@/hooks/use-shelf-queries.ts";
 import { shelfPath, type ShelfTab } from "@/lib/shelves.ts";
-import { lookupApi } from "@/lib/api/lookup";
 import type { LookupResult } from "@/lib/api/types";
+import { toastError } from "@/lib/errors";
 
 export type HomeCaptureType = "article" | ShelfTab;
 
@@ -81,7 +84,7 @@ export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
   const [fetchingLink, setFetchingLink] = useState(false);
 
   const addItem = useAddShelfItem();
-  const queryClient = useQueryClient();
+  const fetchLinkPreview = useFetchLinkPreview();
   const isWishlist = type === "wishlist";
   const isBook = type === "book";
 
@@ -126,7 +129,7 @@ export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
       setQuery("");
       setDebounced("");
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't save that item.");
+      toastError(e, "Couldn't save that item.");
     } finally {
       setAddingKey(null);
     }
@@ -139,10 +142,7 @@ export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
     try {
       let preview = null;
       try {
-        preview = await queryClient.fetchQuery({
-          queryKey: queryKeys.lookup.link(raw),
-          queryFn: () => lookupApi.link(raw),
-        });
+        preview = await fetchLinkPreview(raw);
       } catch {
         preview = null;
       }
@@ -168,7 +168,7 @@ export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
         setAddingKey(null);
       }
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Couldn't save that link.");
+      toastError(e, "Couldn't save that link.");
     } finally {
       setFetchingLink(false);
     }

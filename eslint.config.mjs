@@ -31,15 +31,55 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      "react-refresh/only-export-components": [
-        "warn",
-        { allowConstantExport: true },
-      ],
+      "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": [
         "warn",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+  // Browser code: no server modules, and request schemas only as types
+  // (their runtime — and Zod — must not ship to the client).
+  {
+    files: ["src/components/**", "src/hooks/**", "src/routes/**/*.tsx", "src/lib/api/*.ts"],
+    rules: {
+      "no-restricted-imports": "off",
+      "@typescript-eslint/no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/server/*", "**/*.server", "**/*.server.ts"],
+              message: "Server-only module: call it through /api/* instead.",
+            },
+            {
+              group: ["@/lib/api/schemas/*", "./schemas/*"],
+              allowTypeImports: true,
+              message: "Import request schemas with `import type` and use z.input<>.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  // Components and pages get server data through hooks in src/hooks, so query
+  // keys, cache options and invalidation live in one place.
+  {
+    files: ["src/components/**", "src/routes/**/*.tsx"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "@tanstack/react-query",
+              importNames: ["useQuery", "useMutation", "useQueryClient", "useInfiniteQuery"],
+              message: "Wrap queries and mutations in a hook under src/hooks.",
+            },
+          ],
+        },
+      ],
     },
   },
   // Disable rules that conflict with Prettier formatting.

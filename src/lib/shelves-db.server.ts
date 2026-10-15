@@ -1,6 +1,11 @@
 import { and, eq, sql } from "drizzle-orm";
-import { z } from "zod";
-import { getDb } from "@/lib/db";
+export {
+  addShelfItemInput,
+  clampShelfItemInput,
+  shelfStatus,
+  shelfType,
+} from "@/lib/api/schemas/shelves";
+import { getDb } from "@/lib/db.server";
 import type { ItemStatus } from "@/lib/schema";
 import {
   bookGenres,
@@ -19,9 +24,6 @@ import {
 } from "@/lib/schema";
 
 /** Server-side shelf helpers shared by the read and write server functions. */
-
-export const shelfType = z.enum(["movie", "tv", "book", "wishlist", "restaurant", "place"]);
-export const shelfStatus = z.enum(["to_try", "in_progress", "done", "abandoned"]);
 
 /** Lowercase, punctuation-stripped title for duplicate checks (mirrors shelf). */
 export function normalizeTitle(title: string): string {
@@ -132,35 +134,6 @@ export async function syncGenres(
   else if (type === "tv")
     await db.insert(tvShowGenres).values(names.map(([genreId]) => ({ tvShowId: itemId, genreId })));
   else await db.insert(bookGenres).values(names.map(([genreId]) => ({ bookId: itemId, genreId })));
-}
-
-export const addShelfItemInput = z.object({
-  type: shelfType,
-  title: z.string().min(1).max(300),
-  notes: z.string().max(2000).optional(),
-  link: z.string().max(2000).optional(),
-  imageUrl: z.string().max(2000).optional(),
-  metadata: z.record(z.string(), z.string()).optional(),
-  status: z.enum(["to_try", "done"]).default("to_try"),
-});
-
-/** Drop oversize optional URLs before Zod max caps reject the whole insert. */
-export function clampShelfItemInput(input: unknown): unknown {
-  if (!input || typeof input !== "object") return input;
-  const o = input as Record<string, unknown>;
-  const trimCap = (v: unknown, max: number) => {
-    if (typeof v !== "string") return v;
-    const t = v.trim();
-    if (!t) return undefined;
-    return t.length <= max ? t : undefined;
-  };
-  return {
-    ...o,
-    title: typeof o.title === "string" ? o.title.trim().slice(0, 300) : o.title,
-    notes: typeof o.notes === "string" ? o.notes.slice(0, 2000) : o.notes,
-    link: trimCap(o.link, 2000),
-    imageUrl: trimCap(o.imageUrl, 2000),
-  };
 }
 
 export async function findExistingMovieOrTv(

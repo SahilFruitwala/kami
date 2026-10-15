@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Eraser, LoaderCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button.tsx";
@@ -11,11 +10,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
-import { aiApi, type TidyResult } from "@/lib/api/ai";
+import { type TidyResult } from "@/lib/api/ai";
 import { rewriteHtmlImages } from "@/lib/image-url.ts";
-import { queryKeys } from "@/lib/query-client.ts";
-import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
+import { useLibraryStore } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import { cn } from "@/lib/utils.ts";
+import { useInvalidateArticleSummary, useTidyArticle } from "@/hooks/use-ai.ts";
 
 /**
  * "Remove ads & clutter": the model picks the blocks to drop, then the
@@ -23,22 +23,23 @@ import { cn } from "@/lib/utils.ts";
  */
 export function TidyButton({ item }: { item: LibraryItem }) {
   const [result, setResult] = useState<TidyResult | null>(null);
-  const tidy = useMutation({
-    mutationFn: () => aiApi.tidy(item.id),
-    onSuccess: (res) => {
-      if (!res.removed.length) {
-        toast.success("Nothing to tidy: this copy is all the piece itself.");
-        return;
-      }
-      setResult(res);
-    },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not tidy this copy."),
-  });
+  const tidy = useTidyArticle(item.id);
+  function run() {
+    tidy.mutate(undefined, {
+      onSuccess: (res) => {
+        if (!res.removed.length) {
+          toast.success("Nothing to tidy: this copy is all the piece itself.");
+          return;
+        }
+        setResult(res);
+      },
+    });
+  }
   return (
     <>
       <button
         type="button"
-        onClick={() => tidy.mutate()}
+        onClick={run}
         disabled={tidy.isPending}
         title="Remove ads, sponsor slots, subscribe prompts and footers"
         className="flex items-center gap-1.5 font-sans text-[11px] opacity-60 transition-opacity hover:opacity-100 disabled:opacity-40"
@@ -66,7 +67,7 @@ function TidyReview({
   result: TidyResult;
   onClose: () => void;
 }) {
-  const client = useQueryClient();
+  const invalidateSummary = useInvalidateArticleSummary();
   const upsertItem = useLibraryStore((s) => s.upsertItem);
   // Narrow screens show one copy at a time; wide ones show both.
   const [pane, setPane] = useState<Pane>("after");
@@ -77,14 +78,14 @@ function TidyReview({
   function save() {
     const previous = item;
     upsertItem({ ...item, contentHtml: result.contentHtml });
-    void client.invalidateQueries({ queryKey: queryKeys.ai.summary(item.id) });
+    invalidateSummary(item.id);
     onClose();
     toast.success(`Removed ${count} block${count === 1 ? "" : "s"} of clutter`, {
       action: {
         label: "Undo",
         onClick: () => {
           upsertItem(previous);
-          void client.invalidateQueries({ queryKey: queryKeys.ai.summary(item.id) });
+          invalidateSummary(item.id);
         },
       },
     });

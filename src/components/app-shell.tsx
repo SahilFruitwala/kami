@@ -7,12 +7,9 @@ import { SiteFooter } from "@/components/library/site-footer.tsx";
 import { NameOnboarding } from "@/components/name-onboarding.tsx";
 import { SiteHeader, type SitePane } from "@/components/site-header.tsx";
 import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
-import {
-  flushSyncOutbox,
-  pendingSyncCount,
-  subscribeOutbox,
-} from "@/lib/library-remote.ts";
-import type { LibraryItem } from "@/lib/store.ts";
+import { flushAllSyncQueues, pendingSyncCount, subscribeSyncQueues } from "@/lib/sync-queue.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
+import { usePersistedPref } from "@/lib/local-pref.ts";
 
 // ⌘K palette is heavy (~600 lines + shelf lookup hooks) and unused until
 // opened — keep it out of the initial authenticated shell chunk.
@@ -48,22 +45,15 @@ export function AppShell({
   requireLibrary?: boolean;
 }) {
   const tools = useCaptureTools();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    () =>
-      typeof window !== "undefined" &&
-      window.localStorage.getItem("kami-sidebar-collapsed") === "1",
+  const [collapsedPref, setCollapsedPref] = usePersistedPref(
+    "kami-sidebar-collapsed",
+    ["1", "0"] as const,
+    "0",
   );
+  const sidebarCollapsed = collapsedPref === "1";
 
   function toggleSidebar() {
-    setSidebarCollapsed((prev) => {
-      const next = !prev;
-      try {
-        window.localStorage.setItem("kami-sidebar-collapsed", next ? "1" : "0");
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
+    setCollapsedPref(sidebarCollapsed ? "0" : "1");
   }
 
   const contentPad = sidebarCollapsed ? "lg:pl-0" : "lg:pl-60";
@@ -71,18 +61,30 @@ export function AppShell({
   return (
     <AppGate>
       <DirectionalTransition>
-        <main id="main" className="kami-desk relative flex min-h-dvh flex-col overflow-x-hidden [touch-action:manipulation]">
-          <a href="#main" className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-ink focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper">Skip to content</a>
+        <main
+          id="main"
+          className="kami-desk relative flex min-h-dvh flex-col overflow-x-hidden [touch-action:manipulation]"
+        >
+          <a
+            href="#main"
+            className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-ink focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper"
+          >
+            Skip to content
+          </a>
           <SiteHeader
             active={active}
             onOpenTools={() => tools.setToolsOpen(true)}
             sidebarCollapsed={sidebarCollapsed}
             onToggleSidebar={toggleSidebar}
           />
-          <div className={`flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0 ${contentPad} transition-[padding-left] duration-200 motion-reduce:transition-none`}>
+          <div
+            className={`flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0 ${contentPad} transition-[padding-left] duration-200 motion-reduce:transition-none`}
+          >
             {requireLibrary ? <LibraryGate>{children}</LibraryGate> : children}
           </div>
-          <div className={`pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0 ${contentPad} transition-[padding-left] duration-200 motion-reduce:transition-none`}>
+          <div
+            className={`pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0 ${contentPad} transition-[padding-left] duration-200 motion-reduce:transition-none`}
+          >
             <SiteFooter />
           </div>
           <ToolsDialog
@@ -103,9 +105,7 @@ export function AppShell({
 
 /** Fixed pill: offline state + pending-sync count with manual retry. */
 function OfflineBanner() {
-  const [online, setOnline] = useState(
-    typeof navigator === "undefined" ? true : navigator.onLine,
-  );
+  const [online, setOnline] = useState(typeof navigator === "undefined" ? true : navigator.onLine);
   const [pending, setPending] = useState(pendingSyncCount);
   const [flushing, setFlushing] = useState(false);
 
@@ -117,7 +117,7 @@ function OfflineBanner() {
     const goOffline = () => setOnline(false);
     window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
-    const unsub = subscribeOutbox(setPending);
+    const unsub = subscribeSyncQueues(setPending);
     return () => {
       window.removeEventListener("online", goOnline);
       window.removeEventListener("offline", goOffline);
@@ -130,7 +130,7 @@ function OfflineBanner() {
   async function retry() {
     setFlushing(true);
     try {
-      const { done, failed } = await flushSyncOutbox();
+      const { done, failed } = await flushAllSyncQueues();
       if (failed > 0) toast.error(`${failed} changes still waiting — try again later`);
       else if (done > 0) toast.success(`Synced ${done} ${done === 1 ? "change" : "changes"}`);
     } finally {
@@ -145,7 +145,9 @@ function OfflineBanner() {
     >
       <span className="flex items-center gap-2 font-sans text-xs">
         <span
-          className={online ? "size-2 rounded-full bg-ok" : "size-2 animate-pulse rounded-full bg-shu"}
+          className={
+            online ? "size-2 rounded-full bg-ok" : "size-2 animate-pulse rounded-full bg-shu"
+          }
           aria-hidden="true"
         />
         {!online

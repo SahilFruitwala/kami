@@ -2,7 +2,7 @@ import "@tanstack/react-start/server-only";
 import { and, asc, eq, notInArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { OrganizeProgress } from "@/lib/api/ai";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import { enforceRateLimit } from "@/lib/rate-limit.server.ts";
 import { articles, folders } from "@/lib/schema";
 import { TAG_CATEGORIES } from "@/lib/tag-categories.ts";
@@ -95,7 +95,9 @@ export async function organizeBatch(
       });
 
       const tags = [...new Set(output.tags)];
-      const folderId = output.folder ? (folderByName.get(output.folder.trim().toLowerCase()) ?? null) : null;
+      const folderId = output.folder
+        ? (folderByName.get(output.folder.trim().toLowerCase()) ?? null)
+        : null;
       if (tags.length === 0 && !folderId) return null;
 
       const item = await patchLibraryItem(userId, id, {
@@ -109,7 +111,8 @@ export async function organizeBatch(
   const done: OrganizeProgress["done"] = [];
   for (const result of settled) {
     if (result.status === "fulfilled" && result.value) done.push(result.value);
-    else if (result.status === "rejected") console.error("[organize] article failed:", result.reason);
+    else if (result.status === "rejected")
+      console.error("[organize] article failed:", result.reason);
   }
 
   // Everything in this batch is "tried" now, whether or not it worked.

@@ -1,16 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
-import { aiApi } from "@/lib/api/ai";
-import { queryKeys } from "@/lib/query-client.ts";
+import { errorMessage } from "@/lib/errors";
+import { useEntrySummary } from "@/hooks/use-ai.ts";
 
 /** A short summary of one entry, fetched (and cached server-side) on first open. */
 export function EntrySummary({ entryId }: { entryId: string }) {
-  const query = useQuery({
-    queryKey: queryKeys.ai.entrySummary(entryId),
-    queryFn: () => aiApi.entrySummary(entryId),
-    staleTime: Infinity,
-    retry: false,
-  });
+  const query = useEntrySummary(entryId);
   if (query.isPending) {
     return (
       <p className="mt-3 flex items-center gap-1.5 font-sans text-xs text-ink-muted">
@@ -22,7 +16,7 @@ export function EntrySummary({ entryId }: { entryId: string }) {
   if (query.isError) {
     return (
       <p className="mt-3 font-sans text-xs text-hanko">
-        {query.error instanceof Error ? query.error.message : "Could not summarize this entry."}
+        {errorMessage(query.error, "Could not summarize this entry.")}
       </p>
     );
   }

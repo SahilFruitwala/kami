@@ -1,5 +1,4 @@
 import { useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useLibraryStore } from "@/lib/store.ts";
 import {
@@ -14,10 +13,11 @@ import {
 } from "@/lib/export.ts";
 import { wipeLibraryAccount } from "@/lib/library-remote.ts";
 import { libraryApi } from "@/lib/api/library";
-import { shelvesApi } from "@/lib/api/shelves";
 import { parseBookCsv } from "@/lib/goodreads.ts";
-import { invalidateShelves } from "@/lib/query-client";
 import { Card, ExportButton, FieldLabel, MiniButton } from "@/components/settings/settings-ui.tsx";
+import { toastError } from "@/lib/errors";
+import { confirmAction } from "@/lib/confirm.ts";
+import { useImportBooks } from "@/hooks/use-shelf-queries.ts";
 
 export function DataCard() {
   const library = useLibraryStore((s) => s.library);
@@ -27,7 +27,7 @@ export function DataCard() {
   const clearLibrary = useLibraryStore((s) => s.clearLibrary);
   const fileRef = useRef<HTMLInputElement>(null);
   const goodreadsRef = useRef<HTMLInputElement>(null);
-  const queryClient = useQueryClient();
+  const importBooks = useImportBooks();
   const [goodreadsBusy, setGoodreadsBusy] = useState(false);
 
   const dupes = useMemo(() => findDuplicateGroups(library), [library]);
@@ -89,7 +89,7 @@ export function DataCard() {
         toast.success(`Imported ${rows.length} works from JSON`);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not read that file.");
+      toastError(err, "Could not read that file.");
     }
   }
 
@@ -102,14 +102,13 @@ export function DataCard() {
         toast.error(`No books found in that ${from} export.`);
         return;
       }
-      const { imported, skipped } = await shelvesApi.books.importBooks(source, books);
-      void invalidateShelves(queryClient);
+      const { imported, skipped } = await importBooks.mutateAsync({ source, books });
       toast.success(
         `Shelved ${imported} ${imported === 1 ? "book" : "books"} from ${from}` +
           (skipped ? ` (${skipped} already on your shelf)` : ""),
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not import that file.");
+      toastError(err, "Could not import that file.");
     } finally {
       setGoodreadsBusy(false);
     }
@@ -227,13 +226,19 @@ export function DataCard() {
         </p>
         <button
           type="button"
-          onClick={() => {
-            if (!window.confirm("Delete your entire library? This cannot be undone. Export first."))
-              return;
-            if (
-              !window.confirm("Really delete everything, including the server copy? Last chance.")
-            )
-              return;
+          onClick={async () => {
+            const first = await confirmAction({
+              title: "Delete your entire library?",
+              description: "This cannot be undone. Export first.",
+              confirmLabel: "Continue",
+            });
+            if (!first) return;
+            const last = await confirmAction({
+              title: "Really delete everything?",
+              description: "This includes the server copy. Last chance.",
+              confirmLabel: "Delete everything",
+            });
+            if (!last) return;
             void (async () => {
               try {
                 await wipeLibraryAccount();

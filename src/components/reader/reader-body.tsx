@@ -1,5 +1,11 @@
-import { READER_FONTS } from "@/lib/store.ts";
-import { memo, type CSSProperties, type KeyboardEvent, type MouseEvent, type RefObject } from "react";
+import { READER_FONTS } from "@/lib/reader-prefs.ts";
+import {
+  memo,
+  type CSSProperties,
+  type KeyboardEvent,
+  type MouseEvent,
+  type RefObject,
+} from "react";
 
 export const ReaderBody = memo(function ReaderBody({
   html,
@@ -24,7 +30,9 @@ export const ReaderBody = memo(function ReaderBody({
       ref={bodyRef}
       className="reader-body mt-8"
       data-font={fontId}
-      style={{ "--reader-font-size": `${fontSizeRem}rem`, "--reader-font": family } as CSSProperties}
+      style={
+        { "--reader-font-size": `${fontSizeRem}rem`, "--reader-font": family } as CSSProperties
+      }
       onMouseUp={onSelectEnd}
       onTouchEnd={onSelectEnd}
       onClick={onClick}

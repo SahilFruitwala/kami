@@ -227,7 +227,10 @@ export function SiteHeader({
               to="/settings"
               aria-label="Settings"
               aria-current={active === "settings" ? "page" : undefined}
-              className={cn(ICON_BTN, active === "settings" && "bg-surface text-ink shadow-[var(--g-shadow-chip)]")}
+              className={cn(
+                ICON_BTN,
+                active === "settings" && "bg-surface text-ink shadow-[var(--g-shadow-chip)]",
+              )}
             >
               <SettingsIcon className="size-4" aria-hidden="true" />
             </Link>
@@ -237,10 +240,7 @@ export function SiteHeader({
 
       {/* Top bar (desktop) */}
       <div
-        className={cn(
-          "sticky top-0 z-30 hidden bg-paper/85 backdrop-blur-xl lg:block",
-          topBarPad,
-        )}
+        className={cn("sticky top-0 z-30 hidden bg-paper/85 backdrop-blur-xl lg:block", topBarPad)}
       >
         <div className="flex h-16 items-center gap-2 px-6">
           {sidebarCollapsed && onToggleSidebar ? (
@@ -363,7 +363,10 @@ function Wordmark() {
       >
         {KAMI_GLYPH}
       </span>
-      <span className="font-display text-[22px] leading-none tracking-tight text-ink" translate="no">
+      <span
+        className="font-display text-[22px] leading-none tracking-tight text-ink"
+        translate="no"
+      >
         Kami
       </span>
     </Link>
@@ -407,7 +410,9 @@ function SignedName() {
       </Show>
       <Show when="signed-out">
         <span className="block font-sans text-sm font-medium text-ink">Guest</span>
-        <span className="block font-display text-[13px] text-ink-muted italic">Sign in to shelve works</span>
+        <span className="block font-display text-[13px] text-ink-muted italic">
+          Sign in to shelve works
+        </span>
       </Show>
     </>
   );

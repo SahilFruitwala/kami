@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import {
   BookOpen,
   Clapperboard,
@@ -41,13 +41,7 @@ import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { AddShelfDialog } from "@/components/library/add-shelf-dialog.tsx";
 import { ShelfFolio } from "@/components/library/shelf-folio.tsx";
 import { ShelfRecs } from "@/components/library/shelf-recs.tsx";
-import {
-  defaultStatus,
-  parseStatusFilter,
-  statusMeta,
-  statusToApi,
-  type StatusFilter,
-} from "@/lib/shelf-status.ts";
+import { statusMeta, statusToApi } from "@/lib/shelf-status.ts";
 import { useAiStatus } from "@/hooks/use-ai.ts";
 import {
   SHELF_PAGE_SIZE,
@@ -61,12 +55,18 @@ import {
 import { useTilt } from "@/hooks/use-tilt.ts";
 import { mediaCoverSize, mediaDepthRatio, STATUS_DOT } from "@/lib/gloss/palette.ts";
 import { statusLabels, statusText } from "@/lib/shelf-labels.ts";
-import { shelfPath, type ShelfCard } from "@/lib/shelves.ts";
+import { type ShelfCard } from "@/lib/shelves.ts";
 import type { ShelvesSearch } from "@/lib/shelves-search.ts";
+import { toastError } from "@/lib/errors";
+import { usePersistedPref } from "@/lib/local-pref.ts";
+import { confirmAction } from "@/lib/confirm.ts";
+import { useShelfFilters } from "@/hooks/use-shelf-filters.ts";
 
 type MediaTab = "movie" | "tv" | "book" | "wishlist";
-type View = "shelf" | "covers";
-type Arrange = "status" | "title" | "year" | "added";
+const VIEWS = ["shelf", "covers"] as const;
+const ARRANGES = ["status", "title", "year", "added"] as const;
+type View = (typeof VIEWS)[number];
+type Arrange = (typeof ARRANGES)[number];
 
 /** A shelf holds far more than a grid page; fetch in bigger bites. */
 const MEDIA_PAGE = SHELF_PAGE_SIZE * 5;
@@ -119,23 +119,23 @@ const ACTIVE = { movie: "movies", tv: "series", book: "books", wishlist: "wishli
  */
 export function MediaShelfView({ tab, search }: { tab: MediaTab; search: ShelvesSearch }) {
   const navigate = useNavigate();
+  const { query, setQuery, deferredQuery, status, setStatus, limit, loadMore, urlSearch } =
+    useShelfFilters(tab, search, MEDIA_PAGE);
   const kind: MediaKind = KIND[tab];
   const copy = COPY[tab];
   const labels = statusLabels(tab);
-  const [query, setQuery] = useState(() => search.q ?? "");
-  const [status, setStatus] = useState<StatusFilter>(() => parseStatusFilter(search.status, tab));
-  const [limit, setLimit] = useState(MEDIA_PAGE);
-  const deferredQuery = useDeferredValue(query);
-  const [view, setView] = useState<View>("shelf");
-  const [arrange, setArrange] = useState<Arrange>("status");
+  const [view, setView] = usePersistedPref<View>(`kami-${tab}-view`, VIEWS, "shelf");
+  const [arrange, setArrange] = usePersistedPref<Arrange>(
+    `kami-${tab}-arrange`,
+    ARRANGES,
+    "status",
+  );
   const [picked, setPicked] = useState<Picked | null>(null);
   const [opening, setOpening] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [recsOpen, setRecsOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const ai = useAiStatus();
-  const syncedFromUrl = useRef(false);
-  const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setItemStatus = useSetShelfItemStatus();
   const setShowWatched = useSetShowWatched();
   const deleteItem = useDeleteShelfItem();
@@ -156,54 +156,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
   const hasMore = items != null && items.length >= limit;
   const shelfCount = countsQuery.data?.[tab] ?? null;
 
-  useEffect(() => {
-    if (syncedFromUrl.current) return;
-    syncedFromUrl.current = true;
-    if (typeof search.q === "string") setQuery(search.q);
-    setStatus(parseStatusFilter(search.status, tab));
-    try {
-      const v = window.localStorage.getItem(`kami-${tab}-view`);
-      if (v === "shelf" || v === "covers") setView(v);
-      const a = window.localStorage.getItem(`kami-${tab}-arrange`);
-      if (a === "status" || a === "title" || a === "year" || a === "added") setArrange(a);
-    } catch {
-      /* private mode */
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
-    if (!syncedFromUrl.current) return;
-    if (pushTimer.current) clearTimeout(pushTimer.current);
-    pushTimer.current = setTimeout(() => {
-      void navigate({
-        to: shelfPath(tab),
-        search: {
-          q: query ? query : undefined,
-          status: status === defaultStatus(tab) ? undefined : status,
-        },
-        replace: true,
-      });
-    }, 300);
-    return () => {
-      if (pushTimer.current) clearTimeout(pushTimer.current);
-    };
-  }, [tab, query, status, navigate]);
-
-  useEffect(() => setLimit(MEDIA_PAGE), [tab, status, deferredQuery]);
-
-  function remember(key: string, value: string) {
-    try {
-      window.localStorage.setItem(`kami-${tab}-${key}`, value);
-    } catch {
-      /* private mode */
-    }
-  }
-
-  const listSearch: ShelvesSearch = {
-    q: query ? query : undefined,
-    status: status === defaultStatus(tab) ? undefined : status,
-  };
+  const listSearch = urlSearch;
 
   const sorted = useMemo(() => {
     if (!items) return [];
@@ -250,18 +203,22 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
       );
     } catch (err) {
       setPicked((p) => (p && p.card.id === card.id ? { ...p, card } : p));
-      toast.error(err instanceof Error ? err.message : "Couldn't update status.");
+      toastError(err, "Couldn't update status.");
     }
   }
 
   async function removeItem(card: ShelfCard, close: () => void) {
-    if (!window.confirm(`Remove “${card.title}” from your shelf?`)) return;
+    const ok = await confirmAction({
+      title: `Remove “${card.title}” from your shelf?`,
+      confirmLabel: "Remove",
+    });
+    if (!ok) return;
     try {
       await deleteItem.mutateAsync({ type: tab, id: card.id });
       toast.success(`Removed “${card.title}”`);
       close();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Couldn't delete that item.");
+      toastError(err, "Couldn't delete that item.");
     }
   }
 
@@ -347,10 +304,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
             <Segmented<View>
               label="Shelf view"
               value={view}
-              onChange={(v) => {
-                setView(v);
-                remember("view", v);
-              }}
+              onChange={setView}
               options={[
                 {
                   id: "shelf",
@@ -384,10 +338,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 size="sm"
                 label="Arrange by"
                 value={arrange}
-                onChange={(a) => {
-                  setArrange(a);
-                  remember("arrange", a);
-                }}
+                onChange={setArrange}
                 options={[
                   { id: "status", label: "Status" },
                   { id: "title", label: "Title" },
@@ -553,7 +504,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 type="button"
                 className="g-btn g-btn--ghost disabled:opacity-60"
                 disabled={itemsQuery.isFetching}
-                onClick={() => setLimit((n) => n + MEDIA_PAGE)}
+                onClick={loadMore}
               >
                 {itemsQuery.isFetching ? (
                   <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />

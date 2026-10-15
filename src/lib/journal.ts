@@ -102,7 +102,8 @@ export function moonPhaseLabel(key: string): string {
   const date = parseDateKey(key);
   const synodic = 29.53058867;
   const knownNew = Date.UTC(2000, 0, 6, 18, 14);
-  const days = (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - knownNew) / 86400000;
+  const days =
+    (Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) - knownNew) / 86400000;
   const age = ((days % synodic) + synodic) % synodic;
   const t = age / synodic;
   if (t < 0.03 || t > 0.97) return "New Moon";

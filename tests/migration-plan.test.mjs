@@ -15,8 +15,8 @@ import {
   migrationName,
   pendingMigrations,
   shouldMigrateOnBuild,
-} from "./migration-plan.mjs";
-import { projectRoot } from "./with-app-env.mjs";
+} from "../scripts/migration-plan.mjs";
+import { projectRoot } from "../scripts/with-app-env.mjs";
 
 const AUTH_MIGRATION = "0001_auth.sql";
 

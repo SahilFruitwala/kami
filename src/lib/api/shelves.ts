@@ -1,3 +1,5 @@
+import type { z } from "zod";
+import type { addShelfItemFields, bookProgressBody, shelfType } from "./schemas/shelves";
 import type { BookCsvSource, GoodreadsBook } from "@/lib/goodreads";
 import type { ItemStatus } from "@/lib/schema";
 import type { ShelfCard, ShelfDetail, ShelfTab } from "@/lib/shelves";
@@ -5,19 +7,11 @@ import { http, orNull, seg } from "./client";
 import type { EpisodeRow, ShelfDuplicate, ShowSeasons } from "./types";
 
 /** Every shelf kind the API accepts (tabs plus the not-yet-surfaced ones). */
-export type ShelfType = ShelfTab | "restaurant" | "place";
+export type ShelfType = z.output<typeof shelfType>;
 
-export type NewShelfItem = {
-  title: string;
-  notes?: string;
-  link?: string;
-  imageUrl?: string;
-  metadata?: Record<string, string>;
-  status?: "to_try" | "done";
-};
+export type NewShelfItem = z.input<typeof addShelfItemFields>;
 
-export type BookProgress =
-  { mode: "pages"; currentPage: number; pageCount: number } | { mode: "percent"; percent: number };
+export type BookProgress = z.input<typeof bookProgressBody>;
 
 const shelf = (type: ShelfType) => `/api/shelves/${seg(type)}`;
 const item = (type: ShelfType, id: string) => `${shelf(type)}/${seg(id)}`;

@@ -1,7 +1,7 @@
 import "@tanstack/react-start/server-only";
 import { randomBytes } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
-import { getDb } from "@/lib/db";
+import { getDb } from "@/lib/db.server";
 import {
   emailToEntry,
   normalizeInbound,
@@ -9,7 +9,7 @@ import {
 } from "@/lib/newsletter-parse.server.ts";
 import { RateLimitError, enforceRateLimit } from "@/lib/rate-limit.server.ts";
 import { feedSubscriptions, feeds, newsletterInboxes } from "@/lib/schema";
-import { uid } from "@/lib/store";
+import { uid } from "@/lib/id";
 import { HttpError } from "@/server/http";
 import { insertEntries } from "./poller";
 

@@ -26,9 +26,10 @@ import { useAiStatus } from "@/hooks/use-ai.ts";
 import { useFeedActions, useFeedEntries, useFeedsOverview } from "@/hooks/use-feeds.ts";
 import type { FeedEntry, FeedEntryView, FeedSummary } from "@/lib/api/feeds";
 import { previewImageSrc } from "@/lib/image-url.ts";
-import type { LibraryItem } from "@/lib/store.ts";
+import type { LibraryItem } from "@/lib/library-item.ts";
 import { relativeTime } from "@/lib/time.ts";
 import { cn } from "@/lib/utils.ts";
+import { confirmAction } from "@/lib/confirm.ts";
 
 const VIEWS: Array<{ id: FeedEntryView; label: string }> = [
   { id: "unread", label: "Unread" },
@@ -115,11 +116,14 @@ export function FeedsView({
                   {selected ? "Refresh feed" : "Refresh all"}
                 </ToolbarButton>
                 <ToolbarButton
-                  onClick={() => {
+                  onClick={async () => {
                     const scope = selected ? `“${selected.title}”` : "every feed";
-                    if (window.confirm(`Mark everything in ${scope} as read?`)) {
-                      actions.markAllRead.mutate(feedId);
-                    }
+                    const ok = await confirmAction({
+                      title: `Mark everything in ${scope} as read?`,
+                      confirmLabel: "Mark as read",
+                      destructive: false,
+                    });
+                    if (ok) actions.markAllRead.mutate(feedId);
                   }}
                   busy={actions.markAllRead.isPending}
                   icon={<CheckCheck className="size-3.5" aria-hidden="true" />}
@@ -233,10 +237,7 @@ function FeedHeader({
             aria-label="Feed name"
             className="h-9"
           />
-          <button
-            type="submit"
-            className="g-btn g-btn--ink h-9"
-          >
+          <button type="submit" className="g-btn g-btn--ink h-9">
             Save
           </button>
         </form>
@@ -282,14 +283,16 @@ function FeedHeader({
         </button>
         <button
           type="button"
-          onClick={() => {
-            const note =
-              feed.kind === "email"
-                ? " New issues will still arrive unless you also unsubscribe from the newsletter itself."
-                : "";
-            if (window.confirm(`Unsubscribe from “${feed.title}”?${note}`)) {
-              actions.remove.mutate(feed.id, { onSuccess: onUnsubscribed });
-            }
+          onClick={async () => {
+            const ok = await confirmAction({
+              title: `Unsubscribe from “${feed.title}”?`,
+              description:
+                feed.kind === "email"
+                  ? "New issues will still arrive unless you also unsubscribe from the newsletter itself."
+                  : undefined,
+              confirmLabel: "Unsubscribe",
+            });
+            if (ok) actions.remove.mutate(feed.id, { onSuccess: onUnsubscribed });
           }}
           className="flex items-center gap-1 hover:text-hanko"
         >

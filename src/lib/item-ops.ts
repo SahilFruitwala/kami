@@ -1,4 +1,4 @@
-import type { Highlight, HighlightColorId } from "./store.ts";
+import { LIBRARY_LIMITS, type Highlight, type HighlightColorId } from "./library-item.ts";
 
 /**
  * Incremental edits to an item's tags / highlights.
@@ -9,10 +9,10 @@ import type { Highlight, HighlightColorId } from "./store.ts";
  * earlier tab's tags or highlights.
  */
 
-export const MAX_TAGS = 12;
-export const MAX_HIGHLIGHTS = 80;
+export const MAX_TAGS = LIBRARY_LIMITS.tags;
+export const MAX_HIGHLIGHTS = LIBRARY_LIMITS.highlights;
 /** Longest marginalia note kept on a single highlight. */
-export const HIGHLIGHT_NOTE_MAX = 1000;
+export const HIGHLIGHT_NOTE_MAX = LIBRARY_LIMITS.highlightNote;
 
 export type TagOp =
   | { op: "add"; tag: string }
