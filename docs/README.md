@@ -1,15 +1,15 @@
 # Documentation index
 
-Onboarding material for KAMI / **quarto** (`simple-pocket`).
+Onboarding material for KAMI / **quarto**.
 
-| Document | Audience | Contents |
-|----------|----------|----------|
-| [../README.md](../README.md) | Everyone | Product overview, quick start, map of the repo |
-| [ARCHITECTURE.md](./ARCHITECTURE.md) | Engineers | Layers, request flow, auth, caching, Mermaid diagrams |
-| [DATA-MODEL.md](./DATA-MODEL.md) | Engineers touching DB | ER diagram, tables, migrations |
-| [DEVELOPMENT.md](./DEVELOPMENT.md) | Local contributors | Env vars, Docker, scripts, debugging |
-| [API.md](./API.md) | Anyone calling or adding endpoints | REST endpoint reference, conventions, errors |
-| [CONTRIBUTING.md](./CONTRIBUTING.md) | Anyone shipping changes | Recipes for routes, API endpoints, schema, UI, shelves |
+| Document                             | Audience                           | Contents                                               |
+| ------------------------------------ | ---------------------------------- | ------------------------------------------------------ |
+| [../README.md](../README.md)         | Everyone                           | Product overview, quick start, map of the repo         |
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Engineers                          | Layers, request flow, auth, caching, Mermaid diagrams  |
+| [DATA-MODEL.md](./DATA-MODEL.md)     | Engineers touching DB              | ER diagram, tables, migrations                         |
+| [DEVELOPMENT.md](./DEVELOPMENT.md)   | Local contributors                 | Env vars, Docker, scripts, debugging                   |
+| [API.md](./API.md)                   | Anyone calling or adding endpoints | REST endpoint reference, conventions, errors           |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | Anyone shipping changes            | Recipes for routes, API endpoints, schema, UI, shelves |
 
 Suggested first hour:
 

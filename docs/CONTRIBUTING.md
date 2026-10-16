@@ -8,11 +8,12 @@ If you have not set up the app yet, start with [Development](./DEVELOPMENT.md). 
 
 ## Before you open a PR
 
-1. Branch from latest `master`.
+1. Fork the repo and branch from latest `master`.
 2. Keep changes focused — one concern per PR when possible.
-3. Run `pnpm typecheck` and `pnpm test` (tests live in `tests/`).
+3. Run `pnpm typecheck`, `pnpm lint`, `pnpm format:check` and `pnpm test` (tests live in `tests/`) — CI runs all four.
 4. Prefer matching existing naming (`src/server/services/*`, `src/routes/api/*`, `*.server.ts`, Kami CSS tokens).
 5. Never commit `.env`, secrets, or real user data dumps.
+6. By contributing you agree your work is licensed under the project's [MIT License](../LICENSE).
 
 ---
 
@@ -31,11 +32,7 @@ export const Route = createFileRoute("/my-feature")({
 });
 
 function MyFeaturePage() {
-  return (
-    <AppShell>
-      {/* page content */}
-    </AppShell>
-  );
+  return <AppShell>{/* page content */}</AppShell>;
 }
 ```
 
@@ -52,7 +49,9 @@ An endpoint is a few small pieces — keep business logic out of the route file.
 ```ts
 import { z } from "zod";
 
-export const doThingBody = z.object({ /* … */ });
+export const doThingBody = z.object({
+  /* … */
+});
 ```
 
 **b. Service** — `src/server/services/<domain>.ts` (plain async functions, server-only):
@@ -137,12 +136,12 @@ Do **not** edit already-shipped migration files on shared DBs. See [Data model](
 
 ### 4. Add or change UI
 
-| Kind | Where |
-|------|--------|
-| Feature screens | `src/components/<area>/` |
-| Primitives | `src/components/ui/` (shadcn / Base UI — see `components.json`) |
-| Brand atoms | `src/components/kami.tsx`, tokens in `src/styles.css` |
-| Hooks | `src/hooks/` |
+| Kind            | Where                                                           |
+| --------------- | --------------------------------------------------------------- |
+| Feature screens | `src/components/<area>/`                                        |
+| Primitives      | `src/components/ui/` (shadcn / Base UI — see `components.json`) |
+| Brand atoms     | `src/components/kami.tsx`, tokens in `src/styles.css`           |
+| Hooks           | `src/hooks/`                                                    |
 
 Reuse existing patterns: `kami-desk`, paper/ink CSS variables, `Button` from `ui/button`. Prefer composition over new card-heavy layouts unless the interaction needs a card.
 
@@ -165,14 +164,14 @@ Server-only: `src/lib/extract.server.ts` + thin wrappers in `src/server/services
 
 ### 7. Auth / gates
 
-| Need | File |
-|------|------|
-| Server identity | `src/lib/auth/verify.server.ts` |
-| API auth wrapper | `src/server/http.ts` (`apiHandler`) |
-| Same-site isolation | `src/lib/auth/isolation.server.ts` |
-| React provider | `src/lib/auth/provider.tsx` |
-| Sign-in UI helpers | `src/lib/auth/gates.tsx` |
-| Global middleware | `src/start.ts` |
+| Need                | File                                |
+| ------------------- | ----------------------------------- |
+| Server identity     | `src/lib/auth/verify.server.ts`     |
+| API auth wrapper    | `src/server/http.ts` (`apiHandler`) |
+| Same-site isolation | `src/lib/auth/isolation.server.ts`  |
+| React provider      | `src/lib/auth/provider.tsx`         |
+| Sign-in UI helpers  | `src/lib/auth/gates.tsx`            |
+| Global middleware   | `src/start.ts`                      |
 
 Do not invent a parallel session system — Clerk is the source of truth.
 

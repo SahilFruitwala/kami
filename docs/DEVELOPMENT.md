@@ -14,8 +14,8 @@ Local setup, environment variables, and day-to-day commands.
 ## First-time setup
 
 ```bash
-git clone https://github.com/SahilFruitwala/simple-pocket.git
-cd simple-pocket
+git clone https://github.com/SahilFruitwala/kami.git
+cd kami
 cp .env.example .env
 ```
 
@@ -46,22 +46,22 @@ embedded fallback.
 
 ## Environment variables
 
-| Variable | Required | Purpose |
-|----------|----------|---------|
-| `DATABASE_URL` | Prod: yes | Postgres connection string (required) |
-| `VITE_AUTH_ENABLED` | no | `"false"` disables Clerk (fail-closed — every request is rejected) |
-| `VITE_CLERK_PUBLISHABLE_KEY` | when auth on | Clerk publishable key |
-| `CLERK_SECRET_KEY` | when auth on | Clerk secret (server only) |
-| `TMDB_API_TOKEN` | for movie/TV search | TMDB Bearer token; without it search returns empty |
-| `UPSTASH_REDIS_REST_URL` / `UPSTASH_URL` | optional | Redis REST URL for read-through cache |
-| `UPSTASH_REDIS_REST_TOKEN` / `UPSTASH_TOKEN` | optional | Redis REST token |
-| `DATABASE_POOL_MAX` | optional | pg pool size per instance (default `5`) |
-| `VITE_PUBLIC_HOSTNAME` | optional | Public host for OG / share cards |
-| `CRON_SECRET` | optional | Bearer secret for the (unscheduled) feed sweep hook `/api/hooks/feeds` ([Feeds](./ARCHITECTURE.md#feeds--newsletters)) |
-| `INBOUND_EMAIL_DOMAIN` / `INBOUND_EMAIL_SECRET` | optional | Private newsletter addresses + inbound-email webhook secret ([Feeds](./ARCHITECTURE.md#feeds--newsletters)) |
-| `GOOGLE_GENERATIVE_AI_API_KEY` / `OPENROUTER_API_KEY` | for AI features | Model provider keys; at least one enables the library AI features ([AI features](./ARCHITECTURE.md#ai-features)) |
-| `AI_MODELS` | no | Model chain as `provider:model`, comma-separated, tried in order; default `google:gemini-3.8-flash,openrouter:anthropic/claude-haiku-5.5` |
-| `FIRECRAWL_API_KEY` | for `/extracts` | Firecrawl API key; without it extracts can be saved but not run ([Extracts](./ARCHITECTURE.md#extracts-firecrawl)) |
+| Variable                                              | Required            | Purpose                                                                                                                                   |
+| ----------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                        | Prod: yes           | Postgres connection string (required)                                                                                                     |
+| `VITE_AUTH_ENABLED`                                   | no                  | `"false"` disables Clerk (fail-closed — every request is rejected)                                                                        |
+| `VITE_CLERK_PUBLISHABLE_KEY`                          | when auth on        | Clerk publishable key                                                                                                                     |
+| `CLERK_SECRET_KEY`                                    | when auth on        | Clerk secret (server only)                                                                                                                |
+| `TMDB_API_TOKEN`                                      | for movie/TV search | TMDB Bearer token; without it search returns empty                                                                                        |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_URL`              | optional            | Redis REST URL for read-through cache                                                                                                     |
+| `UPSTASH_REDIS_REST_TOKEN` / `UPSTASH_TOKEN`          | optional            | Redis REST token                                                                                                                          |
+| `DATABASE_POOL_MAX`                                   | optional            | pg pool size per instance (default `5`)                                                                                                   |
+| `VITE_PUBLIC_HOSTNAME`                                | optional            | Public host for OG / share cards                                                                                                          |
+| `CRON_SECRET`                                         | optional            | Bearer secret for the (unscheduled) feed sweep hook `/api/hooks/feeds` ([Feeds](./ARCHITECTURE.md#feeds--newsletters))                    |
+| `INBOUND_EMAIL_DOMAIN` / `INBOUND_EMAIL_SECRET`       | optional            | Private newsletter addresses + inbound-email webhook secret ([Feeds](./ARCHITECTURE.md#feeds--newsletters))                               |
+| `GOOGLE_GENERATIVE_AI_API_KEY` / `OPENROUTER_API_KEY` | for AI features     | Model provider keys; at least one enables the library AI features ([AI features](./ARCHITECTURE.md#ai-features))                          |
+| `AI_MODELS`                                           | no                  | Model chain as `provider:model`, comma-separated, tried in order; default `google:gemini-3.8-flash,openrouter:anthropic/claude-haiku-5.5` |
+| `FIRECRAWL_API_KEY`                                   | for `/extracts`     | Firecrawl API key; without it extracts can be saved but not run ([Extracts](./ARCHITECTURE.md#extracts-firecrawl))                        |
 
 Env loading: `scripts/with-app-env.mjs` and `scripts/load-dotenv.mjs` load `.env` then `.env.local` before Vite/build/migrate. Never commit `.env`.
 
@@ -69,17 +69,17 @@ Env loading: `scripts/with-app-env.mjs` and `scripts/load-dotenv.mjs` load `.env
 
 ## Scripts
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Dev server on **0.0.0.0:8080** (`strictPort`) |
-| `pnpm build` | Vite production build + migrate (skipped on Vercel Preview builds unless `MIGRATE_ON_BUILD=1`) |
-| `pnpm preview` | Preview build (port **8081**) |
-| `pnpm db:up` / `db:down` / `db:logs` | Docker Compose Postgres lifecycle |
-| `pnpm db:migrate` | Apply pending `migrations/*.sql` |
-| `pnpm typecheck` | TypeScript check |
-| `pnpm test` | `node --test` on `tests/**/*.test.mjs` (`tests/support/register.mjs` resolves `@/` imports, so server modules are testable) |
-| `pnpm lint` | ESLint |
-| `pnpm format` | Prettier write |
+| Command                              | Description                                                                                                                 |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`                           | Dev server on **0.0.0.0:8080** (`strictPort`)                                                                               |
+| `pnpm build`                         | Vite production build + migrate (skipped on Vercel Preview builds unless `MIGRATE_ON_BUILD=1`)                              |
+| `pnpm preview`                       | Preview build (port **8081**)                                                                                               |
+| `pnpm db:up` / `db:down` / `db:logs` | Docker Compose Postgres lifecycle                                                                                           |
+| `pnpm db:migrate`                    | Apply pending `migrations/*.sql`                                                                                            |
+| `pnpm typecheck`                     | TypeScript check                                                                                                            |
+| `pnpm test`                          | `node --test` on `tests/**/*.test.mjs` (`tests/support/register.mjs` resolves `@/` imports, so server modules are testable) |
+| `pnpm lint`                          | ESLint                                                                                                                      |
+| `pnpm format`                        | Prettier write                                                                                                              |
 
 ---
 
@@ -115,14 +115,14 @@ scripts/           # migrate, env, import-shelves
 
 ## Debugging tips
 
-| Symptom | Check |
-|---------|--------|
-| Auth loops / 401 on `/api/*` | Clerk keys, clock skew, `VITE_AUTH_ENABLED` |
-| Empty movie/TV search | `TMDB_API_TOKEN` |
-| Stale shelf data with Redis | Mutation path must call `invalidateUserCache` |
+| Symptom                             | Check                                                                    |
+| ----------------------------------- | ------------------------------------------------------------------------ |
+| Auth loops / 401 on `/api/*`        | Clerk keys, clock skew, `VITE_AUTH_ENABLED`                              |
+| Empty movie/TV search               | `TMDB_API_TOKEN`                                                         |
+| Stale shelf data with Redis         | Mutation path must call `invalidateUserCache`                            |
 | Migration “already applied” locally | Inspect `_migrations` or reset Docker volume (`db:down` + remove volume) |
-| `getDb` / ALS errors in browser | You imported a `*.server.ts` or `db.ts` into client code |
-| Port in use | Dev insists on **8080**; stop the other process |
+| `getDb` / ALS errors in browser     | You imported a `*.server.ts` or `db.ts` into client code                 |
+| Port in use                         | Dev insists on **8080**; stop the other process                          |
 
 Useful Docker reset:
 
