@@ -126,21 +126,3 @@ export function useTidyArticle(articleId: string) {
     onError: (err) => toastError(err, "Could not tidy this copy."),
   });
 }
-
-/** A short summary of one feed entry, cached server-side. */
-export function useEntrySummary(entryId: string) {
-  return useQuery({
-    queryKey: queryKeys.ai.entrySummary(entryId),
-    queryFn: () => aiApi.entrySummary(entryId),
-    staleTime: Infinity,
-    retry: false,
-  });
-}
-
-/** Model picks for a movie / TV / book shelf. */
-export function useShelfRecs(type: "movie" | "tv" | "book") {
-  return useMutation({
-    mutationFn: () => aiApi.recommend(type),
-    onError: (err) => toastError(err, "Could not get suggestions."),
-  });
-}

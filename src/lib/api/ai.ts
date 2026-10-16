@@ -1,5 +1,4 @@
 import { http, seg } from "./client";
-import type { LookupResult } from "./types";
 
 /** Which AI features this server can run (each needs a provider key). */
 export type AiStatus = { enabled: boolean };
@@ -37,28 +36,6 @@ export type TidyResult = {
   removed: string[];
 };
 
-export type EntrySummary = { tldr: string; keyPoints: string[] };
-
-/** A suggested movie, show or book, matched to TMDB / Open Library when possible. */
-export type ShelfRec = {
-  title: string;
-  subtitle: string | null;
-  why: string;
-  /** Lookup match (cover, link, metadata) for a one-tap add; null when none was found. */
-  match: LookupResult | null;
-};
-
-/** A quick look at a captured page before saving it. */
-export type PagePeek = {
-  title: string;
-  siteName: string;
-  url: string;
-  readingMinutes: number;
-  tldr: string;
-  keyPoints: string[];
-  verdict: string;
-};
-
 export const aiApi = {
   status: () => http.get<AiStatus>("/api/ai/status"),
 
@@ -71,18 +48,6 @@ export const aiApi = {
   /** Tag an article with up to three fixed categories; returns its full tag list. */
   autoTag: (articleId: string) =>
     http.post<{ tags: string[] }>(`/api/ai/articles/${seg(articleId)}/autotag`),
-
-  /** A short summary of one feed entry (cached). */
-  entrySummary: (entryId: string) =>
-    http.post<EntrySummary>(`/api/ai/feeds/entries/${seg(entryId)}/summary`),
-
-  /** Summarize a page captured by the extension, without saving it. */
-  peek: (page: { url?: string; title: string; html: string }) =>
-    http.post<PagePeek>("/api/ai/peek", page),
-
-  /** Suggestions for a movie, TV or book shelf. */
-  recommend: (type: "movie" | "tv" | "book") =>
-    http.post<{ recs: ShelfRec[] }>("/api/ai/shelves/recommend", { type }),
 
   /** File the next few untagged, unfiled articles; `exclude` lists ids already tried. */
   organize: (exclude: string[] = []) =>

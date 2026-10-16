@@ -17,10 +17,6 @@
     "_execute_action": {
       "suggested_key": { "default": "Alt+Shift+K" },
       "description": "Save this page to KAMI"
-    },
-    "kami-peek": {
-      "suggested_key": { "default": "Alt+Shift+S" },
-      "description": "Summarize this page with KAMI before saving"
     }
   },
   "background": {

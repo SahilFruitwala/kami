@@ -9,16 +9,8 @@ import {
 } from "@/lib/bookmarklet.ts";
 import { stashCapturePayload } from "@/lib/session-article.ts";
 
-type CaptureSearch = {
-  /** `peek`: summarize the page on /peek before deciding to save it (extension). */
-  intent?: "peek";
-};
-
 export const Route = createFileRoute("/capture")({
   ssr: false,
-  validateSearch: (search: Record<string, unknown>): CaptureSearch => ({
-    intent: search.intent === "peek" ? "peek" : undefined,
-  }),
   component: CapturePage,
 });
 
@@ -50,7 +42,6 @@ function acceptCapture(event: MessageEvent): BookmarkletPayload | null {
 }
 
 function CapturePage() {
-  const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const [status, setStatus] = useState<Status>("waiting");
 
@@ -65,7 +56,7 @@ function CapturePage() {
         return;
       }
       setStatus("received");
-      void navigate({ to: search.intent === "peek" ? "/peek" : "/app", replace: true });
+      void navigate({ to: "/app", replace: true });
     }
 
     let done = false;

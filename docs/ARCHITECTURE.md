@@ -456,14 +456,6 @@ article, with a sha256 of the body it was made from. When the text changes
 (a link stub upgraded to a clean copy), the card shows the old summary as
 stale until it is regenerated.
 
-### Feeds: entry summaries
-
-Each entry card on `/feeds` has a **Summary** toggle (`POST
-/api/ai/feeds/entries/:id/summary`): a TL;DR and key points from the
-entry's own text, ignoring newsletter sponsor blocks and footers. Teasers
-under 60 words are refused (open the entry instead). Cached in `ai_notes`
-(kind `entry-summary`, newest 300).
-
 ### Tidy this copy
 
 The reader's Gist card has **Remove ads & clutter** (`POST
@@ -483,17 +475,6 @@ copy** writes the change, through the normal library upsert; **Keep
 original** (or closing the dialog) leaves the article untouched. After a
 save the toast still offers Undo.
 
-### Shelf suggestions
-
-Movie, TV and book shelves have **Suggest** (`POST
-/api/ai/shelves/recommend`): the model sees up to 150 shelf items with
-their status (finished items show taste, "gave up" what to avoid, queued
-ones aren't repeated) and suggests ten titles with a reason naming
-something on the shelf. Titles already on the shelf are dropped, and the
-first eight are matched against TMDB / Open Library (same search as the add
-dialog) so **Add to shelf** saves a cover and metadata in one tap. Nothing
-is stored.
-
 ### Extraction fallback
 
 When Readability finds nothing on a fetched page, extraction used to keep
@@ -507,17 +488,6 @@ including the reader's link-stub upgrade, and saving a feed entry), not bulk
 saves; counts one call against the `ai` bucket; and steps aside (to the old
 behaviour) when AI is off, over budget, or the page isn't an article.
 
-### Summarize before saving (extension)
-
-The browser extension adds **Summarize page with KAMI** (page context menu,
-**Alt+Shift+S**). It captures the tab exactly like Save, but opens
-`/capture?intent=peek`, which routes to `/peek` instead of Home. `/peek`
-(inside the app shell, so after sign-in) takes the stashed page and calls
-`POST /api/ai/peek`: the page goes through the same extraction as a capture
-and the model returns a TL;DR, key points and a one-line verdict. Nothing is
-stored. **Save to library** re-stashes the page and hands it to Home's normal
-capture flow; **Skip** closes the tab.
-
 | Path | Role |
 |---|---|
 | `src/lib/model-fallback.ts` | Fallback model chain, prompt clipping (pure, tested in `tests/ai.test.mjs`) |
@@ -525,12 +495,10 @@ capture flow; **Skip** closes the tab.
 | `src/server/ai.ts` | Shared generation helpers and error mapping |
 | `src/server/services/ai-articles.ts` | Summaries, tag vocabulary, article-to-prompt helpers |
 | `src/routes/api/ai/**` | HTTP routes |
+| `src/hooks/use-ai.ts` | Status + auto-organize hooks |
 | `src/components/reader/reader-ai.tsx`, `src/components/reader/tidy-review.tsx` | Reader Gist card; Tidy before/after review |
-| `src/server/services/ai-notes.ts`, `src/hooks/use-ai.ts` | The `ai_notes` store; status + auto-organize hooks |
-| `src/server/services/ai-feeds.ts`, `src/components/feeds/feed-ai.tsx` | Feed entry summaries |
 | `src/lib/tidy-html.server.ts` | Block splitting for Tidy and page block collection for the extraction fallback (tested) |
-| `src/server/services/ai-extract.ts`, `src/routes/peek.tsx` | Extraction fallback; page peek for the extension |
-| `src/server/services/ai-shelves.ts`, `src/components/library/shelf-recs.tsx` | Shelf suggestions |
+| `src/server/services/ai-extract.ts` | Extraction fallback |
 | `migrations/0016_article_ai.sql`, `0017_ai_embeddings.sql`, `0018_ai_notes.sql` | `article_ai`, `ai_embeddings` (left over from the removed semantic search; unused), `ai_notes` |
 
 ---
