@@ -53,14 +53,14 @@ and discs get 3D transforms and a spring; everything else changes opacity.
 
 ## Pieces
 
-| File | What |
-| --- | --- |
-| `src/components/gloss/pullout.tsx` | The signature move: spine → turn → fly → swing open; put back in reverse. Generic over faces. |
-| `src/components/gloss/shelf.tsx` | Spines on planks, grouped with labels and bookends; tooltip, arrow-key navigation, slide-in ripple. |
-| `src/components/gloss/book.tsx` | Library: book spine, cover, endpaper + Ex Libris plate, right page. |
-| `src/components/gloss/media.tsx` | Movies (VHS sleeve + cassette) and Series (DVD keepcase + disc). |
-| `src/components/gloss/topics.tsx` | Topics grid and topic page. |
-| `src/lib/gloss/palette.ts` | Topic colour families, seeded spine variety, VHS/DVD looks. |
+| File                               | What                                                                                                |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `src/components/gloss/pullout.tsx` | The signature move: spine → turn → fly → swing open; put back in reverse. Generic over faces.       |
+| `src/components/gloss/shelf.tsx`   | Spines on planks, grouped with labels and bookends; tooltip, arrow-key navigation, slide-in ripple. |
+| `src/components/gloss/book.tsx`    | Library: book spine, cover, endpaper + Ex Libris plate, right page.                                 |
+| `src/components/gloss/media.tsx`   | Movies (VHS sleeve + cassette) and Series (DVD keepcase + disc).                                    |
+| `src/components/gloss/topics.tsx`  | Topics grid and topic page.                                                                         |
+| `src/lib/gloss/palette.ts`         | Topic colour families, seeded spine variety, VHS/DVD looks.                                         |
 
 Motion follows one rule from the design spec: **the object moves, the world
 fades.** Books, tapes and discs get 3D transforms and a spring; the page

@@ -85,10 +85,17 @@ pnpm dev              # http://0.0.0.0:8080
 | [Architecture](docs/ARCHITECTURE.md) | Understand request flow, auth isolation, caching, diagrams |
 | [Data model](docs/DATA-MODEL.md)     | Tables, relationships, migration rules                     |
 | [Development](docs/DEVELOPMENT.md)   | Env vars, local DB, scripts, debugging                     |
+| [API](docs/API.md)                   | REST endpoint reference                                    |
 | [Contributing](docs/CONTRIBUTING.md) | Add a route, API endpoint, schema change, shelf type, UI   |
+
+---
+
+## Contributing
+
+Issues and pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately per [SECURITY.md](SECURITY.md).
 
 ---
 
 ## License
 
-Private repository. All rights reserved unless otherwise noted.
+[MIT](LICENSE) © Sahil Fruitwala
