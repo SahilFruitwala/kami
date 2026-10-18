@@ -49,9 +49,7 @@ An endpoint is a few small pieces — keep business logic out of the route file.
 ```ts
 import { z } from "zod";
 
-export const doThingBody = z.object({
-  /* … */
-});
+export const doThingBody = z.object({/* … */});
 ```
 
 **b. Service** — `src/server/services/<domain>.ts` (plain async functions, server-only):
