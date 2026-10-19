@@ -19,7 +19,7 @@ export function ConfirmHost() {
   const destructive = req?.destructive !== false;
   return (
     <Dialog open={open !== null} onOpenChange={(open) => !open && settleConfirm(false)}>
-      <DialogContent showCloseButton={false}>
+      <DialogContent showCloseButton={false} elevated>
         <DialogHeader>
           <DialogTitle>{req?.title}</DialogTitle>
           {req?.description ? <DialogDescription>{req.description}</DialogDescription> : null}
