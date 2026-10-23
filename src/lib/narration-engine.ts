@@ -31,11 +31,18 @@ export const ACTIVE_STATES: readonly NarrationState[] = [
   "joining",
 ];
 
-/** How long a run's claim lasts without renewal. Renewed after every step. */
-export const LEASE_MS = 90_000;
+/**
+ * One part (2,000 characters, about two minutes of speech) takes Deepgram
+ * about a minute to synthesise. A speech call is cut off at
+ * SPEECH_TIMEOUT_MS; a step's budget covers that plus the R2 write; and the
+ * lease outlives a whole step so no second run can start mid-part.
+ */
+export const SPEECH_TIMEOUT_MS = 150_000;
 /** Worst case for one step (a Deepgram call plus an R2 write) with margin. */
-export const STEP_BUDGET_MS = 45_000;
-/** Joining reads every part, so it gets more room. */
+export const STEP_BUDGET_MS = 180_000;
+/** How long a run's claim lasts without renewal. Renewed after every step. */
+export const LEASE_MS = 240_000;
+/** Joining reads every part, so it gets room too. */
 export const JOIN_BUDGET_MS = 90_000;
 
 export type Narration = {
