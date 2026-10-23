@@ -8,10 +8,12 @@ import {
   MessageCircleQuestion,
   RotateCcw,
   Sparkles,
+  Undo2,
 } from "lucide-react";
 import { AiChat } from "@/components/ai/ai-chat.tsx";
 import { toast } from "sonner";
 import { aiApi, type ArticleSummary } from "@/lib/api/ai";
+import { libraryApi } from "@/lib/api/library";
 import { queryKeys } from "@/lib/query-client.ts";
 import { useLibraryStore, type LibraryItem } from "@/lib/store.ts";
 import { useAiStatus } from "@/hooks/use-ai.ts";
@@ -33,6 +35,7 @@ export function ReaderAi({
   askSeed?: AskSeed | null;
 }) {
   const { enabled } = useAiStatus();
+  useAutoTidy(item, enabled);
   if (!enabled) return null;
   return (
     <>
@@ -157,7 +160,8 @@ function SummaryCard({ item }: { item: LibraryItem }) {
       )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <AutoTagButton item={item} />
-        <TidyButton item={item} />
+        {item.tidyState === "failed" ? <RetryTidyButton item={item} /> : null}
+        {item.hasOriginal ? <RestoreOriginalButton item={item} /> : null}
       </div>
     </section>
   );
@@ -193,35 +197,72 @@ function AutoTagButton({ item }: { item: LibraryItem }) {
   );
 }
 
+/** A save younger than this already queued a background Tidy on the server. */
+const FRESH_SAVE_MS = 2 * 60_000;
+/** Articles this tab already asked to tidy (survives StrictMode re-runs). */
+const tidyRequested = new Set<string>();
+
 /**
- * Remove sponsor blocks, prompts and footers from the saved copy (handy for
- * newsletters). The model picks blocks; the change is saved with an undo.
+ * Tidy a `pending` article the reader opens: bulk imports and older saves are
+ * tidied here, on first open. A fresh single save was queued for a background
+ * Tidy when it was saved, so the reader just picks up that result shortly.
  */
-function TidyButton({ item }: { item: LibraryItem }) {
+function useAutoTidy(item: LibraryItem, enabled: boolean) {
+  const client = useQueryClient();
+  const upsertItem = useLibraryStore((s) => s.upsertItem);
+  const pending = enabled && item.tidyState === "pending";
+  const { id, savedAt } = item;
+  useEffect(() => {
+    if (!pending || tidyRequested.has(id)) return;
+    tidyRequested.add(id);
+    let cancelled = false;
+    const apply = (next: LibraryItem | null) => {
+      if (cancelled || !next?.contentHtml || next.tidyState === "pending") return;
+      // Already saved on the server; mirror it locally without re-syncing.
+      upsertItem(next, { sync: false });
+      void client.invalidateQueries({ queryKey: queryKeys.ai.summary(next.id) });
+    };
+    if (Date.now() - savedAt < FRESH_SAVE_MS) {
+      const timer = setTimeout(() => void libraryApi.items.get(id).then(apply), 15_000);
+      return () => {
+        cancelled = true;
+        clearTimeout(timer);
+      };
+    }
+    // A failure is recorded on the article; refetch so "Retry clean-up" shows.
+    aiApi.tidy(id).then(
+      (result) => apply(result.item),
+      () => void libraryApi.items.get(id).then(apply),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [pending, id, savedAt, client, upsertItem]);
+}
+
+/** Offered only when the automatic clean-up failed. */
+function RetryTidyButton({ item }: { item: LibraryItem }) {
   const client = useQueryClient();
   const upsertItem = useLibraryStore((s) => s.upsertItem);
   const tidy = useMutation({
     mutationFn: () => aiApi.tidy(item.id),
     onSuccess: (result) => {
-      // Already saved on the server; mirror it locally without re-syncing.
       upsertItem(result.item, { sync: false });
-      if (!result.removed.length) {
-        toast.success("Nothing to tidy: this copy is all the piece itself.");
-        return;
-      }
       void client.invalidateQueries({ queryKey: queryKeys.ai.summary(item.id) });
       toast.success(
-        `Removed ${result.removed.length} block${result.removed.length === 1 ? "" : "s"} of clutter`,
+        result.removed.length
+          ? `Removed ${result.removed.length} block${result.removed.length === 1 ? "" : "s"} of clutter`
+          : "Nothing to clean up: this copy is all the piece itself.",
       );
     },
-    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not tidy this copy."),
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not clean up this copy."),
   });
   return (
     <button
       type="button"
       onClick={() => tidy.mutate()}
       disabled={tidy.isPending}
-      title="Remove ads, sponsor slots, subscribe prompts and footers"
+      title="The automatic clean-up failed. Try removing ads, sponsor slots and footers again."
       className="flex items-center gap-1.5 font-sans text-[11px] opacity-60 transition-opacity hover:opacity-100 disabled:opacity-40"
     >
       {tidy.isPending ? (
@@ -229,7 +270,38 @@ function TidyButton({ item }: { item: LibraryItem }) {
       ) : (
         <Eraser className="size-3.5" aria-hidden="true" />
       )}
-      {tidy.isPending ? "Cleaning…" : "Remove ads & clutter"}
+      {tidy.isPending ? "Cleaning…" : "Retry clean-up"}
+    </button>
+  );
+}
+
+/** Put back the copy as it was saved, before the clean-up removed anything. */
+function RestoreOriginalButton({ item }: { item: LibraryItem }) {
+  const client = useQueryClient();
+  const upsertItem = useLibraryStore((s) => s.upsertItem);
+  const restore = useMutation({
+    mutationFn: () => aiApi.restoreOriginal(item.id),
+    onSuccess: (next) => {
+      upsertItem(next, { sync: false });
+      void client.invalidateQueries({ queryKey: queryKeys.ai.summary(item.id) });
+      toast.success("Restored the original copy");
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not restore the original."),
+  });
+  return (
+    <button
+      type="button"
+      onClick={() => restore.mutate()}
+      disabled={restore.isPending}
+      title="Undo the automatic clean-up and show the copy exactly as it was saved"
+      className="flex items-center gap-1.5 font-sans text-[11px] opacity-60 transition-opacity hover:opacity-100 disabled:opacity-40"
+    >
+      {restore.isPending ? (
+        <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+      ) : (
+        <Undo2 className="size-3.5" aria-hidden="true" />
+      )}
+      Restore original
     </button>
   );
 }

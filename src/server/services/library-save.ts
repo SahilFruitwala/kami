@@ -73,5 +73,9 @@ export async function saveArticleByUrl(
 
   const { articleToItem } = await import("@/lib/store.ts");
   const item = await upsertLibraryItem(userId, libraryItemBody.parse(articleToItem(article)));
+  if (item.tidyState === "pending") {
+    const { tidyInBackground } = await import("@/server/services/ai-articles");
+    tidyInBackground(userId, item.id);
+  }
   return { ok: true, item, existed: false };
 }
