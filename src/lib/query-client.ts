@@ -32,6 +32,7 @@ export const queryKeys = {
   narration: {
     all: ["narration"] as const,
     allowance: () => [...queryKeys.narration.all, "allowance"] as const,
+    article: (articleId: string) => [...queryKeys.narration.all, "article", articleId] as const,
   },
   library: {
     all: ["library"] as const,
