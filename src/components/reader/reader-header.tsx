@@ -20,6 +20,8 @@ type ReaderHeaderProps = {
   onTogglePrefs: () => void;
   onArchive: () => void;
   prefsPanel: React.ReactNode;
+  /** Narration control (Create audio / progress / player toggle), when available. */
+  narration?: React.ReactNode;
 };
 
 export function ReaderHeader({
@@ -32,6 +34,7 @@ export function ReaderHeader({
   onTogglePrefs,
   onArchive,
   prefsPanel,
+  narration,
 }: ReaderHeaderProps) {
   return (
     <header
@@ -56,6 +59,7 @@ export function ReaderHeader({
           Reader
         </span>
         <div className="ml-auto flex items-center gap-1" role="toolbar" aria-label="Reading controls">
+          {narration}
           <Button
             variant="ghost"
             size="icon"

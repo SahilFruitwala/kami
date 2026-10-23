@@ -15,6 +15,12 @@ import { OrganizeRow } from "@/components/organize-row.tsx";
 import { HighlightMenu } from "@/components/reader/highlight-menu.tsx";
 import { ReaderBody } from "@/components/reader/reader-body.tsx";
 import { ReaderHeader } from "@/components/reader/reader-header.tsx";
+import {
+  NarrationButton,
+  NarrationPlayer,
+  NarrationRefusalDialog,
+} from "@/components/reader/narration.tsx";
+import { useNarration } from "@/hooks/use-narration.ts";
 import { ReaderPrefsPanel } from "@/components/reader/reader-prefs.tsx";
 import { WashiTag } from "@/components/kami.tsx";
 import { highlightMenu, type EditMenu } from "@/lib/selection-menu.ts";
@@ -54,6 +60,7 @@ export function ReaderView({
   const setPaperTone = useLibraryStore((s) => s.setPaperTone);
   const resumeEnabled = useLibraryStore((s) => s.resumeEnabled);
   const savedProgress = useLibraryStore((s) => s.progressById[item.id] ?? 0);
+  const narration = useNarration(item);
   const [resumeDismissed, setResumeDismissed] = useState(false);
   const bumpReaderFontSize = useLibraryStore((s) => s.bumpReaderFontSize);
   const setReaderFont = useLibraryStore((s) => s.setReaderFont);
@@ -371,6 +378,7 @@ export function ReaderView({
           }}
           onTogglePrefs={() => setPrefsOpen((open) => !open)}
           onArchive={onArchive}
+          narration={<NarrationButton narration={narration} />}
           prefsPanel={
             <ReaderPrefsPanel
               readerFontSize={readerFontSize}
@@ -622,6 +630,9 @@ export function ReaderView({
           </div>
         </div>
       </div>
+
+      <NarrationPlayer item={item} narration={narration} />
+      <NarrationRefusalDialog narration={narration} />
 
       {zen ? (
         /* Zen: quiet on desktop, fully discoverable on touch screens. */
