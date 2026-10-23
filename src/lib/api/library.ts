@@ -47,8 +47,12 @@ export const libraryApi = {
     /** Article with body, or null when missing / not yours. */
     get: (id: string) => orNull(http.get<LibraryItem>(`/api/library/items/${seg(id)}`)),
 
-    /** Insert or update by id / canonical URL / URL — the returned id may differ. */
-    upsert: (item: LibraryItem) => http.post<LibraryItem>("/api/library/items", item),
+    /**
+     * Insert or update by id / canonical URL / URL — the returned id may differ.
+     * `fresh` marks a single new capture, which the server tidies afterwards.
+     */
+    upsert: (item: LibraryItem, opts?: { fresh?: boolean }) =>
+      http.post<LibraryItem>(`/api/library/items${opts?.fresh ? "?fresh=1" : ""}`, item),
 
     /** Partial update; null when the work no longer exists. */
     patch: (id: string, patch: LibraryItemPatch) =>

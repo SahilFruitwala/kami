@@ -457,11 +457,24 @@ article, with a sha256 of the body it was made from. When the text changes
 (a link stub upgraded to a clean copy), the card shows the old summary as
 stale until it is regenerated.
 
-### Tidy this copy
+### Tidy (automatic clean-up)
 
-The reader's Gist card has **Remove ads & clutter** (`POST
-/api/ai/articles/:id/tidy`) for newsletters and cluttered pages. The saved
-HTML is split into numbered top-level blocks (descending through lone
+Every article is tidied automatically (`POST /api/ai/articles/:id/tidy`),
+so newsletters and cluttered pages read, and are narrated, without sponsor
+slots or footers:
+
+- **Single saves** (`POST /api/library/items?fresh=1` from capture, paste
+  and feed saves, and `POST /api/library/save`) are tidied in the
+  background after the response, with `waitUntil` from `@vercel/functions`
+  (`src/server/background.ts`). Saving stays instant.
+- **Bulk imports and older articles** stay `pending` and are tidied the
+  first time the reader opens them (`useAutoTidy`), so an import never
+  spends the AI rate limit at once.
+- There is no Tidy button. The Gist card offers **Review clean-up** when an
+  Original copy exists, and **Retry clean-up** only when the article is
+  `failed`.
+
+The saved HTML is split into numbered top-level blocks (descending through lone
 layout wrappers, `src/lib/tidy-html.server.ts`), the model gets a short
 preview of each and returns the numbers of ads, sponsor slots, subscribe /
 share / referral prompts, footers and navigation. The text itself is never

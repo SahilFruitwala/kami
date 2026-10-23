@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { aiApi } from "@/lib/api/ai";
+import { libraryApi } from "@/lib/api/library";
 import { toastError } from "@/lib/errors";
 import type { LibraryItem } from "@/lib/library-item";
 import { queryKeys } from "@/lib/query-client.ts";
@@ -125,4 +126,47 @@ export function useTidyArticle(articleId: string) {
     mutationFn: () => aiApi.tidy(articleId),
     onError: (err) => toastError(err, "Could not tidy this copy."),
   });
+}
+
+/** A save younger than this already queued a background Tidy on the server. */
+const FRESH_SAVE_MS = 2 * 60_000;
+/** Articles this tab already asked to tidy (survives StrictMode re-runs). */
+const tidyRequested = new Set<string>();
+
+/**
+ * Tidy a `pending` article the reader opens: bulk imports and older saves are
+ * tidied here, on first open. A fresh single save was queued for a background
+ * Tidy when it was saved, so the reader just picks up that result shortly.
+ */
+export function useAutoTidy(item: LibraryItem, enabled: boolean) {
+  const client = useQueryClient();
+  const upsertItem = useLibraryStore((s) => s.upsertItem);
+  const pending = enabled && item.tidyState === "pending";
+  const { id, savedAt } = item;
+  useEffect(() => {
+    if (!pending || tidyRequested.has(id)) return;
+    tidyRequested.add(id);
+    let cancelled = false;
+    const apply = (next: LibraryItem | null) => {
+      if (cancelled || !next?.contentHtml || next.tidyState === "pending") return;
+      // Already saved on the server; mirror it locally without re-syncing.
+      upsertItem(next, { sync: false });
+      void client.invalidateQueries({ queryKey: queryKeys.ai.summary(next.id) });
+    };
+    if (Date.now() - savedAt < FRESH_SAVE_MS) {
+      const timer = setTimeout(() => void libraryApi.items.get(id).then(apply), 15_000);
+      return () => {
+        cancelled = true;
+        clearTimeout(timer);
+      };
+    }
+    // A failure is recorded on the article; refetch so "Retry clean-up" shows.
+    aiApi.tidy(id).then(
+      (result) => apply(result.item),
+      () => void libraryApi.items.get(id).then(apply),
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [pending, id, savedAt, client, upsertItem]);
 }

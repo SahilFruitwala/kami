@@ -18,12 +18,14 @@ import type { LibraryItem } from "@/lib/library-item.ts";
 import { cn } from "@/lib/utils.ts";
 import { useInvalidateArticleSummary, useTidyArticle } from "@/hooks/use-ai.ts";
 
+const linkClass =
+  "flex items-center gap-1.5 font-sans text-[11px] opacity-60 transition-opacity hover:opacity-100 disabled:opacity-40";
+
 /**
- * "Remove ads & clutter": the model picks the blocks to drop and the server
- * saves the cleaned copy, keeping the Original copy. The reader then sees
- * the copy before and after, and can keep it or restore the original.
+ * Offered only when the automatic clean-up failed: run it again, then show
+ * what it removed.
  */
-export function TidyButton({ item }: { item: LibraryItem }) {
+export function RetryTidyButton({ item }: { item: LibraryItem }) {
   const [result, setResult] = useState<TidyResult | null>(null);
   const tidy = useTidyArticle(item.id);
   const upsertItem = useLibraryStore((s) => s.upsertItem);
@@ -34,7 +36,7 @@ export function TidyButton({ item }: { item: LibraryItem }) {
         // Already saved on the server; mirror it locally without re-syncing.
         upsertItem(res.item, { sync: false });
         if (!res.removed.length) {
-          toast.success("Nothing to tidy: this copy is all the piece itself.");
+          toast.success("Nothing to clean up: this copy is all the piece itself.");
           return;
         }
         invalidateSummary(item.id);
@@ -48,15 +50,15 @@ export function TidyButton({ item }: { item: LibraryItem }) {
         type="button"
         onClick={run}
         disabled={tidy.isPending}
-        title="Remove ads, sponsor slots, subscribe prompts and footers"
-        className="flex items-center gap-1.5 font-sans text-[11px] opacity-60 transition-opacity hover:opacity-100 disabled:opacity-40"
+        title="The automatic clean-up failed. Try removing ads, sponsor slots and footers again."
+        className={linkClass}
       >
         {tidy.isPending ? (
           <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
         ) : (
           <Eraser className="size-3.5" aria-hidden="true" />
         )}
-        {tidy.isPending ? "Cleaning…" : "Remove ads & clutter"}
+        {tidy.isPending ? "Cleaning…" : "Retry clean-up"}
       </button>
       {result ? (
         <TidyReview
@@ -65,6 +67,48 @@ export function TidyButton({ item }: { item: LibraryItem }) {
           cleanedHtml={result.item.contentHtml}
           removed={result.removed}
           onClose={() => setResult(null)}
+        />
+      ) : null}
+    </>
+  );
+}
+
+/** After an automatic clean-up: compare it with the original, keep it or restore. */
+export function ReviewCleanupButton({ item }: { item: LibraryItem }) {
+  const [originalHtml, setOriginalHtml] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  async function open() {
+    setLoading(true);
+    try {
+      setOriginalHtml((await aiApi.original(item.id)).originalHtml);
+    } catch (err) {
+      toastError(err, "Could not load the original copy.");
+    } finally {
+      setLoading(false);
+    }
+  }
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => void open()}
+        disabled={loading}
+        title="Ads, sponsor slots and footers were removed automatically. See what changed."
+        className={linkClass}
+      >
+        {loading ? (
+          <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+        ) : (
+          <Eraser className="size-3.5" aria-hidden="true" />
+        )}
+        Review clean-up
+      </button>
+      {originalHtml !== null ? (
+        <TidyReview
+          item={item}
+          originalHtml={originalHtml}
+          cleanedHtml={item.contentHtml}
+          onClose={() => setOriginalHtml(null)}
         />
       ) : null}
     </>

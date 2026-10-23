@@ -8,6 +8,7 @@ import { invalidateUserCache } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db.server";
 import { readStoredGist, shapeGist, type StoredGist } from "@/lib/gist.ts";
 import type { LibraryItem } from "@/lib/library-item";
+import { aiConfigured } from "@/lib/llm.server";
 import { clipText } from "@/lib/model-fallback.ts";
 import { articleAi, articles, folders } from "@/lib/schema";
 import { TAG_CATEGORIES } from "@/lib/tag-categories.ts";
@@ -19,6 +20,7 @@ import {
   type TidyRecord,
 } from "@/lib/tidy-state";
 import { asDocument, generateJson } from "@/server/ai";
+import { runInBackground } from "@/server/background";
 import { badRequest, notFound } from "@/server/http";
 
 /**
@@ -250,6 +252,16 @@ export async function tidyArticle(userId: string, articleId: string): Promise<Ti
     { kind: "removed", contentHtml: joinBlocks(blocks, drop) },
     [...drop].sort((a, b) => a - b).map((i) => previews[i]),
   );
+}
+
+/**
+ * Tidy a freshly saved article after the response is sent, so saving stays
+ * instant. Does nothing without a usable model; failures are recorded on the
+ * article (`failed`) and logged.
+ */
+export function tidyInBackground(userId: string, articleId: string): void {
+  if (!aiConfigured()) return;
+  runInBackground("tidy", () => tidyArticle(userId, articleId));
 }
 
 /** The article's Original copy, for reviewing a clean-up. */
