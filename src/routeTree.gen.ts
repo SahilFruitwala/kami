@@ -36,6 +36,7 @@ import { Route as ApiAiPeekRouteImport } from './routes/api/ai/peek'
 import { Route as ApiAiRecapRouteImport } from './routes/api/ai/recap'
 import { Route as ApiAiSearchRouteImport } from './routes/api/ai/search'
 import { Route as ApiAiStatusRouteImport } from './routes/api/ai/status'
+import { Route as ApiAllowanceIndexRouteImport } from './routes/api/allowance/index'
 import { Route as ApiArticlesExtractRouteImport } from './routes/api/articles/extract'
 import { Route as ApiArticlesImportRouteImport } from './routes/api/articles/import'
 import { Route as ApiArticlesLinkRouteImport } from './routes/api/articles/link'
@@ -245,6 +246,11 @@ const ApiAiSearchRoute = ApiAiSearchRouteImport.update({
 const ApiAiStatusRoute = ApiAiStatusRouteImport.update({
   id: '/api/ai/status',
   path: '/api/ai/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAllowanceIndexRoute = ApiAllowanceIndexRouteImport.update({
+  id: '/api/allowance/',
+  path: '/api/allowance/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiArticlesExtractRoute = ApiArticlesExtractRouteImport.update({
@@ -687,6 +693,7 @@ export interface FileRoutesByFullPath {
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
+  '/api/allowance/': typeof ApiAllowanceIndexRoute
   '/api/extracts/': typeof ApiExtractsIndexRoute
   '/api/feeds/': typeof ApiFeedsIndexRoute
   '/api/journal/': typeof ApiJournalIndexRoute
@@ -790,6 +797,7 @@ export interface FileRoutesByTo {
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
+  '/api/allowance': typeof ApiAllowanceIndexRoute
   '/api/extracts': typeof ApiExtractsIndexRoute
   '/api/feeds': typeof ApiFeedsIndexRoute
   '/api/journal': typeof ApiJournalIndexRoute
@@ -895,6 +903,7 @@ export interface FileRoutesById {
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
+  '/api/allowance/': typeof ApiAllowanceIndexRoute
   '/api/extracts/': typeof ApiExtractsIndexRoute
   '/api/feeds/': typeof ApiFeedsIndexRoute
   '/api/journal/': typeof ApiJournalIndexRoute
@@ -1001,6 +1010,7 @@ export interface FileRouteTypes {
     | '/shelves/books/$id'
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
+    | '/api/allowance/'
     | '/api/extracts/'
     | '/api/feeds/'
     | '/api/journal/'
@@ -1104,6 +1114,7 @@ export interface FileRouteTypes {
     | '/shelves/books/$id'
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
+    | '/api/allowance'
     | '/api/extracts'
     | '/api/feeds'
     | '/api/journal'
@@ -1208,6 +1219,7 @@ export interface FileRouteTypes {
     | '/shelves/books/$id'
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
+    | '/api/allowance/'
     | '/api/extracts/'
     | '/api/feeds/'
     | '/api/journal/'
@@ -1308,6 +1320,7 @@ export interface RootRouteChildren {
   ApiLookupWatchProvidersRoute: typeof ApiLookupWatchProvidersRoute
   ApiShelvesCountsRoute: typeof ApiShelvesCountsRoute
   ApiTripsIdRoute: typeof ApiTripsIdRouteWithChildren
+  ApiAllowanceIndexRoute: typeof ApiAllowanceIndexRoute
   ApiExtractsIndexRoute: typeof ApiExtractsIndexRoute
   ApiFeedsIndexRoute: typeof ApiFeedsIndexRoute
   ApiJournalIndexRoute: typeof ApiJournalIndexRoute
@@ -1535,6 +1548,13 @@ declare module '@tanstack/react-router' {
       path: '/api/ai/status'
       fullPath: '/api/ai/status'
       preLoaderRoute: typeof ApiAiStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/allowance/': {
+      id: '/api/allowance/'
+      path: '/api/allowance'
+      fullPath: '/api/allowance/'
+      preLoaderRoute: typeof ApiAllowanceIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/articles/extract': {
@@ -2220,6 +2240,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLookupWatchProvidersRoute: ApiLookupWatchProvidersRoute,
   ApiShelvesCountsRoute: ApiShelvesCountsRoute,
   ApiTripsIdRoute: ApiTripsIdRouteWithChildren,
+  ApiAllowanceIndexRoute: ApiAllowanceIndexRoute,
   ApiExtractsIndexRoute: ApiExtractsIndexRoute,
   ApiFeedsIndexRoute: ApiFeedsIndexRoute,
   ApiJournalIndexRoute: ApiJournalIndexRoute,

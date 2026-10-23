@@ -11,6 +11,7 @@ import { CaptureCard } from "@/components/settings/capture-card.tsx";
 import { AutoOrganizeCard } from "@/components/settings/auto-organize-card.tsx";
 import { OrganizeCard } from "@/components/settings/organize-card.tsx";
 import { DataCard } from "@/components/settings/data-card.tsx";
+import { ListeningCard } from "@/components/settings/listening-card.tsx";
 import { HelpCard } from "@/components/settings/help-card.tsx";
 
 export const Route = createFileRoute("/settings")({
@@ -63,6 +64,7 @@ function Settings() {
           <CaptureCard />
           <OrganizeCard />
           <AutoOrganizeCard />
+          <ListeningCard />
           <DataCard />
           <HelpCard />
         </div>

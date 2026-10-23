@@ -29,6 +29,10 @@ export function getAppQueryClient() {
 }
 
 export const queryKeys = {
+  narration: {
+    all: ["narration"] as const,
+    allowance: () => [...queryKeys.narration.all, "allowance"] as const,
+  },
   ai: {
     all: ["ai"] as const,
     status: () => [...queryKeys.ai.all, "status"] as const,

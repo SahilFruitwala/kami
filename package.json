@@ -13,6 +13,7 @@
     "db:down": "docker compose down",
     "db:logs": "docker compose logs -f db",
     "db:migrate": "node scripts/migrate.mjs",
+    "narration:grant": "node scripts/narration-grant.mjs",
     "build:dev": "node scripts/with-app-env.mjs vite build --mode development",
     "preview": "node scripts/with-app-env.mjs vite preview",
     "typecheck": "tsc --noEmit",

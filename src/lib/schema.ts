@@ -723,3 +723,25 @@ export const schema = {
   articleAi,
   aiNotes,
 };
+
+// ---------- Narration ----------
+
+/** Narration allowance ledger (0020_narration_allowance.sql); see src/lib/allowance.ts. */
+export const allowanceEntries = pgTable(
+  "allowance_entries",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** grant | reserve | release */
+    kind: text("kind").notNull(),
+    /** Signed characters: + for grant/release, − for reserve. */
+    chars: integer("chars").notNull(),
+    note: text("note").notNull().default(""),
+    /** Not a foreign key: the history outlives deleted narrations. */
+    narrationId: text("narration_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("allowance_entries_user_idx").on(t.userId, desc(t.createdAt))],
+);
