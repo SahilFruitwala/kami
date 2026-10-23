@@ -547,7 +547,7 @@ export function ReaderView({
             {/* Marginalia gutter — fully removed in zen so only text remains */}
             {!zen ? (
               <aside
-                className="flex min-w-0 flex-col gap-6 lg:col-span-4 lg:sticky lg:top-24 lg:-mx-1 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-6 lg:[scrollbar-width:thin]"
+                className="flex min-w-0 flex-col gap-6 lg:col-span-4 lg:sticky lg:top-24 lg:-mx-1 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-6 kami-quiet-scroll"
                 aria-label="Marginalia and reflection notes"
               >
                 <div className="flex items-center justify-between gap-2">

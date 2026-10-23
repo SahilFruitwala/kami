@@ -13,7 +13,6 @@ import {
   SlidersHorizontal,
   Tv,
 } from "lucide-react";
-import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell.tsx";
 import {
   GlossChip,
@@ -22,20 +21,12 @@ import {
   GlossPage,
   GlossSearch,
   GlossStats,
-  PullOut,
   Segmented,
   Shelf,
   ShelfDivider,
   type ShelfGroup,
 } from "@/components/gloss/index.ts";
-import {
-  MediaCover,
-  MediaInside,
-  MediaPage,
-  MediaSpine,
-  MediaSpineFace,
-  type MediaKind,
-} from "@/components/gloss/media.tsx";
+import { MediaCover, MediaSpine, type MediaKind } from "@/components/gloss/media.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { AddShelfDialog } from "@/components/library/add-shelf-dialog.tsx";
@@ -43,21 +34,16 @@ import { ShelfFolio } from "@/components/library/shelf-folio.tsx";
 import { statusMeta, statusToApi } from "@/lib/shelf-status.ts";
 import {
   SHELF_PAGE_SIZE,
-  useDeleteShelfItem,
-  useSetShelfItemStatus,
-  useSetShowWatched,
   useShelfCounts,
   useShelfDetail,
   useShelfItems,
 } from "@/hooks/use-shelf-queries.ts";
 import { useTilt } from "@/hooks/use-tilt.ts";
-import { mediaCoverSize, mediaDepthRatio, STATUS_DOT } from "@/lib/gloss/palette.ts";
+import { mediaCoverSize, STATUS_DOT } from "@/lib/gloss/palette.ts";
 import { statusLabels, statusText } from "@/lib/shelf-labels.ts";
 import { type ShelfCard } from "@/lib/shelves.ts";
 import type { ShelvesSearch } from "@/lib/shelves-search.ts";
-import { toastError } from "@/lib/errors";
 import { usePersistedPref } from "@/lib/local-pref.ts";
-import { confirmAction } from "@/lib/confirm.ts";
 import { useShelfFilters } from "@/hooks/use-shelf-filters.ts";
 
 type MediaTab = "movie" | "tv" | "book" | "wishlist";
@@ -69,8 +55,6 @@ type Arrange = (typeof ARRANGES)[number];
 /** A shelf holds far more than a grid page; fetch in bigger bites. */
 const MEDIA_PAGE = SHELF_PAGE_SIZE * 5;
 const STATUS_ORDER: ShelfCard["status"][] = ["in_progress", "to_try", "done", "abandoned"];
-
-type Picked = { card: ShelfCard; kind: "spine" | "cover" };
 
 const COPY: Record<
   MediaTab,
@@ -128,14 +112,9 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
     ARRANGES,
     "status",
   );
-  const [picked, setPicked] = useState<Picked | null>(null);
-  const [opening, setOpening] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
-  const setItemStatus = useSetShelfItemStatus();
-  const setShowWatched = useSetShowWatched();
-  const deleteItem = useDeleteShelfItem();
   const tilt = useTilt();
 
   const detailQuery = useShelfDetail(tab, detailId);
@@ -180,43 +159,23 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
     })).filter((g) => g.items.length > 0);
   }, [sorted, arrange, status, labels]);
 
-  const pickedCard = picked ? (items?.find((it) => it.id === picked.card.id) ?? picked.card) : null;
-
-  async function toggleDone(card: ShelfCard) {
-    const done = card.status === "done";
-    const next: ShelfCard["status"] = done ? "to_try" : "done";
-    setPicked((p) =>
-      p && p.card.id === card.id
-        ? { ...p, card: { ...p.card, status: next, completedAt: done ? null : Date.now() } }
-        : p,
-    );
-    try {
-      if (tab === "tv") await setShowWatched.mutateAsync({ itemId: card.id, watched: !done });
-      else await setItemStatus.mutateAsync({ type: tab, id: card.id, status: next });
-      toast.success(
-        done
-          ? `Moved “${card.title}” back to ${labels.toTry.toLowerCase()}`
-          : `Marked “${card.title}” ${labels.done.toLowerCase()}`,
-      );
-    } catch (err) {
-      setPicked((p) => (p && p.card.id === card.id ? { ...p, card } : p));
-      toastError(err, "Couldn't update status.");
+  /** Wishlist items open the product page (or a dialog); everything else opens its own page. */
+  function openItem(card: ShelfCard) {
+    if (tab === "wishlist") {
+      if (card.link) window.open(card.link, "_blank", "noopener,noreferrer");
+      else setDetailId(card.id);
+      return;
     }
-  }
-
-  async function removeItem(card: ShelfCard, close: () => void) {
-    const ok = await confirmAction({
-      title: `Remove “${card.title}” from your shelf?`,
-      confirmLabel: "Remove",
+    void navigate({
+      to:
+        tab === "movie"
+          ? "/shelves/movies/$id"
+          : tab === "tv"
+            ? "/shelves/series/$id"
+            : "/shelves/books/$id",
+      params: { id: card.id },
+      search: listSearch,
     });
-    if (!ok) return;
-    try {
-      await deleteItem.mutateAsync({ type: tab, id: card.id });
-      toast.success(`Removed “${card.title}”`);
-      close();
-    } catch (err) {
-      toastError(err, "Couldn't delete that item.");
-    }
   }
 
   const resume =
@@ -394,7 +353,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                   className="g-tilt w-full"
                   style={{ aspectRatio: `${coverSize.w} / ${coverSize.h}` }}
                   aria-label={`Open ${resume.title}`}
-                  onClick={() => setPicked({ card: resume, kind: "cover" })}
+                  onClick={() => openItem(resume)}
                   {...tilt}
                 >
                   <MediaCover kind={kind} item={resume} />
@@ -439,7 +398,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 <button
                   type="button"
                   className="g-btn g-btn--ink mt-4 h-10"
-                  onClick={() => setPicked({ card: resume, kind: "cover" })}
+                  onClick={() => openItem(resume)}
                 >
                   Open
                 </button>
@@ -508,7 +467,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                     .join(", ");
                   return { title: it.title, sub, label: `${it.title}, ${sub}` };
                 }}
-                onPick={(it) => setPicked({ card: it, kind: "spine" })}
+                onPick={openItem}
               />
               <p className="mt-6 font-sans text-[13px] text-ink-muted">
                 Click a{" "}
@@ -519,7 +478,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                     : kind === "gift"
                       ? "box"
                       : "book"}{" "}
-                to pull it out. Arrow keys walk the shelf.
+                to open it. Arrow keys walk the shelf.
               </p>
             </>
           ) : (
@@ -539,7 +498,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                     style={{ aspectRatio: `${coverSize.w} / ${coverSize.h}` }}
                     data-gloss-id={it.id}
                     aria-label={`${it.title}${it.year ? `, ${it.year}` : ""}, ${statusText(labels, it.status)}`}
-                    onClick={() => setPicked({ card: it, kind: "cover" })}
+                    onClick={() => openItem(it)}
                     {...tilt}
                   >
                     <MediaCover kind={kind} item={it} />
@@ -579,77 +538,6 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
             </div>
           ) : null}
         </GlossColumn>
-
-        {picked && pickedCard ? (
-          <PullOut
-            key={picked.card.id}
-            source={{ id: picked.card.id, kind: picked.kind }}
-            label={pickedCard.title}
-            coverSize={coverSize}
-            depthRatio={mediaDepthRatio(
-              kind,
-              picked.kind === "cover" ? "cover" : "spine",
-              pickedCard,
-            )}
-            spineFace={<MediaSpineFace kind={kind} item={pickedCard} />}
-            cover={<MediaCover kind={kind} item={pickedCard} />}
-            inside={
-              <MediaInside
-                kind={kind}
-                item={pickedCard}
-                spinning={opening}
-                number={(items ?? []).filter((r) => r.createdAt <= pickedCard.createdAt).length}
-              />
-            }
-            page={(api) => (
-              <MediaPage
-                api={api}
-                item={pickedCard}
-                kind={kind}
-                loading={opening}
-                busy={setItemStatus.isPending || setShowWatched.isPending || deleteItem.isPending}
-                onToggleDone={() => void toggleDone(pickedCard)}
-                onRemove={() => void removeItem(pickedCard, api.close)}
-                onOpenDetails={() => {
-                  // Wishlist items open the original product page when they have one.
-                  if (tab === "wishlist" && pickedCard.link) {
-                    window.open(pickedCard.link, "_blank", "noopener,noreferrer");
-                    return;
-                  }
-                  // Otherwise they open in a dialog.
-                  if (tab === "wishlist") {
-                    setOpening(true);
-                    window.setTimeout(() => api.dissolve(() => setDetailId(pickedCard.id)), 650);
-                    return;
-                  }
-                  setOpening(true);
-                  // Let the reels / disc spin for a beat before we leave.
-                  window.setTimeout(
-                    () =>
-                      api.dissolve(
-                        () =>
-                          void navigate({
-                            to:
-                              tab === "movie"
-                                ? "/shelves/movies/$id"
-                                : tab === "tv"
-                                  ? "/shelves/series/$id"
-                                  : "/shelves/books/$id",
-                            params: { id: pickedCard.id },
-                            search: listSearch,
-                          }),
-                      ),
-                    650,
-                  );
-                }}
-              />
-            )}
-            onClosed={() => {
-              setPicked(null);
-              setOpening(false);
-            }}
-          />
-        ) : null}
 
         <Dialog open={detailId != null} onOpenChange={(open) => !open && setDetailId(null)}>
           <DialogContent className="max-h-[85dvh] overflow-y-auto overscroll-contain sm:max-w-lg">
