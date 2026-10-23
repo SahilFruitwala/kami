@@ -8,8 +8,10 @@ import type { LanguageModel } from "ai";
  *
  * Works for `generateText` and `streamText` alike: a streaming call fails
  * over only while it is being set up (the provider's HTTP response), never
- * halfway through a reply. Kept free of SDK runtime imports so it can be
- * unit-tested (scripts/ai.test.mjs).
+ * halfway through a reply. A model that hangs instead of failing counts as
+ * failed once `attemptTimeoutMs` passes without an answer (every link but
+ * the last), so one stalled provider can't stall the whole chain. Kept free
+ * of SDK runtime imports so it can be unit-tested (scripts/ai.test.mjs).
  */
 
 /** A provider model on the current (v4) spec — what both of our providers return. */
@@ -55,21 +57,63 @@ function stampStream(result: StreamResult, id: string): StreamResult {
   return { ...result, stream };
 }
 
+export class ModelTimeoutError extends Error {
+  constructor(id: string, ms: number) {
+    super(`${id} didn't answer within ${ms} ms`);
+    this.name = "ModelTimeoutError";
+  }
+}
+
 export function fallbackModel(
   chain: ChainModel[],
   onFallback?: (event: FallbackEvent) => void,
+  { attemptTimeoutMs }: { attemptTimeoutMs?: number } = {},
 ): ProviderModel {
   if (!chain.length) throw new Error("fallbackModel needs at least one model.");
   const [first] = chain;
 
+  /**
+   * Run one link. Before the last, give it `attemptTimeoutMs` to answer (or,
+   * for a stream, to start); the timer stops once it does, so a long reply
+   * is never cut off.
+   */
+  async function run<T>(
+    link: ChainModel,
+    options: CallOptions,
+    last: boolean,
+    call: (link: ChainModel, options: CallOptions) => PromiseLike<T>,
+  ): Promise<T> {
+    if (last || !attemptTimeoutMs) return call(link, options);
+    const timer = new AbortController();
+    const signal = options.abortSignal
+      ? AbortSignal.any([options.abortSignal, timer.signal])
+      : timer.signal;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const expired = new Promise<never>((_, reject) => {
+      timeout = setTimeout(() => {
+        const err = new ModelTimeoutError(link.id, attemptTimeoutMs);
+        timer.abort(err);
+        reject(err);
+      }, attemptTimeoutMs);
+    });
+    const pending = Promise.resolve(call(link, { ...options, abortSignal: signal }));
+    // The abandoned call rejects once aborted; that rejection is expected.
+    pending.catch(() => {});
+    try {
+      return await Promise.race([pending, expired]);
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
   async function attempt<T>(
     options: CallOptions,
-    call: (link: ChainModel) => PromiseLike<T>,
+    call: (link: ChainModel, options: CallOptions) => PromiseLike<T>,
   ): Promise<T> {
     let lastError: unknown;
     for (let i = 0; i < chain.length; i++) {
       try {
-        return await call(chain[i]);
+        return await run(chain[i], options, i === chain.length - 1, call);
       } catch (err) {
         if (isAbort(err, options)) throw err;
         lastError = err;
@@ -86,12 +130,12 @@ export function fallbackModel(
     modelId: chain.map((link) => link.id).join(" → "),
     supportedUrls: first.model.supportedUrls,
     doGenerate: (options) =>
-      attempt(options, async ({ id, model }) => {
-        const result = await model.doGenerate(options);
+      attempt(options, async ({ id, model }, opts) => {
+        const result = await model.doGenerate(opts);
         return { ...result, response: { ...result.response, modelId: id } };
       }),
     doStream: (options) =>
-      attempt(options, async ({ id, model }) => stampStream(await model.doStream(options), id)),
+      attempt(options, async ({ id, model }, opts) => stampStream(await model.doStream(opts), id)),
   } satisfies ProviderModel;
 }
 
