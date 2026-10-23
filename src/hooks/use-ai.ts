@@ -19,6 +19,7 @@ export function useAiStatus() {
   });
   return {
     enabled: query.data?.enabled ?? false,
+    narration: query.data?.narration ?? false,
   };
 }
 

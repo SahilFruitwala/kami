@@ -2,7 +2,11 @@ import { http, seg } from "./client";
 import type { LibraryItem } from "@/lib/library-item";
 
 /** Which AI features this server can run (each needs a provider key). */
-export type AiStatus = { enabled: boolean };
+export type AiStatus = {
+  enabled: boolean;
+  /** Narration is set up (Deepgram + R2); independent of the language models. */
+  narration: boolean;
+};
 
 /** An article's AI summary and organisation suggestions. */
 export type ArticleSummary = {
