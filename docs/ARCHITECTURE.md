@@ -678,6 +678,51 @@ capture flow; **Skip** closes the tab.
 
 ---
 
+## Narration
+
+The reader can turn an article's full text into audio (**Create audio**),
+spoken by Deepgram Aura-2 (voice `aura-2-thalia-en`) through the AI SDK and
+stored privately in Cloudflare R2. Audio is made only when its owner asks,
+spends their **narration allowance**, and only they can play it. Off unless
+`DEEPGRAM_API_KEY`, the `R2_*` variables and `NARRATION_RUN_SECRET` are set
+(`src/lib/narration-config.server.ts`); see `GLOSSARY.md` for the terms.
+
+```mermaid
+sequenceDiagram
+  participant B as Reader
+  participant A as /api/narrations/:id
+  participant W as Run (waitUntil)
+  participant D as Deepgram
+  participant S as R2 (private)
+  B->>A: POST (Create audio)
+  A->>A: script, refusals, reserve allowance
+  A-->>B: { ok, narration: queued }
+  A-)W: runInBackground
+  loop each part, while time remains
+    W->>D: generateSpeech (≤ 2,000 chars)
+    W->>S: put part-000n.mp3
+  end
+  W-)W: near the deadline: POST /api/narrations/run (secret)
+  W->>S: get parts, join, put narration.mp3, delete parts
+  B->>A: GET …/audio
+  A-->>B: presigned URL (15 min)
+  B->>S: <audio> plays it directly
+```
+
+| Concern | Choice |
+|---|---|
+| Script | `src/lib/narration-script.server.ts`: title/author/site intro, headings after a "..." pause (Aura-2 has no SSML), link text without URLs, captions without alt text, code and tables replaced by a short "skipped" line, footnotes dropped; packed into parts of ≤ 2,000 characters (Deepgram's limit) on sentence boundaries. Capped at 120,000 characters. |
+| Refusals | Before any Deepgram call (`refuseStart` in `src/lib/narration-engine.ts`): a link stub, non-English text (a dependency-free check), over the cap, or not enough allowance. They come back as data (`{ ok: false, refusal }`) for the reader's popup. |
+| Allowance | `allowance_entries` ledger (grant / reserve / release), serialised per user with an advisory lock. Starting reserves the whole script; whatever isn't spoken returns when the narration finishes or is deleted. `pnpm narration:grant` is the only way to add allowance. |
+| Engine | `src/lib/narration-engine.ts` is pure: `nextStep` picks tidy / speak part n / join / hand off / exit, `applyEvent` folds results in. `src/server/services/narration.ts` does the I/O. |
+| Background run | ADR 0001. `waitUntil` + `getDeadline` from `@vercel/functions`; a run claims the narration with a 90 s lease, renewed after every part, and hands off to `POST /api/narrations/run` (at `https://$VERCEL_URL` with `x-vercel-protection-bypass`, or the request origin locally) before the deadline, releasing its lease first. A part is stored in R2 before it is recorded, so a crash re-speaks at most one part. An owner's status check that finds an active narration with an expired lease restarts it. |
+| Tidy | A run tidies a `pending`/`failed` article first and swaps in the rebuilt, shorter script; if Tidy fails, it narrates the text as saved. |
+| Speech | `src/lib/speech.server.ts`: mp3 at 48 kbps, one SDK retry. 401/402/403 (and malformed requests) pause the narration with a reason; transient failures pause with "Resume to try again". |
+| Storage | `src/lib/r2.server.ts` (aws4fetch). Keys `narrations/{user}/{article}/{narration}/part-NNNN.mp3` then `narration.mp3`. Parts are joined in memory (`src/lib/mp3.ts` drops ID3 and Xing/Info headers and counts frames for the duration) because R2 multipart needs ≥ 5 MiB equal parts. Failed deletes go to `r2_orphans` and are retried when narration is next started. |
+| Access | Every route filters by the caller's `userId` and answers 404 otherwise. The bucket has no public URL; the audio route returns a 15-minute presigned GET for that one object, the player asks again when it expires, and CSP `media-src` allows `*.r2.cloudflarestorage.com`. |
+| Deletes | Deleting an article (single or whole library) cascades its narration row and then deletes its R2 objects and returns any unspoken reservation (`prepareArticleDelete`). |
+| Cost | `narration` rate-limit bucket (30 starts/hour/user, fails closed). Aura-2 is $0.030 per 1,000 characters (a ~24k-character article ≈ $0.72). |
+
 ## Caching
 
 `src/lib/cache.server.ts` — enabled only when both Upstash env vars are set.

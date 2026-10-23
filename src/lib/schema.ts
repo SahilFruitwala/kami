@@ -9,6 +9,7 @@ import {
   jsonb,
   pgTable,
   primaryKey,
+  real,
   text,
   timestamp,
   uniqueIndex,
@@ -745,3 +746,47 @@ export const allowanceEntries = pgTable(
   },
   (t) => [index("allowance_entries_user_idx").on(t.userId, desc(t.createdAt))],
 );
+
+/** One narration per article (0021_narrations.sql); see src/lib/narration-engine.ts. */
+export const narrations = pgTable(
+  "narrations",
+  {
+    id: text("id").primaryKey(),
+    articleId: text("article_id")
+      .notNull()
+      .unique()
+      .references(() => articles.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** queued | tidying | narrating | joining | ready | paused */
+    state: text("state").notNull(),
+    pausedReason: text("paused_reason"),
+    model: text("model").notNull(),
+    /** sha256 of the article body the script was built from (stale check). */
+    contentHash: text("content_hash").notNull(),
+    /** The script, split into Narration parts. */
+    parts: jsonb("parts").$type<string[]>().notNull(),
+    reservedChars: integer("reserved_chars").notNull(),
+    partsDone: integer("parts_done").notNull().default(0),
+    charsSpoken: integer("chars_spoken").notNull().default(0),
+    tidyAttempted: boolean("tidy_attempted").notNull().default(false),
+    leaseUntil: timestamp("lease_until", { withTimezone: true }),
+    runId: text("run_id"),
+    audioKey: text("audio_key"),
+    durationSeconds: real("duration_seconds"),
+    bytes: integer("bytes"),
+    positionSeconds: real("position_seconds").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (t) => [index("narrations_user_idx").on(t.userId, t.state)],
+);
+
+/** R2 objects whose delete failed; retried when narrations are next requested. */
+export const r2Orphans = pgTable("r2_orphans", {
+  key: text("key").primaryKey(),
+  attempts: integer("attempts").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

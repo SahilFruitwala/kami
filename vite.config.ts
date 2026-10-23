@@ -25,7 +25,13 @@ export default defineConfig(({ command, isPreview }) => ({
             preset: "vercel",
             // The trip agent streams a multi-step research loop; the default
             // function timeout cuts it off mid-stream ("network error").
-            vercel: { functionRules: { "/api/trips/*/chat": { maxDuration: 300 } } },
+            vercel: {
+              functionRules: {
+                "/api/trips/*/chat": { maxDuration: 300 },
+                // Narration runs continue after the response (waitUntil).
+                "/api/narrations/**": { maxDuration: 300 },
+              },
+            },
           }),
         ]
       : []),

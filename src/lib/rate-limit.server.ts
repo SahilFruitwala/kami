@@ -27,6 +27,8 @@ export const RATE_LIMITS = {
   agent: { limit: 40, windowSeconds: 3600 },
   /** Library AI calls: summaries, tags, digests, reflections (one model call each). */
   ai: { limit: 300, windowSeconds: 3600 },
+  /** Create audio (each start can spend Deepgram credit on a whole article). */
+  narration: { limit: 30, windowSeconds: 3600 },
   /** Inbound newsletter emails stored per user. */
   inbound: { limit: 300, windowSeconds: 86_400 },
 } as const;
@@ -39,7 +41,12 @@ export type RateLimitBucket = keyof typeof RATE_LIMITS;
  * become an unmetered window on someone else's bill. Everything else fails
  * open so normal reading/saving keeps working.
  */
-const FAIL_CLOSED: ReadonlySet<RateLimitBucket> = new Set(["firecrawl", "agent", "ai"]);
+const FAIL_CLOSED: ReadonlySet<RateLimitBucket> = new Set([
+  "firecrawl",
+  "agent",
+  "ai",
+  "narration",
+]);
 
 export class RateLimitError extends Error {
   readonly status = 429;

@@ -181,11 +181,13 @@ See [AI features](./ARCHITECTURE.md#ai-features).
 
 Highlight notes (inside `articles.highlights` jsonb) are capped at 1000 chars (`HIGHLIGHT_NOTE_MAX`).
 
-### Narration — `allowance_entries`
+### Narration — `allowance_entries`, `narrations`, `r2_orphans`
 
 | Table | Purpose |
 |-------|---------|
 | `allowance_entries` | Narration allowance ledger, one row per change: `kind` `grant` (+, from `pnpm narration:grant`), `reserve` (−, a narration sets aside its script) or `release` (+, the unspoken part of a deleted unfinished narration); signed `chars`, `note`, optional `narration_id` (not a foreign key, so history outlives narrations). The sum is what the user can spend; everyone starts with none. Changes for one user are serialised with a transaction-scoped advisory lock (`src/lib/allowance-db.server.ts`) |
+| `narrations` | One per article (unique `article_id`, cascades with it): `state` (`queued`, `tidying`, `narrating`, `joining`, `ready`, `paused`) and `paused_reason`, `parts` jsonb (the script in Narration parts), `parts_done`, `reserved_chars` / `chars_spoken` (what returns to the allowance when it ends), `tidy_attempted`, a run lease (`run_id`, `lease_until`), `content_hash` (stale check), the finished `audio_key` / `duration_seconds` / `bytes`, and the owner's `position_seconds` (0021_narrations.sql) |
+| `r2_orphans` | R2 object keys whose delete failed, retried when narration is next started |
 
 ### Misc
 
