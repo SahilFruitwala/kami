@@ -351,6 +351,10 @@ function PlayerBar({
             if (at > 0 && at < (el.duration || Infinity) - 5) el.currentTime = at;
           }}
           onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
+          // While playing, the interval saves; a seek or skip while paused saves here.
+          onSeeked={(e) => {
+            if (e.currentTarget.paused) savePosition();
+          }}
           onPlay={() => setPlaying(true)}
           onPause={() => {
             setPlaying(false);
