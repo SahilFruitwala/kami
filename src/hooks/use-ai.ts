@@ -15,6 +15,7 @@ export function useAiStatus() {
   return {
     enabled: query.data?.enabled ?? false,
     semanticSearch: query.data?.semanticSearch ?? false,
+    narration: query.data?.narration ?? false,
   };
 }
 

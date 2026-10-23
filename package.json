@@ -22,6 +22,7 @@
     "format": "prettier --write ."
   },
   "dependencies": {
+    "@ai-sdk/deepgram": "3.1.28",
     "@ai-sdk/google": "^4.0.92",
     "@ai-sdk/react": "^4.0.136",
     "@base-ui/react": "^1.8.0",
@@ -40,6 +41,7 @@
     "@upstash/redis": "^1.38.4",
     "@vercel/functions": "3.10.3",
     "ai": "^7.0.133",
+    "aws4fetch": "1.0.20",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "cn": "^0.3.0",

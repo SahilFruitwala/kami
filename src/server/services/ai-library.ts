@@ -7,6 +7,7 @@ import { chunkText, highlightChunks, vectorLiteral, type HighlightLike } from "@
 import { getDb } from "@/lib/db";
 import { aiConfigured, aiEmbeddingModels } from "@/lib/llm.server.ts";
 import { clipText } from "@/lib/model-fallback.ts";
+import { narrationConfigured } from "@/lib/narration-config.server.ts";
 import { uid } from "@/lib/store";
 import { asDocument, chatHistory, embedTexts, streamChat, type chatTurnInput } from "@/server/ai";
 
@@ -56,7 +57,11 @@ export async function semanticReady(): Promise<boolean> {
 
 export async function getAiStatus(): Promise<AiStatus> {
   const enabled = aiConfigured();
-  return { enabled, semanticSearch: enabled && (await semanticReady()) };
+  return {
+    enabled,
+    semanticSearch: enabled && (await semanticReady()),
+    narration: narrationConfigured(),
+  };
 }
 
 // ---------- Indexing ----------

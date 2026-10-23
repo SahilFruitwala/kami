@@ -3,7 +3,12 @@ import type { LookupResult } from "./types";
 import type { LibraryItem } from "@/lib/store";
 
 /** Which AI features this server can run (each needs a provider key). */
-export type AiStatus = { enabled: boolean; semanticSearch: boolean };
+export type AiStatus = {
+  enabled: boolean;
+  semanticSearch: boolean;
+  /** Narration is set up (Deepgram + R2); independent of the language models. */
+  narration: boolean;
+};
 
 /** An article's AI summary and organisation suggestions. */
 export type ArticleSummary = {
