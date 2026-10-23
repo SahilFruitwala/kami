@@ -19,7 +19,15 @@ export default defineConfig(({ command, isPreview }) => ({
   plugins: [
     tailwindcss(),
     tanstackStart(),
-    ...(command === "build" || isPreview ? [nitro({ preset: "vercel" })] : []),
+    ...(command === "build" || isPreview
+      ? [
+          nitro({
+            preset: "vercel",
+            // Narration runs continue after the response (waitUntil).
+            vercel: { functionRules: { "/api/narrations/**": { maxDuration: 300 } } },
+          }),
+        ]
+      : []),
     viteReact(),
   ],
 }));

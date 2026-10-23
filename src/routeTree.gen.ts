@@ -56,6 +56,8 @@ import { Route as ApiLookupBooksRouteImport } from './routes/api/lookup/books'
 import { Route as ApiLookupLinkRouteImport } from './routes/api/lookup/link'
 import { Route as ApiLookupTmdbRouteImport } from './routes/api/lookup/tmdb'
 import { Route as ApiLookupWatchProvidersRouteImport } from './routes/api/lookup/watch-providers'
+import { Route as ApiNarrationsIdRouteImport } from './routes/api/narrations/$id'
+import { Route as ApiNarrationsRunRouteImport } from './routes/api/narrations/run'
 import { Route as ApiShelvesCountsRouteImport } from './routes/api/shelves/counts'
 import { Route as ApiTripsIndexRouteImport } from './routes/api/trips/index'
 import { Route as ApiTripsIdRouteImport } from './routes/api/trips/$id'
@@ -75,6 +77,8 @@ import { Route as ApiLibraryFoldersIndexRouteImport } from './routes/api/library
 import { Route as ApiLibraryFoldersIdRouteImport } from './routes/api/library/folders/$id'
 import { Route as ApiLibraryItemsIndexRouteImport } from './routes/api/library/items/index'
 import { Route as ApiLibraryItemsIdRouteImport } from './routes/api/library/items/$id'
+import { Route as ApiNarrationsIdAudioRouteImport } from './routes/api/narrations/$id/audio'
+import { Route as ApiNarrationsIdPositionRouteImport } from './routes/api/narrations/$id/position'
 import { Route as ApiShelvesTypeIndexRouteImport } from './routes/api/shelves/$type/index'
 import { Route as ApiShelvesTypeIdRouteImport } from './routes/api/shelves/$type/$id'
 import { Route as ApiShelvesTypeDuplicatesRouteImport } from './routes/api/shelves/$type/duplicates'
@@ -334,6 +338,16 @@ const ApiLookupWatchProvidersRoute = ApiLookupWatchProvidersRouteImport.update({
   path: '/api/lookup/watch-providers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiNarrationsIdRoute = ApiNarrationsIdRouteImport.update({
+  id: '/api/narrations/$id',
+  path: '/api/narrations/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiNarrationsRunRoute = ApiNarrationsRunRouteImport.update({
+  id: '/api/narrations/run',
+  path: '/api/narrations/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiShelvesCountsRoute = ApiShelvesCountsRouteImport.update({
   id: '/api/shelves/counts',
   path: '/api/shelves/counts',
@@ -428,6 +442,16 @@ const ApiLibraryItemsIdRoute = ApiLibraryItemsIdRouteImport.update({
   id: '/api/library/items/$id',
   path: '/api/library/items/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ApiNarrationsIdAudioRoute = ApiNarrationsIdAudioRouteImport.update({
+  id: '/audio',
+  path: '/audio',
+  getParentRoute: () => ApiNarrationsIdRoute,
+} as any)
+const ApiNarrationsIdPositionRoute = ApiNarrationsIdPositionRouteImport.update({
+  id: '/position',
+  path: '/position',
+  getParentRoute: () => ApiNarrationsIdRoute,
 } as any)
 const ApiShelvesTypeIndexRoute = ApiShelvesTypeIndexRouteImport.update({
   id: '/api/shelves/$type/',
@@ -598,6 +622,8 @@ export interface FileRoutesByFullPath {
   '/api/lookup/link': typeof ApiLookupLinkRoute
   '/api/lookup/tmdb': typeof ApiLookupTmdbRoute
   '/api/lookup/watch-providers': typeof ApiLookupWatchProvidersRoute
+  '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
+  '/api/narrations/run': typeof ApiNarrationsRunRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
   '/api/trips/$id': typeof ApiTripsIdRouteWithChildren
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
@@ -619,6 +645,8 @@ export interface FileRoutesByFullPath {
   '/api/feeds/entries/read-all': typeof ApiFeedsEntriesReadAllRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
+  '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
+  '/api/narrations/$id/position': typeof ApiNarrationsIdPositionRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
@@ -688,6 +716,8 @@ export interface FileRoutesByTo {
   '/api/lookup/link': typeof ApiLookupLinkRoute
   '/api/lookup/tmdb': typeof ApiLookupTmdbRoute
   '/api/lookup/watch-providers': typeof ApiLookupWatchProvidersRoute
+  '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
+  '/api/narrations/run': typeof ApiNarrationsRunRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
   '/api/trips/$id': typeof ApiTripsIdRouteWithChildren
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
@@ -709,6 +739,8 @@ export interface FileRoutesByTo {
   '/api/feeds/entries/read-all': typeof ApiFeedsEntriesReadAllRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
+  '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
+  '/api/narrations/$id/position': typeof ApiNarrationsIdPositionRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
@@ -780,6 +812,8 @@ export interface FileRoutesById {
   '/api/lookup/link': typeof ApiLookupLinkRoute
   '/api/lookup/tmdb': typeof ApiLookupTmdbRoute
   '/api/lookup/watch-providers': typeof ApiLookupWatchProvidersRoute
+  '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
+  '/api/narrations/run': typeof ApiNarrationsRunRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
   '/api/trips/$id': typeof ApiTripsIdRouteWithChildren
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
@@ -801,6 +835,8 @@ export interface FileRoutesById {
   '/api/feeds/entries/read-all': typeof ApiFeedsEntriesReadAllRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
+  '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
+  '/api/narrations/$id/position': typeof ApiNarrationsIdPositionRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
@@ -873,6 +909,8 @@ export interface FileRouteTypes {
     | '/api/lookup/link'
     | '/api/lookup/tmdb'
     | '/api/lookup/watch-providers'
+    | '/api/narrations/$id'
+    | '/api/narrations/run'
     | '/api/shelves/counts'
     | '/api/trips/$id'
     | '/shelves/books/$id'
@@ -894,6 +932,8 @@ export interface FileRouteTypes {
     | '/api/feeds/entries/read-all'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
+    | '/api/narrations/$id/audio'
+    | '/api/narrations/$id/position'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
@@ -963,6 +1003,8 @@ export interface FileRouteTypes {
     | '/api/lookup/link'
     | '/api/lookup/tmdb'
     | '/api/lookup/watch-providers'
+    | '/api/narrations/$id'
+    | '/api/narrations/run'
     | '/api/shelves/counts'
     | '/api/trips/$id'
     | '/shelves/books/$id'
@@ -984,6 +1026,8 @@ export interface FileRouteTypes {
     | '/api/feeds/entries/read-all'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
+    | '/api/narrations/$id/audio'
+    | '/api/narrations/$id/position'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
@@ -1054,6 +1098,8 @@ export interface FileRouteTypes {
     | '/api/lookup/link'
     | '/api/lookup/tmdb'
     | '/api/lookup/watch-providers'
+    | '/api/narrations/$id'
+    | '/api/narrations/run'
     | '/api/shelves/counts'
     | '/api/trips/$id'
     | '/shelves/books/$id'
@@ -1075,6 +1121,8 @@ export interface FileRouteTypes {
     | '/api/feeds/entries/read-all'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
+    | '/api/narrations/$id/audio'
+    | '/api/narrations/$id/position'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
@@ -1144,6 +1192,8 @@ export interface RootRouteChildren {
   ApiLookupLinkRoute: typeof ApiLookupLinkRoute
   ApiLookupTmdbRoute: typeof ApiLookupTmdbRoute
   ApiLookupWatchProvidersRoute: typeof ApiLookupWatchProvidersRoute
+  ApiNarrationsIdRoute: typeof ApiNarrationsIdRouteWithChildren
+  ApiNarrationsRunRoute: typeof ApiNarrationsRunRoute
   ApiShelvesCountsRoute: typeof ApiShelvesCountsRoute
   ApiTripsIdRoute: typeof ApiTripsIdRouteWithChildren
   ApiAllowanceIndexRoute: typeof ApiAllowanceIndexRoute
@@ -1509,6 +1559,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiLookupWatchProvidersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/narrations/$id': {
+      id: '/api/narrations/$id'
+      path: '/api/narrations/$id'
+      fullPath: '/api/narrations/$id'
+      preLoaderRoute: typeof ApiNarrationsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/narrations/run': {
+      id: '/api/narrations/run'
+      path: '/api/narrations/run'
+      fullPath: '/api/narrations/run'
+      preLoaderRoute: typeof ApiNarrationsRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/shelves/counts': {
       id: '/api/shelves/counts'
       path: '/api/shelves/counts'
@@ -1641,6 +1705,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/library/items/$id'
       preLoaderRoute: typeof ApiLibraryItemsIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/narrations/$id/audio': {
+      id: '/api/narrations/$id/audio'
+      path: '/audio'
+      fullPath: '/api/narrations/$id/audio'
+      preLoaderRoute: typeof ApiNarrationsIdAudioRouteImport
+      parentRoute: typeof ApiNarrationsIdRoute
+    }
+    '/api/narrations/$id/position': {
+      id: '/api/narrations/$id/position'
+      path: '/position'
+      fullPath: '/api/narrations/$id/position'
+      preLoaderRoute: typeof ApiNarrationsIdPositionRouteImport
+      parentRoute: typeof ApiNarrationsIdRoute
     }
     '/api/shelves/$type/': {
       id: '/api/shelves/$type/'
@@ -1846,6 +1924,20 @@ const ApiExtractsIdRouteWithChildren = ApiExtractsIdRoute._addFileChildren(
   ApiExtractsIdRouteChildren,
 )
 
+interface ApiNarrationsIdRouteChildren {
+  ApiNarrationsIdAudioRoute: typeof ApiNarrationsIdAudioRoute
+  ApiNarrationsIdPositionRoute: typeof ApiNarrationsIdPositionRoute
+}
+
+const ApiNarrationsIdRouteChildren: ApiNarrationsIdRouteChildren = {
+  ApiNarrationsIdAudioRoute: ApiNarrationsIdAudioRoute,
+  ApiNarrationsIdPositionRoute: ApiNarrationsIdPositionRoute,
+}
+
+const ApiNarrationsIdRouteWithChildren = ApiNarrationsIdRoute._addFileChildren(
+  ApiNarrationsIdRouteChildren,
+)
+
 interface ApiTripsIdHotelsRouteChildren {
   ApiTripsIdHotelsHotelIdRoute: typeof ApiTripsIdHotelsHotelIdRoute
 }
@@ -1950,6 +2042,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLookupLinkRoute: ApiLookupLinkRoute,
   ApiLookupTmdbRoute: ApiLookupTmdbRoute,
   ApiLookupWatchProvidersRoute: ApiLookupWatchProvidersRoute,
+  ApiNarrationsIdRoute: ApiNarrationsIdRouteWithChildren,
+  ApiNarrationsRunRoute: ApiNarrationsRunRoute,
   ApiShelvesCountsRoute: ApiShelvesCountsRoute,
   ApiTripsIdRoute: ApiTripsIdRouteWithChildren,
   ApiAllowanceIndexRoute: ApiAllowanceIndexRoute,

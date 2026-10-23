@@ -123,6 +123,19 @@ Path parameters are written `:name`. For exact request/response shapes read the 
 | `GET`  | `/api/lookup/tmdb`            | `src/routes/api/lookup/tmdb.ts`            |
 | `GET`  | `/api/lookup/watch-providers` | `src/routes/api/lookup/watch-providers.ts` |
 
+### narrations
+
+Owner-only (404 for anyone else). `POST /api/narrations/run` is internal: it authenticates with the server's run secret, not a session (see ADR 0001).
+
+| Method   | Path                           | Source                                      |
+| -------- | ------------------------------ | ------------------------------------------- |
+| `GET`    | `/api/narrations/:id`          | `src/routes/api/narrations/$id.ts`          |
+| `POST`   | `/api/narrations/:id`          | `src/routes/api/narrations/$id.ts`          |
+| `DELETE` | `/api/narrations/:id`          | `src/routes/api/narrations/$id.ts`          |
+| `GET`    | `/api/narrations/:id/audio`    | `src/routes/api/narrations/$id/audio.ts`    |
+| `PUT`    | `/api/narrations/:id/position` | `src/routes/api/narrations/$id/position.ts` |
+| `POST`   | `/api/narrations/run`          | `src/routes/api/narrations/run.ts`          |
+
 ### shelves
 
 | Method   | Path                                  | Source                                             |

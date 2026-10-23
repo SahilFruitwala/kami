@@ -368,8 +368,12 @@ export async function patchLibraryItem(
 
 export async function removeLibraryItem(userId: string, id: string): Promise<void> {
   const db = await getDb();
+  // Narrations cascade in Postgres; their R2 audio and reservations don't.
+  const { prepareArticleDelete } = await import("@/server/services/narration");
+  const afterDelete = await prepareArticleDelete(userId, [id]);
   await db.delete(articles).where(and(eq(articles.id, id), eq(articles.userId, userId)));
   await invalidateUserCache(userId, "library");
+  await afterDelete();
 }
 
 /**
