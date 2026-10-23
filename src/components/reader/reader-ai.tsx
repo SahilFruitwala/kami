@@ -113,6 +113,9 @@ function SummaryBody({ item, summary }: { item: LibraryItem; summary: ArticleSum
           The text changed since this summary. Summarize again to refresh it.
         </p>
       ) : null}
+      {summary.clipped ? (
+        <p className="font-sans text-[11px] opacity-60">Made from the first part of this piece.</p>
+      ) : null}
       <p className="font-body text-sm leading-relaxed">{summary.tldr}</p>
       {summary.keyPoints.length ? (
         <ul className="list-disc space-y-1.5 pl-4 font-body text-sm leading-snug opacity-90">

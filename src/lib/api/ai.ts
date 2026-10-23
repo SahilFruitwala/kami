@@ -7,10 +7,10 @@ export type AiStatus = { enabled: boolean };
 export type ArticleSummary = {
   tldr: string;
   keyPoints: string[];
-  /** Suggested tags the article doesn't have yet. */
-  tags: string[];
   /** Suggested existing folder, or null. */
   folderId: string | null;
+  /** Made from only the first part of a piece too long to send whole. */
+  clipped: boolean;
   model: string | null;
   createdAt: number;
   /** The article's text changed since this summary was made. */
