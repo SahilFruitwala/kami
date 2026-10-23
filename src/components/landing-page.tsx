@@ -4,14 +4,21 @@ import {
   ArrowRight,
   BookOpen,
   Command,
+  Eraser,
   FileDown,
+  Gauge,
+  Headphones,
   Highlighter,
   History,
   LibraryBig,
   MoonStar,
   MousePointerClick,
+  Play,
+  RotateCcw,
+  RotateCw,
   Search,
   ShieldCheck,
+  Sparkles,
   SunMoon,
   Tags,
   Type,
@@ -25,14 +32,32 @@ import { Hanko, KAMI_GLYPH, WashiTag } from "@/components/kami.tsx";
 // capture (paste / link-only / manual paste / bookmarklet + extension → /capture, share target),
 // library (inbox-archive tabs, deferred search, folders, tags, stars, bulk ops),
 // reader (5 fonts, 7 sizes, 3 paper tones, scroll memory),
+// tidy (auto clean-up after save, before/after review, restore original),
+// narration (on request, English only, operator-granted allowance, 0.8–2×, saved position),
+// reader AI (Summarize gist: TL;DR, key points, suggested folder; Auto-tag up to 3 fixed categories),
 // highlights (3 inks, notes, vault CSV), journal (calendar, 50k chars/day,
 // micro-season label), shelves (movies/TV/books/wishlist, TMDB+book search,
-// episode tracker), settings (JSON/OPML/CSV export + import).
+// episode tracker, tag groups), settings (JSON/OPML/CSV export + import).
 const FEATURES = [
   {
     icon: MousePointerClick,
-    title: "1-Click Bookmarklet Capture",
-    copy: "Saving from the page itself? The bookmarklet grabs the article, auto-imports a clean copy, and opens the reader — even where servers get blocked.",
+    title: "Bookmarklet & Extension Capture",
+    copy: "Saving from the page itself? The bookmarklet or the Save to KAMI extension grabs the article, imports a clean copy, and opens the reader — even where servers get blocked.",
+  },
+  {
+    icon: Headphones,
+    title: "Listen to Any Article",
+    copy: "Turn a saved piece into natural narration and listen at 0.8× to 2×. KAMI remembers where you stopped, so you can pick it back up later.",
+  },
+  {
+    icon: Eraser,
+    title: "Automatic Clean-Up",
+    copy: "Ads, sponsor slots, subscribe prompts, and footers are stripped after you save — without rewriting a word. Review the before and after, or restore the original.",
+  },
+  {
+    icon: Sparkles,
+    title: "Summarize & Auto-Tag",
+    copy: "Get a TL;DR, a handful of key points, and a suggested folder for any article. Auto-tag adds up to three categories in one tap.",
   },
   {
     icon: Search,
@@ -65,12 +90,12 @@ const STEPS = [
   {
     n: "1",
     title: "Save a Link",
-    copy: "Paste any blog or X article URL — save a full clean copy or link-only. Or fire the bookmarklet from the page itself.",
+    copy: "Paste any blog or X article URL — save a full clean copy or link-only. Or fire the bookmarklet or extension from the page itself.",
   },
   {
     n: "2",
-    title: "Read Without Noise",
-    copy: "Open the distilled Dokusho view: five typefaces, seven sizes, three paper tones, and per-article scroll memory.",
+    title: "Read or Listen",
+    copy: "KAMI tidies away the clutter, then opens the Dokusho view — or narrates the piece so you can listen on a walk.",
   },
   {
     n: "3",
@@ -101,7 +126,15 @@ const FAQS = [
   },
   {
     q: "What happens when a site blocks scraping?",
-    a: "Three fallbacks: save link-only, paste the article text manually for review-and-import, or use the bookmarklet — your browser already has the page, so nothing is lost.",
+    a: "Three fallbacks: save link-only, paste the article text manually for review-and-import, or use the bookmarklet or extension — your browser already has the page, so nothing is lost.",
+  },
+  {
+    q: "Does the clean-up change what the author wrote?",
+    a: "No. It only removes clutter blocks like ads, sponsor slots, and footers. The original copy is kept, so you can compare before and after, or restore it in one click.",
+  },
+  {
+    q: "How does listening work?",
+    a: "Tap Listen in the reader and KAMI narrates the full article in the background. The audio is private to you and remembers your position. Narration is English-only for now and draws on an allowance set by whoever runs your KAMI.",
   },
   {
     q: "Do I need an account? Does it work offline?",
@@ -113,7 +146,26 @@ const FAQS = [
   },
   {
     q: "Does KAMI work on mobile?",
-    a: "Yes. The desk, library, reader, and capture bar are responsive with large touch targets and safe-area-aware layouts.",
+    a: "Yes. The desk, library, reader, audio player, and capture bar are responsive with large touch targets and safe-area-aware layouts.",
+  },
+  {
+    q: "Is KAMI open source?",
+    a: "Yes, under the MIT license. You can read the code, contribute, or run your own KAMI.",
+  },
+] as const;
+
+const LISTEN_POINTS = [
+  {
+    icon: Headphones,
+    copy: "Narration is made only when you ask for it, from the article’s full, tidied text — and it stays private to you.",
+  },
+  {
+    icon: Gauge,
+    copy: "Skip back 15 seconds or forward 30, and play at 0.8×, 1×, 1.25×, 1.5×, or 2×.",
+  },
+  {
+    icon: History,
+    copy: "Your listening position is saved as you go, so you can close the tab and pick up mid-sentence later.",
   },
 ] as const;
 
@@ -156,6 +208,12 @@ export function LandingPage() {
               className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
             >
               Reader
+            </a>
+            <a
+              href="#listen"
+              className="rounded-sm py-1 transition-colors hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            >
+              Listen
             </a>
             <a
               href="#organize"
@@ -201,17 +259,18 @@ export function LandingPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <WashiTag tone="paper">Quiet read-later</WashiTag>
                 <WashiTag tone="vermilion">Blogs & X threads</WashiTag>
-                <WashiTag tone="bamboo">Offline-first</WashiTag>
+                <WashiTag tone="bamboo">Read or listen</WashiTag>
+                <WashiTag tone="indigo">Open source</WashiTag>
               </div>
               <h1
                 id="hero-heading"
                 className="mt-5 font-display text-[2.75rem] leading-[1] font-normal tracking-[-0.025em] text-balance sm:text-[4rem]"
               >
-                A quiet digital sanctuary for reading, inking, and unhurried thought.
+                A quiet digital sanctuary for reading, listening, and unhurried thought.
               </h1>
               <p className="kami-body mt-4 max-w-xl text-base leading-[1.85] text-pretty text-ink-soft sm:text-lg sm:leading-[1.85]">
-                Paste a link and get a clean, distraction-free page — then tag it, highlight it in
-                three inks, journal it, and find it in seconds.
+                Paste a link and get a clean page with the ads and footers already tidied away —
+                then read it, listen to it, highlight it in three inks, and find it in seconds.
               </p>
               <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:items-center">
                 <Button
@@ -239,7 +298,7 @@ export function LandingPage() {
                 </Button>
               </div>
               <p className="mt-3 font-sans text-xs text-ink-muted" aria-live="polite">
-                Free to start · No extension required · Washi light & sumi dark
+                Free to start · MIT licensed · No extension required · Washi light & sumi dark
               </p>
             </div>
 
@@ -375,7 +434,8 @@ export function LandingPage() {
             Everything a Reading List Should Do
           </h2>
           <p className="kami-body mt-3 max-w-2xl text-base leading-[1.85] text-ink-soft">
-            Capture in one click, read without clutter, and organize without thinking about it.
+            Capture in one click, read or listen without clutter, and organize without thinking
+            about it.
           </p>
           <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {FEATURES.map((f) => (
@@ -515,6 +575,74 @@ export function LandingPage() {
           </div>
         </section>
 
+        {/* Listen — narration and the reader's audio player, as built */}
+        <section
+          aria-labelledby="listen-heading"
+          id="listen"
+          className="scroll-mt-20 border-t border-line"
+        >
+          <div className="mx-auto grid w-full max-w-5xl items-center gap-8 px-4 py-14 sm:px-6 lg:grid-cols-2">
+            <div
+              className="kami-sheet-raised kami-grain relative order-last overflow-hidden p-6 sm:p-8 lg:order-first"
+              aria-hidden="true"
+            >
+              <span
+                aria-hidden="true"
+                className="absolute top-0 right-10 h-10 w-3 rounded-b-[0.25rem] bg-hanko/80"
+              />
+              <p className="kami-label text-ink-muted">Now listening</p>
+              <p className="mt-1 truncate font-display text-lg tracking-tight">
+                How to Do Great Work
+              </p>
+              <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-paper-warm">
+                <div className="h-full w-[38%] rounded-full bg-hanko" />
+              </div>
+              <div className="mt-1.5 flex justify-between font-sans text-[11px] text-ink-muted tabular-nums">
+                <span>12:04</span>
+                <span>31:40</span>
+              </div>
+              <div className="mt-4 flex items-center justify-center gap-4">
+                <span className="flex size-10 items-center justify-center rounded-full text-ink-soft">
+                  <RotateCcw className="size-5" />
+                </span>
+                <span className="flex size-12 items-center justify-center rounded-full bg-hanko text-paper">
+                  <Play className="size-5 translate-x-px" />
+                </span>
+                <span className="flex size-10 items-center justify-center rounded-full text-ink-soft">
+                  <RotateCw className="size-5" />
+                </span>
+                <span className="rounded-full border border-line px-2.5 py-1 font-sans text-xs text-ink-soft tabular-nums">
+                  1.25×
+                </span>
+              </div>
+            </div>
+            <div>
+              <p className="kami-label text-hanko">Narration · listen anywhere</p>
+              <h2
+                id="listen-heading"
+                className="mt-2 font-display text-3xl font-normal tracking-tight text-balance sm:text-4xl"
+              >
+                When Your Eyes Need a Rest
+              </h2>
+              <p className="kami-body mt-3 max-w-lg text-base leading-[1.85] text-ink-soft">
+                Press Listen in the reader and KAMI narrates the whole piece in the background. Come
+                back to a player that sits quietly under the page.
+              </p>
+              <ul className="kami-body mt-5 space-y-2.5 text-sm text-ink-soft">
+                {LISTEN_POINTS.map((r) => (
+                  <li key={r.copy} className="flex items-start gap-2.5">
+                    <r.icon className="mt-0.5 size-4 shrink-0 text-hanko" aria-hidden="true" />
+                    <span>{r.copy}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="kami-label mt-4 text-ink-faint">
+                English articles for now · uses your narration allowance
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* Organize — journal, vault, shelves as built */}
         <section
           aria-labelledby="organize-heading"
@@ -566,8 +694,9 @@ export function LandingPage() {
                   Tanacho · shelves
                 </p>
                 <p className="kami-body mt-3 text-sm leading-[1.8] text-ink-soft">
-                  Movies, TV shows, books, and a wishlist — TMDB and book search, episode tracking,
-                  where-to-watch, and to-try / done states.
+                  Movies, TV shows, books, and a wishlist on one continuous shelf, grouped by your
+                  tags — TMDB and book search, episode tracking, where-to-watch, and to-try / done
+                  states.
                 </p>
                 <Link
                   to="/shelves/movies"
@@ -741,6 +870,11 @@ export function LandingPage() {
               <li>
                 <a href="#reader" className="hover:text-hanko">
                   Reader calibration
+                </a>
+              </li>
+              <li>
+                <a href="#listen" className="hover:text-hanko">
+                  Listening
                 </a>
               </li>
               <li>
