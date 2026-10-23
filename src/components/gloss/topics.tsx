@@ -78,7 +78,7 @@ function TopicCard({
           className="mt-1 font-sans text-[13px]"
           style={{ color: `color-mix(in srgb, ${fam.dark} 70%, transparent)` }}
         >
-          {bucket.items.length} piece{bucket.items.length === 1 ? "" : "s"} ·{" "}
+          {bucket.items.length} piece{bucket.items.length === 1 ? "" : "s"} ,{" "}
           {minutesLabel(totalMinutes(bucket.items))}
         </p>
         <div
@@ -144,7 +144,7 @@ export function TopicPage({
           </p>
           <p className="mt-3 font-sans text-[15px] text-ink-muted">
             <span className="font-medium text-ink">{items.length}</span> piece
-            {items.length === 1 ? "" : "s"} ·{" "}
+            {items.length === 1 ? "" : "s"} ,{" "}
             <span className="font-medium text-ink">{minutesLabel(totalMinutes(items))}</span> of
             reading
           </p>
@@ -175,7 +175,7 @@ export function TopicPage({
             </button>
             <p className="mt-2.5 flex items-center gap-2 font-sans text-[13px] text-ink-muted">
               {minutesLabel(it.readingMinutes)}
-              {it.archived ? <span className="text-ink">· Read</span> : null}
+              {it.archived ? <span className="text-ink">Read</span> : null}
               {it.favorited ? (
                 <Star className="size-3.5 fill-current text-[#c99a2e]" aria-label="Favorite" />
               ) : null}

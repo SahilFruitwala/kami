@@ -179,7 +179,7 @@ export function ShelfDivider({
     <span
       className="g-divider"
       style={{ height, "--div": color } as CSSProperties}
-      title={`${label} · ${count}`}
+      title={`${label}, ${count}`}
     >
       <span className="g-divider-tab">{icon}</span>
       <span className="g-divider-text">

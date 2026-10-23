@@ -186,8 +186,8 @@ export function DataCard() {
                 <ul className="mt-1 space-y-0.5">
                   {group.map((row) => (
                     <li key={row.id} className="truncate font-body text-xs text-ink-muted">
-                      {new Date(row.savedAt).toLocaleDateString()} · {row.highlights.length}{" "}
-                      highlights · {row.url}
+                      {new Date(row.savedAt).toLocaleDateString()}, {row.highlights.length}{" "}
+                      highlights, {row.url}
                     </li>
                   ))}
                 </ul>

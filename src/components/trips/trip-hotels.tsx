@@ -16,7 +16,7 @@ export function Hotels({ trip, actions }: { trip: Trip; actions: Actions }) {
       <div className="flex items-center justify-between px-1">
         <ToggleButton open={open} onToggle={() => setOpen((v) => !v)} controls={bodyId}>
           <span className="kami-label text-ink-muted">
-            Hotels{trip.hotels.length ? ` · ${trip.hotels.length}` : ""}
+            Hotels{trip.hotels.length ? `, ${trip.hotels.length}` : ""}
           </span>
         </ToggleButton>
         {!adding ? (
@@ -128,7 +128,7 @@ function HotelCard({
       </div>
       {hotel.priceNote || hotel.ratingNote ? (
         <p className="font-sans text-xs text-ink tabular-nums">
-          {[hotel.priceNote, hotel.ratingNote].filter(Boolean).join(" · ")}
+          {[hotel.priceNote, hotel.ratingNote].filter(Boolean).join(", ")}
         </p>
       ) : null}
       {hotel.why ? (

@@ -19,6 +19,7 @@ import {
   Share2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { stampToast } from "@/components/gloss/stamp-toast.tsx";
 import type { Article } from "@/lib/article-types.ts";
 import { applyHighlights } from "@/lib/highlight-html.ts";
 import { rewriteHtmlImages, previewImageSrc } from "@/lib/image-url.ts";
@@ -190,7 +191,7 @@ export function ReaderView({
         return;
       }
       await navigator.clipboard.writeText(url);
-      toast.success("Link copied — share it anywhere");
+      stampToast("shared");
     } catch {
       // user dismissed share sheet or clipboard blocked — stay quiet
     }
@@ -299,7 +300,7 @@ export function ReaderView({
   async function exportToJournal() {
     const lines = [
       `# ${article.title}`,
-      `${article.author ? `By ${article.author} · ` : ""}${article.siteName || ""}`,
+      `${article.author ? `By ${article.author}, ` : ""}${article.siteName || ""}`,
       "",
       ...item.highlights.map(
         (h) => `> ${h.text}${h.note ? `\n> \n> — marginalia: ${h.note}` : ""}`,
@@ -339,7 +340,7 @@ export function ReaderView({
           className="fixed inset-x-0 top-0 z-50 h-0.5 bg-line"
         >
           <div
-            className="h-full bg-hanko transition-[width] duration-150"
+            className="h-full bg-persimmon transition-[width] duration-150"
             style={{ width: `${percent}%` }}
           />
         </div>
@@ -381,7 +382,8 @@ export function ReaderView({
           onBack={onBack}
           onToggleFavorite={() => {
             setFavorited(item.id, !item.favorited);
-            toast.success(item.favorited ? "Removed from favorites" : "Favorited");
+            if (item.favorited) toast.success("Removed from favorites");
+            else stampToast("loved");
           }}
           onTogglePrefs={() => setPrefsOpen((open) => !open)}
           onArchive={onArchive}
@@ -450,9 +452,6 @@ export function ReaderView({
                     <WashiTag tone="paper">
                       {article.source === "x" ? "X" : article.siteName || "Article"}
                     </WashiTag>
-                    <span className="text-xs text-current opacity-50" aria-hidden="true">
-                      ·
-                    </span>
                     <span className="font-sans text-[11px] text-current opacity-60">
                       {article.readingMinutes} min read
                     </span>
@@ -467,9 +466,9 @@ export function ReaderView({
                   </h1>
                 </ViewTransition>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 pt-2 font-sans text-xs opacity-70">
-                  {[article.author, article.siteName].filter(Boolean).join(" · ") ? (
+                  {[article.author, article.siteName].filter(Boolean).join(", ") ? (
                     <span className="font-medium opacity-100">
-                      {[article.author, article.siteName].filter(Boolean).join(" · ")}
+                      {[article.author, article.siteName].filter(Boolean).join(", ")}
                     </span>
                   ) : null}
                   {article.canonicalUrl || article.url ? (
@@ -564,7 +563,7 @@ export function ReaderView({
                 aria-label="Marginalia and reflection notes"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="flex items-center gap-2 font-sans text-[11px] font-semibold tracking-wider uppercase opacity-60">
+                  <p className="flex items-center gap-2 font-sans text-[13px] font-medium opacity-60">
                     <PenLine className="size-[18px] shrink-0" aria-hidden="true" />
                     Marginalia &amp; Glanures
                   </p>
@@ -639,7 +638,7 @@ export function ReaderView({
                   <div className="flex items-center justify-between">
                     <span className="kami-label opacity-60">Focus Rhythm</span>
                     <span className="font-sans text-[11px] font-medium text-ok">
-                      {percent}% ·{" "}
+                      {percent}% ,{" "}
                       {percent > 60 ? "Deep State" : percent > 20 ? "Settling In" : "Opening"}
                     </span>
                   </div>

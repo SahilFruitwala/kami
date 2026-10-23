@@ -130,7 +130,7 @@ function DetailBody({
   const year = detail.type === "book" ? detail.item.publishYear : detail.item.releaseYear;
   const byline =
     detail.type === "book"
-      ? [detail.item.author, year].filter(Boolean).join(" · ")
+      ? [detail.item.author, year].filter(Boolean).join(", ")
       : year
         ? String(year)
         : "";
@@ -321,7 +321,7 @@ function DetailBody({
               <span className="ml-2 font-normal tracking-normal normal-case tabular-nums">
                 {detail.item.episodesWatched ?? 0}
                 {detail.item.totalEpisodes ? ` / ${detail.item.totalEpisodes}` : ""} watched
-                {detail.item.lastEpisode ? ` · Last ${detail.item.lastEpisode}` : ""}
+                {detail.item.lastEpisode ? `, Last ${detail.item.lastEpisode}` : ""}
               </span>
             </h2>
             <EpisodeTracker itemId={detail.item.id} />

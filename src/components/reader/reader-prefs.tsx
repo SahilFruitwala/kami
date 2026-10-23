@@ -30,7 +30,7 @@ export function ReaderPrefsPanel({
       aria-label="Reading preferences"
       className="screen-scroll fixed inset-x-3 top-[calc(4rem+env(safe-area-inset-top))] z-40 max-h-[calc(100dvh-5rem-env(safe-area-inset-top))] overflow-y-auto rounded-xl border border-line bg-surface p-3.5 shadow-device sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-[80vh] sm:w-64"
     >
-      <p className="text-xs font-semibold uppercase tracking-wider text-ink-soft">Paper</p>
+      <p className="text-[13px] font-medium text-ink-soft">Paper</p>
       <div className="mt-2 grid grid-cols-3 gap-1.5" role="group" aria-label="Paper tone">
         {PAPER_TONES.map((toneOption) => (
           <button
@@ -70,7 +70,7 @@ export function ReaderPrefsPanel({
         ))}
       </div>
 
-      <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-ink-soft">Text size</p>
+      <p className="mt-4 text-[13px] font-medium text-ink-soft">Text size</p>
       <div className="mt-2.5 flex items-center gap-2">
         <Button
           type="button"
@@ -107,7 +107,7 @@ export function ReaderPrefsPanel({
         </Button>
       </div>
 
-      <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-ink-soft">Font</p>
+      <p className="mt-4 text-[13px] font-medium text-ink-soft">Font</p>
       <div className="mt-2 grid gap-1">
         {READER_FONTS.map((font) => (
           <button
@@ -127,9 +127,7 @@ export function ReaderPrefsPanel({
         ))}
       </div>
 
-      <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-ink-soft">
-        Default highlight
-      </p>
+      <p className="mt-4 text-[13px] font-medium text-ink-soft">Default highlight</p>
       <div className="mt-2 flex flex-wrap gap-2">
         {HIGHLIGHT_COLORS.map((color) => (
           <button

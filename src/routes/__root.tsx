@@ -120,7 +120,7 @@ function ThemeShell() {
         theme={theme === "dark" ? "dark" : "light"}
         toastOptions={{
           className:
-            "font-sans !rounded-xl !bg-surface !text-ink !border !border-line !shadow-[var(--shadow-raised)]",
+            "font-sans !rounded-2xl !bg-surface !text-ink !border-0 !shadow-[var(--shadow-raised)]",
         }}
       />
     </>

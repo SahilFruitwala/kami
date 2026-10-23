@@ -625,8 +625,8 @@ export function MediaPage({
             : "Watched"
       : item.status === "in_progress"
         ? isBook
-          ? `Reading${pct ? ` · ${pct}% read` : ""}`
-          : `Watching${item.lastEpisode ? ` · last ${item.lastEpisode}` : ""}`
+          ? `Reading${pct ? `, ${pct}% read` : ""}`
+          : `Watching${item.lastEpisode ? `, last ${item.lastEpisode}` : ""}`
         : item.status === "abandoned"
           ? isBook
             ? "Set aside"
@@ -651,14 +651,14 @@ export function MediaPage({
             {statusText(labels, item.status)}
           </span>
           {item.year ? <span>{item.year}</span> : null}
-          <span aria-hidden="true">·</span>
+
           <span>
             {kind === "book"
               ? "Book"
               : kind === "vhs"
                 ? "VHS"
                 : eps
-                  ? `DVD · ${eps} episodes`
+                  ? `DVD, ${eps} episodes`
                   : "DVD"}
           </span>
         </div>

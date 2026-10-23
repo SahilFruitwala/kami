@@ -77,13 +77,13 @@ const COPY: Record<
 > = {
   movie: {
     title: "Movies",
-    eyebrow: "Video shelf · VHS",
+    eyebrow: "Video shelf, VHS",
     unit: ["tape", "tapes"],
     empty: "Search TMDB or paste a link to put your first tape on the shelf.",
   },
   tv: {
     title: "Series",
-    eyebrow: "Video shelf · DVD box sets",
+    eyebrow: "Video shelf, DVD box sets",
     unit: ["box set", "box sets"],
     empty: "Search TMDB or paste a link to shelve your first box set.",
   },
@@ -419,7 +419,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                       : null,
                   ]
                     .filter(Boolean)
-                    .join(" · ");
+                    .join(", ");
                   return { title: it.title, sub, label: `${it.title}, ${sub}` };
                 }}
                 onPick={(it) => setPicked({ card: it, kind: "spine" })}
@@ -468,9 +468,9 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                       aria-hidden="true"
                     />
                     {statusText(labels, it.status)}
-                    {it.year ? ` · ${it.year}` : ""}
+                    {it.year ? `, ${it.year}` : ""}
                     {tab === "tv" && it.totalEpisodes
-                      ? ` · ${it.episodesWatched ?? 0}/${it.totalEpisodes}`
+                      ? `, ${it.episodesWatched ?? 0}/${it.totalEpisodes}`
                       : ""}
                   </p>
                 </div>

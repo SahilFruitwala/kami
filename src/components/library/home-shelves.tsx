@@ -23,6 +23,7 @@ import {
 import { shelfPath, type ShelfTab } from "@/lib/shelves.ts";
 import type { LookupResult } from "@/lib/api/types";
 import { toastError } from "@/lib/errors";
+import { useSlidePill } from "@/hooks/use-slide-pill.ts";
 
 export type HomeCaptureType = "article" | ShelfTab;
 
@@ -49,13 +50,17 @@ export function HomeCaptureTabs({
   value: HomeCaptureType;
   onChange: (t: HomeCaptureType) => void;
 }) {
+  const { ref, pill } = useSlidePill<HTMLDivElement>([value]);
   return (
-    <div className="flex justify-center">
+    <div className="flex">
       <div
+        ref={ref}
         role="tablist"
         aria-label="What to save"
+        data-slide=""
         className="g-seg no-scrollbar max-w-full overflow-x-auto"
       >
+        <span ref={pill} className="g-seg-pill" aria-hidden="true" />
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -273,7 +278,7 @@ export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
                       <span className="block truncate font-sans text-xs text-ink-muted">
                         {[r.metadata.year, r.metadata.genre, r.metadata.author]
                           .filter(Boolean)
-                          .join(" · ")}
+                          .join(", ")}
                       </span>
                     </span>
                     <Button

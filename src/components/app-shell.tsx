@@ -9,7 +9,6 @@ import { SiteHeader, type SitePane } from "@/components/site-header.tsx";
 import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
 import { flushAllSyncQueues, pendingSyncCount, subscribeSyncQueues } from "@/lib/sync-queue.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
-import { usePersistedPref } from "@/lib/local-pref.ts";
 
 // ⌘K palette is heavy (~600 lines + shelf lookup hooks) and unused until
 // opened — keep it out of the initial authenticated shell chunk.
@@ -20,12 +19,11 @@ const CommandPalette = lazy(() =>
 );
 
 /**
- * Shared sanctuary shell: skip link, Sanctuary sidebar + utility bar,
+ * Shared sanctuary shell: skip link, top bar,
  * footer, capture-tools dialog, command palette, and the offline/sync
  * banner. Used by Home, Library, Journal, Vault, Movies, Series, Books,
- * Wishlist, and Settings so chrome stays identical everywhere. Layout
- * mirrors the Stitch Sanctuary design: fixed left sidebar on desktop,
- * bottom tab bar on mobile.
+ * Wishlist, and Settings so chrome stays identical everywhere. Top bar
+ * with a sliding pill nav on desktop, bottom tab bar on mobile.
  */
 export function AppShell({
   active,
@@ -45,19 +43,6 @@ export function AppShell({
   requireLibrary?: boolean;
 }) {
   const tools = useCaptureTools();
-  const [collapsedPref, setCollapsedPref] = usePersistedPref(
-    "kami-sidebar-collapsed",
-    ["1", "0"] as const,
-    "0",
-  );
-  const sidebarCollapsed = collapsedPref === "1";
-
-  function toggleSidebar() {
-    setCollapsedPref(sidebarCollapsed ? "0" : "1");
-  }
-
-  const contentPad = sidebarCollapsed ? "lg:pl-0" : "lg:pl-60";
-
   return (
     <AppGate>
       <DirectionalTransition>
@@ -71,20 +56,11 @@ export function AppShell({
           >
             Skip to content
           </a>
-          <SiteHeader
-            active={active}
-            onOpenTools={() => tools.setToolsOpen(true)}
-            sidebarCollapsed={sidebarCollapsed}
-            onToggleSidebar={toggleSidebar}
-          />
-          <div
-            className={`flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0 ${contentPad} transition-[padding-left] duration-200 motion-reduce:transition-none`}
-          >
+          <SiteHeader active={active} onOpenTools={() => tools.setToolsOpen(true)} />
+          <div className="flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0">
             {requireLibrary ? <LibraryGate>{children}</LibraryGate> : children}
           </div>
-          <div
-            className={`pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0 ${contentPad} transition-[padding-left] duration-200 motion-reduce:transition-none`}
-          >
+          <div className="pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0">
             <SiteFooter />
           </div>
           <ToolsDialog

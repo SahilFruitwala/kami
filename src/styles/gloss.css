@@ -25,22 +25,23 @@
 
 .gloss {
   /* Core palette (spec: "Design tokens → Core palette") */
-  --g-paper: #f6f3ea;
-  --g-paper-raised: #fbfaf6;
-  --g-ink: #211e17;
+  --g-paper: #faf8f4;
+  --g-paper-raised: #ffffff;
+  --g-ink: #1c1a17;
   --g-ink-soft: #1d1c18;
-  --g-ink-muted: #8a857a;
-  --g-line: #e7e4dc;
+  --g-ink-muted: #8a8478;
+  --g-line: #e8e4db;
   --g-shelf: #d0c1ae;
   --g-shelf-top: #e2d6c6;
   --g-shelf-edge: #b9a891;
   --g-bookend: #8e8a82;
-  --g-accent-red: #b8443a;
+  --g-accent-red: #d4491a;
   --g-cream: #f6f1de;
   --g-dim: 0.35;
 
   /* Motion tokens */
   --g-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --g-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --g-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --g-ease-in: cubic-bezier(0.55, 0, 1, 0.45);
   --g-dur-xs: 100ms;
@@ -49,25 +50,25 @@
   --g-dur-l: 600ms;
 
   /* Elevation */
-  --g-shadow-chip: 0 1px 2px rgba(33, 30, 23, 0.08);
-  --g-shadow-card: 0 8px 24px rgba(33, 30, 23, 0.1);
-  --g-shadow-lifted: 0 30px 60px -20px rgba(33, 30, 23, 0.45), 0 12px 24px rgba(33, 30, 23, 0.18);
-  --g-shadow-plate: 0 2px 6px rgba(33, 30, 23, 0.15);
+  --g-shadow-chip: 0 1px 2px rgba(28, 26, 23, 0.08);
+  --g-shadow-card: 0 1px 2px rgba(28, 26, 23, 0.05), 0 12px 32px -12px rgba(28, 26, 23, 0.16);
+  --g-shadow-lifted: 0 30px 60px -20px rgba(28, 26, 23, 0.45), 0 12px 24px rgba(28, 26, 23, 0.18);
+  --g-shadow-plate: 0 2px 6px rgba(28, 26, 23, 0.15);
 
   /* Re-map the app's own tokens so every existing utility (text-ink,
      bg-surface, font-display…) speaks Gloss inside this scope. */
   --color-bg: var(--g-paper);
   --color-paper: var(--g-paper);
-  --color-paper-warm: #efebe0;
+  --color-paper-warm: #f2efe8;
   --color-surface: var(--g-paper-raised);
   --color-ink: var(--g-ink);
-  --color-ink-soft: #4a463d;
+  --color-ink-soft: #4b473f;
   --color-ink-muted: var(--g-ink-muted);
-  --color-faint: #cfc9bc;
+  --color-faint: #d9d4c8;
   --color-line: var(--g-line);
   --color-hanko: var(--g-ink);
-  --color-shu: #3a362d;
-  --color-shu-tint: rgba(33, 30, 23, 0.06);
+  --color-shu: #4b473f;
+  --color-shu-tint: rgba(28, 26, 23, 0.06);
   --color-ink-accent: var(--g-accent-red);
   --background: var(--g-paper);
   --foreground: var(--g-ink);
@@ -103,7 +104,7 @@
   --g-shelf-edge: #33281e;
   --g-bookend: #5b554c;
   --g-cream: #e9e1c8;
-  --g-accent-red: #d9766a;
+  --g-accent-red: #f07a4b;
   --g-dim: 0.25;
   --g-shadow-chip: 0 1px 2px rgba(0, 0, 0, 0.4);
   --g-shadow-card: 0 10px 28px rgba(0, 0, 0, 0.45);
@@ -125,9 +126,10 @@
 .g-h1 {
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: clamp(3rem, 8vw, 5.5rem);
-  line-height: 0.95;
-  letter-spacing: -0.025em;
+  font-size: clamp(2.4rem, 5.2vw, 4rem);
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
   font-optical-sizing: auto;
 }
 .g-h1-topic {
@@ -139,13 +141,41 @@
 }
 .g-caps {
   font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 /* ——— Segmented control ——— */
+.g-seg-pill {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: 0;
+  border-radius: 999px;
+  background: var(--g-paper-raised);
+  box-shadow: var(--g-shadow-chip);
+  transition:
+    transform 450ms var(--g-ease-out),
+    width 450ms var(--g-ease-out);
+  pointer-events: none;
+}
+.g-seg[data-slide] {
+  position: relative;
+}
+.g-seg[data-slide]:not([data-ready]) .g-seg-pill {
+  transition: none;
+}
+.g-seg[data-slide] button[aria-pressed="true"],
+.g-seg[data-slide] button[aria-selected="true"],
+.g-seg[data-slide] a[aria-current="page"] {
+  background: transparent;
+  box-shadow: none;
+}
+.g-seg[data-slide] button,
+.g-seg[data-slide] a {
+  z-index: 1;
+}
 .g-seg {
   display: inline-flex;
   align-items: center;
@@ -308,11 +338,15 @@
   transition:
     background-color var(--g-dur-xs) var(--g-ease-out),
     color var(--g-dur-xs) var(--g-ease-out),
-    transform 150ms var(--g-ease-out);
+    transform 250ms var(--g-spring);
+}
+.g-btn:hover {
+  transform: translateY(-1px);
 }
 .g-btn:active {
-  transform: scale(0.98);
+  transform: translateY(1px) scale(0.97);
 }
+
 .g-btn:focus-visible {
   outline: 2px solid var(--g-ink);
   outline-offset: 2px;
@@ -322,7 +356,8 @@
   color: var(--g-paper-raised);
 }
 .g-btn--ink:hover {
-  background: color-mix(in srgb, var(--g-ink) 88%, var(--g-paper));
+  background: var(--color-persimmon);
+  color: #fff;
 }
 .g-btn--ghost {
   border: 1px solid var(--g-line);
@@ -473,7 +508,7 @@
   background: var(--g-paper-raised);
   box-shadow:
     0 0 0 1px var(--g-line),
-    0 2px 4px rgba(33, 30, 23, 0.08);
+    0 2px 4px rgba(28, 26, 23, 0.08);
   overflow: hidden;
 }
 .g-divider-tab {
@@ -529,7 +564,7 @@
   bottom: -3px;
   height: 6px;
   border-radius: 50%;
-  background: rgba(33, 30, 23, 0.28);
+  background: rgba(28, 26, 23, 0.28);
   filter: blur(3px);
   transition:
     opacity 150ms var(--g-ease-out),
@@ -920,12 +955,12 @@
   transition:
     transform 200ms var(--g-ease-out),
     box-shadow 200ms var(--g-ease-out);
-  box-shadow: 0 2px 6px rgba(33, 30, 23, 0.12);
+  box-shadow: 0 2px 6px rgba(28, 26, 23, 0.12);
   will-change: transform;
 }
 .g-tilt[data-hover="true"] {
   --ty: -4px;
-  box-shadow: 0 18px 30px -12px rgba(33, 30, 23, 0.4);
+  box-shadow: 0 18px 30px -12px rgba(28, 26, 23, 0.4);
 }
 .g-tilt:focus-visible {
   outline: 2px solid var(--g-ink);
@@ -1489,6 +1524,59 @@
   }
   .g-reel--spin,
   .g-disc--spin {
+    animation: none;
+  }
+}
+
+/* ——— Header menu (Shelves) ——— */
+.kami-menu {
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, -6px) scale(0.97);
+  transform-origin: top center;
+  transition:
+    opacity 200ms var(--g-ease-out),
+    transform 400ms var(--g-spring),
+    visibility 0s 400ms;
+}
+.kami-menu[data-open="true"] {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+  transition:
+    opacity 200ms var(--g-ease-out),
+    transform 400ms var(--g-spring);
+}
+@media (prefers-reduced-motion: reduce) {
+  .kami-menu,
+  .g-seg-pill {
+    transition: none;
+  }
+}
+
+/* One entrance for a page's first screen: rises into place, staggered by
+   an inline animation-delay. */
+.g-rise {
+  animation: rise 700ms var(--g-ease-out) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .g-rise {
+    animation: none;
+  }
+}
+
+/* Progress that fills in once, when the preview first paints. */
+.landing-grow {
+  transform-origin: left;
+  animation: landing-grow 1.2s var(--g-ease-out) 0.5s both;
+}
+@keyframes landing-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .landing-grow {
     animation: none;
   }
 }

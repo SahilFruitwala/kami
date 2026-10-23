@@ -259,9 +259,7 @@ export function VaultView({
           />
         </div>
         <div className="flex items-center gap-1 overflow-x-auto">
-          <span className="pl-1 font-sans text-[11px] tracking-wider text-ink-muted uppercase">
-            Sort:
-          </span>
+          <span className="pl-1 font-sans text-[13px] text-ink-muted">Sort:</span>
           <SortButton active={sort === "recent"} onClick={() => setSort("recent")}>
             Recent Inking
           </SortButton>
@@ -371,7 +369,7 @@ export function VaultView({
                 <section key={group} aria-label={`Concept ${group}`}>
                   <p className="kami-label mb-3 flex items-center gap-2 text-ink-muted">
                     <span className="h-px w-8 bg-line" aria-hidden="true" />
-                    {group} · {groupSlips.length}
+                    {group}, {groupSlips.length}
                   </p>
                   <div className="columns-1 gap-6 space-y-6 md:columns-2">
                     {groupSlips.map((slip) => (

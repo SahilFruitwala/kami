@@ -49,6 +49,7 @@ import type { LibraryItem } from "@/lib/library-item.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { usePersistedPref } from "@/lib/local-pref.ts";
 import { cn } from "@/lib/utils.ts";
+import { stampToast } from "@/components/gloss/stamp-toast.tsx";
 import {
   arrangeShelf,
   groupByTopic,
@@ -199,10 +200,10 @@ export function LibraryHome({
   const totalShown = baseVisible.length;
   const emptyCopy =
     filters.tab === "archive"
-      ? "Archive a piece after you finish it. It will wait here."
+      ? "Finish something and it gets stamped and filed here."
       : deferredQuery
         ? `Nothing on the shelves matches “${deferredQuery}”.`
-        : "Save a blog or X article and it lands on a shelf here.";
+        : "Nothing waiting. Save a blog or X article and it lands on a shelf here.";
 
   return (
     <GlossPage>
@@ -397,7 +398,7 @@ export function LibraryHome({
                   title: it.title,
                   sub: [it.author || it.siteName, minutesLabel(it.readingMinutes)]
                     .filter(Boolean)
-                    .join(" · "),
+                    .join(", "),
                   label: `${it.title}${it.author ? ` by ${it.author}` : ""}, ${minutesLabel(it.readingMinutes)}`,
                 })}
                 onPick={(it) => setPicked({ id: it.id, kind: "spine" })}
@@ -436,7 +437,8 @@ export function LibraryHome({
             <div className="mt-2">
               <ArticleList
                 items={listVisible}
-                emptyTitle={filters.tab === "archive" ? "Nothing archived" : "Your inbox is empty"}
+                emptyTitle={filters.tab === "archive" ? "Nothing filed away yet" : "Inbox zero"}
+                emptyGlyph={filters.tab === "archive" || deferredQuery ? undefined : "済"}
                 emptyCopy={emptyCopy}
                 onOpen={onOpenItem}
                 onRemove={removeItem}
@@ -484,10 +486,14 @@ export function LibraryHome({
               item={pickedItem}
               topic={pickedTopic}
               onRead={() => onOpenItem(pickedItem)}
-              onToggleFavorite={() => setFavorited(pickedItem.id, !pickedItem.favorited)}
+              onToggleFavorite={() => {
+                setFavorited(pickedItem.id, !pickedItem.favorited);
+                if (!pickedItem.favorited) stampToast("loved");
+              }}
               onToggleArchive={() => {
                 archiveItem(pickedItem.id, !pickedItem.archived);
-                toast.success(pickedItem.archived ? "Back on the shelf" : "Marked as finished");
+                if (pickedItem.archived) toast.success("Back on the shelf");
+                else stampToast("finished");
               }}
             />
           )}

@@ -61,7 +61,7 @@ export function TripsList({ onCreated }: { onCreated: (trip: Trip) => void }) {
                     </span>
                   </span>
                   <span className="mt-auto pt-1 font-sans text-[11px] text-ink-muted">
-                    {t.itemCount} {t.itemCount === 1 ? "plan" : "plans"} · updated{" "}
+                    {t.itemCount} {t.itemCount === 1 ? "plan" : "plans"}, updated{" "}
                     {relativeTime(t.updatedAt)}
                   </span>
                 </Link>

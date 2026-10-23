@@ -142,7 +142,7 @@ export function EpisodeTracker({ itemId }: { itemId: string }) {
         <p className="kami-label text-ink-muted">Episodes</p>
         <p className="font-sans text-xs tabular-nums text-ink-soft">
           {data.watchedTotal} watched
-          {data.unmatched > 0 ? ` · ${data.unmatched} unmatched` : ""}
+          {data.unmatched > 0 ? `, ${data.unmatched} unmatched` : ""}
         </p>
       </div>
       {data.unmatched > 0 ? (

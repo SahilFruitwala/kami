@@ -50,7 +50,7 @@ export function Itinerary({ trip, actions }: { trip: Trip; actions: Actions }) {
         className="px-1"
       >
         <span className="kami-label text-ink-muted">
-          Itinerary · {trip.dayCount} {trip.dayCount === 1 ? "day" : "days"}
+          Itinerary, {trip.dayCount} {trip.dayCount === 1 ? "day" : "days"}
         </span>
       </ToggleButton>
       <div id={bodyId} hidden={!open} className="space-y-4">
@@ -119,7 +119,7 @@ export function Day({
             <span className="font-semibold text-ink">Day {index + 1}</span>
             {date ? <span className="ml-2 text-ink-muted">{formatDay(date)}</span> : null}
             {!open && items.length ? (
-              <span className="ml-2 text-xs text-ink-muted">· {items.length}</span>
+              <span className="ml-2 text-xs text-ink-muted">{items.length}</span>
             ) : null}
           </span>
         </ToggleButton>
@@ -238,10 +238,8 @@ function ItemRow({
 
   return (
     <li className="grid list-none grid-cols-[5.5rem_minmax(0,1fr)_auto] gap-3 px-4 py-3">
-      <span className="flex flex-col gap-0.5 pt-0.5 font-sans text-[11px] tracking-wide text-ink-muted">
-        <span className="uppercase">
-          {timing.explicit ? item.startTime : SLOT_LABEL[item.slot]}
-        </span>
+      <span className="flex flex-col gap-0.5 pt-0.5 font-sans text-[13px] text-ink-muted">
+        <span>{timing.explicit ? item.startTime : SLOT_LABEL[item.slot]}</span>
         {item.durationMin ? <span>{formatDuration(item.durationMin)}</span> : null}
       </span>
       <div className="min-w-0 space-y-0.5">
@@ -314,7 +312,7 @@ function HopHint({ hop }: { hop: Hop }) {
       title="Straight-line distance from the previous pinned stop, with a rough travel time"
     >
       <Icon className="size-3 shrink-0" aria-hidden="true" />
-      {km} · ~{formatDuration(hop.minutes)} {hop.mode === "walk" ? "walk" : "by transit or car"}
+      {km}, ~{formatDuration(hop.minutes)} {hop.mode === "walk" ? "walk" : "by transit or car"}
     </p>
   );
 }

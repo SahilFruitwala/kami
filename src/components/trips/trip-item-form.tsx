@@ -39,7 +39,7 @@ export function ItemForm({
 
   const dayOptions = Array.from({ length: trip.dayCount }, (_, i) => {
     const date = dayDate(trip.startDate, i);
-    return { value: i, label: date ? `Day ${i + 1} · ${formatDay(date)}` : `Day ${i + 1}` };
+    return { value: i, label: date ? `Day ${i + 1}, ${formatDay(date)}` : `Day ${i + 1}` };
   });
 
   function submit(e: React.FormEvent) {

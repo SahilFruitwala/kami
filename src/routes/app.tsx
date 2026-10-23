@@ -9,6 +9,8 @@ import {
   type HomeCaptureType,
 } from "@/components/library/home-shelves.tsx";
 import { BulkSaveDialog, PasteDialog } from "@/components/library/library-dialogs.tsx";
+import { RecentSaved } from "@/components/library/recent-saved.tsx";
+import { useCurrentUser } from "@/lib/auth/use-current-user.ts";
 import { usePasteImport } from "@/hooks/use-paste-import.ts";
 import { useBulkSave } from "@/hooks/use-bulk-save.ts";
 import { useSaveArticle } from "@/hooks/use-save-article.ts";
@@ -96,8 +98,17 @@ function PendingCapturePickup({
   return null;
 }
 
+function greeting(name: string | null, now = new Date()): string {
+  const h = now.getHours();
+  const part =
+    h < 5 ? "Still up" : h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  const first = name?.trim().split(/\s+/)[0];
+  return first ? `${part}, ${first}.` : `${part}.`;
+}
+
 function Home() {
   const navigate = Route.useNavigate();
+  const user = useCurrentUser();
 
   const openOnSave = (id: string | null) => {
     if (id) goRead(navigate, id);
@@ -193,14 +204,15 @@ function Home() {
           toast.message("Link ready — tap Save to add it to your list.");
         }}
       />
-      <div className="mx-auto flex min-h-[70dvh] w-full max-w-3xl flex-col items-center justify-center px-4 py-10 sm:px-6">
-        <h1 className="g-h1 text-center text-ink" translate="no">
-          Kami
-        </h1>
-        <p className="mt-4 text-center font-display text-lg text-ink-muted italic">
+      <div className="mx-auto flex w-full max-w-[880px] flex-col px-4 pt-14 pb-16 sm:px-6 sm:pt-20">
+        <h1 className="g-h1 g-rise text-ink">{greeting(user?.displayName ?? null)}</h1>
+        <p
+          className="g-rise mt-3 font-display text-xl text-ink-soft"
+          style={{ animationDelay: "80ms" }}
+        >
           Save anything worth reading. It lands on your shelf.
         </p>
-        <div className="mt-10 w-full">
+        <div className="g-rise mt-9 w-full" style={{ animationDelay: "160ms" }}>
           <HomeCaptureTabs value={captureType} onChange={setCaptureType} />
           <div className="mt-3">
             {captureType === "article" ? (
@@ -225,6 +237,7 @@ function Home() {
             {capturing ? "Importing captured page…" : "Saving a clean copy…"}
           </p>
         ) : null}
+        <RecentSaved onOpen={openItem} />
       </div>
 
       <PasteDialog

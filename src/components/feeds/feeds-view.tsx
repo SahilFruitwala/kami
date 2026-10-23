@@ -207,7 +207,7 @@ function FeedHeader({
         </p>
         <p className="mt-1.5 font-sans text-xs text-ink-muted">
           Feeds update when you press Refresh
-          {lastRefreshed ? ` · last checked ${relativeTime(lastRefreshed)}` : ""}.
+          {lastRefreshed ? `, last checked ${relativeTime(lastRefreshed)}` : ""}.
         </p>
       </div>
     );
@@ -429,21 +429,15 @@ function EntryCard({
       )}
     >
       <div className="min-w-0 flex-1">
-        <p className="flex min-w-0 flex-wrap items-center gap-x-1.5 font-sans text-[11px] text-ink-muted">
+        <p className="flex min-w-0 flex-wrap items-center gap-x-3 font-sans text-[13px] text-ink-muted">
           {!read ? <span className="size-1.5 rounded-full bg-hanko" aria-label="Unread" /> : null}
           {showFeed ? (
             <span className="max-w-48 truncate font-medium text-ink-soft">{entry.feedTitle}</span>
           ) : null}
-          {showFeed ? <span aria-hidden="true">·</span> : null}
           <time dateTime={new Date(entry.publishedAt).toISOString()} className="tabular-nums">
             {relativeTime(entry.publishedAt)}
           </time>
-          {entry.author ? (
-            <>
-              <span aria-hidden="true">·</span>
-              <span className="max-w-40 truncate">{entry.author}</span>
-            </>
-          ) : null}
+          {entry.author ? <span className="max-w-40 truncate">{entry.author}</span> : null}
           {entry.state === "saved" ? (
             <span className="ml-1 rounded bg-bamboo-wash px-1.5 py-px text-[10px] font-medium text-bamboo">
               In library

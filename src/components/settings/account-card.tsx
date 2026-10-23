@@ -14,7 +14,7 @@ export function AccountCard() {
     <Card
       id="account"
       title="Account"
-      copy="Your name shows in the sidebar next to your avatar. Change it here anytime."
+      copy="Your name appears in your greeting on Home. Change it here anytime."
     >
       <div className="flex items-center gap-3">
         {user.profileImageUrl ? (

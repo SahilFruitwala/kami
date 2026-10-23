@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useUser } from "@clerk/tanstack-react-start";
 import { toast } from "sonner";
+import { stampToast } from "@/components/gloss/stamp-toast.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import {
   Dialog,
@@ -49,7 +50,7 @@ function NameOnboardingInner() {
     setSaving(true);
     try {
       await clerkUser.update({ firstName, lastName });
-      toast.success(`Welcome, ${firstName}!`);
+      stampToast("welcome", `${firstName}!`);
       setDraft("");
     } catch {
       toast.error("Could not save your name — try again.");
@@ -71,7 +72,7 @@ function NameOnboardingInner() {
             What should we call you?
           </DialogTitle>
           <DialogDescription className="font-body text-sm text-ink-muted">
-            Your name shows in the sidebar and settings. You can change it anytime.
+            Your name appears in your greeting on Home and in settings. You can change it anytime.
           </DialogDescription>
         </DialogHeader>
         <form
