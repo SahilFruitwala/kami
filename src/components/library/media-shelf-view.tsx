@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   LoaderCircle,
   Plus,
+  SlidersHorizontal,
   Tv,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -130,6 +131,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
   const [picked, setPicked] = useState<Picked | null>(null);
   const [opening, setOpening] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const setItemStatus = useSetShelfItemStatus();
   const setShowWatched = useSetShowWatched();
@@ -217,6 +219,12 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
     }
   }
 
+  const resume =
+    (tab === "tv" || tab === "book") &&
+    (status === "all" || status === "in_progress") &&
+    !deferredQuery
+      ? (items?.find((it) => it.status === "in_progress") ?? null)
+      : null;
   const statusChips = statusMeta(tab);
   const animateKey = `${status}|${arrange}|${deferredQuery}`;
   const coverSize = mediaCoverSize(kind);
@@ -309,9 +317,23 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
               value={query}
               onChange={setQuery}
               placeholder={`Search ${copy.title.toLowerCase()}`}
-              className="w-full sm:w-60"
+              className="w-full sm:w-72"
             />
-            <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+            <button
+              type="button"
+              className="g-btn g-btn--ghost ml-auto h-10 px-4"
+              aria-pressed={optionsOpen}
+              aria-expanded={optionsOpen}
+              aria-controls="shelf-options"
+              onClick={() => setOptionsOpen((v) => !v)}
+            >
+              <SlidersHorizontal className="size-4" aria-hidden="true" />
+              Options
+            </button>
+          </div>
+
+          {optionsOpen ? (
+            <div id="shelf-options" className="kami-sheet g-rise mt-4 grid gap-2 p-5 sm:p-6">
               <span className="font-sans text-sm text-ink-muted">Arrange by</span>
               <Segmented<Arrange>
                 size="sm"
@@ -326,7 +348,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 ]}
               />
             </div>
-          </div>
+          ) : null}
 
           <div className="mt-5 flex flex-wrap gap-2" aria-label="Filter by status">
             {statusChips.map((s) => (
@@ -360,11 +382,75 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
         </GlossColumn>
 
         <GlossColumn className="pt-6 pb-16">
+          {resume ? (
+            <section
+              aria-label="Pick up where you left off"
+              className="kami-sheet-raised g-rise mb-10 flex items-center gap-5 p-4 sm:gap-7 sm:p-6"
+            >
+              <div className="w-20 shrink-0 sm:w-28">
+                {" "}
+                <button
+                  type="button"
+                  className="g-tilt w-full"
+                  style={{ aspectRatio: `${coverSize.w} / ${coverSize.h}` }}
+                  aria-label={`Open ${resume.title}`}
+                  onClick={() => setPicked({ card: resume, kind: "cover" })}
+                  {...tilt}
+                >
+                  <MediaCover kind={kind} item={resume} />
+                </button>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-sans text-sm text-ink-muted">Pick up where you left off</p>
+                <p className="mt-1 line-clamp-2 font-display text-2xl leading-tight tracking-tight sm:text-[28px]">
+                  {resume.title}
+                </p>
+                <p className="mt-1 font-sans text-sm text-ink-soft">
+                  {tab === "tv"
+                    ? resume.lastEpisode
+                      ? `Last watched ${resume.lastEpisode}`
+                      : resume.totalEpisodes
+                        ? `${resume.episodesWatched ?? 0} of ${resume.totalEpisodes} episodes`
+                        : "In progress"
+                    : resume.progressPercent
+                      ? `${resume.progressPercent}% read`
+                      : "In progress"}
+                </p>
+                {(() => {
+                  const pct =
+                    tab === "tv"
+                      ? resume.totalEpisodes
+                        ? Math.round(((resume.episodesWatched ?? 0) / resume.totalEpisodes) * 100)
+                        : 0
+                      : (resume.progressPercent ?? 0);
+                  return pct > 0 ? (
+                    <div
+                      className="mt-3 h-1 max-w-xs overflow-hidden rounded-full bg-line"
+                      role="img"
+                      aria-label={`${pct}% done`}
+                    >
+                      <div
+                        className="landing-grow h-full rounded-full bg-persimmon"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  ) : null;
+                })()}
+                <button
+                  type="button"
+                  className="g-btn g-btn--ink mt-4 h-10"
+                  onClick={() => setPicked({ card: resume, kind: "cover" })}
+                >
+                  Open
+                </button>
+              </div>
+            </section>
+          ) : null}
           {items == null ? (
             <ShelfSkeleton kind={kind} />
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center py-12 text-center">
-              <p className="font-display text-2xl italic text-ink-soft">
+            <div className="flex flex-col items-center py-16 text-center">
+              <p className="font-display text-[28px] tracking-tight text-ink">
                 {query
                   ? `Nothing matches “${query}”`
                   : (shelfCount ?? 0) > 0
