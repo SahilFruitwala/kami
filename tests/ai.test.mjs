@@ -97,6 +97,60 @@ describe("AI model chain", () => {
     assert.equal(haiku.calls.length, 0);
   });
 
+  it("moves on when a model hangs instead of failing", async () => {
+    // Never answers unless aborted, like a stalled provider connection.
+    const seen = [];
+    const hung = {
+      id: "google:g",
+      model: {
+        ...fake("google:g", "never").model,
+        doGenerate: (options) =>
+          new Promise((_, reject) => {
+            seen.push(options.abortSignal);
+            options.abortSignal?.addEventListener("abort", () =>
+              reject(Object.assign(new Error("aborted"), { name: "AbortError" })),
+            );
+          }),
+      },
+    };
+    const events = [];
+    const model = fallbackModel([hung, fake("openrouter:h", "from haiku")], (e) => events.push(e), {
+      attemptTimeoutMs: 20,
+    });
+    assert.equal((await model.doGenerate({})).text, "from haiku");
+    assert.equal(events[0].error.name, "ModelTimeoutError");
+    assert.equal(seen[0].aborted, true, "the hung request is aborted, not left open");
+  });
+
+  it("never times out the last model, or a stream once it has started", async () => {
+    const slow = {
+      id: "only:1",
+      model: {
+        ...fake("only:1", "late").model,
+        doGenerate: () =>
+          new Promise((resolve) =>
+            setTimeout(() => resolve({ text: "late", response: { id: "r" } }), 40),
+          ),
+      },
+    };
+    const model = fallbackModel([slow], undefined, { attemptTimeoutMs: 10 });
+    assert.equal((await model.doGenerate({})).text, "late");
+
+    let streamSignal;
+    const streaming = fake("google:g", "streamed");
+    const original = streaming.model.doStream;
+    streaming.model.doStream = async (options) => {
+      streamSignal = options.abortSignal;
+      return original(options);
+    };
+    const chained = fallbackModel([streaming, fake("openrouter:h", "x")], undefined, {
+      attemptTimeoutMs: 10,
+    });
+    await (await chained.doStream({})).stream.getReader().read();
+    await new Promise((r) => setTimeout(r, 30));
+    assert.equal(streamSignal.aborted, false);
+  });
+
   it("needs at least one model", () => {
     assert.throws(() => fallbackModel([]));
   });

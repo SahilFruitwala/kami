@@ -34,6 +34,9 @@ function aiModelChain(): AiModel[] {
   return parseModelList(process.env.AI_MODELS, DEFAULT_AI_MODELS).filter((m) => hasKey(m.provider));
 }
 
+/** How long a model that isn't last in the chain gets to start answering. */
+const AI_ATTEMPT_TIMEOUT_MS = 20_000;
+
 /** True when at least one model in the AI chain is usable. */
 export const aiConfigured = () => aiModelChain().length > 0;
 
@@ -52,5 +55,7 @@ export function aiLanguageModel(): LanguageModel | null {
         `[ai] ${failed} failed (${e?.statusCode ?? e?.message ?? "error"}), trying ${next}`,
       );
     },
+    // A provider that hangs (seen with Gemini) must not stall the chain.
+    { attemptTimeoutMs: AI_ATTEMPT_TIMEOUT_MS },
   );
 }
