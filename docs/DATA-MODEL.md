@@ -178,6 +178,12 @@ See [AI features](./ARCHITECTURE.md#ai-features).
 
 Highlight notes (inside `articles.highlights` jsonb) are capped at 1000 chars (`HIGHLIGHT_NOTE_MAX`).
 
+### Narration — `allowance_entries`
+
+| Table               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `allowance_entries` | Narration allowance ledger, one row per change: `kind` `grant` (+, from `pnpm narration:grant`), `reserve` (−, a narration sets aside its script) or `release` (+, the unspoken part of a deleted unfinished narration); signed `chars`, `note`, optional `narration_id` (not a foreign key, so history outlives narrations). The sum is what the user can spend; everyone starts with none. Changes for one user are serialised with a transaction-scoped advisory lock (`src/lib/allowance-db.server.ts`) |
+
 ### Misc
 
 | Table                | Role                                          |

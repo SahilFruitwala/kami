@@ -29,6 +29,12 @@ Path parameters are written `:name`. For exact request/response shapes read the 
 | `POST` | `/api/ai/organize`                      | `src/routes/api/ai/organize.ts`                      |
 | `GET`  | `/api/ai/status`                        | `src/routes/api/ai/status.ts`                        |
 
+### allowance
+
+| Method | Path             | Source                              |
+| ------ | ---------------- | ----------------------------------- |
+| `GET`  | `/api/allowance` | `src/routes/api/allowance/index.ts` |
+
 ### articles
 
 | Method | Path                    | Source                               |

@@ -29,6 +29,10 @@ export function getAppQueryClient() {
 }
 
 export const queryKeys = {
+  narration: {
+    all: ["narration"] as const,
+    allowance: () => [...queryKeys.narration.all, "allowance"] as const,
+  },
   library: {
     all: ["library"] as const,
     /** The one-time library boot for a signed-in user (see useLibraryBoot). */
