@@ -468,13 +468,23 @@ share / referral prompts, footers and navigation. The text itself is never
 rewritten, and a result that would drop 60% or more of the blocks is
 refused.
 
-The endpoint saves nothing. It returns the original and the tidied HTML plus
-a preview of each removed block, and the reader opens a **review dialog**
-(`src/components/reader/tidy-review.tsx`) showing Before and After side by
-side (tabs on narrow screens) with the list of what goes. Only **Save tidy
-copy** writes the change, through the normal library upsert; **Keep
-original** (or closing the dialog) leaves the article untouched. After a
-save the toast still offers Undo.
+The server applies and stores the result itself (a refusal marks the
+article `skipped`), keeping the body as it was before as the **Original
+copy** (`articles.original_html`). The endpoint returns the saved article,
+the body before, and a preview of each removed block, and the reader opens a
+**review dialog** (`src/components/reader/tidy-review.tsx`) showing Before
+and After side by side (tabs on narrow screens): **Keep cleaned copy**
+closes it, **Restore original** (`POST
+/api/ai/articles/:id/restore-original`) puts the Original copy back.
+`GET /api/ai/articles/:id/original` serves the Original copy for reviewing
+later.
+
+Each article records its `tidy_state` (`src/lib/tidy-state.ts`). Clients
+often re-send whole items with the body they loaded earlier; a save whose
+body equals the current copy or the Original copy is that stale echo and
+never undoes a Tidy. Only a genuinely new body (a re-capture, a link stub
+upgraded to a clean copy) replaces the copy and resets it to `pending`. A
+model failure leaves the body alone and marks the article `failed`.
 
 ### Extraction fallback
 

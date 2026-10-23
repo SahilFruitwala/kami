@@ -119,7 +119,7 @@ export function useAutoTag(item: LibraryItem) {
   });
 }
 
-/** Ask the model which blocks of an article are clutter (nothing is saved). */
+/** Clean up an article's saved copy (the server saves it and keeps the original). */
 export function useTidyArticle(articleId: string) {
   return useMutation({
     mutationFn: () => aiApi.tidy(articleId),

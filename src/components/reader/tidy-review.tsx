@@ -10,7 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog.tsx";
-import { type TidyResult } from "@/lib/api/ai";
+import { aiApi, type TidyResult } from "@/lib/api/ai";
+import { toastError } from "@/lib/errors.ts";
 import { rewriteHtmlImages } from "@/lib/image-url.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
@@ -18,19 +19,25 @@ import { cn } from "@/lib/utils.ts";
 import { useInvalidateArticleSummary, useTidyArticle } from "@/hooks/use-ai.ts";
 
 /**
- * "Remove ads & clutter": the model picks the blocks to drop, then the
- * reader sees the copy before and after. Nothing is saved until they confirm.
+ * "Remove ads & clutter": the model picks the blocks to drop and the server
+ * saves the cleaned copy, keeping the Original copy. The reader then sees
+ * the copy before and after, and can keep it or restore the original.
  */
 export function TidyButton({ item }: { item: LibraryItem }) {
   const [result, setResult] = useState<TidyResult | null>(null);
   const tidy = useTidyArticle(item.id);
+  const upsertItem = useLibraryStore((s) => s.upsertItem);
+  const invalidateSummary = useInvalidateArticleSummary();
   function run() {
     tidy.mutate(undefined, {
       onSuccess: (res) => {
+        // Already saved on the server; mirror it locally without re-syncing.
+        upsertItem(res.item, { sync: false });
         if (!res.removed.length) {
           toast.success("Nothing to tidy: this copy is all the piece itself.");
           return;
         }
+        invalidateSummary(item.id);
         setResult(res);
       },
     });
@@ -51,67 +58,86 @@ export function TidyButton({ item }: { item: LibraryItem }) {
         )}
         {tidy.isPending ? "Cleaning…" : "Remove ads & clutter"}
       </button>
-      {result ? <TidyReview item={item} result={result} onClose={() => setResult(null)} /> : null}
+      {result ? (
+        <TidyReview
+          item={item}
+          originalHtml={result.originalHtml}
+          cleanedHtml={result.item.contentHtml}
+          removed={result.removed}
+          onClose={() => setResult(null)}
+        />
+      ) : null}
     </>
   );
 }
 
 type Pane = "before" | "after";
 
-function TidyReview({
+/**
+ * Compare the Original copy with the cleaned one. The clean-up is already
+ * saved: keeping it just closes; restoring puts the original back.
+ */
+export function TidyReview({
   item,
-  result,
+  originalHtml,
+  cleanedHtml,
+  removed,
   onClose,
 }: {
   item: LibraryItem;
-  result: TidyResult;
+  originalHtml: string;
+  cleanedHtml: string;
+  /** Previews of the removed blocks, when known. */
+  removed?: string[];
   onClose: () => void;
 }) {
   const invalidateSummary = useInvalidateArticleSummary();
   const upsertItem = useLibraryStore((s) => s.upsertItem);
   // Narrow screens show one copy at a time; wide ones show both.
   const [pane, setPane] = useState<Pane>("after");
-  const before = useMemo(() => rewriteHtmlImages(result.originalHtml), [result.originalHtml]);
-  const after = useMemo(() => rewriteHtmlImages(result.contentHtml), [result.contentHtml]);
-  const count = result.removed.length;
+  const [restoring, setRestoring] = useState(false);
+  const before = useMemo(() => rewriteHtmlImages(originalHtml), [originalHtml]);
+  const after = useMemo(() => rewriteHtmlImages(cleanedHtml), [cleanedHtml]);
 
-  function save() {
-    const previous = item;
-    upsertItem({ ...item, contentHtml: result.contentHtml });
-    invalidateSummary(item.id);
-    onClose();
-    toast.success(`Removed ${count} block${count === 1 ? "" : "s"} of clutter`, {
-      action: {
-        label: "Undo",
-        onClick: () => {
-          upsertItem(previous);
-          invalidateSummary(item.id);
-        },
-      },
-    });
+  async function restore() {
+    setRestoring(true);
+    try {
+      upsertItem(await aiApi.restoreOriginal(item.id), { sync: false });
+      invalidateSummary(item.id);
+      toast.success("Restored the original copy");
+      onClose();
+    } catch (err) {
+      toastError(err, "Could not restore the original.");
+    } finally {
+      setRestoring(false);
+    }
   }
 
   return (
     <Dialog open onOpenChange={(open) => (open ? undefined : onClose())}>
       <DialogContent className="sm:max-w-5xl">
         <DialogHeader>
-          <DialogTitle>Review the tidy copy</DialogTitle>
+          <DialogTitle>Review the clean-up</DialogTitle>
           <DialogDescription>
-            {count} block{count === 1 ? "" : "s"} would be removed. Nothing is saved until you
-            confirm.
+            {removed?.length
+              ? `${removed.length} block${removed.length === 1 ? " was" : "s were"} removed as clutter.`
+              : "Ads, sponsor slots and footers were removed from this copy."}{" "}
+            Keep the cleaned copy, or restore the original.
           </DialogDescription>
         </DialogHeader>
 
-        <details className="rounded-lg bg-ink/5 px-3 py-2 font-sans text-xs">
-          <summary className="cursor-pointer font-medium">What gets removed</summary>
-          <ul className="mt-2 max-h-32 list-disc space-y-1 overflow-y-auto pl-4 text-ink-soft">
-            {result.removed.map((preview, i) => (
-              <li key={i} className="break-words">
-                {preview}
-              </li>
-            ))}
-          </ul>
-        </details>
+        {removed?.length ? (
+          <details className="rounded-lg bg-ink/5 px-3 py-2 font-sans text-xs">
+            <summary className="cursor-pointer font-medium">What was removed</summary>
+            <ul className="mt-2 max-h-32 list-disc space-y-1 overflow-y-auto pl-4 text-ink-soft">
+              {removed.map((preview, i) => (
+                <li key={i} className="break-words">
+                  {preview}
+                </li>
+              ))}
+            </ul>
+          </details>
+        ) : null}
 
         <div role="tablist" aria-label="Copy to preview" className="flex gap-1 md:hidden">
           {(["before", "after"] as const).map((id) => (
@@ -141,10 +167,10 @@ function TidyReview({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Keep original
+          <Button variant="outline" onClick={() => void restore()} disabled={restoring}>
+            {restoring ? "Restoring…" : "Restore original"}
           </Button>
-          <Button onClick={save}>Save tidy copy</Button>
+          <Button onClick={onClose}>Keep cleaned copy</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -73,6 +73,10 @@ export const articles = pgTable(
     folderId: text("folder_id").references(() => folders.id, { onDelete: "set null" }),
     tags: jsonb("tags").$type<string[]>().notNull().default([]),
     highlights: jsonb("highlights").$type<unknown[]>().notNull().default([]),
+    /** Where the saved copy is in the Tidy lifecycle (0019_article_tidy.sql). */
+    tidyState: text("tidy_state").notNull().default("pending"),
+    /** The body before Tidy changed it, so the reader can restore it. */
+    originalHtml: text("original_html"),
   },
   (t) => [
     // Covers the boot/listing query (WHERE user_id ORDER BY saved_at DESC,

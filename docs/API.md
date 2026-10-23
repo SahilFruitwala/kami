@@ -18,14 +18,16 @@ Path parameters are written `:name`. For exact request/response shapes read the 
 
 ### ai
 
-| Method | Path                           | Source                                      |
-| ------ | ------------------------------ | ------------------------------------------- |
-| `POST` | `/api/ai/articles/:id/autotag` | `src/routes/api/ai/articles/$id/autotag.ts` |
-| `GET`  | `/api/ai/articles/:id/summary` | `src/routes/api/ai/articles/$id/summary.ts` |
-| `POST` | `/api/ai/articles/:id/summary` | `src/routes/api/ai/articles/$id/summary.ts` |
-| `POST` | `/api/ai/articles/:id/tidy`    | `src/routes/api/ai/articles/$id/tidy.ts`    |
-| `POST` | `/api/ai/organize`             | `src/routes/api/ai/organize.ts`             |
-| `GET`  | `/api/ai/status`               | `src/routes/api/ai/status.ts`               |
+| Method | Path                                    | Source                                               |
+| ------ | --------------------------------------- | ---------------------------------------------------- |
+| `POST` | `/api/ai/articles/:id/autotag`          | `src/routes/api/ai/articles/$id/autotag.ts`          |
+| `GET`  | `/api/ai/articles/:id/original`         | `src/routes/api/ai/articles/$id/original.ts`         |
+| `POST` | `/api/ai/articles/:id/restore-original` | `src/routes/api/ai/articles/$id/restore-original.ts` |
+| `GET`  | `/api/ai/articles/:id/summary`          | `src/routes/api/ai/articles/$id/summary.ts`          |
+| `POST` | `/api/ai/articles/:id/summary`          | `src/routes/api/ai/articles/$id/summary.ts`          |
+| `POST` | `/api/ai/articles/:id/tidy`             | `src/routes/api/ai/articles/$id/tidy.ts`             |
+| `POST` | `/api/ai/organize`                      | `src/routes/api/ai/organize.ts`                      |
+| `GET`  | `/api/ai/status`                        | `src/routes/api/ai/status.ts`                        |
 
 ### articles
 

@@ -1,5 +1,6 @@
 import type { Article, ArticleSource } from "./article-types.ts";
 import { isHttpUrl } from "./safe-url.ts";
+import type { TidyState } from "./tidy-state.ts";
 
 /**
  * The library's domain model: item/highlight/folder shapes, their size
@@ -76,6 +77,10 @@ export type LibraryItem = {
   highlights: Highlight[];
   favorited: boolean;
   note: string;
+  /** Server-owned: where the saved copy is in the Tidy lifecycle. */
+  tidyState?: TidyState;
+  /** Server-owned: an Original copy exists and can be restored. */
+  hasOriginal?: boolean;
 };
 
 export function articleIdFromUrl(url: string): string {

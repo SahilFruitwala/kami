@@ -38,6 +38,7 @@ import {
   sanitizeStoredHtml,
 } from "@/lib/library-rows.server.ts";
 import { applyHighlightOps, applyTagOps } from "@/lib/item-ops.ts";
+import { asTidyState, onSave } from "@/lib/tidy-state";
 import { conflict, notFound } from "@/server/http";
 
 export const articleIdParams = z.object({ id: z.string().min(1).max(L.id) });
@@ -168,7 +169,8 @@ export async function upsertLibraryItem(
   const db = await getDb();
   // `libraryItemBody` already clamps; callers that build `data` themselves
   // (save, bulk) get the same clamp here.
-  const clamped = clampLibraryItem(data);
+  const item: LibraryItem = data;
+  const clamped = clampLibraryItem(item);
   const { title, excerpt, heroImage, author, siteName, note, highlights } = clamped;
   const contentHtml = await sanitizeStoredHtml(clamped.contentHtml, data.canonicalUrl || data.url);
   const tags = clamped.tags.map(normalizeTag).filter(Boolean);
@@ -178,7 +180,12 @@ export async function upsertLibraryItem(
   const findExisting = async () =>
     (
       await db
-        .select({ id: articles.id, contentHtml: articles.contentHtml })
+        .select({
+          id: articles.id,
+          contentHtml: articles.contentHtml,
+          originalHtml: articles.originalHtml,
+          tidyState: articles.tidyState,
+        })
         .from(articles)
         .where(
           and(
@@ -193,10 +200,23 @@ export async function upsertLibraryItem(
         .limit(1)
     )[0];
 
-  const updateExisting = async (row: { id: string; contentHtml: string }) => {
-    // Lean client snapshots omit bodies (`contentHtml: ""`). Never clobber a
-    // stored article body with an empty upsert from metadata-only sync.
-    const bodyHtml = contentHtml.trim() || row.contentHtml || "";
+  const updateExisting = async (row: {
+    id: string;
+    contentHtml: string;
+    originalHtml: string | null;
+    tidyState: string;
+  }) => {
+    // Lean client snapshots omit bodies (`contentHtml: ""`), and clients echo
+    // back bodies loaded before a background Tidy: neither may clobber the
+    // stored copy. Only a genuinely new body resets Tidy (see onSave).
+    const body = onSave(
+      {
+        contentHtml: row.contentHtml || "",
+        originalHtml: row.originalHtml,
+        tidyState: asTidyState(row.tidyState),
+      },
+      contentHtml,
+    );
     const [updated] = await db
       .update(articles)
       .set({
@@ -209,7 +229,9 @@ export async function upsertLibraryItem(
         wordCount: data.wordCount,
         readingMinutes: data.readingMinutes,
         excerpt,
-        contentHtml: bodyHtml,
+        contentHtml: body.contentHtml,
+        originalHtml: body.originalHtml,
+        tidyState: body.tidyState,
         heroImage,
         published: data.published,
         archived: data.archived,
