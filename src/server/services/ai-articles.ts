@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { ArticleSummary, TidyResult } from "@/lib/api/ai";
 import { textFromHtml } from "@/lib/article-build.server.ts";
 import { getDb } from "@/lib/db";
+import { readStoredGist, shapeGist, type StoredGist } from "@/lib/gist.ts";
 import { clipText } from "@/lib/model-fallback.ts";
 import { articleAi, articles, folders } from "@/lib/schema";
 import { TAG_CATEGORIES } from "@/lib/tag-categories.ts";
@@ -41,8 +42,6 @@ const summarySchema = z.object({
     .nullable()
     .describe("The best matching folder name from the existing list, or null when none fits."),
 });
-
-type StoredSummary = Omit<ArticleSummary, "stale" | "createdAt" | "model">;
 
 const hashContent = (html: string) => createHash("sha256").update(html).digest("hex");
 
@@ -116,9 +115,8 @@ function toSummary(
   row: { summary: unknown; contentHash: string; model: string | null; createdAt: Date },
   currentHash: string | null,
 ): ArticleSummary {
-  const stored = row.summary as StoredSummary;
   return {
-    ...stored,
+    ...readStoredGist(row.summary),
     model: row.model,
     createdAt: row.createdAt.getTime(),
     stale: currentHash !== null && currentHash !== row.contentHash,
@@ -169,20 +167,11 @@ export async function summarizeArticle(userId: string, articleId: string): Promi
     maxOutputTokens: 900,
   });
 
-  const folderName = output.folder?.trim().toLowerCase();
-  const folder = folderName
-    ? folderRows.find((f) => f.name.toLowerCase() === folderName)
-    : undefined;
-
-  const summary: StoredSummary = {
-    tldr: output.tldr.trim(),
-    keyPoints: output.keyPoints
-      .map((p) => p.trim())
-      .filter(Boolean)
-      .slice(0, 6),
-    tags: [],
-    folderId: folder?.id ?? null,
-  };
+  const summary: StoredGist = shapeGist(
+    output,
+    folderRows,
+    article.text.length > MAX_ARTICLE_CHARS,
+  );
   const [row] = await db
     .insert(articleAi)
     .values({
