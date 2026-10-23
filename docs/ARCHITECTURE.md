@@ -584,8 +584,17 @@ layout wrappers, `src/lib/tidy-html.server.ts`), the model gets a short
 preview of each and returns the numbers of ads, sponsor slots, subscribe /
 share / referral prompts, footers and navigation. The text itself is never
 rewritten, and a result that would drop 60% or more of the blocks is
-refused. The browser saves the tidied copy through the normal library
-upsert, with Undo.
+refused (the article is marked `skipped`).
+
+The server applies and stores the result itself, keeping the body as it was
+before as the **Original copy** (`articles.original_html`) so
+`POST /api/ai/articles/:id/restore-original` can put it back. Each article
+records its `tidy_state` (`src/lib/tidy-state.ts`). Clients often re-send
+whole items with the body they loaded earlier; a save whose body equals the
+current copy or the Original copy is that stale echo and never undoes a
+Tidy. Only a genuinely new body (a re-capture, a link stub upgraded to a
+clean copy) replaces the copy and resets it to `pending`. A model failure
+leaves the body alone and marks the article `failed`.
 
 ### Shelf suggestions
 

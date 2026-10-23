@@ -1,5 +1,6 @@
 import { http, seg } from "./client";
 import type { LookupResult } from "./types";
+import type { LibraryItem } from "@/lib/store";
 
 /** Which AI features this server can run (each needs a provider key). */
 export type AiStatus = { enabled: boolean; semanticSearch: boolean };
@@ -81,8 +82,8 @@ export type WeeklyRecap = {
   createdAt: number;
 };
 
-/** A tidied copy of an article (not saved until the reader applies it). */
-export type TidyResult = { contentHtml: string; removed: string[] };
+/** The article after Tidy ran (already saved), and previews of what it removed. */
+export type TidyResult = { item: LibraryItem; removed: string[] };
 
 /** A digest of unread feed entries. */
 export type FeedDigest = {
@@ -155,8 +156,12 @@ export const aiApi = {
   /** Make a fresh recap of the past seven days. */
   makeWeeklyRecap: () => http.post<WeeklyRecap>("/api/ai/recap"),
 
-  /** Strip sponsor blocks, prompts and footers from a saved copy (returns HTML, saves nothing). */
+  /** Strip sponsor blocks, prompts and footers from a saved copy and save it. */
   tidy: (articleId: string) => http.post<TidyResult>(`/api/ai/articles/${seg(articleId)}/tidy`),
+
+  /** Put back the copy as it was before Tidy. */
+  restoreOriginal: (articleId: string) =>
+    http.post<LibraryItem>(`/api/ai/articles/${seg(articleId)}/restore-original`),
 
   /** Tag an article with up to three fixed categories; returns its full tag list. */
   autoTag: (articleId: string) =>

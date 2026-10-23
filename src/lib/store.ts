@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import type { Article, ArticleSource } from "./article-types.ts";
 import { isPaperTone, type PaperTone } from "./paper-tones.ts";
 import { HIGHLIGHT_NOTE_MAX, applyHighlightOps, applyTagOps } from "./item-ops.ts";
+import type { TidyState } from "./tidy-state.ts";
 
 function remoteSync(run: (m: typeof import("./library-remote.ts")) => void) {
   void import("./library-remote.ts")
@@ -85,6 +86,10 @@ export type LibraryItem = {
   highlights: Highlight[];
   favorited: boolean;
   note: string;
+  /** Server-owned: where the saved copy is in the Tidy lifecycle. */
+  tidyState?: TidyState;
+  /** Server-owned: an Original copy exists and can be restored. */
+  hasOriginal?: boolean;
 };
 
 export function articleIdFromUrl(url: string): string {

@@ -3,12 +3,21 @@ import { createHash } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { ArticleSummary, TidyResult } from "@/lib/api/ai";
+import { invalidateUserCache } from "@/lib/cache.server.ts";
 import { textFromHtml } from "@/lib/article-build.server.ts";
 import { getDb } from "@/lib/db";
+import type { LibraryItem } from "@/lib/store";
 import { readStoredGist, shapeGist, type StoredGist } from "@/lib/gist.ts";
 import { clipText } from "@/lib/model-fallback.ts";
 import { articleAi, articles, folders } from "@/lib/schema";
 import { TAG_CATEGORIES } from "@/lib/tag-categories.ts";
+import {
+  asTidyState,
+  onRestore,
+  onTidy,
+  type TidyOutcome,
+  type TidyRecord,
+} from "@/lib/tidy-state";
 import {
   asDocument,
   chatHistory,
@@ -220,44 +229,130 @@ const tidySchema = z.object({
 
 /**
  * Find the clutter in a saved copy — newsletter sponsor slots, ads,
- * subscribe/share/referral prompts, footers — and return the HTML without
- * it. The model only picks block numbers; the text itself is never
- * rewritten. Nothing is saved: the reader applies it (with undo).
+ * subscribe/share/referral prompts, footers — and store the copy without it.
+ * The model only picks block numbers; the text itself is never rewritten.
+ * The body before the change is kept as the Original copy so the reader can
+ * restore it. A model failure is recorded as `failed` (the reader then offers
+ * "Retry clean-up") and rethrown.
  */
 export async function tidyArticle(userId: string, articleId: string): Promise<TidyResult> {
   const { splitBlocks, joinBlocks } = await import("@/lib/tidy-html.server.ts");
   const db = await getDb();
   const [row] = await db
-    .select({ html: articles.contentHtml, title: articles.title })
+    .select({
+      html: articles.contentHtml,
+      originalHtml: articles.originalHtml,
+      tidyState: articles.tidyState,
+      title: articles.title,
+    })
     .from(articles)
     .where(and(eq(articles.id, articleId), eq(articles.userId, userId)))
     .limit(1);
   if (!row) throw notFound("That article is no longer in your library.");
-  const { blocks, previews } = splitBlocks(row.html);
-  if (blocks.length < 3) throw badRequest("This copy is already as tidy as it gets.");
-
-  const { output } = await generateJson(tidySchema, {
-    instructions: [
-      "You clean up a saved copy of an article or email newsletter for a reading app.",
-      "Below are its top-level blocks, numbered, each shown as a short preview.",
-      "List the blocks that are not part of the piece itself: ads, sponsor messages, 'subscribe', 'share', 'refer a friend' or 'view in browser' prompts, unsubscribe and legal footers, social links, and navigation.",
-      "Keep anything that is the author's writing, including intros and sign-offs. When unsure, keep the block.",
-    ].join("\n"),
-    prompt: asDocument(previews.map((p, i) => `${i}. ${p}`).join("\n"), { title: row.title }),
-    maxOutputTokens: 400,
-    temperature: 0,
-  });
-  const drop = new Set(
-    output.remove.filter((n) => Number.isInteger(n) && n >= 0 && n < previews.length),
-  );
-  // Refuse a "cleanup" that would gut the piece.
-  if (drop.size >= blocks.length * 0.6) {
-    throw badRequest("That would remove most of this piece, so nothing was changed.");
-  }
-  return {
-    contentHtml: drop.size ? joinBlocks(blocks, drop) : row.html,
-    removed: [...drop].sort((a, b) => a - b).map((i) => previews[i]),
+  const record: TidyRecord = {
+    contentHtml: row.html,
+    originalHtml: row.originalHtml,
+    tidyState: asTidyState(row.tidyState),
   };
+
+  const { blocks, previews } = splitBlocks(row.html);
+  if (blocks.length < 3 || row.html.includes("Saved as a link.")) {
+    return { item: await storeTidy(userId, articleId, record, { kind: "refused" }), removed: [] };
+  }
+
+  let remove: number[];
+  try {
+    const { output } = await generateJson(tidySchema, {
+      instructions: [
+        "You clean up a saved copy of an article or email newsletter for a reading app.",
+        "Below are its top-level blocks, numbered, each shown as a short preview.",
+        "List the blocks that are not part of the piece itself: ads, sponsor messages, 'subscribe', 'share', 'refer a friend' or 'view in browser' prompts, unsubscribe and legal footers, social links, and navigation.",
+        "Keep anything that is the author's writing, including intros and sign-offs. When unsure, keep the block.",
+      ].join("\n"),
+      prompt: asDocument(previews.map((p, i) => `${i}. ${p}`).join("\n"), { title: row.title }),
+      maxOutputTokens: 400,
+      temperature: 0,
+    });
+    remove = output.remove;
+  } catch (err) {
+    await storeTidy(userId, articleId, record, { kind: "failed" });
+    throw err;
+  }
+
+  const drop = new Set(remove.filter((n) => Number.isInteger(n) && n >= 0 && n < previews.length));
+  // Refuse a "cleanup" that would gut the piece.
+  const outcome: TidyOutcome =
+    drop.size >= blocks.length * 0.6
+      ? { kind: "refused" }
+      : drop.size
+        ? { kind: "removed", contentHtml: joinBlocks(blocks, drop) }
+        : { kind: "nothing" };
+  return {
+    item: await storeTidy(userId, articleId, record, outcome),
+    removed:
+      outcome.kind === "removed" ? [...drop].sort((a, b) => a - b).map((i) => previews[i]) : [],
+  };
+}
+
+/**
+ * Write a Tidy outcome, but only onto the body it was computed from: if a
+ * save replaced the body meanwhile, leave that newer copy alone.
+ */
+async function storeTidy(
+  userId: string,
+  articleId: string,
+  record: TidyRecord,
+  outcome: TidyOutcome,
+): Promise<LibraryItem> {
+  return writeTidyRecord(userId, articleId, record, onTidy(record, outcome));
+}
+
+/** Put an article's Original copy back (undoing Tidy). */
+export async function restoreOriginal(userId: string, articleId: string): Promise<LibraryItem> {
+  const db = await getDb();
+  const [row] = await db
+    .select({
+      html: articles.contentHtml,
+      originalHtml: articles.originalHtml,
+      tidyState: articles.tidyState,
+    })
+    .from(articles)
+    .where(and(eq(articles.id, articleId), eq(articles.userId, userId)))
+    .limit(1);
+  if (!row) throw notFound("That article is no longer in your library.");
+  if (row.originalHtml === null) throw badRequest("There is no original copy to restore.");
+  const record: TidyRecord = {
+    contentHtml: row.html,
+    originalHtml: row.originalHtml,
+    tidyState: asTidyState(row.tidyState),
+  };
+  return writeTidyRecord(userId, articleId, record, onRestore(record));
+}
+
+async function writeTidyRecord(
+  userId: string,
+  articleId: string,
+  from: TidyRecord,
+  next: TidyRecord,
+): Promise<LibraryItem> {
+  const { getArticle } = await import("@/server/services/library");
+  const db = await getDb();
+  await db
+    .update(articles)
+    .set({
+      contentHtml: next.contentHtml,
+      originalHtml: next.originalHtml,
+      tidyState: next.tidyState,
+    })
+    .where(
+      and(
+        eq(articles.id, articleId),
+        eq(articles.userId, userId),
+        eq(articles.contentHtml, from.contentHtml),
+      ),
+    );
+  await invalidateUserCache(userId);
+  return getArticle(userId, articleId);
 }
 
 // ---------- Auto-tag ----------

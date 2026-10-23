@@ -203,24 +203,15 @@ function TidyButton({ item }: { item: LibraryItem }) {
   const tidy = useMutation({
     mutationFn: () => aiApi.tidy(item.id),
     onSuccess: (result) => {
+      // Already saved on the server; mirror it locally without re-syncing.
+      upsertItem(result.item, { sync: false });
       if (!result.removed.length) {
         toast.success("Nothing to tidy: this copy is all the piece itself.");
         return;
       }
-      const before = item;
-      upsertItem({ ...item, contentHtml: result.contentHtml });
       void client.invalidateQueries({ queryKey: queryKeys.ai.summary(item.id) });
       toast.success(
         `Removed ${result.removed.length} block${result.removed.length === 1 ? "" : "s"} of clutter`,
-        {
-          action: {
-            label: "Undo",
-            onClick: () => {
-              upsertItem(before);
-              void client.invalidateQueries({ queryKey: queryKeys.ai.summary(item.id) });
-            },
-          },
-        },
       );
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Could not tidy this copy."),
