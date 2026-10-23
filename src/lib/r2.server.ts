@@ -29,16 +29,46 @@ export function r2ObjectUrl(cfg: Pick<R2Config, "accountId" | "bucket">, key: st
 /** Presigned URLs may live at most seven days. */
 export const MAX_PRESIGN_SECONDS = 7 * 24 * 60 * 60;
 
-export function createR2Store(cfg: R2Config, fetchImpl: typeof fetch = fetch): ObjectStore {
+/** R2 occasionally answers 500 InternalError; these are worth repeating. */
+const RETRYABLE = (status: number) => status === 429 || status >= 500;
+const ATTEMPTS = 3;
+const REQUEST_TIMEOUT_MS = 60_000;
+
+export type R2StoreOptions = {
+  fetchImpl?: typeof fetch;
+  /** Waits between attempts, in ms (tests pass zeros). */
+  backoffMs?: number[];
+};
+
+export function createR2Store(
+  cfg: R2Config,
+  { fetchImpl = fetch, backoffMs = [500, 2000] }: R2StoreOptions = {},
+): ObjectStore {
   const client = new AwsClient({
     accessKeyId: cfg.accessKeyId,
     secretAccessKey: cfg.secretAccessKey,
     service: "s3",
     region: "auto",
   });
-  const send = async (key: string, init: RequestInit) => {
-    const signed = await client.sign(r2ObjectUrl(cfg, key), init);
-    return fetchImpl(signed);
+  /** Sign and send, repeating on network errors and retryable statuses. */
+  const send = async (key: string, init: RequestInit): Promise<Response> => {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
+      if (attempt) await new Promise((r) => setTimeout(r, backoffMs[attempt - 1] ?? 2000));
+      try {
+        const signed = await client.sign(r2ObjectUrl(cfg, key), {
+          ...init,
+          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+        });
+        const res = await fetchImpl(signed);
+        if (!RETRYABLE(res.status) || attempt === ATTEMPTS - 1) return res;
+        await res.body?.cancel().catch(() => {});
+      } catch (err) {
+        lastError = err;
+        if (attempt === ATTEMPTS - 1) throw err;
+      }
+    }
+    throw lastError;
   };
   const fail = async (op: string, key: string, res: Response) => {
     const detail = (await res.text().catch(() => "")).slice(0, 200);

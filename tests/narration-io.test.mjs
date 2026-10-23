@@ -156,7 +156,7 @@ describe("object store", () => {
     };
     const store = createR2Store(
       { accountId: "acct", accessKeyId: "AKID", secretAccessKey: "secret", bucket: "b" },
-      fake,
+      { fetchImpl: fake },
     );
     await store.put("k/one.mp3", new Uint8Array([1, 2]), "audio/mpeg");
     assert.equal(await store.get("k/one.mp3"), null);
@@ -170,6 +170,39 @@ describe("object store", () => {
       ],
     );
     assert.ok(seen.every(([, , auth]) => auth?.startsWith("AWS4-HMAC-SHA256 Credential=AKID/")));
+  });
+
+  it("retries R2's occasional 500 and gives up after three tries", async () => {
+    const cfg = { accountId: "acct", accessKeyId: "AKID", secretAccessKey: "secret", bucket: "b" };
+    let calls = 0;
+    const flaky = createR2Store(cfg, {
+      backoffMs: [0, 0],
+      fetchImpl: async () => new Response(null, { status: ++calls < 3 ? 500 : 200 }),
+    });
+    await flaky.put("k", new Uint8Array([1]), "audio/mpeg");
+    assert.equal(calls, 3);
+
+    calls = 0;
+    const down = createR2Store(cfg, {
+      backoffMs: [0, 0],
+      fetchImpl: async () => {
+        calls += 1;
+        return new Response("<Error/>", { status: 500 });
+      },
+    });
+    await assert.rejects(down.put("k", new Uint8Array([1]), "audio/mpeg"), /500/);
+    assert.equal(calls, 3);
+
+    calls = 0;
+    const missing = createR2Store(cfg, {
+      backoffMs: [0, 0],
+      fetchImpl: async () => {
+        calls += 1;
+        return new Response(null, { status: 404 });
+      },
+    });
+    assert.equal(await missing.get("k"), null);
+    assert.equal(calls, 1, "a 404 is an answer, not a failure");
   });
 
   it("has an in-memory twin for tests", async () => {

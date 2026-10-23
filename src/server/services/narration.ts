@@ -16,6 +16,8 @@ import { joinMp3 } from "@/lib/mp3.ts";
 import { narrationConfig, type NarrationConfig } from "@/lib/narration-config.server.ts";
 import {
   ACTIVE_STATES,
+  LEASE_MS,
+  SPEECH_TIMEOUT_MS,
   applyEvent,
   isStalled,
   nextStep,
@@ -421,7 +423,7 @@ async function runNarration(narrationId: string, origin: string): Promise<void> 
     .update(narrations)
     .set({
       runId,
-      leaseUntil: new Date(now.getTime() + 90_000),
+      leaseUntil: new Date(now.getTime() + LEASE_MS),
       state: sql`case when ${narrations.state} = 'queued' then 'narrating' else ${narrations.state} end`,
       updatedAt: now,
     })
@@ -520,7 +522,7 @@ async function runNarration(narrationId: string, origin: string): Promise<void> 
     if (action.type === "speak") {
       const text = n.parts[action.index];
       try {
-        const spoken = await speakPart(model, text);
+        const spoken = await speakPart(model, text, AbortSignal.timeout(SPEECH_TIMEOUT_MS));
         await store.put(keys.part(action.index), spoken.audio, AUDIO_CONTENT_TYPE);
         n = applyEvent(n, {
           type: "spoken",
