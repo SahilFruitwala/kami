@@ -439,6 +439,17 @@
   );
   background-size: 100% var(--line-h);
 }
+/* The bookcase interior: a recessed paper panel the planks sit in. */
+.g-bookcase {
+  padding: 36px 16px 0;
+  border-radius: 26px;
+  overflow: hidden;
+  background: var(--color-paper-warm);
+  box-shadow: inset 0 2px 12px rgba(28, 26, 23, 0.07);
+}
+.dark .g-bookcase {
+  box-shadow: inset 0 2px 14px rgba(0, 0, 0, 0.35);
+}
 .g-shelf--media {
   --line-h: 236px;
 }
@@ -572,10 +583,14 @@
   opacity: 0.6;
   z-index: -1;
 }
+.g-spine {
+  transition:
+    transform 450ms var(--g-spring),
+    filter 200ms var(--g-ease-out);
+}
 .g-spine:hover,
 .g-spine:focus-visible {
-  transform: translateY(-10px);
-  transition-duration: 150ms;
+  transform: translateY(-14px) rotate(-1.2deg);
 }
 .g-spine:hover::after,
 .g-spine:focus-visible::after {
@@ -642,12 +657,21 @@
   flex-direction: column;
   align-items: center;
   overflow: hidden;
-  border-radius: 2px 2px 1px 1px;
-  background: var(--spine);
+  border-radius: 3px 3px 1px 1px;
+  background-color: var(--spine);
+  /* Cloth-bound depth: a lit left edge falling into a shaded right edge. */
+  background-image: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0) 22%,
+    rgba(0, 0, 0, 0) 68%,
+    rgba(0, 0, 0, 0.2)
+  );
   color: var(--spine-ink);
   box-shadow:
     inset 2px 0 0 rgba(255, 255, 255, 0.12),
-    inset -2px 0 0 rgba(0, 0, 0, 0.14);
+    inset -2px 0 0 rgba(0, 0, 0, 0.14),
+    0 1px 2px rgba(28, 26, 23, 0.18);
 }
 .g-book-spine::before,
 .g-book-spine::after {
