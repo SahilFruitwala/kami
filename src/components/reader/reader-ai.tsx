@@ -22,10 +22,10 @@ function SummaryCard({ item }: { item: LibraryItem }) {
   const summary = query.data ?? null;
 
   return (
-    <section aria-label="AI summary" className="space-y-3 rounded-xl bg-ink/5 p-4 shadow-sm">
+    <section aria-label="AI summary" className="space-y-3 rounded-[20px] bg-paper-warm p-5">
       <div className="flex items-center justify-between gap-2">
         <span className="kami-label flex items-center gap-1.5 opacity-60">
-          <Sparkles className="size-3.5 text-hanko" aria-hidden="true" />
+          <Sparkles className="size-3.5 text-persimmon" aria-hidden="true" />
           Gist
         </span>
         {summary ? (

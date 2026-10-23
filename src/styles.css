@@ -8,41 +8,46 @@
   /* GLOSS — warm paper, editorial serif, near-monochrome chrome. Colour
      lives in the content (topic spines, covers, posters). Light is the
      default; .dark overrides below. See docs/GLOSS.md. */
-  --color-bg: #f6f3ea;
-  --color-paper: #f6f3ea;
-  --color-paper-warm: #efebe0;
-  --color-surface: #fbfaf6;
-  --color-ink: #211e17;
-  --color-ink-soft: #4a463d;
-  --color-ink-muted: #8a857a;
+  --color-bg: #faf8f4;
+  --color-paper: #faf8f4;
+  --color-paper-warm: #f2efe8;
+  --color-surface: #ffffff;
+  --color-ink: #1c1a17;
+  --color-ink-soft: #4b473f;
+  --color-ink-muted: #8a8478;
   --color-ink-faint: #a9a396;
-  --color-faint: #cfc9bc;
-  --color-line: #e7e4dc;
-  --color-ink-accent: #b8443a;
+  --color-faint: #d9d4c8;
+  --color-line: #e8e4db;
+  --color-ink-accent: #d4491a;
   --color-danger: #a6331b;
   --color-ok: #4a774c;
+  /* Persimmon: the seal. Used only for the hanko stamp and moments that
+     celebrate a finished thing. */
+  --color-persimmon: #d4491a;
 
   /* "Hanko" is the app's primary fill: in Gloss that is ink. Pair it with
      text-paper so it inverts cleanly in the dark. */
-  --color-hanko: #211e17;
-  --color-shu: #3a362d;
-  --color-shu-tint: rgba(33, 30, 23, 0.06);
+  --color-hanko: #1c1a17;
+  --color-shu: #4b473f;
+  --color-shu-tint: rgba(28, 26, 23, 0.06);
   --color-bamboo: #4a774c;
   --color-bamboo-wash: rgba(74, 119, 76, 0.12);
   --color-aizome: #2f3e77;
-  --color-sumi: #211e17;
+  --color-sumi: #1c1a17;
 
   --font-sans:
     "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Newsreader Variable", "Newsreader", "Iowan Old Style", "Georgia", serif;
   --font-body: "Newsreader Variable", "Newsreader", "Iowan Old Style", "Georgia", serif;
 
-  --shadow-border: 0 0 0 1px #e7e4dc;
-  --shadow-border-hover: 0 0 0 1px #cfc9bc, 0 8px 24px rgba(33, 30, 23, 0.1);
-  --shadow-raised: 0 8px 24px rgba(33, 30, 23, 0.1);
-  --shadow-device: 0 30px 60px -20px rgba(33, 30, 23, 0.35), 0 12px 24px rgba(33, 30, 23, 0.12);
+  --shadow-border: 0 0 0 1px #e8e4db;
+  --shadow-border-hover: 0 0 0 1px #d9d4c8, 0 8px 24px rgba(28, 26, 23, 0.1);
+  --shadow-card: 0 1px 2px rgba(28, 26, 23, 0.05), 0 12px 32px -12px rgba(28, 26, 23, 0.16);
+  --shadow-raised: 0 8px 24px rgba(28, 26, 23, 0.1);
+  --shadow-device: 0 30px 60px -20px rgba(28, 26, 23, 0.35), 0 12px 24px rgba(28, 26, 23, 0.12);
 
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
   --motion-quick: 100ms;
   --motion-fast: 180ms;
@@ -56,7 +61,10 @@
     /* Reserve the scrollbar's space so short pages (an empty shelf filter)
        don't re-center everything when the scrollbar disappears. */
     scrollbar-gutter: stable;
-    -webkit-tap-highlight-color: rgba(33, 30, 23, 0.08);
+    /* Thin and tinted from the text colour, so it sits quietly in dark mode. */
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-ink) 28%, transparent) transparent;
+    -webkit-tap-highlight-color: rgba(28, 26, 23, 0.08);
     touch-action: manipulation;
     color-scheme: light;
     @apply font-sans;
@@ -80,9 +88,10 @@
     --color-ink-faint: #6e675b;
     --color-faint: #3d362c;
     --color-line: #302a22;
-    --color-ink-accent: #d9766a;
-    --color-danger: #d9766a;
+    --color-ink-accent: #f07a4b;
+    --color-danger: #e5776a;
     --color-ok: #9db89a;
+    --color-persimmon: #f07a4b;
 
     --color-hanko: #efe8da;
     --color-shu: #d9d1c1;
@@ -95,6 +104,7 @@
     --shadow-border: 0 0 0 1px #302a22;
     --shadow-border-hover: 0 0 0 1px #3d362c, 0 10px 28px rgba(0, 0, 0, 0.45);
     --shadow-raised: 0 10px 28px rgba(0, 0, 0, 0.45);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 12px 32px -12px rgba(0, 0, 0, 0.6);
     --shadow-device: 0 30px 60px -20px rgba(0, 0, 0, 0.8), 0 12px 24px rgba(0, 0, 0, 0.45);
   }
 
@@ -145,38 +155,38 @@
   --duration-enter: 250ms;
   --duration-move: 300ms;
   /* shadcn tokens — Gloss light: ink is the primary. */
-  --background: #f6f3ea;
-  --foreground: #211e17;
-  --card: #fbfaf6;
-  --card-foreground: #211e17;
-  --popover: #fbfaf6;
-  --popover-foreground: #211e17;
-  --primary: #211e17;
-  --primary-foreground: #fbfaf6;
-  --secondary: #efebe0;
-  --secondary-foreground: #211e17;
-  --muted: #efebe0;
-  --muted-foreground: #8a857a;
-  --accent: #efebe0;
-  --accent-foreground: #211e17;
+  --background: #faf8f4;
+  --foreground: #1c1a17;
+  --card: #ffffff;
+  --card-foreground: #1c1a17;
+  --popover: #ffffff;
+  --popover-foreground: #1c1a17;
+  --primary: #1c1a17;
+  --primary-foreground: #ffffff;
+  --secondary: #f2efe8;
+  --secondary-foreground: #1c1a17;
+  --muted: #f2efe8;
+  --muted-foreground: #8a8478;
+  --accent: #f2efe8;
+  --accent-foreground: #1c1a17;
   --destructive: #a6331b;
-  --border: #e7e4dc;
-  --input: #e7e4dc;
-  --ring: #211e17;
+  --border: #e8e4db;
+  --input: #e8e4db;
+  --ring: #1c1a17;
   --chart-1: #42356b;
   --chart-2: #2e6b5e;
   --chart-3: #5d3d2e;
-  --chart-4: #8a857a;
-  --chart-5: #e7e4dc;
+  --chart-4: #8a8478;
+  --chart-5: #e8e4db;
   --radius: 10px;
-  --sidebar: #f6f3ea;
-  --sidebar-foreground: #211e17;
-  --sidebar-primary: #211e17;
-  --sidebar-primary-foreground: #fbfaf6;
-  --sidebar-accent: #efebe0;
-  --sidebar-accent-foreground: #211e17;
-  --sidebar-border: #e7e4dc;
-  --sidebar-ring: #211e17;
+  --sidebar: #faf8f4;
+  --sidebar-foreground: #1c1a17;
+  --sidebar-primary: #1c1a17;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f2efe8;
+  --sidebar-accent-foreground: #1c1a17;
+  --sidebar-border: #e8e4db;
+  --sidebar-ring: #1c1a17;
 }
 
 @keyframes fade {
@@ -667,7 +677,7 @@
   z-index: 15;
   pointer-events: none;
   border-radius: 3px;
-  background: rgba(33, 30, 23, 0.1);
+  background: rgba(28, 26, 23, 0.1);
 }
 
 .screen-scroll {
@@ -678,19 +688,15 @@
 /* ——— Gloss material — raised paper, soft radius, quiet shadow ——— */
 .kami-sheet {
   background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 16px;
-  box-shadow: 0 1px 2px rgba(33, 30, 23, 0.04);
+  border-radius: 22px;
+  box-shadow: var(--shadow-card);
 }
 .kami-sheet-raised {
   background: var(--color-surface);
-  border: 1px solid var(--color-line);
-  border-radius: 16px;
-  box-shadow: var(--shadow-raised);
+  border-radius: 22px;
+  box-shadow: var(--shadow-card);
 }
-.dark .kami-sheet {
-  box-shadow: none;
-}
+
 /* The desk is plain paper now: colour belongs to the content. */
 .kami-desk {
   background: var(--color-bg);
@@ -702,12 +708,81 @@
   pointer-events: none;
   border-radius: inherit;
   opacity: 0.18;
-  background: radial-gradient(rgba(33, 30, 23, 0.25) 0.5px, transparent 0.6px) 0 0 / 4px 4px;
+  background: radial-gradient(rgba(28, 26, 23, 0.25) 0.5px, transparent 0.6px) 0 0 / 4px 4px;
 }
 .kami-hanko {
-  background: var(--color-ink);
+  background: var(--color-persimmon);
   color: var(--color-paper);
   box-shadow: none;
+}
+
+/* ——— Stamp: a seal pressed onto the page. The one playful moment. ——— */
+.kami-stamp {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background: var(--color-persimmon);
+  color: var(--color-paper);
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1;
+  user-select: none;
+  rotate: var(--stamp-tilt, 0deg);
+  /* An inner ring, like the carved border of a real seal. */
+  box-shadow: inset 0 0 0 0.09em color-mix(in srgb, var(--color-paper) 55%, transparent);
+}
+.kami-stamp[data-state="idle"] {
+  opacity: 0;
+}
+.kami-stamp[data-state="pressed"] {
+  animation: kami-stamp-press 560ms var(--ease-out) both;
+}
+.kami-stamp[data-state="pressed"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid var(--color-persimmon);
+  animation: kami-stamp-ripple 640ms var(--ease-out) 120ms both;
+}
+@keyframes kami-stamp-press {
+  0% {
+    opacity: 0;
+    scale: 1.7;
+  }
+  55% {
+    opacity: 1;
+    scale: 0.92;
+  }
+  80% {
+    scale: 1.03;
+  }
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+@keyframes kami-stamp-ripple {
+  from {
+    opacity: 0.5;
+    scale: 1;
+  }
+  to {
+    opacity: 0;
+    scale: 1.5;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kami-stamp[data-state="pressed"],
+  .kami-stamp[data-state="pressed"]::after {
+    animation: none;
+  }
+  .kami-stamp[data-state="idle"] {
+    opacity: 1;
+  }
 }
 .kami-washi-tag {
   border: 1px solid var(--color-line);
@@ -731,8 +806,8 @@
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: linear-gradient(180deg, transparent 0%, transparent 62%, rgba(33, 30, 23, 0.32) 100%);
-  box-shadow: inset 0 0 0 1px rgba(33, 30, 23, 0.12);
+  background: linear-gradient(180deg, transparent 0%, transparent 62%, rgba(28, 26, 23, 0.32) 100%);
+  box-shadow: inset 0 0 0 1px rgba(28, 26, 23, 0.12);
 }
 .dark .poster-frame::after {
   background: linear-gradient(180deg, transparent 0%, transparent 62%, rgba(0, 0, 0, 0.5) 100%);
@@ -741,10 +816,8 @@
 /* Small caps meta (spec: Inter 12 / 600, uppercase, +12% tracking). */
 .kami-label {
   font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
 }
 .kami-body {
   font-family: var(--font-body);
@@ -848,7 +921,7 @@
   --muted-foreground: #9a9284;
   --accent: #241f19;
   --accent-foreground: #efe8da;
-  --destructive: #d9766a;
+  --destructive: #f07a4b;
   --border: #302a22;
   --input: #302a22;
   --ring: #efe8da;
@@ -878,4 +951,54 @@
   font: 600 11px/1 var(--font-sans, system-ui, sans-serif);
   border: 2px solid #fff;
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+}
+
+/* ——— Rows: a list entry that lifts on hover, with a hairline between ——— */
+.kami-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.5rem 1.125rem;
+  margin: 0 -1.125rem;
+  border-radius: 18px;
+  cursor: pointer;
+  transition:
+    background-color 300ms var(--ease-out),
+    box-shadow 300ms var(--ease-out),
+    transform 400ms var(--ease-out);
+}
+.kami-row::after {
+  content: "";
+  position: absolute;
+  inset: auto 1.125rem 0;
+  height: 1px;
+  background: var(--color-line);
+  transition: opacity 200ms;
+}
+.kami-row:hover {
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  transform: translateY(-2px);
+}
+.kami-row:hover::after {
+  opacity: 0;
+}
+
+/* A scrollbar that stays out of the way: thin, tinted from the text colour,
+   no track. Used where a column scrolls on its own beside the page. */
+.kami-quiet-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, currentColor 28%, transparent) transparent;
+}
+.kami-quiet-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.kami-quiet-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.kami-quiet-scroll::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 28%, transparent);
 }

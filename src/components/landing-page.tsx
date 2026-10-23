@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import {
-  ArrowRight,
   BookOpen,
   Headphones,
   Highlighter,
@@ -12,7 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
-import { Hanko, KAMI_GLYPH, WashiTag } from "@/components/kami.tsx";
+import { Hanko, KAMI_GLYPH } from "@/components/kami.tsx";
 
 // Hoisted static content — no per-render allocation.
 // Every claim below maps to a real capability in src/:
@@ -28,7 +27,7 @@ const PILLARS = [
   {
     icon: Headphones,
     title: "Read or listen",
-    copy: "A calm reader in your choice of type and paper — or have the article narrated, right where you left off.",
+    copy: "A calm reader in your choice of type and paper, or have the article narrated, right where you left off.",
   },
   {
     icon: Highlighter,
@@ -38,13 +37,13 @@ const PILLARS = [
   {
     icon: LibraryBig,
     title: "Track",
-    copy: "Shelves for movies, shows, books, and a wishlist — with episode tracking and where to watch.",
+    copy: "Shelves for movies, shows, books, and a wishlist, with episode tracking and where to watch.",
   },
 ] as const;
 
 // Statuses use the real shelf wording from src/lib/shelf-labels.ts.
 const SHELF_ROWS = [
-  { title: "Severance", kind: "Show", status: "Watching", episode: "S2 · E6", progress: 60 },
+  { title: "Severance", kind: "Show", status: "Watching", episode: "S2 E6", progress: 60 },
   { title: "Piranesi", kind: "Book", status: "Reading" },
   { title: "Perfect Days", kind: "Movie", status: "To watch" },
   { title: "A fountain pen", kind: "Wishlist", status: "Wanted" },
@@ -102,7 +101,7 @@ const SHELF_POSTERS: Record<(typeof SHELF_ROWS)[number]["title"], React.ReactNod
 const FAQS = [
   {
     q: "What if a site blocks saving?",
-    a: "Save it link-only, paste the text yourself, or use the bookmarklet or extension — your browser already has the page.",
+    a: "Save it link-only, paste the text yourself, or use the bookmarklet or extension. Your browser already has the page.",
   },
   {
     q: "How does listening work?",
@@ -120,23 +119,27 @@ const FAQS = [
 
 export function LandingPage() {
   return (
-    <div className="kami-desk relative min-h-dvh overflow-x-hidden text-ink [touch-action:manipulation]">
+    <div className="kami-desk relative min-h-dvh overflow-x-clip text-ink [touch-action:manipulation]">
       <a
         href="#main"
-        className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-[60] focus-visible:rounded-lg focus-visible:bg-hanko focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper"
+        className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-[60] focus-visible:rounded-full focus-visible:bg-hanko focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper"
       >
         Skip to content
       </a>
 
       <header className="fixed inset-x-0 top-0 z-50 bg-paper/85 pt-[env(safe-area-inset-top)] backdrop-blur-xl">
-        <div className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between gap-2 px-[max(1rem,env(safe-area-inset-left))] sm:gap-3 sm:px-6">
+        <div className="mx-auto flex h-[68px] w-full max-w-[1080px] items-center justify-between gap-2 px-[max(1.25rem,env(safe-area-inset-left))] sm:gap-3 sm:px-7">
           <Link
             to="/"
-            className="group inline-flex items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
+            className="group inline-flex items-center gap-2.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
           >
-            <Hanko glyph={KAMI_GLYPH} className="size-7 text-sm" title="Kami" />
+            <Hanko
+              glyph={KAMI_GLYPH}
+              className="size-7 text-sm transition-transform duration-500 ease-[var(--ease-spring)] group-hover:rotate-12"
+              title="Kami"
+            />
             <span
-              className="hidden font-display text-[22px] leading-none tracking-tight min-[360px]:block"
+              className="hidden font-display text-[24px] leading-none tracking-tight min-[360px]:block"
               translate="no"
             >
               Kami
@@ -145,146 +148,140 @@ export function LandingPage() {
           <div className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
             <Button type="button" variant="ghost" className="hidden h-10 sm:inline-flex" asChild>
-              <Link to="/login/$">Sign In</Link>
+              <Link to="/login/$">Sign in</Link>
             </Button>
-            <Button
-              type="button"
-              className="h-10 rounded-full bg-hanko px-4 text-paper hover:bg-shu"
-              asChild
-            >
+            <Button type="button" className="h-10 rounded-full px-5" asChild>
               <Link to="/sign-up/$">Begin</Link>
             </Button>
           </div>
         </div>
       </header>
 
-      <main id="main" className="pt-[calc(4rem+env(safe-area-inset-top))]">
+      <main id="main" className="pt-[calc(68px+env(safe-area-inset-top))]">
         {/* Hero */}
         <section
           aria-labelledby="hero-heading"
-          className="mx-auto w-full max-w-3xl px-4 pt-14 pb-12 text-center sm:px-6 sm:pt-24 sm:pb-16"
+          className="mx-auto w-full max-w-[1080px] px-5 pt-16 pb-6 text-center sm:px-7 sm:pt-24"
         >
-          <div className="flex justify-center gap-2">
-            <WashiTag tone="paper">Quiet read-later</WashiTag>
-            <WashiTag tone="indigo">Open source</WashiTag>
-          </div>
           <h1
             id="hero-heading"
-            className="mt-6 font-display text-[2.75rem] leading-[1.02] font-normal tracking-[-0.025em] text-balance sm:text-[4.25rem]"
+            className="g-rise mx-auto max-w-[14ch] font-display text-[clamp(2.8rem,7vw,5.6rem)] leading-[1.02] font-normal tracking-[-0.025em] text-balance"
           >
             Save it now. Read or listen later.
           </h1>
-          <p className="kami-body mx-auto mt-5 max-w-xl text-base leading-[1.85] text-pretty text-ink-soft sm:text-lg sm:leading-[1.85]">
+          <p
+            className="g-rise kami-body mx-auto mt-6 max-w-[40ch] font-display text-xl leading-snug text-pretty text-ink-soft sm:text-[22px]"
+            style={{ animationDelay: "90ms" }}
+          >
             A quiet place for the articles you mean to get to.
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-2.5 sm:flex-row">
+          <div
+            className="g-rise mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
+            style={{ animationDelay: "180ms" }}
+          >
             <Button
               type="button"
               size="lg"
-              className="h-11 w-full rounded-full bg-hanko px-6 text-paper hover:bg-shu sm:w-auto"
+              className="h-12 w-full rounded-full px-7 sm:w-auto"
               asChild
             >
-              <Link to="/sign-up/$">
-                Start your library
-                <ArrowRight className="size-4" aria-hidden="true" />
-              </Link>
+              <Link to="/sign-up/$">Start your library</Link>
             </Button>
             <Button
               type="button"
-              variant="ghost"
+              variant="secondary"
               size="lg"
-              className="h-11 w-full sm:w-auto"
+              className="h-12 w-full rounded-full px-7 sm:w-auto"
               asChild
             >
-              <Link to="/login/$">Sign In</Link>
+              <Link to="/login/$">Sign in</Link>
             </Button>
           </div>
         </section>
 
-        {/* Preview — the reader sheet with the audio player beneath it */}
+        {/* Preview: the reader sheet with the audio player beneath it */}
         <section
-          aria-label="Preview of the KAMI reader"
-          className="mx-auto w-full max-w-3xl px-4 sm:px-6"
+          aria-label="Preview of the Kami reader"
+          className="g-rise mx-auto mt-14 w-full max-w-[780px] px-5 sm:px-7"
+          style={{ animationDelay: "260ms" }}
         >
-          <div className="kami-sheet-raised kami-grain relative overflow-hidden" aria-hidden="true">
-            <span className="absolute top-0 right-10 h-10 w-3 rounded-b-[0.25rem] bg-hanko/80" />
-            <div className="px-6 pt-8 pb-6 sm:px-12 sm:pt-12">
-              <p className="kami-label text-ink-muted">Essay · 9 min</p>
-              <p className="mt-2 font-display text-2xl tracking-tight sm:text-3xl">
-                A Field Guide to Focus
-              </p>
-              <p className="kami-body mt-4 text-base leading-[1.9] text-ink-soft">
+          <div className="kami-sheet-raised relative overflow-hidden" aria-hidden="true">
+            <div className="px-7 pt-9 pb-7 sm:px-12 sm:pt-12">
+              <p className="kami-label text-ink-muted">Essay, 9 min</p>
+              <p className="mt-2 font-display text-3xl tracking-tight">A Field Guide to Focus</p>
+              <p className="kami-body mt-4 font-display text-[19px] leading-[1.7] text-ink-soft">
                 Attention is not something you find; it is something you make room for. Close the
                 extra tabs, set the phone face down, and{" "}
-                <mark className="rounded-sm bg-[color-mix(in_oklab,#c84b31_30%,transparent)] px-0.5 text-ink">
+                <mark className="rounded-sm bg-persimmon/25 px-0.5 text-ink">
                   give one page your whole mind
-                </mark>{" "}
-                — the rest will keep until tomorrow.
+                </mark>
+                . The rest will keep until tomorrow.
               </p>
             </div>
-            <div className="flex items-center gap-3 border-t border-line bg-paper-warm/50 px-6 py-3 sm:px-12">
+            <div className="flex items-center gap-3.5 border-t border-line px-7 py-4 sm:px-12">
               <RotateCcw className="size-4 text-ink-soft" />
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-hanko text-paper">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-persimmon text-white">
                 <Play className="size-4 translate-x-px" />
               </span>
               <RotateCw className="size-4 text-ink-soft" />
               <div className="h-1 flex-1 overflow-hidden rounded-full bg-line">
-                <div className="h-full w-[38%] rounded-full bg-hanko" />
+                <div className="landing-grow h-full w-[38%] rounded-full bg-persimmon" />
               </div>
-              <span className="font-sans text-[11px] text-ink-muted tabular-nums">12:04</span>
-              <span className="hidden rounded-full border border-line px-2 py-0.5 font-sans text-[11px] text-ink-soft tabular-nums sm:inline">
+              <span className="font-sans text-[13px] text-ink-muted tabular-nums">12:04</span>
+              <span className="hidden rounded-full border border-line px-2.5 py-0.5 font-sans text-[12.5px] text-ink-soft tabular-nums sm:inline">
                 1.25×
               </span>
             </div>
           </div>
         </section>
 
-        {/* Tracker — a shelf in the same quiet style */}
+        {/* Tracker: a shelf in the same quiet style */}
         <section
           aria-labelledby="track-heading"
-          className="mx-auto w-full max-w-3xl px-4 pt-16 sm:px-6 sm:pt-20"
+          className="mx-auto w-full max-w-[720px] px-5 pt-28 text-center sm:px-7"
         >
           <h2
             id="track-heading"
-            className="text-center font-display text-2xl font-normal tracking-tight text-balance sm:text-3xl"
+            className="font-display text-[clamp(1.8rem,3.4vw,2.6rem)] leading-[1.1] font-normal tracking-tight text-balance"
           >
             And everything you’re watching or reading next.
           </h2>
-          <p className="kami-body mx-auto mt-2 max-w-md text-center text-sm leading-[1.8] text-ink-soft">
-            Movies, shows, books, and a wishlist — on one shelf.
+          <p className="mt-2.5 font-sans text-base text-ink-soft">
+            Movies, shows, books, and a wishlist on their own shelves.
           </p>
           <ul
-            className="kami-sheet-raised mt-6 divide-y divide-line px-5 sm:px-8"
+            className="kami-sheet-raised mt-8 px-6 py-2 text-left sm:px-8"
             aria-label="Example shelf"
           >
             {SHELF_ROWS.map((row) => (
-              <li key={row.title} className="flex items-center gap-4 py-4">
+              <li
+                key={row.title}
+                className="group flex items-center gap-[18px] border-b border-line py-4 transition-transform duration-500 ease-[var(--ease-out)] last:border-b-0 hover:translate-x-1"
+              >
                 <span
                   aria-hidden="true"
-                  className="h-[4.5rem] w-12 shrink-0 overflow-hidden rounded-[0.3rem] shadow-[0_1px_2px_rgb(0_0_0/0.12),0_4px_10px_-4px_rgb(0_0_0/0.25)]"
+                  className="h-[68px] w-[46px] shrink-0 overflow-hidden rounded-[7px] shadow-[0_1px_2px_rgb(28_26_23/0.2),0_6px_12px_-6px_rgb(28_26_23/0.35)] transition-transform duration-500 ease-[var(--ease-spring)] group-hover:scale-105 group-hover:-rotate-3"
                 >
                   {SHELF_POSTERS[row.title]}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate font-display text-[15px] tracking-tight">
+                  <span className="block truncate font-display text-lg tracking-tight">
                     {row.title}
                   </span>
-                  <span className="kami-label mt-0.5 block text-ink-muted">{row.kind}</span>
-                  {"episode" in row && (
-                    <span className="mt-2 flex items-center gap-2">
-                      <span className="h-1 w-24 overflow-hidden rounded-full bg-line">
-                        <span
-                          className="block h-full rounded-full bg-hanko"
-                          style={{ width: `${row.progress}%` }}
-                        />
-                      </span>
-                      <span className="font-sans text-[11px] text-ink-muted tabular-nums">
-                        {row.episode}
-                      </span>
+                  <span className="mt-0.5 block font-sans text-sm text-ink-muted">
+                    {row.kind}
+                    {"episode" in row ? `, ${row.episode}` : ""}
+                  </span>
+                  {"episode" in row ? (
+                    <span className="mt-2 block h-1 w-28 overflow-hidden rounded-full bg-line">
+                      <span
+                        className="landing-grow block h-full rounded-full bg-persimmon"
+                        style={{ width: `${row.progress}%` }}
+                      />
                     </span>
-                  )}
+                  ) : null}
                 </span>
-                <span className="shrink-0 rounded-full border border-line px-2.5 py-0.5 font-sans text-xs text-ink-soft">
+                <span className="shrink-0 rounded-full border border-line px-3 py-0.5 font-sans text-[13.5px] text-ink-soft">
                   {row.status}
                 </span>
               </li>
@@ -294,15 +291,15 @@ export function LandingPage() {
 
         {/* Pillars */}
         <section
-          aria-label="What KAMI does"
-          className="mx-auto w-full max-w-5xl px-4 py-16 sm:px-6 sm:py-20"
+          aria-label="What Kami does"
+          className="mx-auto w-full max-w-[1080px] px-5 py-28 sm:px-7"
         >
           <ul className="grid gap-10 sm:grid-cols-2 sm:gap-8 lg:grid-cols-4">
             {PILLARS.map((p) => (
               <li key={p.title}>
-                <p.icon className="size-5 text-hanko" aria-hidden="true" />
-                <h2 className="mt-3 font-display text-xl tracking-tight">{p.title}</h2>
-                <p className="kami-body mt-1.5 text-sm leading-[1.8] text-ink-soft">{p.copy}</p>
+                <p.icon className="size-5 text-persimmon" aria-hidden="true" />
+                <h2 className="mt-3 font-display text-2xl tracking-tight">{p.title}</h2>
+                <p className="mt-2 font-sans text-[15px] leading-relaxed text-ink-soft">{p.copy}</p>
               </li>
             ))}
           </ul>
@@ -312,24 +309,24 @@ export function LandingPage() {
         <section
           aria-labelledby="faq-heading"
           id="faq"
-          className="mx-auto w-full max-w-3xl scroll-mt-20 px-4 pb-16 sm:px-6"
+          className="mx-auto w-full max-w-[720px] scroll-mt-20 px-5 pb-8 sm:px-7"
         >
-          <h2 id="faq-heading" className="font-display text-2xl font-normal tracking-tight">
+          <h2 id="faq-heading" className="font-display text-[28px] font-normal tracking-tight">
             Questions
           </h2>
-          <div className="mt-4 divide-y divide-line border-y border-line">
+          <div className="mt-3">
             {FAQS.map((f) => (
-              <details key={f.q} className="group py-4">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-sm text-left font-display text-[15px] font-medium tracking-tight hover:text-hanko focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40 [&::-webkit-details-marker]:hidden">
+              <details key={f.q} className="group border-t border-line py-5 last:border-b">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-sm text-left font-display text-lg font-medium tracking-tight transition-colors hover:text-persimmon focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 [&::-webkit-details-marker]:hidden">
                   {f.q}
                   <span
                     aria-hidden="true"
-                    className="font-sans text-xl leading-none text-hanko transition-transform duration-150 group-open:rotate-45"
+                    className="font-sans text-[22px] leading-none text-persimmon transition-transform duration-500 ease-[var(--ease-spring)] group-open:rotate-45"
                   >
                     +
                   </span>
                 </summary>
-                <p className="kami-body mt-2 max-w-2xl text-sm leading-[1.8] text-ink-soft">
+                <p className="mt-3 max-w-[60ch] font-sans text-[15px] leading-relaxed text-ink-soft">
                   {f.a}
                 </p>
               </details>
@@ -340,20 +337,15 @@ export function LandingPage() {
         {/* Final CTA */}
         <section
           aria-labelledby="cta-heading"
-          className="mx-auto w-full max-w-3xl px-4 pb-20 text-center sm:px-6"
+          className="mx-auto w-full max-w-[720px] px-5 pt-24 pb-28 text-center sm:px-7"
         >
           <h2
             id="cta-heading"
-            className="font-display text-3xl font-normal tracking-tight text-balance sm:text-4xl"
+            className="font-display text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.08] font-normal tracking-tight text-balance"
           >
             Leave the noise behind.
           </h2>
-          <Button
-            type="button"
-            size="lg"
-            className="mt-6 h-11 rounded-full bg-hanko px-6 text-paper hover:bg-shu"
-            asChild
-          >
+          <Button type="button" size="lg" className="mt-7 h-12 rounded-full px-7" asChild>
             <Link to="/sign-up/$">
               <BookOpen className="size-4" aria-hidden="true" />
               Start your library
@@ -363,20 +355,20 @@ export function LandingPage() {
       </main>
 
       <footer className="border-t border-line">
-        <div className="mx-auto flex w-full max-w-5xl flex-col items-center justify-between gap-3 px-4 py-6 font-sans text-sm text-ink-muted sm:flex-row sm:px-6">
+        <div className="mx-auto flex w-full max-w-[1080px] flex-col items-center justify-between gap-3 px-5 py-7 font-sans text-sm text-ink-muted sm:flex-row sm:px-7">
           <span className="inline-flex items-center gap-2">
-            <Hanko glyph={KAMI_GLYPH} square className="size-5 text-[9px]" />
+            <Hanko glyph={KAMI_GLYPH} className="size-5 text-[10px]" />
             <span className="font-display text-ink" translate="no">
-              KAMI
+              Kami
             </span>
-            <span>· MIT licensed</span>
+            <span>MIT licensed</span>
           </span>
           <nav aria-label="Footer" className="flex gap-5">
-            <a href="#faq" className="hover:text-hanko">
+            <a href="#faq" className="transition-colors hover:text-persimmon">
               FAQ
             </a>
-            <Link to="/login/$" className="hover:text-hanko">
-              Sign In
+            <Link to="/login/$" className="transition-colors hover:text-persimmon">
+              Sign in
             </Link>
           </nav>
         </div>

@@ -67,7 +67,7 @@ export function BookProgress({
           ? "Finished — marked read"
           : res.percent === 0
             ? "Progress cleared"
-            : `Progress saved · ${res.percent}%`,
+            : `Progress saved, ${res.percent}%`,
       );
     } catch (err) {
       toastError(err, "Couldn't save progress.");
@@ -76,7 +76,7 @@ export function BookProgress({
 
   const summary =
     currentPage != null && pageCount
-      ? `Page ${currentPage} of ${pageCount} · ${percent}%`
+      ? `Page ${currentPage} of ${pageCount}, ${percent}%`
       : percent > 0
         ? `${percent}%`
         : "Not started";

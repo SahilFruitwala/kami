@@ -10,9 +10,9 @@ import {
   LayoutGrid,
   LoaderCircle,
   Plus,
+  SlidersHorizontal,
   Tv,
 } from "lucide-react";
-import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell.tsx";
 import {
   GlossChip,
@@ -21,20 +21,12 @@ import {
   GlossPage,
   GlossSearch,
   GlossStats,
-  PullOut,
   Segmented,
   Shelf,
   ShelfDivider,
   type ShelfGroup,
 } from "@/components/gloss/index.ts";
-import {
-  MediaCover,
-  MediaInside,
-  MediaPage,
-  MediaSpine,
-  MediaSpineFace,
-  type MediaKind,
-} from "@/components/gloss/media.tsx";
+import { MediaCover, MediaSpine, type MediaKind } from "@/components/gloss/media.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { AddShelfDialog } from "@/components/library/add-shelf-dialog.tsx";
@@ -42,21 +34,16 @@ import { ShelfFolio } from "@/components/library/shelf-folio.tsx";
 import { statusMeta, statusToApi } from "@/lib/shelf-status.ts";
 import {
   SHELF_PAGE_SIZE,
-  useDeleteShelfItem,
-  useSetShelfItemStatus,
-  useSetShowWatched,
   useShelfCounts,
   useShelfDetail,
   useShelfItems,
 } from "@/hooks/use-shelf-queries.ts";
 import { useTilt } from "@/hooks/use-tilt.ts";
-import { mediaCoverSize, mediaDepthRatio, STATUS_DOT } from "@/lib/gloss/palette.ts";
+import { mediaCoverSize, STATUS_DOT } from "@/lib/gloss/palette.ts";
 import { statusLabels, statusText } from "@/lib/shelf-labels.ts";
 import { type ShelfCard } from "@/lib/shelves.ts";
 import type { ShelvesSearch } from "@/lib/shelves-search.ts";
-import { toastError } from "@/lib/errors";
 import { usePersistedPref } from "@/lib/local-pref.ts";
-import { confirmAction } from "@/lib/confirm.ts";
 import { useShelfFilters } from "@/hooks/use-shelf-filters.ts";
 
 type MediaTab = "movie" | "tv" | "book" | "wishlist";
@@ -69,21 +56,19 @@ type Arrange = (typeof ARRANGES)[number];
 const MEDIA_PAGE = SHELF_PAGE_SIZE * 5;
 const STATUS_ORDER: ShelfCard["status"][] = ["in_progress", "to_try", "done", "abandoned"];
 
-type Picked = { card: ShelfCard; kind: "spine" | "cover" };
-
 const COPY: Record<
   MediaTab,
   { title: string; eyebrow: string; unit: [string, string]; empty: string }
 > = {
   movie: {
     title: "Movies",
-    eyebrow: "Video shelf · VHS",
+    eyebrow: "Video shelf, VHS",
     unit: ["tape", "tapes"],
     empty: "Search TMDB or paste a link to put your first tape on the shelf.",
   },
   tv: {
     title: "Series",
-    eyebrow: "Video shelf · DVD box sets",
+    eyebrow: "Video shelf, DVD box sets",
     unit: ["box set", "box sets"],
     empty: "Search TMDB or paste a link to shelve your first box set.",
   },
@@ -127,13 +112,9 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
     ARRANGES,
     "status",
   );
-  const [picked, setPicked] = useState<Picked | null>(null);
-  const [opening, setOpening] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
-  const setItemStatus = useSetShelfItemStatus();
-  const setShowWatched = useSetShowWatched();
-  const deleteItem = useDeleteShelfItem();
   const tilt = useTilt();
 
   const detailQuery = useShelfDetail(tab, detailId);
@@ -178,45 +159,31 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
     })).filter((g) => g.items.length > 0);
   }, [sorted, arrange, status, labels]);
 
-  const pickedCard = picked ? (items?.find((it) => it.id === picked.card.id) ?? picked.card) : null;
-
-  async function toggleDone(card: ShelfCard) {
-    const done = card.status === "done";
-    const next: ShelfCard["status"] = done ? "to_try" : "done";
-    setPicked((p) =>
-      p && p.card.id === card.id
-        ? { ...p, card: { ...p.card, status: next, completedAt: done ? null : Date.now() } }
-        : p,
-    );
-    try {
-      if (tab === "tv") await setShowWatched.mutateAsync({ itemId: card.id, watched: !done });
-      else await setItemStatus.mutateAsync({ type: tab, id: card.id, status: next });
-      toast.success(
-        done
-          ? `Moved “${card.title}” back to ${labels.toTry.toLowerCase()}`
-          : `Marked “${card.title}” ${labels.done.toLowerCase()}`,
-      );
-    } catch (err) {
-      setPicked((p) => (p && p.card.id === card.id ? { ...p, card } : p));
-      toastError(err, "Couldn't update status.");
+  /** Wishlist items open the product page (or a dialog); everything else opens its own page. */
+  function openItem(card: ShelfCard) {
+    if (tab === "wishlist") {
+      if (card.link) window.open(card.link, "_blank", "noopener,noreferrer");
+      else setDetailId(card.id);
+      return;
     }
-  }
-
-  async function removeItem(card: ShelfCard, close: () => void) {
-    const ok = await confirmAction({
-      title: `Remove “${card.title}” from your shelf?`,
-      confirmLabel: "Remove",
+    void navigate({
+      to:
+        tab === "movie"
+          ? "/shelves/movies/$id"
+          : tab === "tv"
+            ? "/shelves/series/$id"
+            : "/shelves/books/$id",
+      params: { id: card.id },
+      search: listSearch,
     });
-    if (!ok) return;
-    try {
-      await deleteItem.mutateAsync({ type: tab, id: card.id });
-      toast.success(`Removed “${card.title}”`);
-      close();
-    } catch (err) {
-      toastError(err, "Couldn't delete that item.");
-    }
   }
 
+  const resume =
+    (tab === "tv" || tab === "book") &&
+    (status === "all" || status === "in_progress") &&
+    !deferredQuery
+      ? (items?.find((it) => it.status === "in_progress") ?? null)
+      : null;
   const statusChips = statusMeta(tab);
   const animateKey = `${status}|${arrange}|${deferredQuery}`;
   const coverSize = mediaCoverSize(kind);
@@ -309,9 +276,23 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
               value={query}
               onChange={setQuery}
               placeholder={`Search ${copy.title.toLowerCase()}`}
-              className="w-full sm:w-60"
+              className="w-full sm:w-72"
             />
-            <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+            <button
+              type="button"
+              className="g-btn g-btn--ghost ml-auto h-10 px-4"
+              aria-pressed={optionsOpen}
+              aria-expanded={optionsOpen}
+              aria-controls="shelf-options"
+              onClick={() => setOptionsOpen((v) => !v)}
+            >
+              <SlidersHorizontal className="size-4" aria-hidden="true" />
+              Options
+            </button>
+          </div>
+
+          {optionsOpen ? (
+            <div id="shelf-options" className="kami-sheet g-rise mt-4 grid gap-2 p-5 sm:p-6">
               <span className="font-sans text-sm text-ink-muted">Arrange by</span>
               <Segmented<Arrange>
                 size="sm"
@@ -326,7 +307,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 ]}
               />
             </div>
-          </div>
+          ) : null}
 
           <div className="mt-5 flex flex-wrap gap-2" aria-label="Filter by status">
             {statusChips.map((s) => (
@@ -360,11 +341,75 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
         </GlossColumn>
 
         <GlossColumn className="pt-6 pb-16">
+          {resume ? (
+            <section
+              aria-label="Pick up where you left off"
+              className="kami-sheet-raised g-rise mb-10 flex items-center gap-5 p-4 sm:gap-7 sm:p-6"
+            >
+              <div className="w-20 shrink-0 sm:w-28">
+                {" "}
+                <button
+                  type="button"
+                  className="g-tilt w-full"
+                  style={{ aspectRatio: `${coverSize.w} / ${coverSize.h}` }}
+                  aria-label={`Open ${resume.title}`}
+                  onClick={() => openItem(resume)}
+                  {...tilt}
+                >
+                  <MediaCover kind={kind} item={resume} />
+                </button>
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-sans text-sm text-ink-muted">Pick up where you left off</p>
+                <p className="mt-1 line-clamp-2 font-display text-2xl leading-tight tracking-tight sm:text-[28px]">
+                  {resume.title}
+                </p>
+                <p className="mt-1 font-sans text-sm text-ink-soft">
+                  {tab === "tv"
+                    ? resume.lastEpisode
+                      ? `Last watched ${resume.lastEpisode}`
+                      : resume.totalEpisodes
+                        ? `${resume.episodesWatched ?? 0} of ${resume.totalEpisodes} episodes`
+                        : "In progress"
+                    : resume.progressPercent
+                      ? `${resume.progressPercent}% read`
+                      : "In progress"}
+                </p>
+                {(() => {
+                  const pct =
+                    tab === "tv"
+                      ? resume.totalEpisodes
+                        ? Math.round(((resume.episodesWatched ?? 0) / resume.totalEpisodes) * 100)
+                        : 0
+                      : (resume.progressPercent ?? 0);
+                  return pct > 0 ? (
+                    <div
+                      className="mt-3 h-1 max-w-xs overflow-hidden rounded-full bg-line"
+                      role="img"
+                      aria-label={`${pct}% done`}
+                    >
+                      <div
+                        className="landing-grow h-full rounded-full bg-persimmon"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  ) : null;
+                })()}
+                <button
+                  type="button"
+                  className="g-btn g-btn--ink mt-4 h-10"
+                  onClick={() => openItem(resume)}
+                >
+                  Open
+                </button>
+              </div>
+            </section>
+          ) : null}
           {items == null ? (
             <ShelfSkeleton kind={kind} />
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center py-12 text-center">
-              <p className="font-display text-2xl italic text-ink-soft">
+            <div className="flex flex-col items-center py-16 text-center">
+              <p className="font-display text-[28px] tracking-tight text-ink">
                 {query
                   ? `Nothing matches “${query}”`
                   : (shelfCount ?? 0) > 0
@@ -419,10 +464,10 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                       : null,
                   ]
                     .filter(Boolean)
-                    .join(" · ");
+                    .join(", ");
                   return { title: it.title, sub, label: `${it.title}, ${sub}` };
                 }}
-                onPick={(it) => setPicked({ card: it, kind: "spine" })}
+                onPick={openItem}
               />
               <p className="mt-6 font-sans text-[13px] text-ink-muted">
                 Click a{" "}
@@ -433,7 +478,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                     : kind === "gift"
                       ? "box"
                       : "book"}{" "}
-                to pull it out. Arrow keys walk the shelf.
+                to open it. Arrow keys walk the shelf.
               </p>
             </>
           ) : (
@@ -453,7 +498,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                     style={{ aspectRatio: `${coverSize.w} / ${coverSize.h}` }}
                     data-gloss-id={it.id}
                     aria-label={`${it.title}${it.year ? `, ${it.year}` : ""}, ${statusText(labels, it.status)}`}
-                    onClick={() => setPicked({ card: it, kind: "cover" })}
+                    onClick={() => openItem(it)}
                     {...tilt}
                   >
                     <MediaCover kind={kind} item={it} />
@@ -468,9 +513,9 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                       aria-hidden="true"
                     />
                     {statusText(labels, it.status)}
-                    {it.year ? ` · ${it.year}` : ""}
+                    {it.year ? `, ${it.year}` : ""}
                     {tab === "tv" && it.totalEpisodes
-                      ? ` · ${it.episodesWatched ?? 0}/${it.totalEpisodes}`
+                      ? `, ${it.episodesWatched ?? 0}/${it.totalEpisodes}`
                       : ""}
                   </p>
                 </div>
@@ -493,77 +538,6 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
             </div>
           ) : null}
         </GlossColumn>
-
-        {picked && pickedCard ? (
-          <PullOut
-            key={picked.card.id}
-            source={{ id: picked.card.id, kind: picked.kind }}
-            label={pickedCard.title}
-            coverSize={coverSize}
-            depthRatio={mediaDepthRatio(
-              kind,
-              picked.kind === "cover" ? "cover" : "spine",
-              pickedCard,
-            )}
-            spineFace={<MediaSpineFace kind={kind} item={pickedCard} />}
-            cover={<MediaCover kind={kind} item={pickedCard} />}
-            inside={
-              <MediaInside
-                kind={kind}
-                item={pickedCard}
-                spinning={opening}
-                number={(items ?? []).filter((r) => r.createdAt <= pickedCard.createdAt).length}
-              />
-            }
-            page={(api) => (
-              <MediaPage
-                api={api}
-                item={pickedCard}
-                kind={kind}
-                loading={opening}
-                busy={setItemStatus.isPending || setShowWatched.isPending || deleteItem.isPending}
-                onToggleDone={() => void toggleDone(pickedCard)}
-                onRemove={() => void removeItem(pickedCard, api.close)}
-                onOpenDetails={() => {
-                  // Wishlist items open the original product page when they have one.
-                  if (tab === "wishlist" && pickedCard.link) {
-                    window.open(pickedCard.link, "_blank", "noopener,noreferrer");
-                    return;
-                  }
-                  // Otherwise they open in a dialog.
-                  if (tab === "wishlist") {
-                    setOpening(true);
-                    window.setTimeout(() => api.dissolve(() => setDetailId(pickedCard.id)), 650);
-                    return;
-                  }
-                  setOpening(true);
-                  // Let the reels / disc spin for a beat before we leave.
-                  window.setTimeout(
-                    () =>
-                      api.dissolve(
-                        () =>
-                          void navigate({
-                            to:
-                              tab === "movie"
-                                ? "/shelves/movies/$id"
-                                : tab === "tv"
-                                  ? "/shelves/series/$id"
-                                  : "/shelves/books/$id",
-                            params: { id: pickedCard.id },
-                            search: listSearch,
-                          }),
-                      ),
-                    650,
-                  );
-                }}
-              />
-            )}
-            onClosed={() => {
-              setPicked(null);
-              setOpening(false);
-            }}
-          />
-        ) : null}
 
         <Dialog open={detailId != null} onOpenChange={(open) => !open && setDetailId(null)}>
           <DialogContent className="max-h-[85dvh] overflow-y-auto overscroll-contain sm:max-w-lg">

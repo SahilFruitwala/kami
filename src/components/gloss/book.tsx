@@ -277,7 +277,7 @@ export function Endpaper({
         </div>
         <p className="font-display text-xl italic">{owner}</p>
         <p className="mt-2 font-sans text-[11px] text-[#7a7365] tabular-nums">
-          No. {number} · shelved {date}
+          No. {number}, shelved {date}
         </p>
       </div>
     </div>
@@ -310,7 +310,7 @@ export function BookPage({
   const progress = item.archived
     ? "Finished"
     : hl > 0
-      ? `In progress · ${hl} highlight${hl === 1 ? "" : "s"}`
+      ? `In progress, ${hl} highlight${hl === 1 ? "" : "s"}`
       : "Not started";
 
   const children: ReactNode[] = [
@@ -326,7 +326,7 @@ export function BookPage({
         {topicLabel(topic, item.tags)}
       </span>
       {Number.isFinite(year) ? <span>{year}</span> : null}
-      <span aria-hidden="true">·</span>
+
       <span>{minutesLabel(item.readingMinutes)}</span>
     </div>,
     <h2

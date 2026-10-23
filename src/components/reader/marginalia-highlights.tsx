@@ -31,7 +31,7 @@ export function MarginaliaHighlights({
     <section id="inked-passages" className="mt-14 scroll-mt-32" aria-label="Highlights">
       <div className="flex items-center gap-4 opacity-40">
         <span className="h-px w-12 bg-current" aria-hidden="true" />
-        <span className="font-display text-sm tracking-widest uppercase">End</span>
+        <span className="font-display text-sm">End</span>
         <span className="h-px w-12 bg-current" aria-hidden="true" />
       </div>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">

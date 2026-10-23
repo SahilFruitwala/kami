@@ -27,15 +27,23 @@ older flat "Matrix Quiet" theme is gone.
 
 - **Primary fill is ink.** `bg-hanko` is ink; pair it with `text-paper`
   (never `text-white`) so it inverts in the dark. Buttons are pills.
-- **Accent red** (`--color-ink-accent`) is only for the drop cap, the
-  bookmark ribbon and error icons. Links and secondary actions are muted ink.
+- **Persimmon** (`--color-persimmon`, also `--color-ink-accent`) is the one
+  accent: the brand seal, the active/progress state, the drop cap, the
+  favourite ribbon, hover on primary buttons and the "finished" tick. Links
+  and secondary actions stay muted ink.
 - **Page header**: `GlossHeader` (`src/components/gloss/primitives.tsx`) —
   eyebrow with icon, huge serif H1, optional serif one-liner and stats.
   Content sits in a `max-w-[1200px]` column with `px-4 sm:px-8`.
 - **Toggles**: `Segmented` / `.g-seg` for views (works with `aria-pressed`,
   `aria-selected` or `aria-current`), `GlossChip` / `.g-chip` for filters.
-- **Cards**: `.kami-sheet` (raised paper, 16px radius, 1px line).
-- **Small caps meta**: `.kami-label` (Inter 11px / 600, +12% tracking).
+- **Cards**: `.kami-sheet` (raised paper, 22px radius, soft shadow, no
+  border). List entries use `.kami-row` (lifts on hover).
+- **Labels**: `.kami-label` is Inter 13px / 500, sentence case, untracked.
+- **Chrome**: a top bar (`site-header.tsx`) with a pill nav whose highlight
+  slides to the active page (`useSlidePill`); Shelves opens a menu of the four
+  shelf pages. Phones get a bottom tab bar. There is no sidebar.
+- **Sliding pills**: `Segmented`, the capture type switch and the header nav
+  share `.g-seg[data-slide]` + `.g-seg-pill` and the `useSlidePill` hook.
 
 ## Motion
 

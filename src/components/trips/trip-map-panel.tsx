@@ -58,7 +58,7 @@ export function TripMapPanel({
               lat: item.lat,
               lng: item.lng,
               label: all ? String(index + 1) : String(i + 1),
-              title: `${all ? `Day ${index + 1} · ` : ""}${i + 1}. ${item.title}`,
+              title: `${all ? `Day ${index + 1}, ` : ""}${i + 1}. ${item.title}`,
             },
           ]
         : [],

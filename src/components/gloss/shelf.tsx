@@ -93,56 +93,62 @@ export function Shelf<T>({
       {/* One continuous shelf: every spine flows left to right and wraps onto
           the next plank when the row is full. Groups are marked by a divider
           card standing on the shelf, not by separate shelves. */}
-      <div
-        key={animateKey}
-        className={cn("g-shelf w-full", variant === "media" && "g-shelf--media")}
-      >
-        {groups.map((group) => [
-          group.label && groups.length > 1 ? (
-            <div
-              key={`divider:${group.id}`}
-              className="g-slot g-slot--enter"
-              style={{ "--i": Math.min(i, MAX_STAGGER) } as CSSProperties}
-            >
-              {group.label}
-            </div>
-          ) : null,
-          ...group.items.map((item) => {
-            const id = getId(item);
-            const t = tooltip(item);
-            const n = Math.min(i++, MAX_STAGGER);
-            return (
-              <div key={id} className="g-slot g-slot--enter" style={{ "--i": n } as CSSProperties}>
-                <button
-                  type="button"
-                  className="g-spine"
-                  data-gloss-id={id}
-                  tabIndex={rovingId === id ? 0 : -1}
-                  aria-label={t.label}
-                  onClick={() => {
-                    setTip(null);
-                    onPick(item);
-                  }}
-                  onMouseEnter={(e) => showTip(e.currentTarget, item)}
-                  onFocus={(e) => {
-                    setActiveId(id);
-                    if (e.currentTarget.matches(":focus-visible")) showTip(e.currentTarget, item);
-                  }}
-                  onBlur={() => setTip((cur) => (cur?.id === id ? null : cur))}
-                >
-                  {renderSpine(item)}
-                </button>
+      <div className="g-bookcase">
+        <div
+          key={animateKey}
+          className={cn("g-shelf w-full", variant === "media" && "g-shelf--media")}
+        >
+          {groups.map((group) => [
+            group.label && groups.length > 1 ? (
+              <div
+                key={`divider:${group.id}`}
+                className="g-slot g-slot--enter"
+                style={{ "--i": Math.min(i, MAX_STAGGER) } as CSSProperties}
+              >
+                {group.label}
               </div>
-            );
-          }),
-        ])}
-        {decoration ? (
-          <div className="g-slot g-fade-late ml-auto pr-2">{decoration}</div>
-        ) : bookends ? (
-          <div className="g-slot g-fade-late ml-1.5">
-            <span className="g-bookend" aria-hidden="true" />
-          </div>
-        ) : null}
+            ) : null,
+            ...group.items.map((item) => {
+              const id = getId(item);
+              const t = tooltip(item);
+              const n = Math.min(i++, MAX_STAGGER);
+              return (
+                <div
+                  key={id}
+                  className="g-slot g-slot--enter"
+                  style={{ "--i": n } as CSSProperties}
+                >
+                  <button
+                    type="button"
+                    className="g-spine"
+                    data-gloss-id={id}
+                    tabIndex={rovingId === id ? 0 : -1}
+                    aria-label={t.label}
+                    onClick={() => {
+                      setTip(null);
+                      onPick(item);
+                    }}
+                    onMouseEnter={(e) => showTip(e.currentTarget, item)}
+                    onFocus={(e) => {
+                      setActiveId(id);
+                      if (e.currentTarget.matches(":focus-visible")) showTip(e.currentTarget, item);
+                    }}
+                    onBlur={() => setTip((cur) => (cur?.id === id ? null : cur))}
+                  >
+                    {renderSpine(item)}
+                  </button>
+                </div>
+              );
+            }),
+          ])}
+          {decoration ? (
+            <div className="g-slot g-fade-late ml-auto pr-2">{decoration}</div>
+          ) : bookends ? (
+            <div className="g-slot g-fade-late ml-1.5">
+              <span className="g-bookend" aria-hidden="true" />
+            </div>
+          ) : null}
+        </div>
       </div>
       {tip ? (
         <div
@@ -179,7 +185,7 @@ export function ShelfDivider({
     <span
       className="g-divider"
       style={{ height, "--div": color } as CSSProperties}
-      title={`${label} · ${count}`}
+      title={`${label}, ${count}`}
     >
       <span className="g-divider-tab">{icon}</span>
       <span className="g-divider-text">

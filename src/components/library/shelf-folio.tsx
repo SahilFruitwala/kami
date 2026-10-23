@@ -75,7 +75,7 @@ export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: 
                     {detail.item.totalEpisodes
                       ? ` / ${detail.item.totalEpisodes}`
                       : ` ticked (${detail.episodesTicked})`}
-                    {detail.item.lastEpisode ? ` · ${detail.item.lastEpisode}` : ""}
+                    {detail.item.lastEpisode ? `, ${detail.item.lastEpisode}` : ""}
                   </dd>
                 </div>
               </>

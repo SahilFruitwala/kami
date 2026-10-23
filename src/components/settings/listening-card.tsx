@@ -51,7 +51,7 @@ export function ListeningCard() {
               <li key={entry.id} className="flex items-baseline justify-between gap-4 py-2">
                 <span className="min-w-0 font-body text-sm text-ink">
                   {ENTRY_LABEL[entry.kind]}
-                  {entry.note ? <span className="text-ink-muted"> · {entry.note}</span> : null}
+                  {entry.note ? <span className="text-ink-muted">, {entry.note}</span> : null}
                   <span className="block font-sans text-[11px] text-ink-muted">
                     {new Date(entry.createdAt).toLocaleDateString()}
                   </span>

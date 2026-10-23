@@ -1,5 +1,6 @@
 import { useEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { Search, X } from "lucide-react";
+import { useSlidePill } from "@/hooks/use-slide-pill.ts";
 import { cn } from "@/lib/utils.ts";
 
 /**
@@ -71,16 +72,13 @@ export function GlossHeader({
   );
 }
 
-/** "101 essays · 10 topics · 35 hours" — numbers in ink, labels muted. */
+/** "101 essays, 10 topics, 35 hours" — numbers in ink, labels muted. */
 export function GlossStats({ parts }: { parts: { value: ReactNode; label: string }[] }) {
   return (
-    <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1 font-sans text-[15px] leading-snug text-ink-muted">
-      {parts.map((p, i) => (
-        <span key={p.label} className="inline-flex items-baseline gap-2">
-          {i > 0 ? <span aria-hidden="true">·</span> : null}
-          <span>
-            <span className="font-medium text-ink tabular-nums">{p.value}</span> {p.label}
-          </span>
+    <p className="flex flex-wrap items-baseline gap-x-5 gap-y-1 font-sans text-[15px] leading-snug text-ink-muted">
+      {parts.map((p) => (
+        <span key={p.label}>
+          <span className="font-medium text-ink tabular-nums">{p.value}</span> {p.label}
         </span>
       ))}
     </p>
@@ -100,8 +98,16 @@ export function Segmented<T extends string>({
   label: string;
   size?: "sm";
 }) {
+  const { ref, pill } = useSlidePill<HTMLDivElement>([value, options.length]);
   return (
-    <div role="group" aria-label={label} className={cn("g-seg", size === "sm" && "g-seg--sm")}>
+    <div
+      ref={ref}
+      role="group"
+      aria-label={label}
+      data-slide=""
+      className={cn("g-seg", size === "sm" && "g-seg--sm")}
+    >
+      <span ref={pill} className="g-seg-pill" aria-hidden="true" />
       {options.map((o) => (
         <button
           key={o.id}

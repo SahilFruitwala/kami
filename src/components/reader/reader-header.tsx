@@ -69,7 +69,7 @@ export function ReaderHeader({
             onClick={onToggleFavorite}
           >
             <Star
-              className={cn("size-4", favorited && "fill-hanko text-hanko")}
+              className={cn("size-4", favorited && "fill-persimmon text-persimmon")}
               aria-hidden="true"
             />
           </Button>

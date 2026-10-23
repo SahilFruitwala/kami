@@ -93,7 +93,7 @@ export function TripDetails({
         <Detail icon={CalendarDays} label="When">
           {trip.startDate
             ? formatRange(trip.startDate, trip.dayCount)
-            : `${trip.dayCount} days · dates not set`}
+            : `${trip.dayCount} days, dates not set`}
         </Detail>
         <Detail icon={Users} label="Travellers">
           {trip.travelers ?? "—"}

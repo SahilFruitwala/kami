@@ -73,6 +73,9 @@ function normalizeUrl(raw: string): string {
  *   with one-key add, or a manual fallback
  * - jump between panes, or open a bound work.
  */
+/** Fired by the header search button; the palette listens and opens. */
+const OPEN_PALETTE_EVENT = "kami:open-palette";
+
 export function CommandPalette({ onOpenItem }: { onOpenItem: (item: LibraryItem) => void }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -93,8 +96,15 @@ export function CommandPalette({ onOpenItem }: { onOpenItem: (item: LibraryItem)
         setOpen((v) => !v);
       }
     }
+    function onOpen() {
+      setOpen(true);
+    }
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    window.addEventListener(OPEN_PALETTE_EVENT, onOpen);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_PALETTE_EVENT, onOpen);
+    };
   }, []);
 
   // Reset to home when the palette opens; clear the query when it closes
@@ -556,7 +566,7 @@ export function CommandPalette({ onOpenItem }: { onOpenItem: (item: LibraryItem)
                       const busy = addingKey === key;
                       const sub = [r.metadata.year, r.metadata.genre, r.metadata.author]
                         .filter(Boolean)
-                        .join(" · ");
+                        .join(", ");
                       return (
                         <CommandItem
                           key={`${r.title}-${i}`}
@@ -578,7 +588,7 @@ export function CommandPalette({ onOpenItem }: { onOpenItem: (item: LibraryItem)
                           )}
                           <span className="min-w-0 flex-1 truncate">
                             {r.title}
-                            {sub ? <span className="text-muted-foreground"> · {sub}</span> : null}
+                            {sub ? <span className="text-muted-foreground">, {sub}</span> : null}
                           </span>
                           {busy ? (
                             <CommandShortcut>adding…</CommandShortcut>

@@ -9,6 +9,7 @@ import { previewImageSrc } from "@/lib/image-url.ts";
 import { relativeTime } from "@/lib/time.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
 import { cn } from "@/lib/utils.ts";
+import { Stamp } from "@/components/gloss/stamp.tsx";
 
 const VIRTUALIZE_AFTER = 50;
 
@@ -41,6 +42,7 @@ export function ArticleList({
   items,
   emptyTitle,
   emptyCopy,
+  emptyGlyph,
   onOpen,
   onRemove,
   selectMode,
@@ -50,6 +52,7 @@ export function ArticleList({
   items: LibraryItem[];
   emptyTitle: string;
   emptyCopy: string;
+  emptyGlyph?: string;
   onOpen: (item: LibraryItem) => void;
   onRemove: (id: string) => void;
   selectMode?: boolean;
@@ -61,7 +64,11 @@ export function ArticleList({
   if (items.length === 0) {
     return (
       <div className="kami-sheet flex flex-col items-center gap-3 px-6 py-16 text-center">
-        <BookOpen className="size-6 text-ink-muted" aria-hidden="true" />
+        {emptyGlyph ? (
+          <Stamp size={64} />
+        ) : (
+          <BookOpen className="size-6 text-ink-muted" aria-hidden="true" />
+        )}
         <p className="font-display text-2xl text-ink-soft italic">{emptyTitle}</p>
         <p className="max-w-sm font-body text-sm leading-relaxed text-ink-muted">{emptyCopy}</p>
       </div>
@@ -200,13 +207,13 @@ function ArticleCard({
   return (
     <li
       className={cn(
-        "group kami-sheet relative flex min-h-full flex-col justify-between overflow-hidden p-4 transition-shadow duration-300 hover:shadow-[var(--shadow-border-hover)] sm:p-6",
+        "group kami-sheet relative flex min-h-full flex-col justify-between overflow-hidden p-4 transition-[transform,box-shadow] duration-500 ease-[var(--ease-out)] hover:-translate-y-1 hover:shadow-[var(--shadow-raised)] sm:p-6",
         selected && "ring-2 ring-hanko/50",
       )}
     >
       {item.favorited ? (
         <span
-          className="absolute top-0 right-6 h-8 w-3.5 rounded-b-[0.25rem] bg-hanko shadow-sm"
+          className="absolute top-0 right-6 h-8 w-3.5 rounded-b-[0.25rem] bg-persimmon shadow-sm"
           aria-hidden="true"
         />
       ) : null}
@@ -240,14 +247,14 @@ function ArticleCard({
           <WashiTag tone="paper">{item.source === "x" ? "X" : item.siteName || "Article"}</WashiTag>
         </span>
         {item.highlights?.length ? (
-          <span className="flex items-center gap-1 text-[11px] font-semibold text-hanko">
+          <span className="flex items-center gap-1 text-[12.5px] font-semibold text-hanko">
             <Highlighter className="size-3.5" aria-hidden="true" />
             {item.highlights.length} saved
           </span>
         ) : item.archived ? (
-          <span className="text-[11px] font-medium text-ink-muted">Archived</span>
+          <span className="text-[12.5px] font-medium text-ink-muted">Archived</span>
         ) : (
-          <span className="text-[11px] font-medium text-ink-muted">Unread</span>
+          <span className="text-[12.5px] font-medium text-ink-muted">Unread</span>
         )}
       </div>
 
@@ -257,7 +264,7 @@ function ArticleCard({
         className="mb-4 flex flex-1 flex-col rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/40"
       >
         <ViewTransition name={`article-title-${item.id}`} share="text-morph" default="none">
-          <span className="line-clamp-2 font-display text-xl leading-snug font-medium break-words text-ink transition-colors group-hover:text-hanko">
+          <span className="line-clamp-2 font-display text-xl leading-snug font-medium break-words text-ink transition-colors group-hover:text-persimmon">
             {item.title}
           </span>
         </ViewTransition>
@@ -284,16 +291,15 @@ function ArticleCard({
       </button>
 
       <div className="-mx-4 -mb-4 flex items-center justify-between gap-2 bg-bg/60 px-4 py-3 sm:-mx-6 sm:-mb-6 sm:px-6">
-        <p className="flex min-w-0 items-center gap-1.5 text-[11px] font-medium text-ink-muted">
+        <p className="flex min-w-0 items-center gap-1.5 text-[12.5px] font-medium text-ink-muted">
           <Hanko glyph={glyph} square className="size-5 text-[10px]" />
           <span className="truncate">{item.author || item.siteName || "Unknown hand"}</span>
         </p>
-        <p className="flex shrink-0 items-center gap-2 text-[11px] font-medium text-ink-muted">
+        <p className="flex shrink-0 items-center gap-2 text-[12.5px] font-medium text-ink-muted">
           <span className="flex items-center gap-1 tabular-nums">
             <Clock3 className="size-3.5" aria-hidden="true" />
             {item.readingMinutes}&nbsp;min
           </span>
-          <span aria-hidden="true">·</span>
           <span className="tabular-nums">{relativeTime(item.savedAt)}</span>
           {item.favorited ? (
             <Star className="size-3.5 fill-hanko text-hanko" aria-label="Favorited" />

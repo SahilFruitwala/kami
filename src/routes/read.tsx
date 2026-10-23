@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { stampToast } from "@/components/gloss/stamp-toast.tsx";
 import { AppGate, LibraryGate } from "@/components/app-gate.tsx";
 import { DirectionalTransition } from "@/components/directional-transition.tsx";
 import { ReaderView } from "@/components/reader-view.tsx";
@@ -176,7 +177,7 @@ function Read() {
         archiveItem(openItem.id, !openItem.archived);
         if (!openItem.archived) {
           goLibrary();
-          toast.success("Archived");
+          stampToast("finished");
         } else {
           toast.success("Moved to inbox");
         }

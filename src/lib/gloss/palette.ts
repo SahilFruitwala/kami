@@ -337,7 +337,7 @@ export const DVD_COVER = { w: 420, h: 594 };
 export const STATUS_DOT: Record<ItemStatus, string> = {
   to_try: "#5E8C61",
   in_progress: "#C9902E",
-  done: "#B8443A",
+  done: "#D4491A",
   abandoned: "#8A857A",
 };
 

@@ -296,7 +296,7 @@ export function AddShelfDialog({
                             <p className="truncate text-[13px] text-ink-muted">
                               {[r.metadata.year, r.metadata.genre, r.metadata.author]
                                 .filter(Boolean)
-                                .join(" · ")}
+                                .join(", ")}
                             </p>
                           </div>
                         </button>
@@ -347,7 +347,7 @@ export function AddShelfDialog({
                 <div className="min-w-0 space-y-1">
                   {(metadata.year || metadata.genre || metadata.author) && (
                     <p className="font-sans text-[13px] text-ink-muted">
-                      {[metadata.year, metadata.genre, metadata.author].filter(Boolean).join(" · ")}
+                      {[metadata.year, metadata.genre, metadata.author].filter(Boolean).join(", ")}
                     </p>
                   )}
                   {(metadata.overview || metadata.description) && (
@@ -420,7 +420,7 @@ export function AddShelfDialog({
                 <ul className="mt-1.5 space-y-0.5 text-ink-soft">
                   {duplicates.map((m) => (
                     <li key={m.id}>
-                      “{m.title}” · {m.status === "done" ? doneLabel : toTryLabel}
+                      “{m.title}”, {m.status === "done" ? doneLabel : toTryLabel}
                     </li>
                   ))}
                 </ul>

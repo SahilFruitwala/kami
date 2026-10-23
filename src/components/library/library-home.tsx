@@ -49,6 +49,7 @@ import type { LibraryItem } from "@/lib/library-item.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { usePersistedPref } from "@/lib/local-pref.ts";
 import { cn } from "@/lib/utils.ts";
+import { stampToast } from "@/components/gloss/stamp-toast.tsx";
 import {
   arrangeShelf,
   groupByTopic,
@@ -117,6 +118,10 @@ export function LibraryHome({
   const counts = countByArchive(library);
   useAutoOrganize();
 
+  const activeFilters =
+    (filters.folderFilter !== "all" ? 1 : 0) +
+    (filters.tagFilter != null ? 1 : 0) +
+    (filters.favoritesOnly ? 1 : 0);
   const [moreOpen, setMoreOpen] = useState(
     () => filters.folderFilter !== "all" || filters.tagFilter != null || filters.favoritesOnly,
   );
@@ -199,10 +204,10 @@ export function LibraryHome({
   const totalShown = baseVisible.length;
   const emptyCopy =
     filters.tab === "archive"
-      ? "Archive a piece after you finish it. It will wait here."
+      ? "Finish something and it gets stamped and filed here."
       : deferredQuery
         ? `Nothing on the shelves matches “${deferredQuery}”.`
-        : "Save a blog or X article and it lands on a shelf here.";
+        : "Nothing waiting. Save a blog or X article and it lands on a shelf here.";
 
   return (
     <GlossPage>
@@ -230,7 +235,7 @@ export function LibraryHome({
 
         {capture ? <div className="mt-8 max-w-2xl">{capture}</div> : null}
 
-        {/* Toolbar */}
+        {/* Toolbar: one row. Arrange, sort, filters, select and bulk save live behind Options. */}
         <div className="mt-8 flex flex-wrap items-center gap-3">
           <Segmented<View>
             label="Library view"
@@ -255,49 +260,8 @@ export function LibraryHome({
             value={filters.query}
             onChange={filters.onQuery}
             placeholder="Search titles, authors, notes"
-            className="w-full sm:w-60"
+            className="w-full sm:w-72"
           />
-          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-            {view === "shelf" ? (
-              <>
-                <span className="font-sans text-sm text-ink-muted">Arrange by</span>
-                <Segmented<Arrange>
-                  size="sm"
-                  label="Arrange by"
-                  value={arrange}
-                  onChange={setArrange}
-                  options={[
-                    { id: "topic", label: "Tag" },
-                    { id: "colour", label: "Colour" },
-                    { id: "recent", label: "Recent" },
-                    { id: "length", label: "Length" },
-                  ]}
-                />
-              </>
-            ) : view === "list" ? (
-              <>
-                <label className="sr-only" htmlFor="library-sort">
-                  Sort works
-                </label>
-                <select
-                  id="library-sort"
-                  value={filters.sort}
-                  onChange={(e) => filters.onSort(e.target.value as LibrarySort)}
-                  className="g-btn g-btn--ghost h-9 appearance-none pr-4"
-                >
-                  {SORT_LABELS.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
-              </>
-            ) : null}
-          </div>
-        </div>
-
-        {/* Inbox / archive + secondary tools */}
-        <div className="mt-4 flex flex-wrap items-center gap-2">
           <Segmented<LibraryTab>
             size="sm"
             label="Inbox or archive"
@@ -310,50 +274,101 @@ export function LibraryHome({
           />
           <button
             type="button"
-            className="g-btn g-btn--ghost h-[34px] px-3 text-[13px]"
+            className="g-btn g-btn--ghost ml-auto h-10 px-4"
             aria-pressed={moreOpen}
             aria-expanded={moreOpen}
+            aria-controls="library-options"
             onClick={() => setMoreOpen((v) => !v)}
           >
-            <SlidersHorizontal className="size-3.5" aria-hidden="true" />
-            Folders &amp; tags
+            <SlidersHorizontal className="size-4" aria-hidden="true" />
+            Options
+            {activeFilters > 0 ? (
+              <span className="flex size-5 items-center justify-center rounded-full bg-persimmon text-[11px] font-semibold text-white">
+                {activeFilters}
+              </span>
+            ) : null}
           </button>
-          <button
-            type="button"
-            className="g-btn g-btn--ghost h-[34px] px-3 text-[13px]"
-            aria-pressed={selection.active}
-            onClick={() => {
-              if (selection.active) selection.exit();
-              else {
-                setView("list");
-                selection.start();
-              }
-            }}
-          >
-            <CheckSquare className="size-3.5" aria-hidden="true" />
-            {selection.active ? "Done" : "Select"}
-          </button>
-          {onOpenBulk ? (
-            <button
-              type="button"
-              className="g-btn g-btn--ghost h-[34px] px-3 text-[13px]"
-              onClick={onOpenBulk}
-            >
-              Bulk save
-            </button>
-          ) : null}
         </div>
 
         {moreOpen ? (
-          <div className="mt-4">
-            <LibraryFilters
-              folderFilter={filters.folderFilter}
-              tagFilter={filters.tagFilter}
-              favoritesOnly={filters.favoritesOnly}
-              onFolder={filters.onFolder}
-              onTag={filters.onTag}
-              onFavoritesOnly={filters.onFavoritesOnly}
-            />
+          <div id="library-options" className="kami-sheet g-rise mt-4 grid gap-6 p-5 sm:p-6">
+            <div className="flex flex-wrap items-start gap-x-10 gap-y-5">
+              {view === "shelf" ? (
+                <div className="grid gap-2">
+                  <span className="font-sans text-sm text-ink-muted">Arrange by</span>
+                  <Segmented<Arrange>
+                    size="sm"
+                    label="Arrange by"
+                    value={arrange}
+                    onChange={setArrange}
+                    options={[
+                      { id: "topic", label: "Tag" },
+                      { id: "colour", label: "Colour" },
+                      { id: "recent", label: "Recent" },
+                      { id: "length", label: "Length" },
+                    ]}
+                  />
+                </div>
+              ) : view === "list" ? (
+                <div className="grid gap-2">
+                  <label className="font-sans text-sm text-ink-muted" htmlFor="library-sort">
+                    Sort by
+                  </label>
+                  <select
+                    id="library-sort"
+                    value={filters.sort}
+                    onChange={(e) => filters.onSort(e.target.value as LibrarySort)}
+                    className="g-btn g-btn--ghost h-9 appearance-none pr-4"
+                  >
+                    {SORT_LABELS.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
+              <div className="grid gap-2">
+                <span className="font-sans text-sm text-ink-muted">Actions</span>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="g-btn g-btn--ghost h-9 px-3 text-[13px]"
+                    aria-pressed={selection.active}
+                    onClick={() => {
+                      if (selection.active) selection.exit();
+                      else {
+                        setView("list");
+                        selection.start();
+                      }
+                    }}
+                  >
+                    <CheckSquare className="size-3.5" aria-hidden="true" />
+                    {selection.active ? "Done" : "Select"}
+                  </button>
+                  {onOpenBulk ? (
+                    <button
+                      type="button"
+                      className="g-btn g-btn--ghost h-9 px-3 text-[13px]"
+                      onClick={onOpenBulk}
+                    >
+                      Bulk save
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <span className="font-sans text-sm text-ink-muted">Filter by</span>
+              <LibraryFilters
+                folderFilter={filters.folderFilter}
+                tagFilter={filters.tagFilter}
+                favoritesOnly={filters.favoritesOnly}
+                onFolder={filters.onFolder}
+                onTag={filters.onTag}
+                onFavoritesOnly={filters.onFavoritesOnly}
+              />
+            </div>
           </div>
         ) : null}
 
@@ -397,7 +412,7 @@ export function LibraryHome({
                   title: it.title,
                   sub: [it.author || it.siteName, minutesLabel(it.readingMinutes)]
                     .filter(Boolean)
-                    .join(" · "),
+                    .join(", "),
                   label: `${it.title}${it.author ? ` by ${it.author}` : ""}, ${minutesLabel(it.readingMinutes)}`,
                 })}
                 onPick={(it) => setPicked({ id: it.id, kind: "spine" })}
@@ -436,7 +451,8 @@ export function LibraryHome({
             <div className="mt-2">
               <ArticleList
                 items={listVisible}
-                emptyTitle={filters.tab === "archive" ? "Nothing archived" : "Your inbox is empty"}
+                emptyTitle={filters.tab === "archive" ? "Nothing filed away yet" : "Inbox zero"}
+                emptyGlyph={filters.tab === "archive" || deferredQuery ? undefined : "済"}
                 emptyCopy={emptyCopy}
                 onOpen={onOpenItem}
                 onRemove={removeItem}
@@ -484,10 +500,14 @@ export function LibraryHome({
               item={pickedItem}
               topic={pickedTopic}
               onRead={() => onOpenItem(pickedItem)}
-              onToggleFavorite={() => setFavorited(pickedItem.id, !pickedItem.favorited)}
+              onToggleFavorite={() => {
+                setFavorited(pickedItem.id, !pickedItem.favorited);
+                if (!pickedItem.favorited) stampToast("loved");
+              }}
               onToggleArchive={() => {
                 archiveItem(pickedItem.id, !pickedItem.archived);
-                toast.success(pickedItem.archived ? "Back on the shelf" : "Marked as finished");
+                if (pickedItem.archived) toast.success("Back on the shelf");
+                else stampToast("finished");
               }}
             />
           )}

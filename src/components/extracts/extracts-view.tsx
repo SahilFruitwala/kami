@@ -371,7 +371,7 @@ function PendingResult({ result, actions }: { result: ExtractResult; actions: Ac
       className="kami-sheet space-y-4 p-5 ring-1 ring-hanko/30"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="kami-label text-hanko">New result · {relativeTime(result.createdAt)}</p>
+        <p className="kami-label text-hanko">New result, {relativeTime(result.createdAt)}</p>
         <div className="flex items-center gap-1.5">
           <CopyMarkdown markdown={result.markdown} />
           <button
@@ -418,7 +418,7 @@ function History({
   }
   return (
     <section aria-label="Accepted results" className="space-y-3">
-      <p className="kami-label px-1 text-ink-muted">Kept · {count}</p>
+      <p className="kami-label px-1 text-ink-muted">Kept, {count}</p>
       {results.isPending ? (
         <div className="kami-sheet h-24 animate-pulse opacity-60" aria-hidden="true" />
       ) : (

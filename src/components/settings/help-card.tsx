@@ -10,15 +10,15 @@ export function HelpCard() {
       <ol className="grid gap-3 md:grid-cols-3">
         {[
           [
-            "1 · Bind a link",
+            "1, Bind a link",
             "Paste a blog or X URL on Home. Kami keeps a clean, distraction-free copy.",
           ],
           [
-            "2 · Ink a passage",
+            "2, Ink a passage",
             "Select any passage in the reader. It is pressed into the Highlight Vault as a slip.",
           ],
           [
-            "3 · Find it in seconds",
+            "3, Find it in seconds",
             "Filter the Library, or press ⌘K to jump to works, highlights, and tags.",
           ],
         ].map(([t, c]) => (
