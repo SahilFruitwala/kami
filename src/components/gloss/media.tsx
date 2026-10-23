@@ -43,7 +43,7 @@ function WatchedSticker({ size = 18 }: { size?: number }) {
   return (
     <span
       className="g-sticker"
-      style={{ width: size, height: size, background: "#B8443A", color: "#fff" }}
+      style={{ width: size, height: size, background: "#D4491A", color: "#fff" }}
       aria-hidden="true"
     >
       <Check style={{ width: size * 0.6, height: size * 0.6 }} strokeWidth={3} />
@@ -795,14 +795,14 @@ export function MediaPage({
             aria-pressed={isDone}
             className="inline-flex items-center gap-1.5 hover:text-ink disabled:opacity-50"
           >
-            <Check className={cn("size-4", isDone && "text-[#B8443A]")} aria-hidden="true" />
+            <Check className={cn("size-4", isDone && "text-[#D4491A]")} aria-hidden="true" />
             {isDone ? labels.markTry : labels.markDone}
           </button>
           <button
             type="button"
             disabled={busy}
             onClick={onRemove}
-            className="inline-flex items-center gap-1.5 text-[#B8443A] hover:text-ink disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 text-[#D4491A] hover:text-ink disabled:opacity-50"
           >
             <Trash2 className="size-4" aria-hidden="true" />
             Remove

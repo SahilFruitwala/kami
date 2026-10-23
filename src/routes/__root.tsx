@@ -45,7 +45,7 @@ export const Route = createRootRoute({
         content:
           "KAMI is a quiet read-later app for blogs and X articles — save a link, read a clean distraction-free page, highlight, tag, and find it in seconds.",
       },
-      { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#f6f3ea" },
+      { name: "theme-color", media: "(prefers-color-scheme: light)", content: "#faf8f4" },
       { name: "theme-color", media: "(prefers-color-scheme: dark)", content: "#16130f" },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: APP_NAME },

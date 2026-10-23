@@ -10,7 +10,6 @@ import {
 import {
   ArrowLeft,
   ArrowRight,
-  BookmarkPlus,
   ExternalLink,
   Eye,
   EyeOff,
@@ -42,7 +41,6 @@ import { highlightMenu, type EditMenu } from "@/lib/selection-menu.ts";
 import { useReaderProgress, useSelectionMenu } from "@/hooks/use-reader-selection.ts";
 import { TONES } from "@/lib/paper-tones.ts";
 import { cn } from "@/lib/utils.ts";
-import { FocusWave } from "@/components/reader/focus-wave.tsx";
 import { MarginaliaHighlights } from "@/components/reader/marginalia-highlights.tsx";
 import { ReaderAi } from "@/components/reader/reader-ai.tsx";
 import { nextInQueue } from "@/lib/filter-library.ts";
@@ -428,15 +426,6 @@ export function ReaderView({
           )}
           style={zen ? { ...sheetStyle, border: "none" } : sheetStyle}
         >
-          {!zen ? (
-            <div className="absolute top-0 right-12 flex flex-col items-center" aria-hidden="true">
-              <div className="flex h-12 w-6 items-center justify-center bg-ink-accent shadow-sm">
-                <BookmarkPlus className="size-[14px] text-white" />
-              </div>
-              <div className="size-0 border-x-[12px] border-t-[8px] border-x-transparent border-t-ink-accent" />
-            </div>
-          ) : null}
-
           <div
             className={cn(
               "grid grid-cols-1 items-start gap-8",
@@ -488,8 +477,7 @@ export function ReaderView({
                         className="inline-block size-2 rounded-full bg-hanko"
                         aria-hidden="true"
                       />
-                      {item.highlights.length} Inked Passage
-                      {item.highlights.length === 1 ? "" : "s"}
+                      {item.highlights.length} highlight{item.highlights.length === 1 ? "" : "s"}
                     </span>
                   ) : null}
                 </div>
@@ -565,10 +553,10 @@ export function ReaderView({
                 <div className="flex items-center justify-between gap-2">
                   <p className="flex items-center gap-2 font-sans text-[13px] font-medium opacity-60">
                     <PenLine className="size-[18px] shrink-0" aria-hidden="true" />
-                    Marginalia &amp; Glanures
+                    Notes
                   </p>
                   <span className="shrink-0 rounded-full bg-hanko/10 px-2 py-0.5 font-sans text-[11px] text-hanko">
-                    {item.highlights.length + (item.note ? 1 : 0)} Reflections
+                    {item.highlights.length + (item.note ? 1 : 0)}
                   </span>
                 </div>
 
@@ -576,7 +564,7 @@ export function ReaderView({
 
                 {item.highlights.length === 0 && !item.note ? (
                   <p className="rounded-xl bg-ink/5 p-4 font-body text-sm italic opacity-70">
-                    Select any passage to ink it — your thoughts will gather in this margin.
+                    Select a passage to highlight it. Your notes gather here.
                   </p>
                 ) : null}
 
@@ -616,39 +604,15 @@ export function ReaderView({
                 ))}
 
                 <label className="block rounded-xl bg-ink/5 p-4 shadow-sm">
-                  <span className="kami-label opacity-60">Reading Note</span>
+                  <span className="kami-label opacity-60">Your note</span>
                   <textarea
                     ref={notesRef}
                     value={item.note || ""}
                     onChange={(e) => setItemNote(item.id, e.target.value)}
-                    placeholder="Private notes for this article…"
+                    placeholder="A private note for this article"
                     className="mt-2 min-h-24 w-full rounded-md bg-transparent px-1 py-1.5 font-body text-sm outline-none placeholder:italic placeholder:opacity-50 focus-visible:ring-2 focus-visible:ring-hanko/40"
                   />
                 </label>
-
-                <button
-                  type="button"
-                  onClick={() => notesRef.current?.focus()}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-ink/5 px-4 py-3 font-sans text-xs font-medium shadow-sm transition-colors hover:bg-ink/10 active:scale-[0.99]"
-                >
-                  + Add thought to this margin
-                </button>
-
-                <div className="space-y-3 rounded-xl bg-ink/5 p-4 shadow-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="kami-label opacity-60">Focus Rhythm</span>
-                    <span className="font-sans text-[11px] font-medium text-ok">
-                      {percent}% ,{" "}
-                      {percent > 60 ? "Deep State" : percent > 20 ? "Settling In" : "Opening"}
-                    </span>
-                  </div>
-                  <FocusWave percent={percent} />
-                  <p className="font-body text-xs leading-normal opacity-70">
-                    {percent > 60
-                      ? "Your reading velocity has slowed around the midpoint — ideal for internalizing nuance."
-                      : "Early in the scroll — let the first passages settle like sediment in clear water."}
-                  </p>
-                </div>
               </aside>
             ) : null}
           </div>
@@ -680,12 +644,12 @@ export function ReaderView({
             <button
               type="button"
               onClick={() => setZen(false)}
-              aria-label="Exit zen focus (Esc)"
-              title="Exit zen (Esc)"
+              aria-label="Exit focus (Esc)"
+              title="Exit focus (Esc)"
               className="flex min-h-11 items-center gap-1.5 rounded-full bg-hanko px-3 font-sans text-xs font-medium text-paper transition-colors hover:bg-shu md:min-h-8"
             >
               <EyeOff className="size-4" aria-hidden="true" />
-              <span>Exit Zen</span>
+              <span>Exit focus</span>
             </button>
           </div>
           <p className="mt-1.5 text-center font-sans text-[10px] text-ink-muted opacity-0 transition-opacity duration-300 hover:opacity-100">
@@ -710,9 +674,9 @@ export function ReaderView({
               disabled={!nextItem || !onOpenItem}
               className="flex min-w-0 flex-col text-left disabled:opacity-60"
             >
-              <span className="kami-label truncate text-ink-muted">Next In Scroll</span>
+              <span className="kami-label truncate text-ink-muted">Next up</span>
               <span className="truncate font-sans text-xs font-medium text-ink">
-                {nextItem ? nextItem.title : "End of the scroll"}
+                {nextItem ? nextItem.title : "You are at the end"}
               </span>
             </button>
             {nextItem && onOpenItem ? (
@@ -730,7 +694,7 @@ export function ReaderView({
               )}
             >
               <Eye className="size-[18px]" aria-hidden="true" />
-              <span className="hidden sm:inline">Zen Focus</span>
+              <span className="hidden sm:inline">Focus</span>
             </button>
           </div>
         </div>
