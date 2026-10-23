@@ -1,16 +1,21 @@
 import { http, seg } from "./client";
+import type { LibraryItem } from "@/lib/library-item";
 
 /** Which AI features this server can run (each needs a provider key). */
-export type AiStatus = { enabled: boolean };
+export type AiStatus = {
+  enabled: boolean;
+  /** Narration is set up (Deepgram + R2); independent of the language models. */
+  narration: boolean;
+};
 
 /** An article's AI summary and organisation suggestions. */
 export type ArticleSummary = {
   tldr: string;
   keyPoints: string[];
-  /** Suggested tags the article doesn't have yet. */
-  tags: string[];
   /** Suggested existing folder, or null. */
   folderId: string | null;
+  /** Made from only the first part of a piece too long to send whole. */
+  clipped: boolean;
   model: string | null;
   createdAt: number;
   /** The article's text changed since this summary was made. */
@@ -26,12 +31,12 @@ export type OrganizeProgress = {
   remaining: number;
 };
 
-/** A tidied copy of an article (not saved until the reader confirms it). */
+/** A clean-up that has already been saved. */
 export type TidyResult = {
-  /** The copy as it is saved now. */
+  /** The article as saved now (its body is the cleaned copy). */
+  item: LibraryItem;
+  /** The body as it was before this clean-up. */
   originalHtml: string;
-  /** The copy with the clutter taken out. */
-  contentHtml: string;
   /** A short preview of each block taken out, in order. */
   removed: string[];
 };
@@ -42,8 +47,16 @@ export const aiApi = {
   /** Cached summary, or null when none was made yet. */
   summary: (articleId: string) =>
     http.get<ArticleSummary | null>(`/api/ai/articles/${seg(articleId)}/summary`),
-  /** Strip sponsor blocks, prompts and footers from a saved copy (returns HTML, saves nothing). */
+  /** Strip sponsor blocks, prompts and footers from a saved copy and save it. */
   tidy: (articleId: string) => http.post<TidyResult>(`/api/ai/articles/${seg(articleId)}/tidy`),
+
+  /** The copy as it was saved, before the clean-up. */
+  original: (articleId: string) =>
+    http.get<{ originalHtml: string }>(`/api/ai/articles/${seg(articleId)}/original`),
+
+  /** Put back the copy as it was before the clean-up. */
+  restoreOriginal: (articleId: string) =>
+    http.post<LibraryItem>(`/api/ai/articles/${seg(articleId)}/restore-original`),
 
   /** Tag an article with up to three fixed categories; returns its full tag list. */
   autoTag: (articleId: string) =>

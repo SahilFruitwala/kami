@@ -25,6 +25,8 @@ export function contentSecurityPolicy(nonce: string): string {
     "style-src 'self' 'unsafe-inline'",
     "font-src 'self' data:",
     "img-src 'self' data: blob: https:",
+    // Narration audio plays straight from private R2 via presigned URLs.
+    "media-src 'self' https://*.r2.cloudflarestorage.com",
     ["connect-src 'self'", ...CLERK_HOSTS, "https://*.protect.clerk.com:*"].join(" "),
     [
       "frame-src",

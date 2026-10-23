@@ -50,12 +50,16 @@ export const importSnapshotBody = z.preprocess(
  *  nothing outside the caller's account is touched. */
 export async function wipeLibrary(userId: string): Promise<void> {
   const db = await getDb();
+  // Narrations cascade in Postgres; their R2 audio and reservations don't.
+  const { prepareArticleDelete } = await import("@/server/services/narration");
+  const afterDelete = await prepareArticleDelete(userId, "all");
   // One transaction: a failure part-way never leaves a half-wiped account.
   await db.transaction(async (tx) => {
     await tx.delete(articles).where(eq(articles.userId, userId));
     await tx.delete(folders).where(eq(folders.userId, userId));
   });
   await invalidateUserCache(userId, "library");
+  await afterDelete();
 }
 
 export async function addLibraryFolder(

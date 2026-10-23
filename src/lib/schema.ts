@@ -9,6 +9,7 @@ import {
   jsonb,
   pgTable,
   primaryKey,
+  real,
   text,
   timestamp,
   uniqueIndex,
@@ -73,6 +74,10 @@ export const articles = pgTable(
     folderId: text("folder_id").references(() => folders.id, { onDelete: "set null" }),
     tags: jsonb("tags").$type<string[]>().notNull().default([]),
     highlights: jsonb("highlights").$type<unknown[]>().notNull().default([]),
+    /** Where the saved copy is in the Tidy lifecycle (0019_article_tidy.sql). */
+    tidyState: text("tidy_state").notNull().default("pending"),
+    /** The body before Tidy changed it, so the reader can restore it. */
+    originalHtml: text("original_html"),
   },
   (t) => [
     // Covers the boot/listing query (WHERE user_id ORDER BY saved_at DESC,
@@ -723,3 +728,69 @@ export const schema = {
   articleAi,
   aiNotes,
 };
+
+// ---------- Narration ----------
+
+/** Narration allowance ledger (0020_narration_allowance.sql); see src/lib/allowance.ts. */
+export const allowanceEntries = pgTable(
+  "allowance_entries",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** grant | reserve | release */
+    kind: text("kind").notNull(),
+    /** Signed characters: + for grant/release, − for reserve. */
+    chars: integer("chars").notNull(),
+    note: text("note").notNull().default(""),
+    /** Not a foreign key: the history outlives deleted narrations. */
+    narrationId: text("narration_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("allowance_entries_user_idx").on(t.userId, desc(t.createdAt))],
+);
+
+/** One narration per article (0021_narrations.sql); see src/lib/narration-engine.ts. */
+export const narrations = pgTable(
+  "narrations",
+  {
+    id: text("id").primaryKey(),
+    articleId: text("article_id")
+      .notNull()
+      .unique()
+      .references(() => articles.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** queued | tidying | narrating | joining | ready | paused */
+    state: text("state").notNull(),
+    pausedReason: text("paused_reason"),
+    model: text("model").notNull(),
+    /** sha256 of the article body the script was built from (stale check). */
+    contentHash: text("content_hash").notNull(),
+    /** The script, split into Narration parts. */
+    parts: jsonb("parts").$type<string[]>().notNull(),
+    reservedChars: integer("reserved_chars").notNull(),
+    partsDone: integer("parts_done").notNull().default(0),
+    charsSpoken: integer("chars_spoken").notNull().default(0),
+    tidyAttempted: boolean("tidy_attempted").notNull().default(false),
+    leaseUntil: timestamp("lease_until", { withTimezone: true }),
+    runId: text("run_id"),
+    audioKey: text("audio_key"),
+    durationSeconds: real("duration_seconds"),
+    bytes: integer("bytes"),
+    positionSeconds: real("position_seconds").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (t) => [index("narrations_user_idx").on(t.userId, t.state)],
+);
+
+/** R2 objects whose delete failed; retried when narrations are next requested. */
+export const r2Orphans = pgTable("r2_orphans", {
+  key: text("key").primaryKey(),
+  attempts: integer("attempts").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

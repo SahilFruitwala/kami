@@ -179,7 +179,7 @@ export async function persistArticleItem(item: LibraryItem): Promise<LibraryItem
   store.upsertItem(prepared, { sync: false });
   let saved: LibraryItem;
   try {
-    saved = await libraryApi.items.upsert(prepared);
+    saved = await libraryApi.items.upsert(prepared, { fresh: true });
   } catch (err) {
     syncUpsertItem(prepared);
     throw err;

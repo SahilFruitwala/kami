@@ -1,10 +1,10 @@
 import { Tags, Folder, LoaderCircle, RotateCcw, Sparkles } from "lucide-react";
-import { TidyButton } from "@/components/reader/tidy-review.tsx";
+import { RetryTidyButton, ReviewCleanupButton } from "@/components/reader/tidy-review.tsx";
 import { toast } from "sonner";
 import { type ArticleSummary } from "@/lib/api/ai";
 import { useLibraryStore } from "@/lib/store.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
-import { useAiStatus, useArticleSummary, useAutoTag } from "@/hooks/use-ai.ts";
+import { useAiStatus, useArticleSummary, useAutoTag, useAutoTidy } from "@/hooks/use-ai.ts";
 
 const chip =
   "inline-flex min-h-9 items-center gap-1 rounded-full bg-surface px-3 font-sans text-xs font-medium text-ink shadow-border transition-colors hover:bg-paper-warm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/30";
@@ -12,6 +12,7 @@ const chip =
 /** The reader's AI card: a cached summary with a folder suggestion, auto-tag and tidy. */
 export function ReaderAi({ item }: { item: LibraryItem }) {
   const { enabled } = useAiStatus();
+  useAutoTidy(item, enabled);
   if (!enabled) return null;
   return <SummaryCard item={item} />;
 }
@@ -71,7 +72,8 @@ function SummaryCard({ item }: { item: LibraryItem }) {
       )}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
         <AutoTagButton item={item} />
-        <TidyButton item={item} />
+        {item.tidyState === "failed" ? <RetryTidyButton item={item} /> : null}
+        {item.hasOriginal ? <ReviewCleanupButton item={item} /> : null}
       </div>
     </section>
   );
@@ -112,6 +114,9 @@ function SummaryBody({ item, summary }: { item: LibraryItem; summary: ArticleSum
         <p className="font-sans text-[11px] text-hanko">
           The text changed since this summary. Summarize again to refresh it.
         </p>
+      ) : null}
+      {summary.clipped ? (
+        <p className="font-sans text-[11px] opacity-60">Made from the first part of this piece.</p>
       ) : null}
       <p className="font-body text-sm leading-relaxed">{summary.tldr}</p>
       {summary.keyPoints.length ? (

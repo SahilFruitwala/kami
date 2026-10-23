@@ -662,11 +662,6 @@
   color: #e3dcd3;
 }
 
-::highlight(spoken) {
-  background-color: rgba(184, 68, 58, 0.18);
-  color: inherit;
-}
-
 .sel-ghost {
   position: fixed;
   z-index: 15;

@@ -457,24 +457,47 @@ article, with a sha256 of the body it was made from. When the text changes
 (a link stub upgraded to a clean copy), the card shows the old summary as
 stale until it is regenerated.
 
-### Tidy this copy
+### Tidy (automatic clean-up)
 
-The reader's Gist card has **Remove ads & clutter** (`POST
-/api/ai/articles/:id/tidy`) for newsletters and cluttered pages. The saved
-HTML is split into numbered top-level blocks (descending through lone
+Every article is tidied automatically (`POST /api/ai/articles/:id/tidy`),
+so newsletters and cluttered pages read, and are narrated, without sponsor
+slots or footers:
+
+- **Single saves** (`POST /api/library/items?fresh=1` from capture, paste
+  and feed saves, and `POST /api/library/save`) are tidied in the
+  background after the response, with `waitUntil` from `@vercel/functions`
+  (`src/server/background.ts`). Saving stays instant.
+- **Bulk imports and older articles** stay `pending` and are tidied the
+  first time the reader opens them (`useAutoTidy`), so an import never
+  spends the AI rate limit at once.
+- There is no Tidy button. The Gist card offers **Review clean-up** when an
+  Original copy exists, and **Retry clean-up** only when the article is
+  `failed`.
+
+The saved HTML is split into numbered top-level blocks (descending through lone
 layout wrappers, `src/lib/tidy-html.server.ts`), the model gets a short
 preview of each and returns the numbers of ads, sponsor slots, subscribe /
 share / referral prompts, footers and navigation. The text itself is never
 rewritten, and a result that would drop 60% or more of the blocks is
 refused.
 
-The endpoint saves nothing. It returns the original and the tidied HTML plus
-a preview of each removed block, and the reader opens a **review dialog**
-(`src/components/reader/tidy-review.tsx`) showing Before and After side by
-side (tabs on narrow screens) with the list of what goes. Only **Save tidy
-copy** writes the change, through the normal library upsert; **Keep
-original** (or closing the dialog) leaves the article untouched. After a
-save the toast still offers Undo.
+The server applies and stores the result itself (a refusal marks the
+article `skipped`), keeping the body as it was before as the **Original
+copy** (`articles.original_html`). The endpoint returns the saved article,
+the body before, and a preview of each removed block, and the reader opens a
+**review dialog** (`src/components/reader/tidy-review.tsx`) showing Before
+and After side by side (tabs on narrow screens): **Keep cleaned copy**
+closes it, **Restore original** (`POST
+/api/ai/articles/:id/restore-original`) puts the Original copy back.
+`GET /api/ai/articles/:id/original` serves the Original copy for reviewing
+later.
+
+Each article records its `tidy_state` (`src/lib/tidy-state.ts`). Clients
+often re-send whole items with the body they loaded earlier; a save whose
+body equals the current copy or the Original copy is that stale echo and
+never undoes a Tidy. Only a genuinely new body (a re-capture, a link stub
+upgraded to a clean copy) replaces the copy and resets it to `pending`. A
+model failure leaves the body alone and marks the article `failed`.
 
 ### Extraction fallback
 
@@ -503,6 +526,51 @@ behaviour) when AI is off, over budget, or the page isn't an article.
 | `migrations/0016_article_ai.sql`, `0017_ai_embeddings.sql`, `0018_ai_notes.sql` | `article_ai`, `ai_embeddings` (left over from the removed semantic search; unused), `ai_notes` |
 
 ---
+
+## Narration
+
+The reader can turn an article's full text into audio (**Create audio**),
+spoken by Deepgram Aura-2 (voice `aura-2-thalia-en`) through the AI SDK and
+stored privately in Cloudflare R2. Audio is made only when its owner asks,
+spends their **narration allowance**, and only they can play it. Off unless
+`DEEPGRAM_API_KEY`, the `R2_*` variables and `NARRATION_RUN_SECRET` are set
+(`src/lib/narration-config.server.ts`); see `GLOSSARY.md` for the terms.
+
+```mermaid
+sequenceDiagram
+  participant B as Reader
+  participant A as /api/narrations/:id
+  participant W as Run (waitUntil)
+  participant D as Deepgram
+  participant S as R2 (private)
+  B->>A: POST (Create audio)
+  A->>A: script, refusals, reserve allowance
+  A-->>B: { ok, narration: queued }
+  A-)W: runInBackground
+  loop each part, while time remains
+    W->>D: generateSpeech (≤ 2,000 chars)
+    W->>S: put part-000n.mp3
+  end
+  W-)W: near the deadline: POST /api/narrations/run (secret)
+  W->>S: get parts, join, put narration.mp3, delete parts
+  B->>A: GET …/audio
+  A-->>B: presigned URL (15 min)
+  B->>S: <audio> plays it directly
+```
+
+| Concern        | Choice                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Script         | `src/lib/narration-script.server.ts`: title/author/site intro, headings after a "..." pause (Aura-2 has no SSML), link text without URLs, captions without alt text, code and tables replaced by a short "skipped" line, footnotes dropped; packed into parts of ≤ 2,000 characters (Deepgram's limit) on sentence boundaries. Capped at 120,000 characters.                                                                                                                                                                                                                                             |
+| Refusals       | Before any Deepgram call (`refuseStart` in `src/lib/narration-engine.ts`): a link stub, non-English text (a dependency-free check), over the cap, or not enough allowance. They come back as data (`{ ok: false, refusal }`) for the reader's popup.                                                                                                                                                                                                                                                                                                                                                     |
+| Allowance      | `allowance_entries` ledger (grant / reserve / release), serialised per user with an advisory lock. Starting reserves the whole script; whatever isn't spoken returns when the narration finishes or is deleted. `pnpm narration:grant` is the only way to add allowance.                                                                                                                                                                                                                                                                                                                                 |
+| Engine         | `src/lib/narration-engine.ts` is pure: `nextStep` picks tidy / speak part n / join / hand off / exit, `applyEvent` folds results in. `src/server/services/narration.ts` does the I/O.                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Background run | ADR 0001. `waitUntil` + `getDeadline` from `@vercel/functions`; a run claims the narration with a 4-minute lease, renewed after every part (a 2,000-character part takes Deepgram about a minute; each call is cut off at 150 s), and hands off to `POST /api/narrations/run` (at `https://$VERCEL_URL` with `x-vercel-protection-bypass`, or the request origin locally) before the deadline, releasing its lease first. A part is stored in R2 before it is recorded, so a crash re-speaks at most one part. An owner's status check that finds an active narration with an expired lease restarts it. |
+| Tidy           | A run tidies a `pending`/`failed` article first and swaps in the rebuilt, shorter script; if Tidy fails, it narrates the text as saved.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Speech         | `src/lib/speech.server.ts`: mp3 at 48 kbps, one SDK retry. 401/402/403 (and malformed requests) pause the narration with a reason; transient failures pause with "Resume to try again".                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Storage        | `src/lib/r2.server.ts` (aws4fetch). Keys `narrations/{user}/{article}/{narration}/part-NNNN.mp3` then `narration.mp3`. Parts are joined in memory (`src/lib/mp3.ts` drops ID3 and Xing/Info headers and counts frames for the duration) because R2 multipart needs ≥ 5 MiB equal parts. R2 requests retry twice on 5xx/429 (R2 occasionally answers `500 InternalError`). Failed deletes go to `r2_orphans` and are retried when narration is next started.                                                                                                                                              |
+| Access         | Every route filters by the caller's `userId` and answers 404 otherwise. The bucket has no public URL; the audio route returns a 15-minute presigned GET for that one object, the player asks again when it expires, and CSP `media-src` allows `*.r2.cloudflarestorage.com`.                                                                                                                                                                                                                                                                                                                             |
+| Deletes        | Deleting an article (single or whole library) cascades its narration row and then deletes its R2 objects and returns any unspoken reservation (`prepareArticleDelete`).                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Cost           | `narration` rate-limit bucket (30 starts/hour/user, fails closed). Aura-2 is $0.030 per 1,000 characters (a ~24k-character article ≈ $0.72).                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 ## Caching
 

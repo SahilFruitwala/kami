@@ -45,6 +45,8 @@ erDiagram
     text user_id FK
     text canonical_url
     text content_html
+    text original_html
+    text tidy_state
     boolean archived
     jsonb tags
     jsonb highlights
@@ -108,6 +110,7 @@ Important constraints:
 - Indexes on `(user_id)`, `(user_id, archived)`
 - `folder_id` → `folders` with `ON DELETE SET NULL`
 - `tags` and `highlights` are **jsonb**
+- `tidy_state` (`pending` | `tidied` | `skipped` | `failed` | `restored`) and `original_html` (the body before Tidy changed it, null otherwise) — see `src/lib/tidy-state.ts` (0019_article_tidy.sql)
 
 ### Journal — `journal_entries`
 
@@ -171,9 +174,17 @@ See [AI features](./ARCHITECTURE.md#ai-features).
 | Table        | Role                                                                                                                                                                                                                                                                                                                                                          |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ai_notes`   | Generated write-ups not tied to one article. Primary key (`user_id`, `kind`, `key`): `kind` is the feature (no feature writes here now; older `entry-summary`, `weekly-recap` and `feed-digest` rows may remain), `key` the period (e.g. the day it was made). `content` jsonb in the feature's shape, `model` that wrote it; the newest 12 per kind are kept |
-| `article_ai` | One row per article: `summary` jsonb (`tldr`, `keyPoints`, suggested `tags` and `folderId`), `content_hash` (sha256 of the body it was made from, to flag stale summaries), `model` that wrote it                                                                                                                                                             |
+| `article_ai` | One row per article: `summary` jsonb (`tldr`, `keyPoints`, suggested `folderId`, `clipped` when made from only the first part of a long piece; older rows may still carry an unused `tags`), `content_hash` (sha256 of the body it was made from, to flag stale summaries), `model` that wrote it                                                             |
 
 Highlight notes (inside `articles.highlights` jsonb) are capped at 1000 chars (`HIGHLIGHT_NOTE_MAX`).
+
+### Narration — `allowance_entries`, `narrations`, `r2_orphans`
+
+| Table               | Purpose                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `allowance_entries` | Narration allowance ledger, one row per change: `kind` `grant` (+, from `pnpm narration:grant`), `reserve` (−, a narration sets aside its script) or `release` (+, the unspoken part of a deleted unfinished narration); signed `chars`, `note`, optional `narration_id` (not a foreign key, so history outlives narrations). The sum is what the user can spend; everyone starts with none. Changes for one user are serialised with a transaction-scoped advisory lock (`src/lib/allowance-db.server.ts`)  |
+| `narrations`        | One per article (unique `article_id`, cascades with it): `state` (`queued`, `tidying`, `narrating`, `joining`, `ready`, `paused`) and `paused_reason`, `parts` jsonb (the script in Narration parts), `parts_done`, `reserved_chars` / `chars_spoken` (what returns to the allowance when it ends), `tidy_attempted`, a run lease (`run_id`, `lease_until`), `content_hash` (stale check), the finished `audio_key` / `duration_seconds` / `bytes`, and the owner's `position_seconds` (0021_narrations.sql) |
+| `r2_orphans`        | R2 object keys whose delete failed, retried when narration is next started                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ### Misc
 

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import {
   MAX_CACHED_SNAPSHOT_BYTES,
   approxJsonBytes,
@@ -15,6 +15,7 @@ import {
   type LibraryItem,
 } from "@/lib/library-item";
 import { highlightSchema } from "@/lib/api/schemas/library";
+import { asTidyState } from "@/lib/tidy-state";
 import type { LibrarySnapshot } from "@/lib/api/types";
 
 /** Shared server-side helpers for the library services: row <-> item
@@ -36,8 +37,14 @@ function asHighlights(value: unknown): Highlight[] {
     .filter((h): h is Highlight => Boolean(h));
 }
 
-type ArticleListRow = Omit<typeof articles.$inferSelect, "contentHtml"> & {
+type ArticleListRow = Omit<
+  typeof articles.$inferSelect,
+  "contentHtml" | "originalHtml" | "tidyState"
+> & {
   contentHtml?: string;
+  tidyState?: string;
+  originalHtml?: string | null;
+  hasOriginal?: boolean;
 };
 
 export function rowToItem(row: ArticleListRow, opts?: { includeBody?: boolean }): LibraryItem {
@@ -64,6 +71,8 @@ export function rowToItem(row: ArticleListRow, opts?: { includeBody?: boolean })
     highlights: asHighlights(row.highlights),
     favorited: Boolean(row.favorited),
     note: row.note || "",
+    tidyState: asTidyState(row.tidyState),
+    hasOriginal: row.hasOriginal ?? (row.originalHtml != null && row.originalHtml !== ""),
   };
 }
 
@@ -89,6 +98,8 @@ export const articleListColumns = {
   folderId: articles.folderId,
   tags: articles.tags,
   highlights: articles.highlights,
+  tidyState: articles.tidyState,
+  hasOriginal: sql<boolean>`${articles.originalHtml} is not null`,
 } as const;
 
 /**

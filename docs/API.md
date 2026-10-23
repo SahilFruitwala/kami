@@ -18,14 +18,22 @@ Path parameters are written `:name`. For exact request/response shapes read the 
 
 ### ai
 
-| Method | Path                           | Source                                      |
-| ------ | ------------------------------ | ------------------------------------------- |
-| `POST` | `/api/ai/articles/:id/autotag` | `src/routes/api/ai/articles/$id/autotag.ts` |
-| `GET`  | `/api/ai/articles/:id/summary` | `src/routes/api/ai/articles/$id/summary.ts` |
-| `POST` | `/api/ai/articles/:id/summary` | `src/routes/api/ai/articles/$id/summary.ts` |
-| `POST` | `/api/ai/articles/:id/tidy`    | `src/routes/api/ai/articles/$id/tidy.ts`    |
-| `POST` | `/api/ai/organize`             | `src/routes/api/ai/organize.ts`             |
-| `GET`  | `/api/ai/status`               | `src/routes/api/ai/status.ts`               |
+| Method | Path                                    | Source                                               |
+| ------ | --------------------------------------- | ---------------------------------------------------- |
+| `POST` | `/api/ai/articles/:id/autotag`          | `src/routes/api/ai/articles/$id/autotag.ts`          |
+| `GET`  | `/api/ai/articles/:id/original`         | `src/routes/api/ai/articles/$id/original.ts`         |
+| `POST` | `/api/ai/articles/:id/restore-original` | `src/routes/api/ai/articles/$id/restore-original.ts` |
+| `GET`  | `/api/ai/articles/:id/summary`          | `src/routes/api/ai/articles/$id/summary.ts`          |
+| `POST` | `/api/ai/articles/:id/summary`          | `src/routes/api/ai/articles/$id/summary.ts`          |
+| `POST` | `/api/ai/articles/:id/tidy`             | `src/routes/api/ai/articles/$id/tidy.ts`             |
+| `POST` | `/api/ai/organize`                      | `src/routes/api/ai/organize.ts`                      |
+| `GET`  | `/api/ai/status`                        | `src/routes/api/ai/status.ts`                        |
+
+### allowance
+
+| Method | Path             | Source                              |
+| ------ | ---------------- | ----------------------------------- |
+| `GET`  | `/api/allowance` | `src/routes/api/allowance/index.ts` |
 
 ### articles
 
@@ -114,6 +122,19 @@ Path parameters are written `:name`. For exact request/response shapes read the 
 | `GET`  | `/api/lookup/link`            | `src/routes/api/lookup/link.ts`            |
 | `GET`  | `/api/lookup/tmdb`            | `src/routes/api/lookup/tmdb.ts`            |
 | `GET`  | `/api/lookup/watch-providers` | `src/routes/api/lookup/watch-providers.ts` |
+
+### narrations
+
+Owner-only (404 for anyone else). `POST /api/narrations/run` is internal: it authenticates with the server's run secret, not a session (see ADR 0001).
+
+| Method   | Path                           | Source                                      |
+| -------- | ------------------------------ | ------------------------------------------- |
+| `GET`    | `/api/narrations/:id`          | `src/routes/api/narrations/$id.ts`          |
+| `POST`   | `/api/narrations/:id`          | `src/routes/api/narrations/$id.ts`          |
+| `DELETE` | `/api/narrations/:id`          | `src/routes/api/narrations/$id.ts`          |
+| `GET`    | `/api/narrations/:id/audio`    | `src/routes/api/narrations/$id/audio.ts`    |
+| `PUT`    | `/api/narrations/:id/position` | `src/routes/api/narrations/$id/position.ts` |
+| `POST`   | `/api/narrations/run`          | `src/routes/api/narrations/run.ts`          |
 
 ### shelves
 
