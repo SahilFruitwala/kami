@@ -3,6 +3,7 @@ import { errorMessage } from "@/lib/errors";
 import { TripDetails } from "./trip-details.tsx";
 import { Hotels } from "./trip-hotels.tsx";
 import { Itinerary } from "./trip-itinerary.tsx";
+import { TripAgent } from "./trip-chat.tsx";
 
 export function TripBoard({ tripId, onDeleted }: { tripId: string; onDeleted: () => void }) {
   const query = useTrip(tripId);
@@ -25,6 +26,7 @@ export function TripBoard({ tripId, onDeleted }: { tripId: string; onDeleted: ()
       <TripDetails trip={trip} actions={actions} onDeleted={onDeleted} />
       <Hotels trip={trip} actions={actions} />
       <Itinerary trip={trip} actions={actions} />
+      <TripAgent tripId={tripId} />
     </div>
   );
 }

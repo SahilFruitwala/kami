@@ -9,7 +9,7 @@ import {
   LibraryBig,
   ChevronDown,
   Search,
-  // Plane,
+  Plane,
   Plus,
   // Rss,
   // ScanSearch,
@@ -58,7 +58,7 @@ const SANCTUARY_PANES: Pane[] = [
   { id: "library", to: "/library", label: "Library", icon: LibraryBig },
   // { id: "feeds", to: "/feeds", label: "Feeds", icon: Rss },
   // { id: "extracts", to: "/extracts", label: "Extracts", icon: ScanSearch },
-  // { id: "trips", to: "/trips", label: "Trips", icon: Plane },
+  { id: "trips", to: "/trips", label: "Trips", icon: Plane },
   { id: "vault", to: "/vault", label: "Vault", icon: Bookmark },
 ];
 
@@ -275,7 +275,7 @@ export function SiteHeader({
       >
         <ul className="flex overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {PANES.map((pane) => (
-            <li key={pane.id} className="min-w-[4.25rem] flex-1">
+            <li key={pane.id} className="min-w-[3.75rem] flex-1">
               <Link
                 to={pane.to}
                 aria-current={active === pane.id ? "page" : undefined}

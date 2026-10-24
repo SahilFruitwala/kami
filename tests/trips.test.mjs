@@ -10,7 +10,10 @@ import {
   groupByDay,
   lastUsedDay,
   parseIsoDate,
+  TRIP_STATUSES,
+  TRIP_STATUS_LABEL,
 } from "../src/lib/trip-days.ts";
+import { updateTripInput } from "../src/lib/api/schemas/trips.ts";
 
 describe("parseIsoDate", () => {
   it("accepts real calendar dates", () => {
@@ -108,5 +111,20 @@ describe("itinerary order", () => {
   it("finds the last day that still has plans", () => {
     assert.equal(lastUsedDay([]), -1);
     assert.equal(lastUsedDay([{ dayIndex: 0 }, { dayIndex: 3 }, { dayIndex: 1 }]), 3);
+  });
+});
+
+describe("trip status", () => {
+  it("has four statuses, each with a label", () => {
+    assert.deepEqual([...TRIP_STATUSES], ["planning", "booked", "done", "archived"]);
+    for (const s of TRIP_STATUSES) assert.ok(TRIP_STATUS_LABEL[s], s);
+  });
+
+  it("accepts any status in a trip patch and rejects unknown ones", () => {
+    for (const status of TRIP_STATUSES) {
+      assert.equal(updateTripInput.parse({ status }).status, status);
+    }
+    assert.equal(updateTripInput.parse({}).status, undefined);
+    assert.throws(() => updateTripInput.parse({ status: "cancelled" }));
   });
 });

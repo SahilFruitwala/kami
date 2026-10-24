@@ -163,6 +163,10 @@ Owner-only (404 for anyone else). `POST /api/narrations/run` is internal: it aut
 | `GET`    | `/api/trips/:id`                    | `src/routes/api/trips/$id.ts`                    |
 | `PATCH`  | `/api/trips/:id`                    | `src/routes/api/trips/$id.ts`                    |
 | `DELETE` | `/api/trips/:id`                    | `src/routes/api/trips/$id.ts`                    |
+| `GET`    | `/api/trips/:id/chat`               | `src/routes/api/trips/$id/chat.ts`               |
+| `POST`   | `/api/trips/:id/chat`               | `src/routes/api/trips/$id/chat.ts`               |
+| `DELETE` | `/api/trips/:id/chat`               | `src/routes/api/trips/$id/chat.ts`               |
+| `POST`   | `/api/trips/:id/undo`               | `src/routes/api/trips/$id/undo.ts`               |
 | `POST`   | `/api/trips/:id/hotels`             | `src/routes/api/trips/$id/hotels.ts`             |
 | `PATCH`  | `/api/trips/:id/hotels/:hotelId`    | `src/routes/api/trips/$id/hotels/$hotelId.ts`    |
 | `DELETE` | `/api/trips/:id/hotels/:hotelId`    | `src/routes/api/trips/$id/hotels/$hotelId.ts`    |

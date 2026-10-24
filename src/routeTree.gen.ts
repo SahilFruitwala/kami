@@ -83,9 +83,11 @@ import { Route as ApiShelvesTypeIndexRouteImport } from './routes/api/shelves/$t
 import { Route as ApiShelvesTypeIdRouteImport } from './routes/api/shelves/$type/$id'
 import { Route as ApiShelvesTypeDuplicatesRouteImport } from './routes/api/shelves/$type/duplicates'
 import { Route as ApiShelvesBookImportRouteImport } from './routes/api/shelves/book/import'
+import { Route as ApiTripsIdChatRouteImport } from './routes/api/trips/$id/chat'
 import { Route as ApiTripsIdHotelsRouteImport } from './routes/api/trips/$id/hotels'
 import { Route as ApiTripsIdItemsRouteImport } from './routes/api/trips/$id/items'
 import { Route as ApiTripsIdLocateRouteImport } from './routes/api/trips/$id/locate'
+import { Route as ApiTripsIdUndoRouteImport } from './routes/api/trips/$id/undo'
 import { Route as ApiAiArticlesIdAutotagRouteImport } from './routes/api/ai/articles/$id/autotag'
 import { Route as ApiAiArticlesIdOriginalRouteImport } from './routes/api/ai/articles/$id/original'
 import { Route as ApiAiArticlesIdRestoreOriginalRouteImport } from './routes/api/ai/articles/$id/restore-original'
@@ -474,6 +476,11 @@ const ApiShelvesBookImportRoute = ApiShelvesBookImportRouteImport.update({
   path: '/api/shelves/book/import',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiTripsIdChatRoute = ApiTripsIdChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => ApiTripsIdRoute,
+} as any)
 const ApiTripsIdHotelsRoute = ApiTripsIdHotelsRouteImport.update({
   id: '/hotels',
   path: '/hotels',
@@ -487,6 +494,11 @@ const ApiTripsIdItemsRoute = ApiTripsIdItemsRouteImport.update({
 const ApiTripsIdLocateRoute = ApiTripsIdLocateRouteImport.update({
   id: '/locate',
   path: '/locate',
+  getParentRoute: () => ApiTripsIdRoute,
+} as any)
+const ApiTripsIdUndoRoute = ApiTripsIdUndoRouteImport.update({
+  id: '/undo',
+  path: '/undo',
   getParentRoute: () => ApiTripsIdRoute,
 } as any)
 const ApiAiArticlesIdAutotagRoute = ApiAiArticlesIdAutotagRouteImport.update({
@@ -650,9 +662,11 @@ export interface FileRoutesByFullPath {
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
+  '/api/trips/$id/chat': typeof ApiTripsIdChatRoute
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
   '/api/trips/$id/locate': typeof ApiTripsIdLocateRoute
+  '/api/trips/$id/undo': typeof ApiTripsIdUndoRoute
   '/api/feeds/entries/': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
@@ -744,9 +758,11 @@ export interface FileRoutesByTo {
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
+  '/api/trips/$id/chat': typeof ApiTripsIdChatRoute
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
   '/api/trips/$id/locate': typeof ApiTripsIdLocateRoute
+  '/api/trips/$id/undo': typeof ApiTripsIdUndoRoute
   '/api/feeds/entries': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items': typeof ApiLibraryItemsIndexRoute
@@ -840,9 +856,11 @@ export interface FileRoutesById {
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
+  '/api/trips/$id/chat': typeof ApiTripsIdChatRoute
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
   '/api/trips/$id/locate': typeof ApiTripsIdLocateRoute
+  '/api/trips/$id/undo': typeof ApiTripsIdUndoRoute
   '/api/feeds/entries/': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
@@ -937,9 +955,11 @@ export interface FileRouteTypes {
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
+    | '/api/trips/$id/chat'
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
     | '/api/trips/$id/locate'
+    | '/api/trips/$id/undo'
     | '/api/feeds/entries/'
     | '/api/library/folders/'
     | '/api/library/items/'
@@ -1031,9 +1051,11 @@ export interface FileRouteTypes {
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
+    | '/api/trips/$id/chat'
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
     | '/api/trips/$id/locate'
+    | '/api/trips/$id/undo'
     | '/api/feeds/entries'
     | '/api/library/folders'
     | '/api/library/items'
@@ -1126,9 +1148,11 @@ export interface FileRouteTypes {
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
+    | '/api/trips/$id/chat'
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
     | '/api/trips/$id/locate'
+    | '/api/trips/$id/undo'
     | '/api/feeds/entries/'
     | '/api/library/folders/'
     | '/api/library/items/'
@@ -1748,6 +1772,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiShelvesBookImportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/trips/$id/chat': {
+      id: '/api/trips/$id/chat'
+      path: '/chat'
+      fullPath: '/api/trips/$id/chat'
+      preLoaderRoute: typeof ApiTripsIdChatRouteImport
+      parentRoute: typeof ApiTripsIdRoute
+    }
     '/api/trips/$id/hotels': {
       id: '/api/trips/$id/hotels'
       path: '/hotels'
@@ -1767,6 +1798,13 @@ declare module '@tanstack/react-router' {
       path: '/locate'
       fullPath: '/api/trips/$id/locate'
       preLoaderRoute: typeof ApiTripsIdLocateRouteImport
+      parentRoute: typeof ApiTripsIdRoute
+    }
+    '/api/trips/$id/undo': {
+      id: '/api/trips/$id/undo'
+      path: '/undo'
+      fullPath: '/api/trips/$id/undo'
+      preLoaderRoute: typeof ApiTripsIdUndoRouteImport
       parentRoute: typeof ApiTripsIdRoute
     }
     '/api/ai/articles/$id/autotag': {
@@ -1975,15 +2013,19 @@ const ApiTripsIdItemsRouteWithChildren = ApiTripsIdItemsRoute._addFileChildren(
 )
 
 interface ApiTripsIdRouteChildren {
+  ApiTripsIdChatRoute: typeof ApiTripsIdChatRoute
   ApiTripsIdHotelsRoute: typeof ApiTripsIdHotelsRouteWithChildren
   ApiTripsIdItemsRoute: typeof ApiTripsIdItemsRouteWithChildren
   ApiTripsIdLocateRoute: typeof ApiTripsIdLocateRoute
+  ApiTripsIdUndoRoute: typeof ApiTripsIdUndoRoute
 }
 
 const ApiTripsIdRouteChildren: ApiTripsIdRouteChildren = {
+  ApiTripsIdChatRoute: ApiTripsIdChatRoute,
   ApiTripsIdHotelsRoute: ApiTripsIdHotelsRouteWithChildren,
   ApiTripsIdItemsRoute: ApiTripsIdItemsRouteWithChildren,
   ApiTripsIdLocateRoute: ApiTripsIdLocateRoute,
+  ApiTripsIdUndoRoute: ApiTripsIdUndoRoute,
 }
 
 const ApiTripsIdRouteWithChildren = ApiTripsIdRoute._addFileChildren(

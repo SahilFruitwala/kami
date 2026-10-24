@@ -1,5 +1,6 @@
+import type { UIMessage } from "ai";
 import type { z } from "zod";
-import type { Slot, TripHotelStatus } from "@/lib/trip-days";
+import type { Slot, TripHotelStatus, TripStatus } from "@/lib/trip-days";
 import { http, seg } from "./client";
 import type {
   createHotelInput,
@@ -11,7 +12,7 @@ import type {
 } from "./schemas/trips";
 
 export type TripSlot = Slot;
-export type { TripHotelStatus };
+export type { TripHotelStatus, TripStatus };
 
 export type TripHotel = {
   id: string;
@@ -53,6 +54,7 @@ export type TripSummary = {
   /** `YYYY-MM-DD`, or null while the dates are undecided. */
   startDate: string | null;
   dayCount: number;
+  status: TripStatus;
   hotelCount: number;
   itemCount: number;
   /** Name of the chosen hotel, if any. */
@@ -69,6 +71,7 @@ export type Trip = {
   travelers: number | null;
   budget: string | null;
   preferences: string | null;
+  status: TripStatus;
   createdAt: number;
   updatedAt: number;
   hotels: TripHotel[];
@@ -93,6 +96,29 @@ export type TripLocateResult = {
   /** Places still waiting for a lookup (call again to continue). */
   remaining: number;
 };
+
+export type TripChat = {
+  /** Saved conversation, oldest first (AI SDK UIMessage shape). */
+  messages: UIMessage[];
+  /** An AI model is configured, so the agent can run. */
+  enabled: boolean;
+  /** Firecrawl is configured, so the agent can search and read the web. */
+  research: boolean;
+  /** The agent changed the trip and its previous state can be restored. */
+  canUndo: boolean;
+};
+
+/** Agent tools that change the trip; the board refreshes after each one finishes. */
+export const TRIP_WRITE_TOOLS = [
+  "update_trip",
+  "shortlist_hotel",
+  "update_hotel",
+  "remove_hotel",
+  "set_day",
+  "add_item",
+  "update_item",
+  "remove_item",
+] as const;
 
 const trip = (id: string) => `/api/trips/${seg(id)}`;
 
@@ -121,6 +147,14 @@ export const tripsApi = {
   updateItem: (id: string, itemId: string, patch: TripItemPatch) =>
     http.patch<Trip>(`${trip(id)}/items/${seg(itemId)}`, patch),
 
+  chat: (id: string) => http.get<TripChat>(`${trip(id)}/chat`),
+
+  /** Forget the conversation (the board is unchanged). */
+  clearChat: (id: string) => http.delete<void>(`${trip(id)}/chat`),
+
+  /** Streaming endpoint used by `useChat`. */
+  chatUrl: (id: string) => `${trip(id)}/chat`,
+
   /** Swap a plan with its neighbour in the same day and slot. */
   moveItem: (id: string, itemId: string, direction: "up" | "down") =>
     http.post<Trip>(`${trip(id)}/items/${seg(itemId)}/move`, { direction }),
@@ -128,6 +162,9 @@ export const tripsApi = {
   /** Geocode plans and hotels that have a place but no pin yet (a few per call). */
   locate: (id: string, skip: string[] = []) =>
     http.post<TripLocateResult>(`${trip(id)}/locate`, { skip }),
+
+  /** Restore the trip as it was before the agent's latest edits. */
+  undoAgent: (id: string) => http.post<Trip>(`${trip(id)}/undo`),
 
   removeItem: (id: string, itemId: string) => http.delete<Trip>(`${trip(id)}/items/${seg(itemId)}`),
 };

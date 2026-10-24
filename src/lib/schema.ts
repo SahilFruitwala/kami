@@ -14,7 +14,7 @@ import {
   timestamp,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import type { Slot as TripSlot, TripHotelStatus } from "./trip-days.ts";
+import type { Slot as TripSlot, TripHotelStatus, TripStatus } from "./trip-days.ts";
 
 /**
  * Local user mirror for Clerk identities.
@@ -537,7 +537,9 @@ export type ExtractResultRow = typeof extractResults.$inferSelect;
 export {
   SLOT_ORDER as TRIP_SLOTS,
   TRIP_HOTEL_STATUSES,
+  TRIP_STATUSES,
   type Slot as TripSlot,
+  type TripStatus,
   type TripHotelStatus,
 } from "./trip-days.ts";
 
@@ -556,6 +558,8 @@ export const trips = pgTable(
     travelers: integer("travelers"),
     budget: text("budget"),
     preferences: text("preferences"),
+    /** Set by hand; see `TRIP_STATUSES`. */
+    status: text("status").$type<TripStatus>().notNull().default("planning"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

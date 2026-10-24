@@ -157,15 +157,17 @@ See [Extracts (Firecrawl)](./ARCHITECTURE.md#extracts-firecrawl).
 | `extract_sources` | Per-user saved question: `name`, `url`, `question`, `last_run_at`, `last_error`                                                                                                                                                   |
 | `extract_results` | Firecrawl's Markdown answer. `status` is `pending` (awaiting review — at most one per source, partial unique index) or `accepted`. Snapshots the `url` / `question` used so history survives edits. Discarded results are deleted |
 
-### Trips — `trips`, `trip_hotels`, `trip_items`
+### Trips — `trips`, `trip_hotels`, `trip_items`, `trip_messages`, `trip_snapshots`
 
 See [Trips](./ARCHITECTURE.md#trips).
 
-| Table         | Role                                                                                                                                                                                                                |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `trips`       | Per-user trip: `title`, `destination`, optional `start_date`, `day_count` (1–30; end date is derived), `travelers`, `budget`, `preferences`                                                                         |
-| `trip_hotels` | Hotel shortlist. `status` is `shortlisted` or `chosen` (at most one per trip, partial unique index). `price_note` / `rating_note` are free text, not live data. Optional `lat`/`lng` map pin                        |
-| `trip_items`  | Itinerary entries: `day_index` (0-based), `slot` (`morning` / `afternoon` / `evening` / `night`), `title`, `place`, `url`, `notes`, `sort`, optional `lat`/`lng` map pin, `start_time` ("HH:MM") and `duration_min` |
+| Table            | Role                                                                                                                                                                                                                                |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `trips`          | Per-user trip: `title`, `destination`, optional `start_date`, `day_count` (1–30; end date is derived), `travelers`, `budget`, `preferences`, `status` (`planning` default, `booked`, `done`, `archived`; a plain label set by hand) |
+| `trip_hotels`    | Hotel shortlist. `status` is `shortlisted` or `chosen` (at most one per trip, partial unique index). `price_note` / `rating_note` are free text, not live data. Optional `lat`/`lng` map pin                                        |
+| `trip_messages`  | Trip agent chat history: one AI SDK UIMessage per row (`role`, `parts` jsonb with text and tool calls/results), ordered by an identity `seq`; newest 200 kept per trip                                                              |
+| `trip_snapshots` | The agent's undo point: one row per trip (`snapshot` jsonb of the whole trip), written before the agent's first edit in a reply and deleted by undo                                                                                 |
+| `trip_items`     | Itinerary entries: `day_index` (0-based), `slot` (`morning` / `afternoon` / `evening` / `night`), `title`, `place`, `url`, `notes`, `sort`, optional `lat`/`lng` map pin, `start_time` ("HH:MM") and `duration_min`                 |
 
 ### AI — `article_ai`, `ai_notes`
 

@@ -1,5 +1,11 @@
 import { z } from "zod";
-import { MAX_TRIP_DAYS, SLOT_ORDER, TRIP_HOTEL_STATUSES, parseIsoDate } from "@/lib/trip-days";
+import {
+  MAX_TRIP_DAYS,
+  SLOT_ORDER,
+  TRIP_HOTEL_STATUSES,
+  TRIP_STATUSES,
+  parseIsoDate,
+} from "@/lib/trip-days";
 
 /**
  * Trip request bodies. The server validates with these; the browser client
@@ -36,6 +42,7 @@ export const updateTripInput = z.object({
   travelers: z.number().int().min(1).max(20).nullable().optional(),
   budget: text(200),
   preferences: text(2000),
+  status: z.enum(TRIP_STATUSES).optional(),
 });
 
 const lat = z.number().min(-90).max(90).nullable().optional();

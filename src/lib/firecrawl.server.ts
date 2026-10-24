@@ -1,6 +1,7 @@
 /**
  * Firecrawl client: the `/v2/scrape` `question` format (ask one page a
- * plain-English question, used by Extracts), plus page metadata for link previews.
+ * plain-English question, used by Extracts), plus `/v2/search` and Markdown
+ * page reads used by the trip agent's research tools, and page metadata for link previews.
  *
  * Kept free of DB / framework imports so the request builder and response
  * parser can be unit-tested (scripts/firecrawl.test.mjs).
@@ -124,6 +125,101 @@ async function firecrawlPost(url: string, body: unknown, timeoutMs = TIMEOUT_MS)
 /** Ask Firecrawl a question about one page; resolves to the Markdown answer. */
 export async function askPage(req: QuestionRequest): Promise<string> {
   return parseQuestionResponse(await firecrawlPost(FIRECRAWL_SCRAPE_URL, buildQuestionBody(req)));
+}
+
+// ---------- Web search + page reading (trip agent research) ----------
+
+export const FIRECRAWL_SEARCH_URL = "https://api.firecrawl.dev/v2/search";
+/** Research calls run inside a chat turn, so they get a shorter leash. */
+const RESEARCH_TIMEOUT_MS = 45_000;
+export const MAX_SEARCH_RESULTS = 8;
+/** Page text handed to a model is capped so one page can't flood its context. */
+export const MAX_PAGE_CHARS = 12_000;
+
+export type SearchResult = { title: string; url: string; description: string };
+
+export function buildSearchBody(query: string, limit = 5) {
+  return {
+    query,
+    limit: Math.min(MAX_SEARCH_RESULTS, Math.max(1, Math.floor(limit))),
+    sources: ["web"],
+  };
+}
+
+/** Read search results; accepts the v2 `{ data: { web: [] } }` and a flat `{ data: [] }` shape. */
+export function parseSearchResponse(payload: unknown): SearchResult[] {
+  if (!payload || typeof payload !== "object") {
+    throw new FirecrawlError("Firecrawl returned an unreadable response.");
+  }
+  const body = payload as { success?: boolean; error?: unknown; data?: unknown };
+  if (body.success === false) {
+    throw new FirecrawlError(
+      typeof body.error === "string" && body.error ? body.error : "Firecrawl search failed.",
+    );
+  }
+  const data = body.data;
+  const list = Array.isArray(data)
+    ? data
+    : data && typeof data === "object" && Array.isArray((data as { web?: unknown }).web)
+      ? (data as { web: unknown[] }).web
+      : [];
+  const results: SearchResult[] = [];
+  for (const entry of list) {
+    if (!entry || typeof entry !== "object") continue;
+    const e = entry as Record<string, unknown>;
+    if (typeof e.url !== "string" || !/^https?:\/\//i.test(e.url)) continue;
+    results.push({
+      url: e.url,
+      title: typeof e.title === "string" ? e.title.slice(0, 300) : e.url,
+      description: typeof e.description === "string" ? e.description.slice(0, 600) : "",
+    });
+  }
+  return results.slice(0, MAX_SEARCH_RESULTS);
+}
+
+export function buildReadBody(url: string) {
+  return {
+    url,
+    onlyMainContent: true,
+    maxAge: DEFAULT_MAX_AGE_MS,
+    parsers: ["pdf"],
+    formats: ["markdown"],
+  };
+}
+
+/** Pull the page Markdown out of a scrape response, capped at MAX_PAGE_CHARS. */
+export function parseReadResponse(payload: unknown): { markdown: string; truncated: boolean } {
+  if (!payload || typeof payload !== "object") {
+    throw new FirecrawlError("Firecrawl returned an unreadable response.");
+  }
+  const body = payload as { success?: boolean; error?: unknown; data?: unknown };
+  if (body.success === false) {
+    throw new FirecrawlError(
+      typeof body.error === "string" && body.error
+        ? body.error
+        : "Firecrawl could not read that page.",
+    );
+  }
+  const markdown = (body.data as { markdown?: unknown } | undefined)?.markdown;
+  if (typeof markdown !== "string" || !markdown.trim()) {
+    throw new FirecrawlError("That page had no readable text.");
+  }
+  const text = markdown.trim();
+  return { markdown: text.slice(0, MAX_PAGE_CHARS), truncated: text.length > MAX_PAGE_CHARS };
+}
+
+/** Search the web through Firecrawl. */
+export async function searchWeb(query: string, limit?: number): Promise<SearchResult[]> {
+  return parseSearchResponse(
+    await firecrawlPost(FIRECRAWL_SEARCH_URL, buildSearchBody(query, limit), RESEARCH_TIMEOUT_MS),
+  );
+}
+
+/** Read one page as Markdown (Firecrawl's cached copy when under 2 days old). */
+export async function readPage(url: string): Promise<{ markdown: string; truncated: boolean }> {
+  return parseReadResponse(
+    await firecrawlPost(FIRECRAWL_SCRAPE_URL, buildReadBody(url), RESEARCH_TIMEOUT_MS),
+  );
 }
 
 export type PageMetadata = {

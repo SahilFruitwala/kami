@@ -9,6 +9,7 @@ import {
   type TripItemInput,
   type TripItemPatch,
   type TripPatch,
+  type TripStatus,
 } from "@/lib/api/trips";
 import { queryKeys } from "@/lib/query-client.ts";
 import { errorMessage } from "@/lib/errors";
@@ -21,6 +22,25 @@ export function useTrip(id: string) {
   return useQuery({ queryKey: queryKeys.trips.detail(id), queryFn: () => tripsApi.get(id) });
 }
 
+/** The agent's saved conversation; `useChat` owns it once loaded, so it never refetches. */
+export function useTripChat(id: string) {
+  return useQuery({
+    queryKey: queryKeys.trips.chat(id),
+    queryFn: () => tripsApi.chat(id),
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+  });
+}
+
+/** Reload one trip (and the list) after the agent changed it. */
+export function useRefreshTrip(id: string) {
+  const client = useQueryClient();
+  return () => {
+    void client.invalidateQueries({ queryKey: queryKeys.trips.detail(id) });
+    void client.invalidateQueries({ queryKey: queryKeys.trips.list() });
+  };
+}
+
 export function useCreateTrip() {
   const client = useQueryClient();
   return useMutation({
@@ -31,6 +51,27 @@ export function useCreateTrip() {
     },
     onError: (err) => toast.error(errorMessage(err, "Could not create that trip.")),
   });
+}
+
+/** Change or delete a trip from the list, where there is no board yet. */
+export function useTripListActions() {
+  const client = useQueryClient();
+  const refresh = () => client.invalidateQueries({ queryKey: queryKeys.trips.all });
+  const setStatus = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: TripStatus }) =>
+      tripsApi.update(id, { status }),
+    onSuccess: refresh,
+    onError: (err) => toast.error(errorMessage(err, "Could not change the status.")),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => tripsApi.remove(id),
+    onSuccess: () => {
+      toast.success("Trip deleted");
+      return refresh();
+    },
+    onError: (err) => toast.error(errorMessage(err, "Could not delete the trip.")),
+  });
+  return { setStatus, remove };
 }
 
 /**
@@ -106,6 +147,15 @@ export function useTripActions(tripId: string) {
     onError: fail("Could not pin places on the map."),
   });
 
+  const undoAgent = useMutation({
+    mutationFn: () => tripsApi.undoAgent(tripId),
+    onSuccess: (trip) => {
+      apply(trip);
+      toast.success("Restored the trip from before the agent's changes");
+    },
+    onError: fail("Could not undo the agent's changes."),
+  });
+
   const removeItem = useMutation({
     mutationFn: (itemId: string) => tripsApi.removeItem(tripId, itemId),
     onSuccess: apply,
@@ -122,6 +172,7 @@ export function useTripActions(tripId: string) {
     updateItem,
     moveItem,
     locate,
+    undoAgent,
     removeItem,
   };
 }
