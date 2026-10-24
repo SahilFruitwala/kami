@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAiStatus } from "@/hooks/use-ai.ts";
 import { useChat } from "@ai-sdk/react";
-import { useTripActions, useTripChat, useRefreshTrip } from "@/hooks/use-trips.ts";
+import {
+  useTrip,
+  useTripActions,
+  useTripChat,
+  useRefreshTrip,
+  useSetTripAgentCanUndo,
+} from "@/hooks/use-trips.ts";
 import { DefaultChatTransport, getToolName, isToolUIPart, type UIMessage } from "ai";
 import {
   AlertCircle,
@@ -18,15 +24,17 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { tripsApi, TRIP_WRITE_TOOLS, type TripChat as TripChatData } from "@/lib/api/trips";
+import { needsAgentIntake } from "@/lib/trip-agent-prompt.ts";
 import { cn } from "@/lib/utils.ts";
 import { ChatText } from "./chat-text.tsx";
+import { TripAgentIntake } from "./trip-agent-intake.tsx";
 
 const WRITE_TOOLS = new Set<string>(TRIP_WRITE_TOOLS);
 
 const EXAMPLES = [
-  "4 days here in May for two of us, around €150 a night. We love food and hate early mornings.",
-  "Find three well-reviewed hotels in a walkable area.",
-  "Plan day 1 around the best cafés and a short hike.",
+  "We're two adults, 4 nights in May, about €150 a night. Food-first, no early mornings — what else do you need before you plan?",
+  "Shortlist three hotels in a walkable area that fit our budget, then ask me which base you should plan days around.",
+  "Plan day 1 around cafés and one short hike — keep it light and ask if anything conflicts with our pace.",
 ];
 
 /** Errors from the chat route arrive as the raw `{ "error": "…" }` body. */
@@ -125,7 +133,13 @@ function ChatPanel({
   onClose: () => void;
 }) {
   const refreshTrip = useRefreshTrip(tripId);
-  const { undoAgent } = useTripActions(tripId);
+  const setCanUndo = useSetTripAgentCanUndo(tripId);
+  const tripQuery = useTrip(tripId);
+  const chatQuery = useTripChat(tripId);
+  const actions = useTripActions(tripId);
+  const { undoAgent } = actions;
+  const trip = tripQuery.data;
+  const [intakeSkipped, setIntakeSkipped] = useState(false);
 
   const transport = useMemo(
     () =>
@@ -146,15 +160,22 @@ function ChatPanel({
     transport,
   });
   const busy = status === "submitted" || status === "streaming";
+  const canUndo = chatQuery.data?.canUndo ?? data.canUndo;
 
-  // The agent's latest edits can be undone while a snapshot exists.
-  const [canUndo, setCanUndo] = useState(data.canUndo);
+  const showIntake =
+    messages.length === 0 && !intakeSkipped && trip != null && needsAgentIntake(trip);
+
   async function undo() {
     if (busy || undoAgent.isPending) return;
-    if (!window.confirm("Undo the agent's latest changes to the trip board?")) return;
+    if (
+      !window.confirm(
+        "Undo the agent's latest changes to the trip board? This only works if you have not edited the board yourself since.",
+      )
+    ) {
+      return;
+    }
     try {
       await undoAgent.mutateAsync();
-      setCanUndo(false);
     } catch {
       // The mutation already toasted the error.
     }
@@ -203,9 +224,38 @@ function ChatPanel({
       await tripsApi.clearChat(tripId);
       setMessages([]);
       applied.current = new Set();
+      setIntakeSkipped(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not clear the conversation.");
     }
+  }
+
+  if (showIntake && trip) {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col">
+        <header className="flex items-center justify-between gap-2 border-b border-line bg-paper px-4 py-2.5">
+          <p className="flex items-center gap-1.5 font-sans text-sm font-semibold text-ink">
+            <Sparkles className="size-4 text-hanko" aria-hidden="true" />
+            Before we plan
+          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            title="Close"
+            aria-label="Close"
+            className="flex size-7 items-center justify-center rounded-full text-ink-muted hover:bg-paper-warm hover:text-ink"
+          >
+            <X className="size-4" aria-hidden="true" />
+          </button>
+        </header>
+        <TripAgentIntake
+          trip={trip}
+          actions={actions}
+          onDone={() => setIntakeSkipped(true)}
+          onSkip={() => setIntakeSkipped(true)}
+        />
+      </div>
+    );
   }
 
   return (
