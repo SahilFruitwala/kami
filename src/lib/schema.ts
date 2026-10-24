@@ -582,6 +582,7 @@ export const tripHotels = pgTable(
     priceNote: text("price_note"),
     ratingNote: text("rating_note"),
     why: text("why"),
+    /** Unused: map pins were removed; column kept so existing DBs migrate cleanly. */
     lat: doublePrecision("lat"),
     lng: doublePrecision("lng"),
     status: text("status").$type<TripHotelStatus>().notNull().default("shortlisted"),
@@ -607,6 +608,7 @@ export const tripItems = pgTable(
     place: text("place"),
     url: text("url"),
     notes: text("notes"),
+    /** Unused: map pins were removed; column kept so existing DBs migrate cleanly. */
     lat: doublePrecision("lat"),
     lng: doublePrecision("lng"),
     /** "HH:MM", local to the destination. */
@@ -618,7 +620,7 @@ export const tripItems = pgTable(
   (t) => [index("trip_items_trip_idx").on(t.tripId, t.dayIndex, t.sort)],
 );
 
-/** Legacy (trip agent removed): its chat history. Nothing reads or writes this table now. */
+/** Trip agent chat history (AI SDK UIMessages). */
 export const tripMessages = pgTable(
   "trip_messages",
   {
@@ -639,7 +641,7 @@ export const tripMessages = pgTable(
   (t) => [index("trip_messages_trip_idx").on(t.tripId, t.seq)],
 );
 
-/** Legacy (trip agent removed): its undo points. Nothing reads or writes this table now. */
+/** One undo snapshot per trip for the agent's latest write turn. */
 export const tripSnapshots = pgTable("trip_snapshots", {
   tripId: text("trip_id")
     .primaryKey()

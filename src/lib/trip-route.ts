@@ -1,12 +1,7 @@
 /**
- * Timing and distance for an itinerary day: slot default times, straight-line
- * hops between located stops, a rough travel estimate, and warnings for days
- * that don't fit. Pure (no DB / framework imports) so it can be unit-tested
- * (scripts/trip-route.test.mjs).
- *
- * Travel estimates are deliberately rough: straight-line distance with a
- * detour factor, walking for short hops, an average urban speed otherwise.
- * They are hints for spotting a bad day, not directions.
+ * Timing helpers for an itinerary day: slot default times, and warnings for
+ * days that don't fit. Pure (no DB / framework imports) so it can be
+ * unit-tested (tests/trip-route.test.mjs).
  */
 import type { Slot } from "./trip-days.ts";
 
@@ -34,50 +29,13 @@ export function formatDuration(minutes: number): string {
   return m % 60 ? `${h} h ${m % 60} min` : `${h} h`;
 }
 
-export type LatLng = { lat: number; lng: number };
-
-export const hasCoords = <T extends { lat: number | null; lng: number | null }>(
-  p: T,
-): p is T & LatLng => p.lat != null && p.lng != null;
-
-/** Great-circle distance in kilometres. */
-export function haversineKm(a: LatLng, b: LatLng): number {
-  const rad = (d: number) => (d * Math.PI) / 180;
-  const dLat = rad(b.lat - a.lat);
-  const dLng = rad(b.lng - a.lng);
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
-  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(h)));
-}
-
-/** Hops up to this far (straight line) are assumed to be walked. */
-export const WALK_KM = 1.5;
-/** A hop longer than this gets a warning. */
-export const LONG_HOP_KM = 15;
-/** Planned time (activities + travel) beyond this makes a day "packed". */
+/** Planned time (activities) beyond this makes a day "packed". */
 export const BUSY_DAY_MINUTES = 12 * 60;
-
-const DETOUR = 1.3;
-const WALK_KMH = 4.5;
-const RIDE_KMH = 22;
-const RIDE_OVERHEAD_MIN = 10;
-
-export type Hop = { km: number; minutes: number; mode: "walk" | "ride" };
-
-/** Rough door-to-door estimate for a straight-line distance. */
-export function travelEstimate(km: number): Hop {
-  const road = km * DETOUR;
-  if (km <= WALK_KM)
-    return { km, minutes: Math.max(1, Math.round((road / WALK_KMH) * 60)), mode: "walk" };
-  return { km, minutes: Math.round((road / RIDE_KMH) * 60 + RIDE_OVERHEAD_MIN), mode: "ride" };
-}
 
 type DayItem = {
   id: string;
   slot: Slot;
   title: string;
-  lat: number | null;
-  lng: number | null;
   startTime: string | null;
   durationMin: number | null;
 };
@@ -97,65 +55,39 @@ export function itemTiming(item: Pick<DayItem, "slot" | "startTime" | "durationM
   };
 }
 
-/**
- * For each item (in itinerary order), the hop from the previous located stop
- * that day, or null for the first located stop and for unlocated items.
- */
-export function dayHops(items: DayItem[]): Array<Hop | null> {
-  let prev: LatLng | null = null;
-  return items.map((item) => {
-    if (!hasCoords(item)) return null;
-    const hop: Hop | null = prev ? travelEstimate(haversineKm(prev, item)) : null;
-    prev = { lat: item.lat, lng: item.lng };
-    return hop;
-  });
-}
-
-export type DayWarning = { kind: "busy" | "long-hop" | "overlap"; message: string };
+export type DayWarning = { kind: "busy" | "overlap"; message: string };
 
 /**
- * Warnings for one day: overlapping start times, long hops, and more planned
- * activity + travel than fits a day. Only explicit durations and times count
- * toward "busy" and "overlap", so a day of bare slots never warns.
+ * Warnings for one day: overlapping start times, and more planned activity
+ * than fits a day. Only explicit durations and times count toward "busy" and
+ * "overlap", so a day of bare slots never warns.
  */
 export function dayWarnings(items: DayItem[]): DayWarning[] {
   const warnings: DayWarning[] = [];
-  const hops = dayHops(items);
 
-  const travel = hops.reduce((sum, h) => sum + (h?.minutes ?? 0), 0);
   const planned = items.reduce((sum, i) => sum + (i.durationMin ?? 0), 0);
-  if (planned + travel > BUSY_DAY_MINUTES) {
+  if (planned > BUSY_DAY_MINUTES) {
     warnings.push({
       kind: "busy",
-      message: `Packed day: about ${formatDuration(planned + travel)} of plans and travel.`,
+      message: `Packed day: about ${formatDuration(planned)} of plans.`,
     });
   }
 
-  hops.forEach((hop, i) => {
-    if (hop && hop.km > LONG_HOP_KM) {
-      warnings.push({
-        kind: "long-hop",
-        message: `Long trip to “${items[i].title}”: about ${Math.round(hop.km)} km.`,
-      });
-    }
-  });
-
-  // Overlaps between consecutive timed plans, counting the travel between them.
   let last: { end: number; title: string } | null = null;
-  items.forEach((item, i) => {
+  for (const item of items) {
     const t = itemTiming(item);
-    if (!t.explicit) return;
-    if (last && t.start < last.end + (hops[i]?.minutes ?? 0)) {
+    if (!t.explicit) continue;
+    if (last && t.start < last.end) {
       warnings.push({
         kind: "overlap",
-        message: `“${item.title}” starts before “${last.title}” ends${hops[i] ? " and you get there" : ""}.`,
+        message: `“${item.title}” starts before “${last.title}” ends.`,
       });
     }
     last = {
       end: t.start + (item.durationMin ?? SLOT_DEFAULTS[item.slot].minutes),
       title: item.title,
     };
-  });
+  }
 
   return warnings;
 }

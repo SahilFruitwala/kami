@@ -45,8 +45,6 @@ export const updateTripInput = z.object({
   status: z.enum(TRIP_STATUSES).optional(),
 });
 
-const lat = z.number().min(-90).max(90).nullable().optional();
-const lng = z.number().min(-180).max(180).nullable().optional();
 const startTime = z
   .string()
   .trim()
@@ -68,8 +66,6 @@ const hotelFields = {
   priceNote: text(200),
   ratingNote: text(200),
   why: text(1000),
-  lat,
-  lng,
 };
 
 export const createHotelInput = z.object({
@@ -87,8 +83,6 @@ const itemFields = {
   place: text(200),
   url: text(2000),
   notes: text(2000),
-  lat,
-  lng,
   startTime,
   durationMin,
 };

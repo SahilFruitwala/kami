@@ -141,12 +141,6 @@ export function useTripActions(tripId: string) {
     onError: fail("Could not move that plan."),
   });
 
-  const locate = useMutation({
-    mutationFn: (skip: string[]) => tripsApi.locate(tripId, skip),
-    onSuccess: (res) => apply(res.trip),
-    onError: fail("Could not pin places on the map."),
-  });
-
   const undoAgent = useMutation({
     mutationFn: () => tripsApi.undoAgent(tripId),
     onSuccess: (trip) => {
@@ -171,7 +165,6 @@ export function useTripActions(tripId: string) {
     addItem,
     updateItem,
     moveItem,
-    locate,
     undoAgent,
     removeItem,
   };
