@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { apiHandler } from "@/server/http";
+import { afterBoardWrite } from "@/server/services/trip-board-write";
 import {
   removeTripItem,
   tripItemParams,
@@ -12,10 +13,13 @@ export const Route = createFileRoute("/api/trips/$id/items/$itemId")({
     handlers: {
       PATCH: apiHandler(
         { params: tripItemParams, body: updateItemInput },
-        ({ userId, params, body }) => updateTripItem(userId, params.id, params.itemId, body),
+        ({ userId, params, body }) =>
+          afterBoardWrite(userId, params.id, () =>
+            updateTripItem(userId, params.id, params.itemId, body),
+          ),
       ),
       DELETE: apiHandler({ params: tripItemParams }, ({ userId, params }) =>
-        removeTripItem(userId, params.id, params.itemId),
+        afterBoardWrite(userId, params.id, () => removeTripItem(userId, params.id, params.itemId)),
       ),
     },
   },
