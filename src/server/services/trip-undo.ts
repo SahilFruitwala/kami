@@ -34,6 +34,18 @@ export async function hasTripSnapshot(userId: string, tripId: string): Promise<b
   return Boolean(row);
 }
 
+/**
+ * Drop the agent undo point. Call after a person edits the board through the
+ * HTTP API so "Undo" cannot wipe their manual changes by restoring a stale
+ * pre-agent snapshot.
+ */
+export async function clearTripSnapshot(userId: string, tripId: string): Promise<void> {
+  const db = await getDb();
+  await db
+    .delete(tripSnapshots)
+    .where(and(eq(tripSnapshots.tripId, tripId), eq(tripSnapshots.userId, userId)));
+}
+
 export async function undoTripChanges(userId: string, tripId: string): Promise<Trip> {
   const db = await getDb();
   await getTrip(userId, tripId); // ownership + existence
