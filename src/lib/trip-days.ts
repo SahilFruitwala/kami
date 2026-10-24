@@ -10,6 +10,16 @@
 export const SLOT_ORDER = ["morning", "afternoon", "evening", "night"] as const;
 export type Slot = (typeof SLOT_ORDER)[number];
 
+/** Where a trip stands; set by hand, gates nothing. */
+export const TRIP_STATUSES = ["planning", "booked", "done", "archived"] as const;
+export type TripStatus = (typeof TRIP_STATUSES)[number];
+export const TRIP_STATUS_LABEL: Record<TripStatus, string> = {
+  planning: "Planning",
+  booked: "Booked",
+  done: "Done",
+  archived: "Archived",
+};
+
 export const TRIP_HOTEL_STATUSES = ["shortlisted", "chosen"] as const;
 export type TripHotelStatus = (typeof TRIP_HOTEL_STATUSES)[number];
 

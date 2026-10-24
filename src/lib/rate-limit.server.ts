@@ -23,6 +23,8 @@ export const RATE_LIMITS = {
   feeds: { limit: 60, windowSeconds: 600 },
   /** Firecrawl extract runs (each one spends paid Firecrawl credits). */
   firecrawl: { limit: 30, windowSeconds: 3600 },
+  /** Trip agent chat messages (each runs a multi-step model loop). */
+  agent: { limit: 40, windowSeconds: 3600 },
   /** Library AI calls: summaries, tags, suggestions (one model call each). */
   ai: { limit: 300, windowSeconds: 3600 },
   /** Create audio (each start can spend Deepgram credit on a whole article). */
@@ -39,7 +41,12 @@ export type RateLimitBucket = keyof typeof RATE_LIMITS;
  * become an unmetered window on someone else's bill. Everything else fails
  * open so normal reading/saving keeps working.
  */
-const FAIL_CLOSED: ReadonlySet<RateLimitBucket> = new Set(["firecrawl", "ai", "narration"]);
+const FAIL_CLOSED: ReadonlySet<RateLimitBucket> = new Set([
+  "firecrawl",
+  "ai",
+  "narration",
+  "agent",
+]);
 
 export class RateLimitError extends Error {
   readonly status = 429;

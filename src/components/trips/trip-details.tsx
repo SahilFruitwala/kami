@@ -10,10 +10,11 @@ import {
   Wallet,
 } from "lucide-react";
 import type { Trip } from "@/lib/api/trips";
-import { formatRange, MAX_TRIP_DAYS } from "@/lib/trip-days.ts";
+import { formatRange, MAX_TRIP_DAYS, TRIP_STATUS_LABEL } from "@/lib/trip-days.ts";
 import { tripToIcs } from "@/lib/trip-ics.ts";
 import { IconButton, TextArea, TextInput } from "./trip-fields.tsx";
 import { confirmAction } from "@/lib/confirm.ts";
+import { StatusSelect } from "./trip-status.tsx";
 import { FormButtons } from "./trip-board-controls.tsx";
 import { type Actions, orNull } from "./trip-board-utils.ts";
 
@@ -62,6 +63,15 @@ export function TripDetails({
             <MapPin className="size-3.5 shrink-0" aria-hidden="true" />
             {trip.destination}
           </p>
+          <div className="mt-3 flex items-center gap-2 font-sans text-xs text-ink-soft">
+            <span className="kami-label text-ink-muted">Status</span>
+            <StatusSelect
+              label={`Trip status, now ${TRIP_STATUS_LABEL[trip.status]}`}
+              value={trip.status}
+              disabled={actions.update.isPending}
+              onChange={(status) => actions.update.mutate({ status })}
+            />
+          </div>
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <IconButton

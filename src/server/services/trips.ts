@@ -20,6 +20,7 @@ import {
   type TripItemRow,
   type TripRow,
   type TripSlot,
+  type TripStatus,
 } from "@/lib/schema";
 import { uid } from "@/lib/id";
 import {
@@ -37,7 +38,9 @@ import { badRequest, notFound } from "@/server/http";
  * board always works from one fresh snapshot.
  */
 
+/** Active = every status but archived; archived trips have their own, larger cap. */
 export const MAX_TRIPS = 50;
+export const MAX_ARCHIVED_TRIPS = 200;
 export const MAX_HOTELS = 30;
 export const MAX_ITEMS = 300;
 
@@ -119,6 +122,7 @@ function toTrip(row: TripRow, hotels: TripHotelRow[], items: TripItemRow[]): Tri
     travelers: row.travelers,
     budget: row.budget,
     preferences: row.preferences,
+    status: row.status,
     createdAt: row.createdAt.getTime(),
     updatedAt: row.updatedAt.getTime(),
     hotels: hotels.map(toHotel),
@@ -237,6 +241,7 @@ export async function listTrips(userId: string): Promise<TripSummary[]> {
     destination: row.destination,
     startDate: row.startDate,
     dayCount: row.dayCount,
+    status: row.status,
     hotelCount: Number(hotelsBy.get(row.id)?.n) || 0,
     itemCount: itemsBy.get(row.id) ?? 0,
     chosenHotel: hotelsBy.get(row.id)?.chosen ?? null,
@@ -257,9 +262,9 @@ export async function createTrip(
   const [count] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(trips)
-    .where(eq(trips.userId, userId));
+    .where(and(eq(trips.userId, userId), ne(trips.status, "archived")));
   if ((count?.n ?? 0) >= MAX_TRIPS) {
-    throw badRequest(`You can keep up to ${MAX_TRIPS} trips. Delete an old one first.`);
+    throw badRequest(`You can keep up to ${MAX_TRIPS} trips. Archive or delete an old one first.`);
   }
   const startDate = input.startDate ?? null;
   const days = resolveDayCount(startDate, input.endDate, input.dayCount) ?? 3;
@@ -277,6 +282,34 @@ export async function createTrip(
   return toTrip(row, [], []);
 }
 
+/** Crossing the archive boundary checks the target group's cap; other moves never do. */
+async function assertStatusRoom(
+  db: AppDb,
+  userId: string,
+  from: TripStatus,
+  to: TripStatus,
+): Promise<void> {
+  const toArchive = to === "archived";
+  if (toArchive === (from === "archived")) return;
+  const [row] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(trips)
+    .where(
+      and(
+        eq(trips.userId, userId),
+        toArchive ? eq(trips.status, "archived") : ne(trips.status, "archived"),
+      ),
+    );
+  if (toArchive && (row?.n ?? 0) >= MAX_ARCHIVED_TRIPS) {
+    throw badRequest(
+      `You can keep up to ${MAX_ARCHIVED_TRIPS} archived trips. Delete an old archived trip first.`,
+    );
+  }
+  if (!toArchive && (row?.n ?? 0) >= MAX_TRIPS) {
+    throw badRequest(`You already have ${MAX_TRIPS} active trips. Archive or delete one first.`);
+  }
+}
+
 export async function updateTrip(
   userId: string,
   tripId: string,
@@ -286,6 +319,10 @@ export async function updateTrip(
   const current = await ownedTrip(db, userId, tripId);
   const startDate = input.startDate !== undefined ? input.startDate : current.startDate;
   const days = resolveDayCount(startDate, input.endDate, input.dayCount);
+
+  if (input.status !== undefined && input.status !== current.status) {
+    await assertStatusRoom(db, userId, current.status, input.status);
+  }
 
   if (days !== undefined && days < current.dayCount) {
     const items = await db
@@ -310,6 +347,7 @@ export async function updateTrip(
       travelers: input.travelers,
       budget: clean(input.budget),
       preferences: clean(input.preferences),
+      status: input.status,
       updatedAt: new Date(),
     })
     .where(and(eq(trips.id, tripId), eq(trips.userId, userId)))

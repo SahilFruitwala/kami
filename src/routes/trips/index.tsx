@@ -26,7 +26,7 @@ function TripsPage() {
         icon={<Plane className="size-4" aria-hidden="true" />}
         eyebrow="Route book"
         title="Your trips"
-        description="Plan a trip one piece at a time: where you stay, and what each day holds."
+        description="Plan a trip one piece at a time: where you stay, and what each day holds. Mark where it stands as you go."
       />
 
       <div className="mx-auto w-full max-w-[1200px] px-4 pt-8 pb-10 sm:px-8">

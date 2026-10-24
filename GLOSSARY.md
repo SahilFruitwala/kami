@@ -44,6 +44,20 @@ _Avoid_: Hold, lock
 The money left in the operator's Deepgram account, which pays for every narration regardless of who asked for it. Never shown in the app.
 _Avoid_: Credits, remaining credit
 
+### Trips
+
+**Trip**:
+A private plan for one journey to a destination, made of a hotel shortlist and a day-by-day itinerary. Stands alone: it never refers to saved articles.
+_Avoid_: Journey, vacation, itinerary (the itinerary is only one part of a trip)
+
+**Trip status**:
+Where a trip stands, set by hand by its owner: planning, booked, done or archived. Never changes on its own and is separate from the trip's dates.
+_Avoid_: Stage, state, phase
+
+**Trip agent**:
+The optional planning helper chatted with on a trip's board; it plans hotels and days but never sets a trip's status. Available only when AI is configured.
+_Avoid_: Trip assistant, chatbot, copilot
+
 ### People
 
 **Operator**:
