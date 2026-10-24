@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   buildTripInstructions,
+  needsAgentIntake,
   readableUrlKey,
   readableUrlsIn,
+  tripAgentPromptContracts,
   tripPlanningGaps,
   tripSnapshot,
 } from "../src/lib/trip-agent-prompt.ts";
@@ -92,19 +94,17 @@ describe("trip snapshot", () => {
   it("builds instructions with clarify, thrifty research, and plan quality", () => {
     const withResearch = buildTripInstructions(trip, { today: "2026-10-08", research: true });
     assert.match(withResearch, /Today is 2026-10-08\./);
-    assert.match(withResearch, /Clarify/);
-    assert.match(withResearch, /highest-leverage/);
-    assert.match(withResearch, /Research \(thrifty\)/);
-    assert.match(withResearch, /Prefer web_search/);
-    assert.match(withResearch, /2–4 real stops/);
-    assert.match(withResearch, /web_search/);
-    assert.match(withResearch, /untrusted data/);
+    assert.deepEqual(tripAgentPromptContracts(withResearch), {
+      clarifyFirst: true,
+      thriftyResearch: true,
+      planQuality: true,
+      noMapPins: true,
+    });
     assert.match(withResearch, /"destination":"Lisbon, Portugal"/);
-    assert.doesNotMatch(withResearch, /locate_places|lat\/lng|Nominatim/i);
 
     const without = buildTripInstructions(trip, { today: "2026-10-08", research: false });
+    assert.equal(tripAgentPromptContracts(without).thriftyResearch, true);
     assert.match(without, /Web research is not available/);
-    assert.match(without, /Clarify/);
     assert.doesNotMatch(without, /use web_search/);
   });
 });
@@ -134,6 +134,16 @@ describe("tripPlanningGaps", () => {
 
   it("is empty when the board already has the basics", () => {
     assert.deepEqual(tripPlanningGaps(trip), []);
+    assert.equal(needsAgentIntake(trip), false);
+  });
+
+  it("needs intake when dates, budget, or pace are missing", () => {
+    assert.equal(needsAgentIntake({ startDate: null, budget: "x", preferences: "y" }), true);
+    assert.equal(needsAgentIntake({ startDate: "2027-01-01", budget: "", preferences: "y" }), true);
+    assert.equal(
+      needsAgentIntake({ startDate: "2027-01-01", budget: "x", preferences: "  " }),
+      true,
+    );
   });
 
   it("surfaces open decisions inside the instructions", () => {

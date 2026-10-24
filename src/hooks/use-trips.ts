@@ -41,6 +41,17 @@ export function useRefreshTrip(id: string) {
   };
 }
 
+/** Toggle the chat "Undo" affordance after an agent write (or clear it). */
+export function useSetTripAgentCanUndo(tripId: string) {
+  const client = useQueryClient();
+  return (canUndo: boolean) => {
+    client.setQueryData(queryKeys.trips.chat(tripId), (prev: unknown) => {
+      if (!prev || typeof prev !== "object") return prev;
+      return { ...prev, canUndo };
+    });
+  };
+}
+
 export function useCreateTrip() {
   const client = useQueryClient();
   return useMutation({
@@ -84,11 +95,19 @@ export function useTripActions(tripId: string) {
     client.setQueryData(queryKeys.trips.detail(trip.id), trip);
     void client.invalidateQueries({ queryKey: queryKeys.trips.list() });
   };
+  /** Board edits clear the agent undo snapshot on the server; drop the UI flag too. */
+  const applyBoardEdit = (trip: Trip) => {
+    apply(trip);
+    client.setQueryData(queryKeys.trips.chat(tripId), (prev: unknown) => {
+      if (!prev || typeof prev !== "object") return prev;
+      return { ...prev, canUndo: false };
+    });
+  };
   const fail = (fallback: string) => (err: unknown) => toast.error(errorMessage(err, fallback));
 
   const update = useMutation({
     mutationFn: (patch: TripPatch) => tripsApi.update(tripId, patch),
-    onSuccess: apply,
+    onSuccess: applyBoardEdit,
     onError: fail("Could not update the trip."),
   });
 
@@ -104,47 +123,47 @@ export function useTripActions(tripId: string) {
 
   const addHotel = useMutation({
     mutationFn: (input: TripHotelInput) => tripsApi.addHotel(tripId, input),
-    onSuccess: apply,
+    onSuccess: applyBoardEdit,
     onError: fail("Could not add that hotel."),
   });
 
   const updateHotel = useMutation({
     mutationFn: ({ hotelId, patch }: { hotelId: string; patch: TripHotelPatch }) =>
       tripsApi.updateHotel(tripId, hotelId, patch),
-    onSuccess: apply,
+    onSuccess: applyBoardEdit,
     onError: fail("Could not update that hotel."),
   });
 
   const removeHotel = useMutation({
     mutationFn: (hotelId: string) => tripsApi.removeHotel(tripId, hotelId),
-    onSuccess: apply,
+    onSuccess: applyBoardEdit,
     onError: fail("Could not remove that hotel."),
   });
 
   const addItem = useMutation({
     mutationFn: (input: TripItemInput) => tripsApi.addItem(tripId, input),
-    onSuccess: apply,
+    onSuccess: applyBoardEdit,
     onError: fail("Could not add that plan."),
   });
 
   const updateItem = useMutation({
     mutationFn: ({ itemId, patch }: { itemId: string; patch: TripItemPatch }) =>
       tripsApi.updateItem(tripId, itemId, patch),
-    onSuccess: apply,
+    onSuccess: applyBoardEdit,
     onError: fail("Could not update that plan."),
   });
 
   const moveItem = useMutation({
     mutationFn: ({ itemId, direction }: { itemId: string; direction: "up" | "down" }) =>
       tripsApi.moveItem(tripId, itemId, direction),
-    onSuccess: apply,
+    onSuccess: applyBoardEdit,
     onError: fail("Could not move that plan."),
   });
 
   const undoAgent = useMutation({
     mutationFn: () => tripsApi.undoAgent(tripId),
     onSuccess: (trip) => {
-      apply(trip);
+      applyBoardEdit(trip);
       toast.success("Restored the trip from before the agent's changes");
     },
     onError: fail("Could not undo the agent's changes."),
@@ -152,7 +171,7 @@ export function useTripActions(tripId: string) {
 
   const removeItem = useMutation({
     mutationFn: (itemId: string) => tripsApi.removeItem(tripId, itemId),
-    onSuccess: apply,
+    onSuccess: applyBoardEdit,
     onError: fail("Could not remove that plan."),
   });
 

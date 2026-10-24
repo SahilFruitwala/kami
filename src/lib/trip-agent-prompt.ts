@@ -56,6 +56,33 @@ export function tripPlanningGaps(trip: SnapshotTrip): string[] {
   return gaps;
 }
 
+/**
+ * Whether the guided intake sheet should run before chat: dates, budget, or
+ * pace/preferences are still blank. Hotels and empty days stay for the agent.
+ */
+export function needsAgentIntake(
+  trip: Pick<SnapshotTrip, "startDate" | "budget" | "preferences">,
+): boolean {
+  return !trip.startDate || !trip.budget?.trim() || !trip.preferences?.trim();
+}
+
+/** Contracts every agent system prompt must keep (used by fixture tests). */
+export function tripAgentPromptContracts(instructions: string): {
+  clarifyFirst: boolean;
+  thriftyResearch: boolean;
+  planQuality: boolean;
+  noMapPins: boolean;
+} {
+  return {
+    clarifyFirst: /Clarify/i.test(instructions) && /highest-leverage/i.test(instructions),
+    thriftyResearch:
+      /Research \(thrifty\)/i.test(instructions) ||
+      /Web research is not available/i.test(instructions),
+    planQuality: /2–4 real stops/i.test(instructions) && /neighbourhood/i.test(instructions),
+    noMapPins: !/locate_places|Nominatim|lat\/lng/i.test(instructions),
+  };
+}
+
 /** What the model sees of the trip: ids for edits, 1-based day numbers, no timestamps. */
 export function tripSnapshot(trip: SnapshotTrip) {
   return {
