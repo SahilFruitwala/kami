@@ -24,9 +24,9 @@ import { ChatText } from "./chat-text.tsx";
 const WRITE_TOOLS = new Set<string>(TRIP_WRITE_TOOLS);
 
 const EXAMPLES = [
-  "4 days here in May for two of us, around €150 a night. We love food and hate early mornings.",
-  "Find three well-reviewed hotels in a walkable area.",
-  "Plan day 1 around the best cafés and a short hike.",
+  "We're two adults, 4 nights in May, about €150 a night. Food-first, no early mornings — what else do you need before you plan?",
+  "Shortlist three hotels in a walkable area that fit our budget, then ask me which base you should plan days around.",
+  "Plan day 1 around cafés and one short hike — keep it light and ask if anything conflicts with our pace.",
 ];
 
 /** Errors from the chat route arrive as the raw `{ "error": "…" }` body. */
