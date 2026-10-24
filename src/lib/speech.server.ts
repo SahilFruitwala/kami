@@ -1,18 +1,20 @@
 import { createDeepgram } from "@ai-sdk/deepgram";
 import { APICallError, RetryError, generateSpeech, type SpeechModel } from "ai";
+import { DEFAULT_NARRATION_VOICE, isNarrationVoice } from "./narration-voices.ts";
 
 /**
  * Speaking one Narration part through the AI SDK's Deepgram provider.
- * One fixed voice (Aura-2 Thalia), MP3 at 48 kbps, one SDK retry for
+ * The voice is the narration's stored Aura-2 model (Thalia by default), MP3 at 48 kbps, one SDK retry for
  * transient errors. Failures are classified so the narration run knows
  * whether to pause for good (bad key, no funds) or try again later.
  * Tested in scripts/narration-io.test.mjs with a fake speech model.
  */
 
-export const NARRATION_MODEL = "aura-2-thalia-en";
+export const NARRATION_MODEL = DEFAULT_NARRATION_VOICE;
 
-export function deepgramSpeechModel(apiKey: string): SpeechModel {
-  return createDeepgram({ apiKey }).speech(NARRATION_MODEL);
+/** `voice` is a stored model id; anything unknown falls back to the default. */
+export function deepgramSpeechModel(apiKey: string, voice?: string): SpeechModel {
+  return createDeepgram({ apiKey }).speech(isNarrationVoice(voice) ? voice : NARRATION_MODEL);
 }
 
 export type SpokenPart = {

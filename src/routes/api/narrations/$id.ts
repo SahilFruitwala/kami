@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { startBody } from "@/lib/narration-voices";
 import { apiHandler } from "@/server/http";
 import { articleIdParams } from "@/server/services/library";
 import { deleteNarration, getNarration, startNarration } from "@/server/services/narration";
@@ -14,8 +15,9 @@ export const Route = createFileRoute("/api/narrations/$id")({
       ),
       // Create audio: create, resume or re-create. Refusals come back as data.
       POST: apiHandler(
-        { params: articleIdParams, rateLimit: "narration" },
-        ({ userId, params, request }) => startNarration(userId, params.id, origin(request)),
+        { params: articleIdParams, body: startBody, rateLimit: "narration" },
+        ({ userId, params, body, request }) =>
+          startNarration(userId, params.id, origin(request), body.voice),
       ),
       DELETE: apiHandler({ params: articleIdParams }, ({ userId, params }) =>
         deleteNarration(userId, params.id),
