@@ -87,8 +87,6 @@ function toHotel(row: TripHotelRow): TripHotel {
     priceNote: row.priceNote,
     ratingNote: row.ratingNote,
     why: row.why,
-    lat: row.lat,
-    lng: row.lng,
     status: row.status,
     createdAt: row.createdAt.getTime(),
   };
@@ -103,8 +101,6 @@ function toItem(row: TripItemRow): TripItem {
     place: row.place,
     url: row.url,
     notes: row.notes,
-    lat: row.lat,
-    lng: row.lng,
     startTime: row.startTime,
     durationMin: row.durationMin,
     sort: row.sort,
@@ -129,34 +125,6 @@ function toTrip(row: TripRow, hotels: TripHotelRow[], items: TripItemRow[]): Tri
     items: items.map(toItem).sort(compareItems),
   };
 }
-
-/**
- * Coordinates to write for a patch: explicit ones win. A plan whose place
- * text changes without new coordinates loses its old pin, so the map never
- * shows the previous place.
- */
-function coords(
-  input: { lat?: number | null; lng?: number | null; place?: string | null },
-  currentPlace?: string | null,
-): { lat?: number | null; lng?: number | null } {
-  if (input.lat !== undefined || input.lng !== undefined) {
-    if ((input.lat == null) !== (input.lng == null)) {
-      throw badRequest("Give both latitude and longitude, or neither.");
-    }
-    return { lat: input.lat ?? null, lng: input.lng ?? null };
-  }
-  const place = clean(input.place);
-  if (currentPlace !== undefined && place !== undefined && place !== currentPlace) {
-    return { lat: null, lng: null };
-  }
-  return {};
-}
-
-/** Coordinates for a new row (validated as a pair). */
-const pinned = (input: { lat?: number | null; lng?: number | null }) => {
-  const c = coords(input);
-  return { lat: c.lat ?? null, lng: c.lng ?? null };
-};
 
 /** Resolve the trip length from an explicit count or an end date. */
 function resolveDayCount(
@@ -394,7 +362,8 @@ export async function addTripHotel(
     priceNote: clean(input.priceNote) ?? null,
     ratingNote: clean(input.ratingNote) ?? null,
     why: clean(input.why) ?? null,
-    ...pinned(input),
+    lat: null,
+    lng: null,
     sort: (stats?.maxSort ?? -1) + 1,
   });
   return touchAndLoad(db, userId, tripId);
@@ -436,7 +405,6 @@ export async function updateTripHotel(
         priceNote: clean(input.priceNote),
         ratingNote: clean(input.ratingNote),
         why: clean(input.why),
-        ...coords(input),
         status: input.status,
       })
       .where(scope)
@@ -507,7 +475,8 @@ export async function addTripItem(
     place: clean(input.place) ?? null,
     url: cleanUrl(input.url) ?? null,
     notes: clean(input.notes) ?? null,
-    ...pinned(input),
+    lat: null,
+    lng: null,
     startTime: input.startTime ?? null,
     durationMin: input.durationMin ?? null,
     sort: await nextSort(db, tripId, input.dayIndex, input.slot),
@@ -546,7 +515,6 @@ export async function updateTripItem(
       place: clean(input.place),
       url: cleanUrl(input.url),
       notes: clean(input.notes),
-      ...coords(input, current.place),
       startTime: input.startTime,
       durationMin: input.durationMin,
       sort: moved ? await nextSort(db, tripId, dayIndex, slot) : undefined,
@@ -647,7 +615,8 @@ export async function replaceTripDay(
     place: clean(item.place) ?? null,
     url: cleanUrl(item.url) ?? null,
     notes: clean(item.notes) ?? null,
-    ...pinned(item),
+    lat: null,
+    lng: null,
     startTime: item.startTime ?? null,
     durationMin: item.durationMin ?? null,
     sort: i,

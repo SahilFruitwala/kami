@@ -51,11 +51,10 @@ describe("trip snapshot", () => {
       status: "chosen",
       price: "≈ €160",
       url: null,
-      pinned: false,
     });
   });
 
-  it("adds times, pins, distances and day warnings", () => {
+  it("adds times and day warnings without map pins", () => {
     const snap = tripSnapshot({
       ...trip,
       items: [
@@ -66,8 +65,6 @@ describe("trip snapshot", () => {
           sort: 0,
           title: "Rossio",
           place: "Rossio",
-          lat: 38.7139,
-          lng: -9.1394,
           startTime: "10:00",
           durationMin: 60,
         },
@@ -76,21 +73,19 @@ describe("trip snapshot", () => {
           dayIndex: 0,
           slot: "afternoon",
           sort: 0,
-          title: "Pena Palace",
-          place: "Sintra",
-          lat: 38.7876,
-          lng: -9.3906,
+          title: "Lunch",
+          place: null,
+          startTime: "10:15",
+          durationMin: 45,
         },
       ],
     });
     const [a, b] = snap.itinerary[0].items;
-    assert.deepEqual(
-      [a.start, a.minutes, a.pinned, a.kmFromPrevious],
-      ["10:00", 60, true, undefined],
-    );
-    assert.ok(b.kmFromPrevious > 20 && b.kmFromPrevious < 25);
-    assert.match(snap.itinerary[0].warnings[0], /Long trip to “Pena Palace”/);
-    assert.equal(snap.itinerary[1].warnings, undefined);
+    assert.deepEqual([a.start, a.minutes, a.place], ["10:00", 60, "Rossio"]);
+    assert.equal(b.start, "10:15");
+    assert.match(snap.itinerary[0].warnings[0], /Lunch.*Rossio/);
+    assert.equal(a.pinned, undefined);
+    assert.equal(a.kmFromPrevious, undefined);
   });
 
   it("builds instructions with today, the trip, and research rules", () => {
@@ -99,6 +94,7 @@ describe("trip snapshot", () => {
     assert.match(withResearch, /web_search/);
     assert.match(withResearch, /untrusted data/);
     assert.match(withResearch, /"destination":"Lisbon, Portugal"/);
+    assert.doesNotMatch(withResearch, /locate_places|lat\/lng|Nominatim/i);
 
     const without = buildTripInstructions(trip, { today: "2026-10-08", research: false });
     assert.match(without, /Web research is not available/);

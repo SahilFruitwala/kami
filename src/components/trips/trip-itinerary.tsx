@@ -1,45 +1,19 @@
-import { useRef, useState } from "react";
-import {
-  AlertTriangle,
-  ArrowDown,
-  ArrowUp,
-  Footprints,
-  Map as MapIcon,
-  MapPin,
-  PencilLine,
-  Plus,
-  TramFront,
-  Trash2,
-} from "lucide-react";
+import { useState } from "react";
+import { AlertTriangle, ArrowDown, ArrowUp, MapPin, PencilLine, Plus, Trash2 } from "lucide-react";
 import type { Trip, TripItem } from "@/lib/api/trips";
 import { dayDate, formatDay, groupByDay } from "@/lib/trip-days.ts";
 import { dayColor } from "@/lib/trip-colors.ts";
-import {
-  dayHops,
-  dayWarnings,
-  formatDuration,
-  hasCoords,
-  itemTiming,
-  type Hop,
-} from "@/lib/trip-route.ts";
+import { dayWarnings, formatDuration, itemTiming } from "@/lib/trip-route.ts";
 import { cn } from "@/lib/utils.ts";
 import { IconButton } from "./trip-fields.tsx";
 import { ToggleButton, SourceLink } from "./trip-board-controls.tsx";
 import { type Actions, SLOT_LABEL } from "./trip-board-utils.ts";
 import { ItemForm } from "./trip-item-form.tsx";
-import { type MapSelection, TripMapPanel } from "./trip-map-panel.tsx";
 
 export function Itinerary({ trip, actions }: { trip: Trip; actions: Actions }) {
   const days = groupByDay(trip.items, trip.dayCount);
   const [open, setOpen] = useState(true);
-  const [mapDay, setMapDay] = useState<MapSelection>("all");
-  const mapRef = useRef<HTMLElement>(null);
   const bodyId = `trip-${trip.id}-itinerary`;
-
-  function showDayOnMap(index: number) {
-    setMapDay(index);
-    mapRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }
 
   return (
     <section aria-label="Itinerary" className="space-y-4">
@@ -54,24 +28,9 @@ export function Itinerary({ trip, actions }: { trip: Trip; actions: Actions }) {
         </span>
       </ToggleButton>
       <div id={bodyId} hidden={!open} className="space-y-4">
-        <TripMapPanel
-          ref={mapRef}
-          trip={trip}
-          days={days}
-          actions={actions}
-          selected={mapDay}
-          onSelect={setMapDay}
-        />
         <ol className="space-y-4">
           {days.map((items, index) => (
-            <Day
-              key={index}
-              trip={trip}
-              index={index}
-              items={items}
-              actions={actions}
-              onShowOnMap={() => showDayOnMap(index)}
-            />
+            <Day key={index} trip={trip} index={index} items={items} actions={actions} />
           ))}
         </ol>
       </div>
@@ -84,21 +43,17 @@ export function Day({
   index,
   items,
   actions,
-  onShowOnMap,
 }: {
   trip: Trip;
   index: number;
   items: TripItem[];
   actions: Actions;
-  onShowOnMap: () => void;
 }) {
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState(true);
   const date = dayDate(trip.startDate, index);
   const bodyId = `trip-${trip.id}-day-${index}`;
-  const hops = dayHops(items);
   const warnings = dayWarnings(items);
-  const pinned = items.some(hasCoords);
   const color = dayColor(index);
 
   return (
@@ -124,16 +79,6 @@ export function Day({
           </span>
         </ToggleButton>
         <div className="flex items-center gap-3">
-          {pinned ? (
-            <button
-              type="button"
-              onClick={onShowOnMap}
-              className="flex items-center gap-1 font-sans text-xs text-ink-soft hover:text-hanko"
-            >
-              <MapIcon className="size-3.5" aria-hidden="true" />
-              Show on map
-            </button>
-          ) : null}
           {!adding ? (
             <button
               type="button"
@@ -175,8 +120,6 @@ export function Day({
                 actions={actions}
                 canMoveUp={items[i - 1]?.slot === item.slot}
                 canMoveDown={items[i + 1]?.slot === item.slot}
-                pin={hasCoords(item) ? { number: i + 1, color } : null}
-                hop={hops[i]}
               />
             ))}
           </ul>
@@ -202,18 +145,12 @@ function ItemRow({
   actions,
   canMoveUp,
   canMoveDown,
-  pin,
-  hop,
 }: {
   trip: Trip;
   item: TripItem;
   actions: Actions;
   canMoveUp: boolean;
   canMoveDown: boolean;
-  /** Number and color shown on the trip map, or null when the plan has no pin. */
-  pin: { number: number; color: { fill: string; ink: string } } | null;
-  /** Travel from the previous pinned stop. */
-  hop: Hop | null;
 }) {
   const [editing, setEditing] = useState(false);
   const timing = itemTiming(item);
@@ -243,19 +180,7 @@ function ItemRow({
         {item.durationMin ? <span>{formatDuration(item.durationMin)}</span> : null}
       </span>
       <div className="min-w-0 space-y-0.5">
-        {hop ? <HopHint hop={hop} /> : null}
-        <p className="flex items-start gap-1.5 font-sans text-sm font-semibold break-words text-ink">
-          {pin ? (
-            <span
-              className="mt-px inline-flex size-4 shrink-0 items-center justify-center rounded-full text-[9px]"
-              style={{ background: pin.color.fill, color: pin.color.ink }}
-              title="Pinned on the trip map"
-            >
-              {pin.number}
-            </span>
-          ) : null}
-          <span className="min-w-0">{item.title}</span>
-        </p>
+        <p className="font-sans text-sm font-semibold break-words text-ink">{item.title}</p>
         {item.place ? (
           <p className="flex items-center gap-1 font-sans text-xs text-ink-soft">
             <MapPin className="size-3 shrink-0" aria-hidden="true" />
@@ -300,19 +225,5 @@ function ItemRow({
         </IconButton>
       </div>
     </li>
-  );
-}
-
-function HopHint({ hop }: { hop: Hop }) {
-  const Icon = hop.mode === "walk" ? Footprints : TramFront;
-  const km = hop.km < 1 ? `${Math.round(hop.km * 1000)} m` : `${hop.km.toFixed(1)} km`;
-  return (
-    <p
-      className="flex items-center gap-1 font-sans text-[11px] text-ink-muted"
-      title="Straight-line distance from the previous pinned stop, with a rough travel time"
-    >
-      <Icon className="size-3 shrink-0" aria-hidden="true" />
-      {km}, ~{formatDuration(hop.minutes)} {hop.mode === "walk" ? "walk" : "by transit or car"}
-    </p>
   );
 }

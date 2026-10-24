@@ -174,6 +174,5 @@ Owner-only (404 for anyone else). `POST /api/narrations/run` is internal: it aut
 | `PATCH`  | `/api/trips/:id/items/:itemId`      | `src/routes/api/trips/$id/items/$itemId.ts`      |
 | `DELETE` | `/api/trips/:id/items/:itemId`      | `src/routes/api/trips/$id/items/$itemId.ts`      |
 | `POST`   | `/api/trips/:id/items/:itemId/move` | `src/routes/api/trips/$id/items/$itemId/move.ts` |
-| `POST`   | `/api/trips/:id/locate`             | `src/routes/api/trips/$id/locate.ts`             |
 | `GET`    | `/api/trips`                        | `src/routes/api/trips/index.ts`                  |
 | `POST`   | `/api/trips`                        | `src/routes/api/trips/index.ts`                  |

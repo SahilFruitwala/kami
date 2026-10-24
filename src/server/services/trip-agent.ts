@@ -181,18 +181,6 @@ const slot = z.enum(TRIP_SLOTS);
 const optionalText = (max: number, description: string) =>
   z.string().max(max).optional().describe(description);
 
-const latField = z
-  .number()
-  .min(-90)
-  .max(90)
-  .optional()
-  .describe("Latitude, only if a source gives it");
-const lngField = z
-  .number()
-  .min(-180)
-  .max(180)
-  .optional()
-  .describe("Longitude, only if a source gives it");
 const startTimeField = z
   .string()
   .optional()
@@ -301,8 +289,6 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget, reada
         priceNote: optionalText(200, 'e.g. "≈ €140/night (seen on a booking site)"'),
         ratingNote: optionalText(200, 'e.g. "9.1 · 800 reviews"'),
         why: optionalText(1000, "One-line reason it fits this trip"),
-        lat: latField,
-        lng: lngField,
       }),
       execute: (input) =>
         attemptWrite(async () =>
@@ -321,8 +307,6 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget, reada
         priceNote: optionalText(200, "Price note"),
         ratingNote: optionalText(200, "Rating note"),
         why: optionalText(1000, "Reason it fits"),
-        lat: latField,
-        lng: lngField,
         status: z.enum(["shortlisted", "chosen"]).optional(),
       }),
       execute: ({ hotelId, ...patch }) =>
@@ -353,8 +337,6 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget, reada
               notes: optionalText(2000, "Practical notes: hours, booking, transport"),
               startTime: startTimeField,
               durationMin: durationField,
-              lat: latField,
-              lng: lngField,
             }),
           )
           .max(20),
@@ -382,8 +364,6 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget, reada
         notes: optionalText(2000, "Practical notes"),
         startTime: startTimeField,
         durationMin: durationField,
-        lat: latField,
-        lng: lngField,
       }),
       execute: ({ day, ...item }) =>
         attemptWrite(async () =>
@@ -409,8 +389,6 @@ function tripTools(userId: string, tripId: string, budget: ResearchBudget, reada
         notes: optionalText(2000, "Practical notes"),
         startTime: startTimeField,
         durationMin: durationField,
-        lat: latField,
-        lng: lngField,
       }),
       execute: ({ itemId, day, ...patch }) =>
         attemptWrite(async () =>
