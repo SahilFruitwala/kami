@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useAiStatus } from "@/hooks/use-ai.ts";
+import { readVoice } from "@/lib/narration-voices";
 import { narrationApi } from "@/lib/api/narration";
 import type { Refusal } from "@/lib/narration-engine";
 import type { LibraryItem } from "@/lib/library-item";
@@ -28,7 +29,7 @@ export function useNarration(item: LibraryItem) {
   });
 
   const start = useMutation({
-    mutationFn: () => narrationApi.start(item.id),
+    mutationFn: () => narrationApi.start(item.id, readVoice()),
     onSuccess: (result) => {
       void client.invalidateQueries({ queryKey: queryKeys.narration.all });
       if (result.ok) {

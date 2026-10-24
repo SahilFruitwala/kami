@@ -1,5 +1,6 @@
 import { http, seg } from "./client";
 import type { AllowanceEntry } from "@/lib/allowance";
+import type { NarrationVoiceId } from "@/lib/narration-voices";
 import type { NarrationState, Refusal } from "@/lib/narration-engine";
 
 /** The caller's narration allowance (never the Deepgram balance). */
@@ -22,6 +23,8 @@ export type NarrationView = {
   scriptChars: number;
   /** The article's text changed since this audio was made. */
   stale: boolean;
+  /** The voice it was narrated with. */
+  voice: NarrationVoiceId;
   durationSeconds: number | null;
   /** Where the owner stopped listening. */
   positionSeconds: number;
@@ -39,8 +42,8 @@ export const narrationApi = {
   get: (articleId: string) => http.get<NarrationView | null>(`/api/narrations/${seg(articleId)}`),
 
   /** Create, resume or re-create (when stale) the article's narration. */
-  start: (articleId: string) =>
-    http.post<StartNarrationResult>(`/api/narrations/${seg(articleId)}`),
+  start: (articleId: string, voice?: NarrationVoiceId) =>
+    http.post<StartNarrationResult>(`/api/narrations/${seg(articleId)}`, { voice }),
 
   remove: (articleId: string) => http.delete<void>(`/api/narrations/${seg(articleId)}`),
 

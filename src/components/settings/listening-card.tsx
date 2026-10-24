@@ -1,3 +1,11 @@
+import { useState } from "react";
+import { cn } from "@/lib/utils.ts";
+import {
+  NARRATION_VOICES,
+  readVoice,
+  saveVoice,
+  type NarrationVoiceId,
+} from "@/lib/narration-voices";
 import { Card, FieldLabel } from "@/components/settings/settings-ui.tsx";
 import { longArticlesEstimate, type AllowanceEntry } from "@/lib/allowance";
 import { useAllowance } from "@/hooks/use-narration.ts";
@@ -17,6 +25,7 @@ const ENTRY_LABEL: Record<AllowanceEntry["kind"], string> = {
  */
 export function ListeningCard() {
   const view = useAllowance().data;
+  const [voice, setVoice] = useState<NarrationVoiceId>(readVoice);
   if (!view?.enabled) return null;
 
   return (
@@ -25,6 +34,40 @@ export function ListeningCard() {
       title="Listening"
       copy="Articles can be narrated aloud. Each narration spends characters from your allowance, about one for every letter read."
     >
+      <div>
+        <FieldLabel>Voice</FieldLabel>
+        <div
+          className="mt-2 grid max-w-lg gap-2 min-[420px]:grid-cols-2"
+          role="group"
+          aria-label="Narration voice"
+        >
+          {NARRATION_VOICES.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              aria-pressed={voice === v.id}
+              onClick={() => {
+                setVoice(v.id);
+                saveVoice(v.id);
+              }}
+              className={cn(
+                "rounded-lg px-3 py-2.5 text-left transition-colors",
+                voice === v.id
+                  ? "bg-paper-warm shadow-xs ring-1 ring-hanko/40"
+                  : "bg-bg/60 hover:bg-paper-warm/70",
+              )}
+            >
+              <span className="block font-sans text-sm font-medium text-ink">
+                {v.name} <span className="text-ink-muted">· {v.accent}</span>
+              </span>
+              <span className="block font-sans text-[11px] text-ink-muted">{v.note}</span>
+            </button>
+          ))}
+        </div>
+        <p className="mt-2 font-body text-sm text-ink-muted">
+          Used for audio you create from now on. Existing audio keeps its voice.
+        </p>
+      </div>
       <div className="flex flex-wrap gap-x-10 gap-y-4">
         <div>
           <FieldLabel>Available</FieldLabel>

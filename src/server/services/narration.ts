@@ -34,11 +34,11 @@ import { createR2Store } from "@/lib/r2.server.ts";
 import { isUniqueViolation } from "@/lib/shelves-db.server.ts";
 import { articles, narrations, r2Orphans } from "@/lib/schema";
 import {
-  NARRATION_MODEL,
-  SpeechError,
-  deepgramSpeechModel,
-  speakPart,
-} from "@/lib/speech.server.ts";
+  DEFAULT_NARRATION_VOICE,
+  isNarrationVoice,
+  type NarrationVoiceId,
+} from "@/lib/narration-voices.ts";
+import { SpeechError, deepgramSpeechModel, speakPart } from "@/lib/speech.server.ts";
 import { asTidyState } from "@/lib/tidy-state.ts";
 import { runInBackground } from "@/server/background";
 import { HttpError, notFound } from "@/server/http";
@@ -92,6 +92,7 @@ function toView(row: Row, currentHash: string | null): NarrationView {
     partsTotal: row.parts.length,
     scriptChars: row.reservedChars,
     stale: currentHash !== null && currentHash !== row.contentHash,
+    voice: isNarrationVoice(row.model) ? row.model : DEFAULT_NARRATION_VOICE,
     durationSeconds: row.durationSeconds,
     positionSeconds: row.positionSeconds,
     createdAt: row.createdAt.getTime(),
@@ -183,6 +184,7 @@ export async function startNarration(
   userId: string,
   articleId: string,
   origin: string,
+  voice: NarrationVoiceId = DEFAULT_NARRATION_VOICE,
 ): Promise<StartNarrationResult> {
   const config = requireConfig();
   runInBackground("narration-orphans", () => sweepOrphans(storeFor(config)));
@@ -245,7 +247,7 @@ export async function startNarration(
           articleId,
           userId,
           state: "queued",
-          model: NARRATION_MODEL,
+          model: voice,
           contentHash: currentHash,
           parts: script.parts,
           reservedChars: script.chars,
@@ -415,7 +417,6 @@ async function runNarration(narrationId: string, origin: string): Promise<void> 
   const runId = randomUUID();
   const db = await getDb();
   const store = storeFor(config);
-  const model = deepgramSpeechModel(config.deepgramApiKey);
 
   // Claim: only an active narration whose lease is free, expired or ours.
   const now = new Date();
@@ -436,6 +437,7 @@ async function runNarration(narrationId: string, origin: string): Promise<void> 
     )
     .returning();
   if (!claimed) return;
+  const model = deepgramSpeechModel(config.deepgramApiKey, claimed.model);
 
   let row = claimed;
   let n = applyEvent(toEngine(row), { type: "claimed", runId, now: now.getTime() });
