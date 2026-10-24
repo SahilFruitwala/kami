@@ -33,8 +33,7 @@ export type NarrationView = {
 
 /** Create audio either starts (or reports) a narration, or says why it can't. */
 export type StartNarrationResult =
-  | { ok: true; narration: NarrationView }
-  | { ok: false; refusal: Refusal };
+  { ok: true; narration: NarrationView } | { ok: false; refusal: Refusal };
 
 export const narrationApi = {
   allowance: () => http.get<AllowanceView>("/api/allowance"),
