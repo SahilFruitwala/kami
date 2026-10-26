@@ -46,22 +46,22 @@ embedded fallback.
 
 ## Environment variables
 
-| Variable                                              | Required            | Purpose                                                                                                                                   |
-| ----------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                        | Prod: yes           | Postgres connection string (required)                                                                                                     |
-| `VITE_AUTH_ENABLED`                                   | no                  | `"false"` disables Clerk (fail-closed — every request is rejected)                                                                        |
-| `VITE_CLERK_PUBLISHABLE_KEY`                          | when auth on        | Clerk publishable key                                                                                                                     |
-| `CLERK_SECRET_KEY`                                    | when auth on        | Clerk secret (server only)                                                                                                                |
-| `TMDB_API_TOKEN`                                      | for movie/TV search | TMDB Bearer token; without it search returns empty                                                                                        |
-| `UPSTASH_REDIS_REST_URL` / `UPSTASH_URL`              | optional            | Redis REST URL for read-through cache                                                                                                     |
-| `UPSTASH_REDIS_REST_TOKEN` / `UPSTASH_TOKEN`          | optional            | Redis REST token                                                                                                                          |
-| `DATABASE_POOL_MAX`                                   | optional            | pg pool size per instance (default `5`)                                                                                                   |
-| `VITE_PUBLIC_HOSTNAME`                                | optional            | Public host for OG / share cards                                                                                                          |
-| `CRON_SECRET`                                         | optional            | Bearer secret for the (unscheduled) feed sweep hook `/api/hooks/feeds` ([Feeds](./ARCHITECTURE.md#feeds--newsletters))                    |
-| `INBOUND_EMAIL_DOMAIN` / `INBOUND_EMAIL_SECRET`       | optional            | Private newsletter addresses + inbound-email webhook secret ([Feeds](./ARCHITECTURE.md#feeds--newsletters))                               |
-| `GOOGLE_GENERATIVE_AI_API_KEY` / `OPENROUTER_API_KEY` | for AI features     | Model provider keys; at least one enables the library AI features ([AI features](./ARCHITECTURE.md#ai-features))                          |
-| `AI_MODELS`                                           | no                  | Model chain as `provider:model`, comma-separated, tried in order; default `openrouter:deepseek/deepseek-v4.1-flash-1017`                  |
-| `FIRECRAWL_API_KEY`                                   | for `/extracts`     | Firecrawl API key; without it extracts can be saved but not run ([Extracts](./ARCHITECTURE.md#extracts-firecrawl))                        |
+| Variable                                              | Required            | Purpose                                                                                                                  |
+| ----------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`                                        | Prod: yes           | Postgres connection string (required)                                                                                    |
+| `VITE_AUTH_ENABLED`                                   | no                  | `"false"` disables Clerk (fail-closed — every request is rejected)                                                       |
+| `VITE_CLERK_PUBLISHABLE_KEY`                          | when auth on        | Clerk publishable key                                                                                                    |
+| `CLERK_SECRET_KEY`                                    | when auth on        | Clerk secret (server only)                                                                                               |
+| `TMDB_API_TOKEN`                                      | for movie/TV search | TMDB Bearer token; without it search returns empty                                                                       |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_URL`              | optional            | Redis REST URL for read-through cache                                                                                    |
+| `UPSTASH_REDIS_REST_TOKEN` / `UPSTASH_TOKEN`          | optional            | Redis REST token                                                                                                         |
+| `DATABASE_POOL_MAX`                                   | optional            | pg pool size per instance (default `5`)                                                                                  |
+| `VITE_PUBLIC_HOSTNAME`                                | optional            | Public host for OG / share cards                                                                                         |
+| `CRON_SECRET`                                         | optional            | Bearer secret for the (unscheduled) feed sweep hook `/api/hooks/feeds` ([Feeds](./ARCHITECTURE.md#feeds--newsletters))   |
+| `INBOUND_EMAIL_DOMAIN` / `INBOUND_EMAIL_SECRET`       | optional            | Private newsletter addresses + inbound-email webhook secret ([Feeds](./ARCHITECTURE.md#feeds--newsletters))              |
+| `GOOGLE_GENERATIVE_AI_API_KEY` / `OPENROUTER_API_KEY` | for AI features     | Model provider keys; at least one enables the library AI features ([AI features](./ARCHITECTURE.md#ai-features))         |
+| `AI_MODELS`                                           | no                  | Model chain as `provider:model`, comma-separated, tried in order; default `openrouter:deepseek/deepseek-v4.1-flash-1017` |
+| `FIRECRAWL_API_KEY`                                   | for `/extracts`     | Firecrawl API key; without it extracts can be saved but not run ([Extracts](./ARCHITECTURE.md#extracts-firecrawl))       |
 
 Env loading: `scripts/with-app-env.mjs` and `scripts/load-dotenv.mjs` load `.env` then `.env.local` before Vite/build/migrate. Never commit `.env`.
 
