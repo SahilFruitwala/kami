@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db.server";
 import { enforceRateLimit } from "@/lib/rate-limit.server.ts";
 import type { ResearchConfig } from "@/lib/research-config.server.ts";
 import { ResearchCreditsShortError, reserveRunCredits } from "@/lib/research-credits-db.server.ts";
+import { pruneModelCache } from "@/lib/research-model-cache-db.server.ts";
 import {
   createRun,
   createTopic,
@@ -98,6 +99,9 @@ export type StepContext = {
   /** Merge counters into the run's progress for the run view. */
   saveProgress(patch: RunProgress): Promise<void>;
 };
+
+/** The part of a step's context that meters spend (what Firecrawl and model calls take). */
+export type Meter = Pick<StepContext, "ensureBudget" | "recordSpend">;
 
 export type ResearchStep = StepInfo & {
   /**
@@ -481,4 +485,6 @@ async function endRun(
     console.error("[research] settling credits failed", err);
   }
   await touchTopic(db, ended.userId, ended.topicId);
+  // Housekeeping with no cron: old cached model answers go when any run ends.
+  await pruneModelCache(db).catch((err) => console.error("[research] cache prune failed", err));
 }

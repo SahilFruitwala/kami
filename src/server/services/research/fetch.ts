@@ -25,7 +25,7 @@ import {
   trimPageMarkdown,
   urlKey,
 } from "@/lib/research/sources.ts";
-import type { StepContext } from "./runs";
+import type { Meter } from "./runs";
 
 /**
  * Research's web access: metered Firecrawl searches and page reads, and the
@@ -33,9 +33,6 @@ import type { StepContext } from "./runs";
  * the run's budget first and counted right after; a fresh cached page costs
  * nothing and makes no Firecrawl call.
  */
-
-/** The part of a step's context that meters spend. */
-export type Meter = Pick<StepContext, "ensureBudget" | "recordSpend">;
 
 /** Swappable Firecrawl calls (tests pass fakes). */
 export type FirecrawlCalls = {
