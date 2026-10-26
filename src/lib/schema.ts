@@ -819,6 +819,7 @@ import type {
   RunProgress,
   RunState,
   RunStopReason,
+  SearchHit,
   SourceKind,
   SourceOrigin,
 } from "./research/kinds.ts";
@@ -911,6 +912,8 @@ export const researchQueries = pgTable(
       .references(() => researchRuns.id, { onDelete: "cascade" }),
     queryNorm: text("query_norm").notNull(),
     results: integer("results").notNull().default(0),
+    /** The search's results as returned (0024_research_query_hits.sql); triage reads them. */
+    hits: jsonb("hits").$type<SearchHit[]>().notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

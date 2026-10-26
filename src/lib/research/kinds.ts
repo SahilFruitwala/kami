@@ -104,13 +104,29 @@ export type PlanQuery = {
   intent: "pain" | "wish" | "switching" | "alternatives" | "pricing";
   /** Unchecked queries stay in the plan but are not searched. */
   checked: boolean;
+  /** Set on a query this topic has already sent; it starts unchecked. */
+  repeat?: boolean;
 };
+
+/** One search result as stored with its query. */
+export type SearchHit = { url: string; title: string; description: string };
+
+/** A search result triage chose to read, with its code score (higher reads first). */
+export type TriagePick = { url: string; score: number };
 
 /** Live counters for the run view; every field is optional so steps fill in their own. */
 export type RunProgress = {
+  /** Checked queries sent so far, of `queries`. */
   searched?: number;
   queries?: number;
+  /** Distinct new results across all searches. */
   results?: number;
+  /** Results that passed the code filter and went to triage. */
+  candidates?: number;
+  /** Triage batches finished, and the picks so far. */
+  triageBatches?: number;
+  picks?: TriagePick[];
+  /** The pages the fetch step will read, best first. */
   toRead?: string[];
   read?: number;
   failed?: number;

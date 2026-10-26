@@ -85,12 +85,13 @@ Balance = `sum(credits)`. What a run spent = its reserve minus its release.
 
 `research_queries`: every query a run actually sent, so later plans can flag repeats.
 
-| Column                                | Type        | Notes                                          |
-| ------------------------------------- | ----------- | ---------------------------------------------- |
-| `id`, `user_id`, `topic_id`, `run_id` |             |                                                |
-| `query_norm`                          | text        | lowercased, whitespace collapsed, `site:` kept |
-| `results`                             | integer     | how many results came back                     |
-| `created_at`                          | timestamptz | index `(topic_id, query_norm)`                 |
+| Column                                | Type        | Notes                                                                                                     |
+| ------------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------- |
+| `id`, `user_id`, `topic_id`, `run_id` |             |                                                                                                           |
+| `query_norm`                          | text        | lowercased, whitespace collapsed, `site:` kept                                                            |
+| `results`                             | integer     | how many results came back                                                                                |
+| `hits`                                | jsonb       | the results themselves (`{ url, title, description }[]`), so triage never searches again (migration 0024) |
+| `created_at`                          | timestamptz | index `(topic_id, query_norm)`                                                                            |
 
 ### 3.3 Sources and evidence
 

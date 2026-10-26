@@ -1,11 +1,25 @@
 import { randomUUID } from "node:crypto";
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
-import type { Depth, DiscoverInput, RunKind, SourceKind, SourceOrigin } from "./research/kinds.ts";
-import { researchRuns, researchSources, researchTopicSources, researchTopics } from "./schema.ts";
+import type {
+  Depth,
+  DiscoverInput,
+  RunKind,
+  SearchHit,
+  SourceKind,
+  SourceOrigin,
+} from "./research/kinds.ts";
+import {
+  researchIdeas,
+  researchQueries,
+  researchRuns,
+  researchSources,
+  researchTopicSources,
+  researchTopics,
+} from "./schema.ts";
 
 /**
- * Research rows in Postgres: topics, runs and the source cache. Every read
+ * Research rows in Postgres: topics, runs, sent queries and the source cache. Every read
  * and write is scoped to its owner, so a wrong id is simply "not found".
  * Kept free of app path aliases so tests/db can drive it against a real
  * database. Credits live in their own module (ticket 02); evidence and ideas
@@ -222,4 +236,62 @@ export async function topicUrlKeys(db: Db, userId: string, topicId: string): Pro
     .innerJoin(researchSources, eq(researchSources.id, researchTopicSources.sourceId))
     .where(and(eq(researchTopicSources.topicId, topicId), eq(researchSources.userId, userId)));
   return new Set(rows.map((r) => r.urlKey));
+}
+
+// ---------- Queries ----------
+
+/** Every query this topic has sent, normalised, so a new plan can flag repeats. */
+export async function topicQueryNorms(db: Db, topicId: string): Promise<Set<string>> {
+  const rows = await db
+    .selectDistinct({ norm: researchQueries.queryNorm })
+    .from(researchQueries)
+    .where(eq(researchQueries.topicId, topicId));
+  return new Set(rows.map((r) => r.norm));
+}
+
+/** The topic's latest distinct queries, newest first, for the plan prompt. */
+export async function recentTopicQueries(db: Db, topicId: string, limit = 50): Promise<string[]> {
+  const rows = await db
+    .select({ norm: researchQueries.queryNorm, at: sql<Date>`max(${researchQueries.createdAt})` })
+    .from(researchQueries)
+    .where(eq(researchQueries.topicId, topicId))
+    .groupBy(researchQueries.queryNorm)
+    .orderBy(desc(sql`max(${researchQueries.createdAt})`))
+    .limit(limit);
+  return rows.map((r) => r.norm);
+}
+
+/** Record a sent query with what it found. */
+export async function insertRunQuery(
+  db: Db,
+  row: { userId: string; topicId: string; runId: string; queryNorm: string; hits: SearchHit[] },
+): Promise<void> {
+  await db.insert(researchQueries).values({ id: randomUUID(), ...row, results: row.hits.length });
+}
+
+/** A run's sent queries in the order they were sent, with their results. */
+export async function runQueries(
+  db: Db,
+  runId: string,
+): Promise<Array<{ queryNorm: string; hits: SearchHit[] }>> {
+  return db
+    .select({ queryNorm: researchQueries.queryNorm, hits: researchQueries.hits })
+    .from(researchQueries)
+    .where(eq(researchQueries.runId, runId))
+    .orderBy(researchQueries.createdAt, researchQueries.id);
+}
+
+// ---------- Ideas ----------
+
+/** Titles of the topic's live ideas (open and starred), best first, for the plan prompt. */
+export async function liveIdeaTitles(db: Db, topicId: string, limit = 50): Promise<string[]> {
+  const rows = await db
+    .select({ title: researchIdeas.title })
+    .from(researchIdeas)
+    .where(
+      and(eq(researchIdeas.topicId, topicId), inArray(researchIdeas.status, ["open", "starred"])),
+    )
+    .orderBy(desc(researchIdeas.scoreTotal))
+    .limit(limit);
+  return rows.map((r) => r.title);
 }
