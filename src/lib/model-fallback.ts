@@ -3,8 +3,8 @@ import type { LanguageModel } from "ai";
 /**
  * A language model that tries a chain of models in order: the first one
  * that answers wins, and a failure (bad key, out of credit, rate limit,
- * outage) moves on to the next. With the default chain that is Google
- * first, then Claude Haiku through OpenRouter.
+ * outage) moves on to the next. The default chain is a single model
+ * (DeepSeek through OpenRouter); `AI_MODELS` can add more.
  *
  * Works for `generateText` and `streamText` alike: a streaming call fails
  * over only while it is being set up (the provider's HTTP response), never
