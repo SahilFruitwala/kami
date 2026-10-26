@@ -17,6 +17,7 @@ import {
   invalidateUserCache,
 } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db.server";
+import { articleImageTargets, imageStore, warmImages } from "@/lib/image-store.server.ts";
 import { articles, folders } from "@/lib/schema";
 import {
   LIBRARY_LIMITS as L,
@@ -25,6 +26,7 @@ import {
   type LibraryItem,
 } from "@/lib/library-item";
 import { uid } from "@/lib/id";
+import { runInBackground } from "@/server/background";
 import {
   libraryItemBody,
   libraryItemPatch,
@@ -159,6 +161,18 @@ export async function getArticle(userId: string, id: string): Promise<LibraryIte
 }
 
 /**
+ * Copy an article's images into R2 after the response, so they outlive the
+ * source. Only for a new body: lean snapshots and echoes send none.
+ */
+function keepArticleImages(contentHtml: string, heroImage: string | null | undefined): void {
+  const store = imageStore();
+  if (!store) return;
+  const targets = articleImageTargets(contentHtml, heroImage);
+  if (!targets.length) return;
+  runInBackground("image-store", () => warmImages(store, targets));
+}
+
+/**
  * Insert-or-update a work by id / canonical URL / URL. Returns the canonical
  * server row, whose id may differ from the one sent (URL match).
  */
@@ -244,6 +258,7 @@ export async function upsertLibraryItem(
       .where(and(eq(articles.id, row.id), eq(articles.userId, userId)))
       .returning();
     await invalidateUserCache(userId, "library");
+    if (contentHtml && contentHtml !== row.contentHtml) keepArticleImages(contentHtml, heroImage);
     return rowToItem(updated!, { includeBody: true });
   };
 
@@ -297,6 +312,7 @@ export async function upsertLibraryItem(
   }
 
   await invalidateUserCache(userId, "library");
+  keepArticleImages(contentHtml, heroImage);
   return {
     ...data,
     id,

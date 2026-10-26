@@ -4,7 +4,7 @@ import type { ObjectStore } from "./object-store.ts";
 /**
  * Cloudflare R2 over its S3 API, signed with aws4fetch (small, fetch-based;
  * the full AWS SDK is megabytes and its default checksums have broken R2).
- * Only PUT, GET, DELETE and presigned GET are needed: parts are joined in
+ * Only PUT, GET, HEAD, DELETE and presigned GET are needed: parts are joined in
  * memory, never with multipart (R2 requires ≥ 5 MiB equal-size parts).
  * Presigned URLs work only on the account's S3 host, not custom domains.
  * Tested in scripts/narration-io.test.mjs.
@@ -89,6 +89,12 @@ export function createR2Store(
       if (res.status === 404) return null;
       if (!res.ok) throw await fail("GET", key, res);
       return new Uint8Array(await res.arrayBuffer());
+    },
+    async has(key) {
+      const res = await send(key, { method: "HEAD" });
+      if (res.status === 404) return false;
+      if (!res.ok) throw await fail("HEAD", key, res);
+      return true;
     },
     async delete(key) {
       const res = await send(key, { method: "DELETE" });

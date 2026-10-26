@@ -51,8 +51,10 @@ export const Route = createFileRoute("/api/img")({
         if (!raw) {
           return new Response("missing url", { status: 400 });
         }
-        const { fetchImageBytes } = await import("@/lib/fetch-image.server.ts");
-        const result = await fetchImageBytes(raw);
+        // Served from our private R2 copy when there is one, so saved
+        // articles keep their images after the source drops them.
+        const { imageStore, loadImage } = await import("@/lib/image-store.server.ts");
+        const result = await loadImage(imageStore(), raw);
         if (!result.ok) {
           return new Response(result.error, { status: result.status });
         }

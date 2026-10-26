@@ -124,17 +124,37 @@ export function repairMangledImageUrl(url: string): string {
   }
 }
 
+/**
+ * The `u` the image proxy is asked for when `raw` is shown, or null when
+ * `raw` is shown as is. The proxy's R2 copy is keyed by exactly this string,
+ * so warming at save time must go through here too.
+ */
+export function proxiedImageTarget(raw: string): string | null {
+  if (!raw || raw.startsWith("data:") || raw.startsWith("/api/img")) return null;
+  return repairMangledImageUrl(raw);
+}
+
 export function previewImageSrc(raw: string): string {
-  if (!raw || raw.startsWith("data:") || raw.startsWith("/api/img")) {
-    return raw;
+  const target = proxiedImageTarget(raw);
+  return target === null ? raw : `/api/img?u=${encodeURIComponent(target)}`;
+}
+
+const IMG_TAG = /<img\b([^>]*?)>/gi;
+const SRC_ATTR = /\ssrc\s*=\s*(["'])(.*?)\1/i;
+
+/** Every `<img src>` in `html`, read the same way `rewriteHtmlImages` reads it. */
+export function htmlImageSources(html: string): string[] {
+  const out: string[] = [];
+  for (const m of html.matchAll(IMG_TAG)) {
+    const src = SRC_ATTR.exec(` ${m[1]}`)?.[2];
+    if (src) out.push(src);
   }
-  const original = repairMangledImageUrl(raw);
-  return `/api/img?u=${encodeURIComponent(original)}`;
+  return out;
 }
 
 export function rewriteHtmlImages(html: string): string {
-  return html.replace(/<img\b([^>]*?)>/gi, (_full, attrs: string) => {
-    const srcMatch = /\ssrc\s*=\s*(["'])(.*?)\1/i.exec(` ${attrs}`);
+  return html.replace(IMG_TAG, (_full, attrs: string) => {
+    const srcMatch = SRC_ATTR.exec(` ${attrs}`);
     if (!srcMatch) return `<img${attrs}>`;
     const next = previewImageSrc(srcMatch[2]);
     // Defense-in-depth: sanitized HTML should already carry only src/alt, but
