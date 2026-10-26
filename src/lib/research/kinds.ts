@@ -136,6 +136,10 @@ export type RunProgress = {
   extractBatches?: number;
   quotes?: number;
   dropped?: number;
+  /** Matching batches finished; whether new ideas were renamed by the writer. */
+  matchBatches?: number;
+  named?: boolean;
+  /** Ideas this run created, and ideas it added evidence to (new ones included). */
   ideasNew?: number;
   ideasTouched?: number;
   stopRequested?: boolean;

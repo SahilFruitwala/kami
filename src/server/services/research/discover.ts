@@ -26,6 +26,7 @@ import { batchItems } from "@/lib/research/model-calls.ts";
 import { asDocument } from "@/server/ai";
 import { badRequest } from "@/server/http";
 import { extractStep, fetchStep, type StepDeps } from "./evidence";
+import { ideaSteps, type IdeaDeps } from "./ideas";
 import { searchForRun } from "./fetch";
 import { callModel, type Generate } from "./models";
 import {
@@ -43,7 +44,8 @@ import {
  * `search` sends each checked query once and keeps its results with it;
  * `triage` screens them in code and asks the worker model, in batches, which
  * are worth reading. `fetch` and `extract` (./evidence) turn the picks into
- * checked quotes; match and score follow (ticket 08).
+ * checked quotes; `match`, `name` and `score` (./ideas) group them into
+ * scored ideas.
  */
 
 export const PLAN_PROMPT_VERSION = "discover-plan-v1";
@@ -53,7 +55,7 @@ export const TRIAGE_PROMPT_VERSION = "discover-triage-v1";
 const TRIAGE_BATCH = { maxItems: 40, maxChars: 24_000 };
 
 /** Swappable outside calls (tests pass fakes). */
-export type DiscoverDeps = StepDeps;
+export type DiscoverDeps = StepDeps & IdeaDeps;
 
 // ---------- Plan ----------
 
@@ -309,9 +311,15 @@ function triageStep(deps: DiscoverDeps): ResearchStep {
   };
 }
 
-/** Discover's steps so far, in order (match and score arrive in ticket 08). */
+/** Discover's steps, in order. */
 export function discoverSteps(deps: DiscoverDeps = {}): ResearchStep[] {
-  return [searchStep(deps), triageStep(deps), fetchStep(deps), extractStep(deps)];
+  return [
+    searchStep(deps),
+    triageStep(deps),
+    fetchStep(deps),
+    extractStep(deps),
+    ...ideaSteps(deps),
+  ];
 }
 
 registerRunSteps("discover", discoverSteps());
