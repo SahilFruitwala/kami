@@ -114,8 +114,8 @@ const NEVER_READ = [
   "vimeo.com",
 ];
 
-/** Words people use when something hurts or is missing. */
-const PAIN_WORDS =
+/** Words people use when something hurts or is missing (global: use with `match`, not `test`). */
+export const PAIN_WORDS =
   /\b(?:frustrat\w*|annoy\w*|hate|sucks?|painful|struggl\w*|wish|alternative\w*|switch(?:ed|ing)|problem|issue|slow|expensive|overpriced|broken|bug|tedious|waste|manual(?:ly)?|workaround|complain\w*|can't|cannot|doesn't|won't|missing|need(?:ed)? a)\b/gi;
 const ASKING =
   /\b(?:how do (?:you|i)|is there (?:a|any)|any (?:tool|app|way)|recommend\w*|looking for|what do you use|anyone (?:else|know|use))\b/i;

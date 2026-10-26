@@ -141,7 +141,10 @@ describe("discover: plan, search, triage", { skip: skipWithoutDb }, () => {
     const { researchRuns } = await import("@/lib/schema.ts");
     await db.update(researchRuns).set({ state: "queued" }).where(eq(researchRuns.id, run.id));
 
-    const steps = discover.discoverSteps({ calls: { search: fakeSearch }, generate: fakeGenerate });
+    // Just search and triage; reading the picks is covered in research-evidence.test.mjs.
+    const steps = discover
+      .discoverSteps({ calls: { search: fakeSearch }, generate: fakeGenerate })
+      .filter((s) => s.name === "search" || s.name === "triage");
     let row;
     for (let i = 0; i < 20; i++) {
       let checks = 0;

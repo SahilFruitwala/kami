@@ -10,6 +10,7 @@ import type {
   SourceOrigin,
 } from "./research/kinds.ts";
 import {
+  researchEvidence,
   researchIdeas,
   researchQueries,
   researchRuns,
@@ -294,4 +295,32 @@ export async function liveIdeaTitles(db: Db, topicId: string, limit = 50): Promi
     .orderBy(desc(researchIdeas.scoreTotal))
     .limit(limit);
   return rows.map((r) => r.title);
+}
+
+// ---------- Evidence ----------
+
+export type EvidenceInput = Omit<typeof researchEvidence.$inferInsert, "id" | "createdAt">;
+
+/**
+ * Store checked quotes. A quote already stored for the same topic and source
+ * is skipped (the unique index), so re-running an extraction adds nothing.
+ * Returns how many were new.
+ */
+export async function insertEvidence(db: Db, rows: EvidenceInput[]): Promise<number> {
+  if (!rows.length) return 0;
+  const inserted = await db
+    .insert(researchEvidence)
+    .values(rows.map((r) => ({ id: randomUUID(), ...r })))
+    .onConflictDoNothing()
+    .returning({ id: researchEvidence.id });
+  return inserted.length;
+}
+
+/** A run's stored evidence, oldest first. */
+export async function runEvidence(db: Db, runId: string) {
+  return db
+    .select()
+    .from(researchEvidence)
+    .where(eq(researchEvidence.runId, runId))
+    .orderBy(researchEvidence.createdAt, researchEvidence.id);
 }

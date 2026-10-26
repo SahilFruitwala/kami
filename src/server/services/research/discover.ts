@@ -25,7 +25,8 @@ import type { Depth, PlanQuery, TriagePick } from "@/lib/research/kinds.ts";
 import { batchItems } from "@/lib/research/model-calls.ts";
 import { asDocument } from "@/server/ai";
 import { badRequest } from "@/server/http";
-import { searchForRun, type FirecrawlCalls } from "./fetch";
+import { extractStep, fetchStep, type StepDeps } from "./evidence";
+import { searchForRun } from "./fetch";
 import { callModel, type Generate } from "./models";
 import {
   RunStepError,
@@ -41,8 +42,8 @@ import {
  * a run's plan (one writer-tier call, no Firecrawl), and holds the steps:
  * `search` sends each checked query once and keeps its results with it;
  * `triage` screens them in code and asks the worker model, in batches, which
- * are worth reading. Fetch, extract, verify, match and score follow
- * (tickets 07 and 08).
+ * are worth reading. `fetch` and `extract` (./evidence) turn the picks into
+ * checked quotes; match and score follow (ticket 08).
  */
 
 export const PLAN_PROMPT_VERSION = "discover-plan-v1";
@@ -52,7 +53,7 @@ export const TRIAGE_PROMPT_VERSION = "discover-triage-v1";
 const TRIAGE_BATCH = { maxItems: 40, maxChars: 24_000 };
 
 /** Swappable outside calls (tests pass fakes). */
-export type DiscoverDeps = { calls?: Partial<FirecrawlCalls>; generate?: Generate };
+export type DiscoverDeps = StepDeps;
 
 // ---------- Plan ----------
 
@@ -308,9 +309,9 @@ function triageStep(deps: DiscoverDeps): ResearchStep {
   };
 }
 
-/** Discover's steps so far, in order (fetch through score arrive in tickets 07 and 08). */
+/** Discover's steps so far, in order (match and score arrive in ticket 08). */
 export function discoverSteps(deps: DiscoverDeps = {}): ResearchStep[] {
-  return [searchStep(deps), triageStep(deps)];
+  return [searchStep(deps), triageStep(deps), fetchStep(deps), extractStep(deps)];
 }
 
 registerRunSteps("discover", discoverSteps());

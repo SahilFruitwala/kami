@@ -128,8 +128,12 @@ export type RunProgress = {
   picks?: TriagePick[];
   /** The pages the fetch step will read, best first. */
   toRead?: string[];
+  /** Pages of `toRead` now stored, and pages that couldn't be read (skipped, never retried). */
   read?: number;
   failed?: number;
+  skippedUrls?: string[];
+  /** Extraction batches finished; quotes kept (checked against their page) and dropped. */
+  extractBatches?: number;
   quotes?: number;
   dropped?: number;
   ideasNew?: number;
