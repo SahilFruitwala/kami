@@ -136,6 +136,14 @@ Owner-only (404 for anyone else). `POST /api/narrations/run` is internal: it aut
 | `PUT`    | `/api/narrations/:id/position` | `src/routes/api/narrations/$id/position.ts` |
 | `POST`   | `/api/narrations/run`          | `src/routes/api/narrations/run.ts`          |
 
+### research
+
+Research is under construction (see `docs/wayfinder/research/spec.md`). `POST /api/research/run` is internal: a run handing itself off to a fresh invocation, authenticated with `RESEARCH_RUN_SECRET`, not a session (see ADR 0001).
+
+| Method | Path                | Source                           |
+| ------ | ------------------- | -------------------------------- |
+| `POST` | `/api/research/run` | `src/routes/api/research/run.ts` |
+
 ### shelves
 
 | Method   | Path                                  | Source                                             |
