@@ -25,6 +25,13 @@ export default defineConfig(({ command, isPreview }) => ({
             preset: "vercel",
             // Narration runs continue after the response (waitUntil).
             vercel: { functionRules: { "/api/narrations/**": { maxDuration: 300 } } },
+            // Libraries mark modules "use client"; that means nothing in the
+            // server bundle, and rolldown warns once per module about it.
+            rolldownConfig: {
+              onwarn(warning, warn) {
+                if (warning.code !== "MODULE_LEVEL_DIRECTIVE") warn(warning);
+              },
+            },
           }),
         ]
       : []),

@@ -87,7 +87,23 @@ export async function generateJson<S extends z.ZodType>(
       maxOutputTokens: input.maxOutputTokens ?? 1200,
       temperature: input.temperature ?? 0.2,
       maxRetries: 1,
+      // These are short extraction tasks. A reasoning model (DeepSeek) would
+      // otherwise spend the whole output budget thinking and return no text.
+      providerOptions: { openrouter: { reasoning: { effort: "none" } } },
     });
+    // `result.output` throws a bare NoOutputGeneratedError when the model
+    // stopped early with no text; say why instead.
+    if (result.finishReason !== "stop" && !result.text) {
+      console.error(
+        `[ai] ${result.response.modelId} returned no output (finish: ${result.finishReason}, usage: ${JSON.stringify(result.usage)})`,
+      );
+      throw new HttpError(
+        502,
+        result.finishReason === "content-filter"
+          ? "The AI provider declined to answer this one."
+          : "The AI returned an empty answer. Try again in a moment.",
+      );
+    }
     return { output: result.output as z.output<S>, model: result.response.modelId };
   } catch (err) {
     throw aiError(err);
