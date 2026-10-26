@@ -10,7 +10,6 @@ import {
   type MediaShelfKind,
 } from "@/lib/gloss/palette.ts";
 import { Endpaper } from "@/components/gloss/book.tsx";
-import { previewImageSrc } from "@/lib/image-url.ts";
 import { statusLabels, statusText } from "@/lib/shelf-labels.ts";
 import type { ShelfCard } from "@/lib/shelves.ts";
 import { cn } from "@/lib/utils.ts";
@@ -30,7 +29,7 @@ function Poster({ src, className }: { src: string | null; className?: string }) 
   if (!src || broken) return null;
   return (
     <img
-      src={previewImageSrc(src)}
+      src={src}
       alt=""
       loading="lazy"
       decoding="async"

@@ -17,7 +17,7 @@ import {
   invalidateUserCache,
 } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db.server";
-import { articleImageTargets } from "@/lib/image-store.server.ts";
+import { articleImageTargets, imageStore, warmImages } from "@/lib/image-store.server.ts";
 import { articles, folders } from "@/lib/schema";
 import {
   LIBRARY_LIMITS as L,
@@ -26,7 +26,7 @@ import {
   type LibraryItem,
 } from "@/lib/library-item";
 import { uid } from "@/lib/id";
-import { keepImages } from "@/server/keep-images";
+import { runInBackground } from "@/server/background";
 import {
   libraryItemBody,
   libraryItemPatch,
@@ -165,7 +165,10 @@ export async function getArticle(userId: string, id: string): Promise<LibraryIte
  * source. Only for a new body: lean snapshots and echoes send none.
  */
 function keepArticleImages(contentHtml: string, heroImage: string | null | undefined): void {
-  keepImages(articleImageTargets(contentHtml, heroImage));
+  const store = imageStore();
+  const targets = articleImageTargets(contentHtml, heroImage);
+  if (!store || !targets.length) return;
+  runInBackground("image-store", () => warmImages(store, targets));
 }
 
 /**

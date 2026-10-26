@@ -5,7 +5,6 @@ import { WatchWhere } from "@/components/library/watch-where.tsx";
 import { WashiTag } from "@/components/kami.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { useShelfItemActions } from "@/hooks/use-shelf-item-actions.ts";
-import { previewImageSrc } from "@/lib/image-url.ts";
 import { statusText } from "@/lib/shelf-labels.ts";
 import { type ShelfDetail } from "@/lib/shelves.ts";
 
@@ -27,7 +26,7 @@ export function ShelfFolio({ detail, onClose }: { detail: ShelfDetail; onClose: 
         <div className="poster-frame relative w-24 shrink-0 overflow-hidden rounded-lg bg-paper-warm">
           {cover ? (
             <img
-              src={previewImageSrc(cover)}
+              src={cover}
               onError={() => setBrokenSrc(cover)}
               alt=""
               width={96}

@@ -4,7 +4,6 @@ import { z } from "zod";
 import type { ShelfDuplicate } from "@/lib/api/types";
 import { invalidateUserCache } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db.server";
-import { coverImageTargets } from "@/lib/image-store.server.ts";
 import { activity, books, movies, places, restaurants, tvShows, wishlistItems } from "@/lib/schema";
 import {
   addShelfItemInput,
@@ -21,7 +20,6 @@ import {
   tableForType,
 } from "@/lib/shelves-db.server.ts";
 import { badRequest, conflict, notFound } from "@/server/http";
-import { keepImages } from "@/server/keep-images";
 import {
   addShelfItemBody,
   bookProgressBody,
@@ -214,7 +212,6 @@ export async function addShelfItem(
   }
 
   await invalidateUserCache(userId, "shelves");
-  keepImages(coverImageTargets([imageUrl]));
   return { id, listId, type: data.type, status };
 }
 
@@ -390,9 +387,6 @@ const SOURCE_NAMES = { goodreads: "Goodreads", storygraph: "StoryGraph" } as con
  * Skips books already there (same normalized title and author) and repeats
  * inside the file, so re-importing the same export is a no-op.
  */
-/** Covers copied right after an import; the rest copy when first viewed. */
-const MAX_IMPORT_COVERS = 200;
-
 export async function importBooks(
   userId: string,
   data: z.output<typeof importBooksBody>,
@@ -459,7 +453,6 @@ export async function importBooks(
       });
     });
     await invalidateUserCache(userId, "shelves");
-    keepImages(coverImageTargets(rows.map((r) => r.imageUrl)), MAX_IMPORT_COVERS);
   }
 
   return { imported: rows.length, skipped: data.books.length - rows.length };

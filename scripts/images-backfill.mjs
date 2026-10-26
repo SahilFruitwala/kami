@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
  * Copy the images of everything saved so far into R2 (see
- * docs/ARCHITECTURE.md#image-storage): every article's hero and body images,
- * and every shelf cover. New saves copy their own; this catches up the rest,
+ * docs/ARCHITECTURE.md#image-storage): every article's hero and body images. New saves copy their own; this catches up the rest,
  * while their sources still have them (the Internet Archive is asked when
  * they don't).
  *
@@ -21,12 +20,11 @@ import { loadDotenv } from "./load-dotenv.mjs";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 loadDotenv(root);
 
-const { articleImageTargets, coverImageTargets, createImageStore, warmImages } =
+const { articleImageTargets, createImageStore, warmImages } =
   await import("../src/lib/image-store.server.ts");
 
 const dryRun = process.argv.includes("--dry-run");
 const PAGE = 100;
-const SHELF_TABLES = ["movies", "tv_shows", "books", "restaurants", "places", "wishlist_items"];
 
 const databaseUrl = process.env.DATABASE_URL?.trim();
 if (!databaseUrl) {
@@ -84,17 +82,7 @@ try {
     report(`${articles} articles (${wanted} images)`);
   }
 
-  // Shelf covers.
-  const covers = [];
-  for (const table of SHELF_TABLES) {
-    const { rows } = await client.query(
-      `select distinct image_url from ${table} where image_url is not null`,
-    );
-    covers.push(...rows.map((r) => r.image_url));
-  }
-  const coverTargets = coverImageTargets(covers);
-  add(await warm(coverTargets));
-  report(`done, plus ${coverTargets.length} shelf covers`);
+  report("done");
   if (dryRun) console.log("[images:backfill] Dry run: nothing was fetched or stored.");
 } catch (err) {
   console.error("[images:backfill] Failed:", err instanceof Error ? err.message : err);

@@ -113,16 +113,6 @@ export function articleImageTargets(contentHtml: string, heroImage?: string | nu
   return [...targets];
 }
 
-/** The proxy targets for shelf covers (no data: URLs, no repeats). */
-export function coverImageTargets(urls: (string | null | undefined)[]): string[] {
-  const targets = new Set<string>();
-  for (const url of urls) {
-    const target = proxiedImageTarget(url ?? "");
-    if (target) targets.add(target);
-  }
-  return [...targets];
-}
-
 /** Copy the images not yet stored, a few at a time. Failures are skipped. */
 export async function warmImages(
   store: ObjectStore,
