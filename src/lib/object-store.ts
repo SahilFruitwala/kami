@@ -1,5 +1,5 @@
 /**
- * Where narration audio lives. The R2 implementation is in r2.server.ts; the
+ * Where narration audio and cached images live. The R2 implementation is in r2.server.ts; the
  * in-memory one backs tests. Keys are predictable so cleanup never needs to
  * list the bucket. Access is enforced by the narration API (owner checks),
  * never by key secrecy.
@@ -9,6 +9,8 @@ export type ObjectStore = {
   put(key: string, body: Uint8Array, contentType: string): Promise<void>;
   /** The object's bytes, or null when it doesn't exist. */
   get(key: string): Promise<Uint8Array | null>;
+  /** Whether the object exists, without downloading it. */
+  has(key: string): Promise<boolean>;
   /** Deleting a missing object is not an error. */
   delete(key: string): Promise<void>;
   /** A time-limited URL that plays the object directly. */
@@ -36,6 +38,9 @@ export function memoryObjectStore(): ObjectStore & { objects: Map<string, Uint8A
     },
     async get(key) {
       return objects.get(key)?.slice() ?? null;
+    },
+    async has(key) {
+      return objects.has(key);
     },
     async delete(key) {
       objects.delete(key);
