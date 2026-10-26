@@ -80,7 +80,10 @@ export function createR2Store(
       const res = await send(key, {
         method: "PUT",
         body: body as BodyInit,
-        headers: { "content-type": contentType, "content-length": String(body.byteLength) },
+        // No content-length: fetch derives it from the body. Setting it too
+        // sends it twice ("n, n"), which undici 7 rejects when it is the
+        // global dispatcher (Node 22 and 25).
+        headers: { "content-type": contentType },
       });
       if (!res.ok) throw await fail("PUT", key, res);
     },

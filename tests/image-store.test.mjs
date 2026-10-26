@@ -258,3 +258,19 @@ describe("Internet Archive fallback", () => {
     assert.equal(worthArchiveRetry(fail(404), new URL(archivedImageUrl(src.href))), false);
   });
 });
+
+describe("R2 put", () => {
+  it("leaves content-length to fetch, so it is never sent twice", async () => {
+    let sent;
+    const fetchImpl = async (req) => {
+      sent = req;
+      return new Response(null, { status: 200 });
+    };
+    const cfg = { accountId: "acct", accessKeyId: "id", secretAccessKey: "secret", bucket: "b" };
+    await createR2Store(cfg, { fetchImpl, backoffMs: [0, 0] }).put("images/x", PNG, "image/png");
+    assert.equal(sent.method, "PUT");
+    assert.equal(sent.headers.get("content-length"), null);
+    assert.equal(sent.headers.get("content-type"), "image/png");
+    assert.equal(new Uint8Array(await sent.arrayBuffer()).byteLength, PNG.byteLength);
+  });
+});
