@@ -9,14 +9,14 @@
 export const MODEL_PROVIDERS = ["google", "openrouter"] as const;
 export type ModelProvider = (typeof MODEL_PROVIDERS)[number];
 
-/** Google first, Claude Haiku through OpenRouter when Google fails or has no key. */
-export const DEFAULT_AI_MODELS = "google:gemini-3.8-flash,openrouter:anthropic/claude-haiku-5.5";
+/** DeepSeek through OpenRouter. Add more entries via `AI_MODELS` for a fallback chain. */
+export const DEFAULT_AI_MODELS = "openrouter:deepseek/deepseek-v4.1-flash-1017";
 
 export type AiModel = {
   /** `provider:model`, e.g. `google:gemini-3.8-flash`. */
   id: string;
   provider: ModelProvider;
-  /** The provider's own model name, e.g. `anthropic/claude-haiku-5.5`. */
+  /** The provider's own model name, e.g. `deepseek/deepseek-v4.1-flash-1017`. */
   model: string;
   label: string;
 };

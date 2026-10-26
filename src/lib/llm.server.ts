@@ -41,7 +41,7 @@ const AI_ATTEMPT_TIMEOUT_MS = 20_000;
 export const aiConfigured = () => aiModelChain().length > 0;
 
 /**
- * One model that tries the chain in order (Google first, then Claude Haiku),
+ * One model that tries the chain in order (by default just DeepSeek on OpenRouter),
  * or null when no provider has a key.
  */
 export function aiLanguageModel(): LanguageModel | null {

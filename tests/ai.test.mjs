@@ -40,10 +40,10 @@ async function readAll(stream) {
 }
 
 describe("AI model chain", () => {
-  it("defaults to Google first, then Claude Haiku", () => {
+  it("defaults to DeepSeek on OpenRouter", () => {
     assert.deepEqual(
       parseModelList(undefined, DEFAULT_AI_MODELS).map((m) => m.id),
-      ["google:gemini-3.8-flash", "openrouter:anthropic/claude-haiku-5.5"],
+      ["openrouter:deepseek/deepseek-v4.1-flash-1017"],
     );
     assert.deepEqual(
       parseModelList("openrouter:x/y", DEFAULT_AI_MODELS).map((m) => m.id),
