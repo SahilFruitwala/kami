@@ -4,6 +4,14 @@ import viteReact from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { nitro } from "nitro/vite";
 
+const QUIET_BUILD_WARNINGS = new Set([
+  "EVAL",
+  "CIRCULAR_DEPENDENCY",
+  "THIS_IS_UNDEFINED",
+  "EMPTY_BUNDLE",
+  "MODULE_LEVEL_DIRECTIVE",
+]);
+
 export default defineConfig(({ command, isPreview }) => ({
   server: {
     host: "0.0.0.0",
@@ -25,11 +33,12 @@ export default defineConfig(({ command, isPreview }) => ({
             preset: "vercel",
             // Narration runs continue after the response (waitUntil).
             vercel: { functionRules: { "/api/narrations/**": { maxDuration: 300 } } },
-            // Libraries mark modules "use client"; that means nothing in the
-            // server bundle, and rolldown warns once per module about it.
+            // Replaces Nitro's own filter, so keep its codes and add
+            // MODULE_LEVEL_DIRECTIVE: libraries mark modules "use client",
+            // which means nothing in the server bundle.
             rolldownConfig: {
               onwarn(warning, warn) {
-                if (warning.code !== "MODULE_LEVEL_DIRECTIVE") warn(warning);
+                if (!QUIET_BUILD_WARNINGS.has(warning.code ?? "")) warn(warning);
               },
             },
           }),

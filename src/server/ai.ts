@@ -6,7 +6,7 @@ import { HttpError } from "@/server/http";
 
 /**
  * Shared plumbing for the library's AI features. Every call goes through the
- * fallback chain from `llm.server.ts` (Google first, then Claude Haiku), so a
+ * model chain from `llm.server.ts` (DeepSeek on OpenRouter by default), so a
  * feature only describes its prompt and output shape.
  *
  * Saved pages, feed entries and journal text are user content (and pages are
@@ -95,7 +95,7 @@ export async function generateJson<S extends z.ZodType>(
     // stopped early with no text; say why instead.
     if (result.finishReason !== "stop" && !result.text) {
       console.error(
-        `[ai] ${result.response.modelId} returned no output (finish: ${result.finishReason}, usage: ${JSON.stringify(result.usage)})`,
+        `[ai] ${result.response.modelId} returned no output (finish: ${result.finishReason}, ${result.usage.outputTokens} output tokens)`,
       );
       throw new HttpError(
         502,
