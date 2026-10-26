@@ -19,6 +19,8 @@ export const RATE_LIMITS = {
   lookup: { limit: 240, windowSeconds: 60 },
   /** Authenticated image proxy (a shelf grid loads many covers at once). */
   image: { limit: 600, windowSeconds: 60 },
+  /** Images the proxy newly copies into R2 on view (saves warm theirs without it). */
+  imageStore: { limit: 300, windowSeconds: 3600 },
   /** Feed adds (discovery fetches) and manual refreshes. */
   feeds: { limit: 60, windowSeconds: 600 },
   /** Firecrawl extract runs (each one spends paid Firecrawl credits). */
@@ -36,16 +38,18 @@ export const RATE_LIMITS = {
 export type RateLimitBucket = keyof typeof RATE_LIMITS;
 
 /**
- * Buckets that spend paid third-party credits (Firecrawl, model tokens). If
- * the limiter itself is down these fail *closed*: a database blip must not
- * become an unmetered window on someone else's bill. Everything else fails
- * open so normal reading/saving keeps working.
+ * Buckets that spend paid third-party credits (Firecrawl, model tokens) or
+ * our storage. If the limiter itself is down these fail *closed*: a database
+ * blip must not become an unmetered window on someone else's bill. Everything
+ * else fails open so normal reading/saving keeps working (a refused
+ * `imageStore` still shows the image; it just isn't kept).
  */
 const FAIL_CLOSED: ReadonlySet<RateLimitBucket> = new Set([
   "firecrawl",
   "ai",
   "narration",
   "agent",
+  "imageStore",
 ]);
 
 export class RateLimitError extends Error {

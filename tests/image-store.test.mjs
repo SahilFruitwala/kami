@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
+import { archivedImageUrl, worthArchiveRetry } from "../src/lib/fetch-image.server.ts";
 import {
   articleImageTargets,
   imageKey,
@@ -68,8 +69,8 @@ describe("loadImage", () => {
   it("fetches once, then serves the stored copy", async () => {
     const store = memoryObjectStore();
     const { calls, fetchImpl } = source();
-    const first = await loadImage(store, "https://cdn.example/a.png", fetchImpl);
-    const second = await loadImage(store, "https://cdn.example/a.png", fetchImpl);
+    const first = await loadImage(store, "https://cdn.example/a.png", { fetchImpl });
+    const second = await loadImage(store, "https://cdn.example/a.png", { fetchImpl });
     assert.equal(first.ok, true);
     assert.deepEqual(second, { ok: true, bytes: PNG, mime: "image/png" });
     assert.equal(calls.length, 1);
@@ -78,14 +79,19 @@ describe("loadImage", () => {
 
   it("keeps serving after the source is gone", async () => {
     const store = memoryObjectStore();
-    await loadImage(store, "https://cdn.example/a.png", source().fetchImpl);
+    await loadImage(store, "https://cdn.example/a.png", { fetchImpl: source().fetchImpl });
     const gone = async () => ({ ok: false, error: "upstream 404", status: 404 });
-    assert.equal((await loadImage(store, "https://cdn.example/a.png", gone)).ok, true);
+    assert.equal(
+      (await loadImage(store, "https://cdn.example/a.png", { fetchImpl: gone })).ok,
+      true,
+    );
   });
 
   it("stores nothing for a failed fetch", async () => {
     const store = memoryObjectStore();
-    const result = await loadImage(store, "https://cdn.example/missing.png", source().fetchImpl);
+    const result = await loadImage(store, "https://cdn.example/missing.png", {
+      fetchImpl: source().fetchImpl,
+    });
     assert.equal(result.status, 404);
     assert.equal(store.objects.size, 0);
   });
@@ -93,7 +99,9 @@ describe("loadImage", () => {
   it("never serves a stored SVG", async () => {
     const store = memoryObjectStore();
     store.objects.set(imageKey("https://cdn.example/x.png"), SVG);
-    const result = await loadImage(store, "https://cdn.example/x.png", source().fetchImpl);
+    const result = await loadImage(store, "https://cdn.example/x.png", {
+      fetchImpl: source().fetchImpl,
+    });
     assert.equal(result.ok, false);
     assert.equal(result.status, 415);
   });
@@ -111,16 +119,42 @@ describe("loadImage", () => {
     const errors = console.error;
     console.error = () => {};
     try {
-      const result = await loadImage(broken, "https://cdn.example/a.png", source().fetchImpl);
+      const result = await loadImage(broken, "https://cdn.example/a.png", {
+        fetchImpl: source().fetchImpl,
+      });
       assert.equal(result.ok, true);
     } finally {
       console.error = errors;
     }
   });
 
+  it("serves without keeping when mayStore says no", async () => {
+    const store = memoryObjectStore();
+    const result = await loadImage(store, "https://cdn.example/a.png", {
+      fetchImpl: source().fetchImpl,
+      mayStore: async () => false,
+    });
+    assert.equal(result.ok, true);
+    assert.equal(store.objects.size, 0);
+  });
+
+  it("asks mayStore only for a new, fetched image", async () => {
+    const store = memoryObjectStore();
+    let asked = 0;
+    const mayStore = async () => {
+      asked += 1;
+      return true;
+    };
+    const { fetchImpl } = source();
+    await loadImage(store, "https://cdn.example/missing.png", { fetchImpl, mayStore });
+    await loadImage(store, "https://cdn.example/a.png", { fetchImpl, mayStore });
+    await loadImage(store, "https://cdn.example/a.png", { fetchImpl, mayStore });
+    assert.equal(asked, 1);
+  });
+
   it("goes straight to the source without a store", async () => {
     const { calls, fetchImpl } = source();
-    assert.equal((await loadImage(null, "https://cdn.example/a.png", fetchImpl)).ok, true);
+    assert.equal((await loadImage(null, "https://cdn.example/a.png", { fetchImpl })).ok, true);
     assert.equal(calls.length, 1);
   });
 });
@@ -196,5 +230,31 @@ describe("R2 has", () => {
     assert.equal(await store.has("images/there"), true);
     assert.equal(await store.has("images/gone"), false);
     assert.deepEqual(seen, ["HEAD", "HEAD"]);
+  });
+});
+
+describe("Internet Archive fallback", () => {
+  const src = new URL("https://cdn.example/a.png?w=800");
+  const fail = (status, error = "x") => ({ ok: false, error, status });
+
+  it("asks the Archive for its newest raw copy", () => {
+    assert.equal(
+      archivedImageUrl(src.href),
+      "https://web.archive.org/web/0im_/https://cdn.example/a.png?w=800",
+    );
+  });
+
+  it("retries images that are gone, broken or now a page", () => {
+    assert.equal(worthArchiveRetry(fail(404), src), true);
+    assert.equal(worthArchiveRetry(fail(502), src), true);
+    assert.equal(worthArchiveRetry(fail(415, "not an image"), src), true);
+  });
+
+  it("never retries refusals, successes or the Archive itself", () => {
+    assert.equal(worthArchiveRetry(fail(400, "invalid image url"), src), false);
+    assert.equal(worthArchiveRetry(fail(415, "svg images are not proxied"), src), false);
+    assert.equal(worthArchiveRetry(fail(413, "image too large"), src), false);
+    assert.equal(worthArchiveRetry({ ok: true, bytes: PNG, mime: "image/png" }, src), false);
+    assert.equal(worthArchiveRetry(fail(404), new URL(archivedImageUrl(src.href))), false);
   });
 });

@@ -34,6 +34,29 @@ function refererFor(url: URL): string {
 export type FetchedImage =
   { ok: true; bytes: Uint8Array; mime: string } | { ok: false; error: string; status: number };
 
+/** The Internet Archive's newest copy of an image (`im_` serves the raw bytes). */
+export function archivedImageUrl(url: string): string {
+  return `https://web.archive.org/web/0im_/${url}`;
+}
+
+/**
+ * Whether a failed fetch is worth retrying from the Internet Archive: the
+ * source is gone, broken, or answers with a page instead of the image (a
+ * dead image often redirects home). Never for URLs we refuse to fetch or
+ * images we refuse to serve (bad URL, SVG, too large).
+ */
+export function worthArchiveRetry(result: FetchedImage, url: URL): boolean {
+  if (result.ok || url.hostname === "web.archive.org") return false;
+  return result.status === 404 || result.status === 502 || result.error === "not an image";
+}
+
+/**
+ * Asking the Archive tells a third party which image was wanted; set
+ * `IMAGE_ARCHIVE_FALLBACK=off` to never ask.
+ */
+const archiveFallbackEnabled = () =>
+  process.env.IMAGE_ARCHIVE_FALLBACK?.trim().toLowerCase() !== "off";
+
 export async function fetchImageBytes(rawUrl: string): Promise<FetchedImage> {
   let original: URL;
   try {
@@ -53,6 +76,11 @@ export async function fetchImageBytes(rawUrl: string): Promise<FetchedImage> {
   for (const href of candidates) {
     last = await getImage(href);
     if (last.ok) return last;
+  }
+  // The source no longer has it: the Archive often still does.
+  if (archiveFallbackEnabled() && worthArchiveRetry(last, original)) {
+    const archived = await getImage(archivedImageUrl(original.href));
+    if (archived.ok) return archived;
   }
   return last;
 }

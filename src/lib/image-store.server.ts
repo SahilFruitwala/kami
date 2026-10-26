@@ -32,14 +32,17 @@ export function imageStoreConfig(env: Env = process.env): R2Config | null {
   return { accountId, accessKeyId, secretAccessKey, bucket };
 }
 
+/** A new image store, or null when R2 isn't configured. */
+export function createImageStore(env: Env = process.env): ObjectStore | null {
+  const cfg = imageStoreConfig(env);
+  return cfg ? createR2Store(cfg) : null;
+}
+
 let cachedStore: { store: ObjectStore | null } | null = null;
 
 /** The image store for this process, or null when R2 isn't configured. */
 export function imageStore(): ObjectStore | null {
-  if (!cachedStore) {
-    const cfg = imageStoreConfig();
-    cachedStore = { store: cfg ? createR2Store(cfg) : null };
-  }
+  cachedStore ??= { store: createImageStore() };
   return cachedStore.store;
 }
 
@@ -58,15 +61,25 @@ function asServed(bytes: Uint8Array): FetchedImage {
   return { ok: true, bytes, mime };
 }
 
+export type LoadImageOptions = {
+  fetchImpl?: Fetcher;
+  /**
+   * Asked before keeping a newly fetched image. The proxy passes a per-user
+   * quota here: anyone signed in can ask it for any URL, and only saving an
+   * article (which warms its images) should store without limit.
+   */
+  mayStore?: () => Promise<boolean>;
+};
+
 /**
  * The image for `target`: the stored copy when there is one, else the
- * source's (kept for next time). Storage trouble never fails a read that the
- * source can still answer.
+ * source's (kept for next time when `mayStore` allows). Storage trouble
+ * never fails a read that the source can still answer.
  */
 export async function loadImage(
   store: ObjectStore | null,
   target: string,
-  fetchImpl: Fetcher = fetchImageBytes,
+  { fetchImpl = fetchImageBytes, mayStore = async () => true }: LoadImageOptions = {},
 ): Promise<FetchedImage> {
   if (!store) return fetchImpl(target);
   const key = imageKey(target);
@@ -77,7 +90,7 @@ export async function loadImage(
     console.error("[image-store] read", key, err);
   }
   const fetched = await fetchImpl(target);
-  if (fetched.ok) {
+  if (fetched.ok && (await mayStore())) {
     await store.put(key, fetched.bytes, fetched.mime).catch((err) => {
       console.error("[image-store] write", key, err);
     });
@@ -85,7 +98,7 @@ export async function loadImage(
   return fetched;
 }
 
-/** At most this many images are copied per article; the rest copy when first viewed. */
+/** At most this many images are copied per save; the rest copy when first viewed. */
 export const MAX_WARM_IMAGES = 40;
 const WARM_CONCURRENCY = 4;
 
@@ -95,6 +108,16 @@ export function articleImageTargets(contentHtml: string, heroImage?: string | nu
   const targets = new Set<string>();
   for (const src of sources) {
     const target = proxiedImageTarget(src);
+    if (target) targets.add(target);
+  }
+  return [...targets];
+}
+
+/** The proxy targets for shelf covers (no data: URLs, no repeats). */
+export function coverImageTargets(urls: (string | null | undefined)[]): string[] {
+  const targets = new Set<string>();
+  for (const url of urls) {
+    const target = proxiedImageTarget(url ?? "");
     if (target) targets.add(target);
   }
   return [...targets];

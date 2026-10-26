@@ -17,6 +17,7 @@ import { WatchWhere } from "@/components/library/watch-where.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { useShelfItemActions } from "@/hooks/use-shelf-item-actions.ts";
+import { previewImageSrc } from "@/lib/image-url.ts";
 import { statusText } from "@/lib/shelf-labels.ts";
 import { useShelfDetail } from "@/hooks/use-shelf-queries.ts";
 import { cn } from "@/lib/utils.ts";
@@ -143,7 +144,7 @@ function DetailBody({
         <div className="poster-frame relative overflow-hidden rounded-[4px] shadow-[var(--g-shadow-lifted)]">
           {item.imageUrl ? (
             <img
-              src={item.imageUrl}
+              src={previewImageSrc(item.imageUrl)}
               alt={`Cover of ${item.title}`}
               width={512}
               height={768}

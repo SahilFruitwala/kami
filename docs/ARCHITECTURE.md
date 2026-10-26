@@ -616,29 +616,45 @@ sequenceDiagram
 
 ## Image storage
 
-Article images are copied into the private R2 bucket so a saved article keeps
-its pictures after the source deletes, moves or hotlink-blocks them
-(`src/lib/image-store.server.ts`). On whenever the `R2_ACCOUNT_ID`,
-`R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_BUCKET` variables are set
-(no Deepgram key needed); `R2_IMAGE_BUCKET` optionally keeps images in a
-bucket of their own. Without them, `/api/img` fetches from the source as before.
+Article images and shelf covers are copied into the private R2 bucket so
+saved things keep their pictures after the source deletes, moves or
+hotlink-blocks them (`src/lib/image-store.server.ts`). On whenever the
+`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_BUCKET`
+variables are set (no Deepgram key needed); `R2_IMAGE_BUCKET` optionally keeps
+images in a bucket of their own. Without them, `/api/img` fetches from the
+source as before.
 
-- **Read:** the reader shows every article image through `/api/img?u=…`
-  (signed-in, same-site, rate-limited). The proxy serves the R2 copy when
-  there is one; otherwise it fetches the source (SSRF-guarded, ≤ 4 MB, never
-  SVG) and stores the result for next time.
+- **Read:** the reader and the shelves show every article image and cover
+  through `/api/img?u=…` (signed-in, same-site, rate-limited). The proxy
+  serves the R2 copy when there is one; otherwise it fetches the source
+  (SSRF-guarded, ≤ 4 MB, never SVG).
+- **Archive fallback:** when the source is gone (404), broken, or answers
+  with a page instead of the image, the fetcher asks the Internet Archive for
+  its newest copy (`web.archive.org/web/0im_/<url>`) through the same guards.
+  This tells the Archive which image was wanted; `IMAGE_ARCHIVE_FALLBACK=off`
+  turns it off.
 - **Warm:** saving an article with a new body copies its hero and up to 40
-  body images in the background (`runInBackground`, 4 at a time, skipping
-  ones already stored via `HEAD`), so they exist before anyone opens it.
-- **Keys:** `images/<sha256 of u>`, where `u` is exactly what the reader asks
+  body images in the background (`keepImages` in `src/server/keep-images.ts`,
+  4 at a time, skipping ones already stored via `HEAD`). Adding a shelf item
+  copies its cover; a Goodreads/StoryGraph import copies up to 200.
+- **Store on view:** an image the proxy fetches is kept only within the
+  `imageStore` rate-limit bucket (300 new images/hour/user, fails closed).
+  Anyone signed in can ask the proxy for any URL, so this caps how fast one
+  account can fill the bucket; past it, the image is still shown, just not kept.
+  Saving (above) is not counted: those images belong to something saved.
+- **Backfill:** `pnpm images:backfill` (`--dry-run` to count) copies the
+  images of everything saved before this existed — every article (body,
+  pre-Tidy body and hero) and every shelf cover. Idempotent; rerun any time.
+- **Keys:** `images/<sha256 of u>`, where `u` is exactly what the client asks
   the proxy for (`proxiedImageTarget`). Readers who save the same image share
   one copy; no user input reaches the object path.
 - **Access:** the bucket is never public and images are never presigned —
   bytes only leave through the authenticated proxy, with `private` browser
   caching and `nosniff`. Stored bytes are re-sniffed and SVG is refused.
-- **Not covered:** feed entry thumbnails (copied only when first viewed) and
-  shelf covers (shown straight from their source). Images are not deleted
-  with the article, since other readers may share them.
+- **Not covered:** feed entry thumbnails are copied only when viewed (saving
+  an entry makes an article, which copies its images). Images are never
+  deleted, since other readers may share them; at R2's ~$0.015/GB-month this
+  is cheap, and reference tracking can be added if it ever isn't.
 
 ## Caching
 

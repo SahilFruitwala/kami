@@ -54,7 +54,14 @@ export const Route = createFileRoute("/api/img")({
         // Served from our private R2 copy when there is one, so saved
         // articles keep their images after the source drops them.
         const { imageStore, loadImage } = await import("@/lib/image-store.server.ts");
-        const result = await loadImage(imageStore(), raw);
+        const { enforceRateLimit } = await import("@/lib/rate-limit.server.ts");
+        const result = await loadImage(imageStore(), raw, {
+          mayStore: () =>
+            enforceRateLimit(userId, "imageStore").then(
+              () => true,
+              () => false,
+            ),
+        });
         if (!result.ok) {
           return new Response(result.error, { status: result.status });
         }
