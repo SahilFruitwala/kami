@@ -33,7 +33,7 @@ export function imageStoreConfig(env: Env = process.env): R2Config | null {
 }
 
 /** A new image store, or null when R2 isn't configured. */
-export function createImageStore(env: Env = process.env): ObjectStore | null {
+function createImageStore(env: Env = process.env): ObjectStore | null {
   const cfg = imageStoreConfig(env);
   return cfg ? createR2Store(cfg) : null;
 }

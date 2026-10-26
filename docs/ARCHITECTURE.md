@@ -640,9 +640,6 @@ bucket of their own. Without them, `/api/img` fetches from the source as before.
   Anyone signed in can ask the proxy for any URL, so this caps how fast one
   account can fill the bucket; past it, the image is still shown, just not kept.
   Saving (above) is not counted: those images belong to a saved article.
-- **Backfill:** `pnpm images:backfill` (`--dry-run` to count) copies the
-  images of every article saved before this existed (body, pre-Tidy body and
-  hero). Idempotent; rerun any time.
 - **Keys:** `images/<sha256 of u>`, where `u` is exactly what the reader asks
   the proxy for (`proxiedImageTarget`). Readers who save the same image share
   one copy; no user input reaches the object path.
