@@ -200,12 +200,12 @@ describe("research validate", { skip: skipWithoutDb }, () => {
       validate.validateDrafter({ generate: fakeGenerate }),
     );
     await ledger.reserveRunCredits(db, owner.id, run.id, 45, "start");
-    await db.update(schema.researchRuns).set({ state: "queued" }).where(eq(schema.researchRuns.id, run.id));
+    await db
+      .update(schema.researchRuns)
+      .set({ state: "queued" })
+      .where(eq(schema.researchRuns.id, run.id));
 
-    const finished = await drive(
-      run.id,
-      validate.validateSteps({ generate: fakeGenerate, calls }),
-    );
+    const finished = await drive(run.id, validate.validateSteps({ generate: fakeGenerate, calls }));
     assert.equal(finished.state, "done");
     assert.equal(finished.progress.reported, true);
 
@@ -228,7 +228,10 @@ describe("research validate", { skip: skipWithoutDb }, () => {
     assert.equal(byId.counter.claims.length, 1);
     assert.match(byId.counter.claims[0].text, /Nothing turned up/);
 
-    await assert.rejects(product.researchReport(stranger.id, report.id), (err) => err.status === 404);
+    await assert.rejects(
+      product.researchReport(stranger.id, report.id),
+      (err) => err.status === 404,
+    );
     await assert.rejects(
       product.listResearchReports(stranger.id, topic.id),
       (err) => err.status === 404,

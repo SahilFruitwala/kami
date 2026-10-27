@@ -310,10 +310,7 @@ function TopicActions({ topicId }: { topicId: string }) {
 
 type IdeaFilter = "live" | "starred" | "dismissed";
 
-async function startValidate(
-  ideaId: string,
-  navigate: ReturnType<typeof Route.useNavigate>,
-) {
+async function startValidate(ideaId: string, navigate: ReturnType<typeof Route.useNavigate>) {
   const view = await researchApi.draft({ kind: "validate", ideaId, depth: "quick" });
   startTransition(() => {
     addTransitionType("nav-forward");

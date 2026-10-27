@@ -71,27 +71,23 @@ describe("research explore", { skip: skipWithoutDb }, () => {
       };
     }
     if (call.instructions.startsWith("You pull out")) {
-      const label = call.prompt.match(/source="(S\d+)"/)?.[1] ?? "S1";
-      const fromHome = call.prompt.includes("Descript is an AI video editor");
-      return {
-        output: {
-          quotes: fromHome
-            ? []
-            : [
-                {
-                  source: label,
-                  quote: QUOTE,
-                  kind: "pain",
-                  sentiment: -2,
-                  strong: true,
-                  names: ["Descript"],
-                },
-              ],
-        },
-        inputTokens: 400,
-        outputTokens: 40,
-        modelId: "fake",
-      };
+      const quotes = [];
+      for (const [, attrs, body] of call.prompt.matchAll(
+        /<document([^>]*)>([\s\S]*?)<\/document>/g,
+      )) {
+        const source = attrs.match(/source="(S\d+)"/)?.[1];
+        if (source && body.includes("so frustrating")) {
+          quotes.push({
+            source,
+            quote: QUOTE,
+            kind: "pain",
+            sentiment: -2,
+            strong: true,
+            names: ["Descript"],
+          });
+        }
+      }
+      return { output: { quotes }, inputTokens: 400, outputTokens: 40, modelId: "fake" };
     }
     if (call.instructions.startsWith("You fill in a product")) {
       return {
@@ -196,11 +192,15 @@ describe("research explore", { skip: skipWithoutDb }, () => {
     assert.equal(listed.length, 1);
     assert.equal(listed[0].name, "Descript");
     assert.equal(listed[0].evidenceCount, 2);
-    await assert.rejects(product.listResearchPlayers(stranger.id, topic.id), (err) => err.status === 404);
+    await assert.rejects(
+      product.listResearchPlayers(stranger.id, topic.id),
+      (err) => err.status === 404,
+    );
   });
 
   it("fills player fields from homepage and pricing pages only", async () => {
     const topic = await rdb.createTopic(db, owner.id, `map ${process.pid}-${Date.now()}`);
+    await db.delete(schema.researchModelCache);
     await ledger.grantResearchCredits(db, owner.id, 200, "test");
     const { run } = await runs.draftRun(
       owner.id,
@@ -218,13 +218,16 @@ describe("research explore", { skip: skipWithoutDb }, () => {
     assert.ok(run.plan.some((q) => /directory/.test(q.query)));
 
     await ledger.reserveRunCredits(db, owner.id, run.id, 45, "start");
-    await db.update(schema.researchRuns).set({ state: "queued" }).where(eq(schema.researchRuns.id, run.id));
+    await db
+      .update(schema.researchRuns)
+      .set({ state: "queued" })
+      .where(eq(schema.researchRuns.id, run.id));
 
     const finished = await drive(run.id, explore.exploreSteps({ generate: fakeGenerate, calls }));
     assert.equal(finished.state, "done", finished.error);
     const players = await product.listResearchPlayers(owner.id, topic.id);
     const descript = players.find((p) => p.name === "Descript");
-    assert.ok(descript);
+    assert.ok(descript, JSON.stringify({ players, progress: finished.progress }));
     assert.equal(descript.url, HOME);
     assert.equal(descript.oneLiner, "AI video editor for podcasters");
     assert.equal(descript.category, "video editor");

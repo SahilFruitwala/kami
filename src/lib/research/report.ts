@@ -30,7 +30,11 @@ export const COUNTER_SECTION_ID: ValidateSectionId = "counter";
 
 /** Phrases a Validate plan must search for, so the report can try to knock the idea down. */
 export const COUNTER_NEEDLES = [
-  { needle: "good enough", intent: "pain" as const, query: (idea: string) => `${idea} good enough` },
+  {
+    needle: "good enough",
+    intent: "pain" as const,
+    query: (idea: string) => `${idea} good enough`,
+  },
   {
     needle: "stopped using",
     intent: "switching" as const,
@@ -89,11 +93,12 @@ export function checkClaims(
         const evidenceIds = [
           ...new Set(claim.evidenceIds.map((id) => id.trim()).filter(Boolean)),
         ].filter((id) => knownIds.has(id));
-        return {
+        const checked: ReportClaim = {
           text,
           evidenceIds,
-          ...(evidenceIds.length ? {} : { unsupported: true as const }),
+          ...(evidenceIds.length ? {} : { unsupported: true }),
         };
+        return checked;
       })
       .filter((c): c is ReportClaim => c !== null),
   }));
@@ -106,10 +111,7 @@ export function ensureCounterSection(
 ): ReportSection[] {
   const list = sections.some((s) => s.id === COUNTER_SECTION_ID)
     ? sections
-    : [
-        ...sections,
-        { id: COUNTER_SECTION_ID, title: VALIDATE_SECTION_TITLES.counter, claims: [] },
-      ];
+    : [...sections, { id: COUNTER_SECTION_ID, title: VALIDATE_SECTION_TITLES.counter, claims: [] }];
   return list.map((section) => {
     if (section.id !== COUNTER_SECTION_ID) return section;
     if (section.claims.length) return section;
@@ -217,7 +219,9 @@ export function mergeCounterQueries(
   depth: Depth,
 ): PlanQuery[] {
   const marked = plan.map((q) =>
-    COUNTER_NEEDLES.some((n) => hasNeedle(q.query, n.needle)) ? { ...q, counter: true as const } : q,
+    COUNTER_NEEDLES.some((n) => hasNeedle(q.query, n.needle))
+      ? { ...q, counter: true as const }
+      : q,
   );
   const missing = COUNTER_NEEDLES.filter(
     (n) => !marked.some((q) => hasNeedle(q.query, n.needle)),

@@ -76,7 +76,8 @@ export const draftInput = z
   })
   .superRefine((v, ctx) => {
     if (v.kind === "validate") {
-      if (!v.ideaId) ctx.addIssue({ code: "custom", message: "Pick an idea to validate.", path: ["ideaId"] });
+      if (!v.ideaId)
+        ctx.addIssue({ code: "custom", message: "Pick an idea to validate.", path: ["ideaId"] });
     } else if (v.kind === "question") {
       if (!v.question || v.question.length < 3) {
         ctx.addIssue({
@@ -444,7 +445,9 @@ async function hydrateReport(
 ): Promise<ReportView> {
   if (!row) throw notFound("Report not found");
   const db = await getDb();
-  const ids = [...new Set(row.body.sections.flatMap((s) => s.claims.flatMap((c) => c.evidenceIds)))];
+  const ids = [
+    ...new Set(row.body.sections.flatMap((s) => s.claims.flatMap((c) => c.evidenceIds))),
+  ];
   const evidence = await evidenceByIds(db, row.topicId, ids);
   const byId = new Map(evidence.map((e) => [e.id, evidenceView(e)]));
   const idea = row.ideaId ? await getIdea(db, row.ideaId) : null;

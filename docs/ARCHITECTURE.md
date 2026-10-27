@@ -521,15 +521,15 @@ Runs work in the background on the narration pattern ([ADR 0001](adr/0001-narrat
 | Reddit   | Read only through Reddit's official API when `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` are set; otherwise plans and triage leave Reddit out.                                                                                           |
 | Access   | Owner-only throughout; the `research` rate-limit bucket counts drafts and starts.                                                                                                                                                        |
 
-| Path                                                                              | Role                                                                       |
-| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `src/lib/research/*`                                                              | Pure parts (tested): plan checks, sources, quote checking, scoring, engine |
-| `src/server/services/research/runs.ts`                                            | Draft, start, stop, the background run loop, paste-a-link runs             |
-| `src/server/services/research/{discover,evidence,ideas,validate,question,explore}.ts` | Discover, Validate, question and Explore steps                          |
-| `src/server/services/research/{topics,product}.ts`                                | The product API                                                            |
-| `src/routes/research/*`, `src/components/research/*`, `src/hooks/use-research.ts` | `/research`, topic, run and report pages                                   |
-| `src/routes/research/debug.tsx`, `docs/wayfinder/research/tuning/`                | Operator debug page and terminal tuning scripts                            |
-| `migrations/0023_research.sql`, `0025_research_reports.sql`, `0026_research_players.sql` | The `research_*` tables                                             |
+| Path                                                                                     | Role                                                                       |
+| ---------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `src/lib/research/*`                                                                     | Pure parts (tested): plan checks, sources, quote checking, scoring, engine |
+| `src/server/services/research/runs.ts`                                                   | Draft, start, stop, the background run loop, paste-a-link runs             |
+| `src/server/services/research/{discover,evidence,ideas,validate,question,explore}.ts`    | Discover, Validate, question and Explore steps                             |
+| `src/server/services/research/{topics,product}.ts`                                       | The product API                                                            |
+| `src/routes/research/*`, `src/components/research/*`, `src/hooks/use-research.ts`        | `/research`, topic, run and report pages                                   |
+| `src/routes/research/debug.tsx`, `docs/wayfinder/research/tuning/`                       | Operator debug page and terminal tuning scripts                            |
+| `migrations/0023_research.sql`, `0025_research_reports.sql`, `0026_research_players.sql` | The `research_*` tables                                                    |
 
 ---
 

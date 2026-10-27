@@ -28,7 +28,7 @@ import {
 } from "@/lib/research/report.ts";
 import { asDocument } from "@/server/ai";
 import { gatherSteps, type DiscoverDeps } from "./discover";
-import { callModel, type Generate } from "./models";
+import { callModel } from "./models";
 import {
   RunStepError,
   registerRunSteps,
@@ -132,7 +132,8 @@ export function validateDrafter(deps: ValidateDeps = {}) {
     if (!ideaId) throw new RunStepError("This Validate run has no idea.");
     const db = await getDb();
     const idea = await getIdea(db, ideaId);
-    if (!idea || idea.topicId !== topic.id) throw new RunStepError("That idea isn't in this topic.");
+    if (!idea || idea.topicId !== topic.id)
+      throw new RunStepError("That idea isn't in this topic.");
     const [sent, quotes, recent] = await Promise.all([
       topicQueryNorms(db, topic.id),
       ideaEvidence(db, idea.id),

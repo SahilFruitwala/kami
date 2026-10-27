@@ -29,7 +29,7 @@ import {
 import { asDocument } from "@/server/ai";
 import { gatherSteps, type DiscoverDeps } from "./discover";
 import { getOrFetchSource } from "./fetch";
-import { callModel, type Generate } from "./models";
+import { callModel } from "./models";
 import {
   RunStepError,
   registerRunSteps,

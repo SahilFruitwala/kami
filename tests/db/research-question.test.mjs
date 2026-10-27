@@ -44,10 +44,16 @@ describe("research question", { skip: skipWithoutDb }, () => {
   };
 
   const fakeGenerate = async (_model, call) => {
-    if (call.instructions.startsWith("You plan web searches that find what real people say that would answer")) {
+    if (
+      call.instructions.startsWith(
+        "You plan web searches that find what real people say that would answer",
+      )
+    ) {
       return {
         output: {
-          queries: [{ query: "freelance designers invoicing too expensive", site: "web", intent: "pain" }],
+          queries: [
+            { query: "freelance designers invoicing too expensive", site: "web", intent: "pain" },
+          ],
         },
         inputTokens: 200,
         outputTokens: 80,
@@ -159,7 +165,10 @@ describe("research question", { skip: skipWithoutDb }, () => {
     assert.ok(run.plan.some((q) => q.checked));
 
     await ledger.reserveRunCredits(db, owner.id, run.id, 45, "start");
-    await db.update(schema.researchRuns).set({ state: "queued" }).where(eq(schema.researchRuns.id, run.id));
+    await db
+      .update(schema.researchRuns)
+      .set({ state: "queued" })
+      .where(eq(schema.researchRuns.id, run.id));
 
     const finished = await drive(run.id, question.questionSteps({ generate: fakeGenerate, calls }));
     assert.equal(finished.state, "done");
@@ -179,6 +188,9 @@ describe("research question", { skip: skipWithoutDb }, () => {
     assert.equal(report.sections[0].claims[0].evidence[0].quote, QUOTE);
     assert.equal(report.sections[1].claims[0].unsupported, true);
 
-    await assert.rejects(product.researchReport(stranger.id, report.id), (err) => err.status === 404);
+    await assert.rejects(
+      product.researchReport(stranger.id, report.id),
+      (err) => err.status === 404,
+    );
   });
 });

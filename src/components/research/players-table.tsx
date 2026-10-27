@@ -7,9 +7,7 @@ type SortKey = "name" | "category" | "complaints" | "freePlan";
 
 function pricingLabel(player: PlayerView): string {
   if (!player.pricing.plans.length) return player.freePlan ? "Free plan" : "—";
-  return player.pricing.plans
-    .map((p) => (p.price ? `${p.name} ${p.price}` : p.name))
-    .join(" · ");
+  return player.pricing.plans.map((p) => (p.price ? `${p.name} ${p.price}` : p.name)).join(" · ");
 }
 
 /**
@@ -126,7 +124,9 @@ function Group({ category, rows }: { category: string; rows: PlayerView[] }) {
           </td>
           <td className="px-3 py-2.5 font-sans text-xs text-ink-soft">{p.category || "—"}</td>
           <td className="px-3 py-2.5 font-sans text-xs text-ink-soft">{p.complaints}</td>
-          <td className="px-3 py-2.5 font-sans text-xs text-ink-soft">{p.freePlan ? "Yes" : "—"}</td>
+          <td className="px-3 py-2.5 font-sans text-xs text-ink-soft">
+            {p.freePlan ? "Yes" : "—"}
+          </td>
           <td className="px-3 py-2.5 font-sans text-xs text-ink-soft">{pricingLabel(p)}</td>
         </tr>
       ))}

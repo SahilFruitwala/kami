@@ -45,10 +45,7 @@ export async function linkPlayerEvidence(
   playerId: string,
   evidenceId: string,
 ): Promise<void> {
-  await db
-    .insert(researchPlayerEvidence)
-    .values({ playerId, evidenceId })
-    .onConflictDoNothing();
+  await db.insert(researchPlayerEvidence).values({ playerId, evidenceId }).onConflictDoNothing();
 }
 
 /** Turn named products on new evidence into Players (stubs) and link the quotes. */
@@ -78,7 +75,11 @@ export async function syncPlayersFromEvidence(
   return created;
 }
 
-export async function listTopicPlayers(db: Db, userId: string, topicId: string): Promise<PlayerRow[]> {
+export async function listTopicPlayers(
+  db: Db,
+  userId: string,
+  topicId: string,
+): Promise<PlayerRow[]> {
   return db
     .select()
     .from(researchPlayers)
@@ -145,10 +146,7 @@ export async function unfilledPlayers(db: Db, topicId: string): Promise<PlayerRo
     .select()
     .from(researchPlayers)
     .where(
-      and(
-        eq(researchPlayers.topicId, topicId),
-        sql`cardinality(${researchPlayers.sourceIds}) = 0`,
-      ),
+      and(eq(researchPlayers.topicId, topicId), sql`cardinality(${researchPlayers.sourceIds}) = 0`),
     )
     .orderBy(researchPlayers.createdAt, researchPlayers.id);
 }

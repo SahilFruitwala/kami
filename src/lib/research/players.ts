@@ -10,7 +10,8 @@ import type { ReportClaim, ReportSection } from "./report.ts";
  */
 
 /** Sites that list or discuss products — never a Player's own homepage. */
-const NOT_HOME = /(?:^|\.)(?:reddit\.com|news\.ycombinator\.com|ycombinator\.com|g2\.com|capterra\.com|trustpilot\.com|producthunt\.com|indiehackers\.com|alternativeto\.net|g2crowd\.com|youtube\.com|medium\.com|substack\.com|x\.com|twitter\.com|facebook\.com|linkedin\.com|quora\.com|apps\.apple\.com|play\.google\.com)$/;
+const NOT_HOME =
+  /(?:^|\.)(?:reddit\.com|news\.ycombinator\.com|ycombinator\.com|g2\.com|capterra\.com|trustpilot\.com|producthunt\.com|indiehackers\.com|alternativeto\.net|g2crowd\.com|youtube\.com|medium\.com|substack\.com|x\.com|twitter\.com|facebook\.com|linkedin\.com|quora\.com|apps\.apple\.com|play\.google\.com)$/;
 
 export type PlayerPricing = { plans: Array<{ name: string; price: string }> };
 
@@ -89,9 +90,7 @@ export const EXPLORE_NEEDLES = [
   },
 ] as const;
 
-export function requiredExploreQueries(
-  seed: string,
-): Array<Pick<PlanQuery, "query" | "intent">> {
+export function requiredExploreQueries(seed: string): Array<Pick<PlanQuery, "query" | "intent">> {
   const space = seed.replace(/\s+/g, " ").trim() || "this space";
   return EXPLORE_NEEDLES.map((n) => ({ query: n.query(space), intent: n.intent }));
 }
@@ -102,20 +101,15 @@ function hasNeedle(query: string, needle: string): boolean {
 
 /** Mark covering queries and append any missing Explore searches, inside the depth cap. */
 export function mergeExploreQueries(plan: PlanQuery[], seed: string, depth: Depth): PlanQuery[] {
-  const marked = plan.map((q) =>
-    EXPLORE_NEEDLES.some((n) => hasNeedle(q.query, n.needle)) ? q : q,
-  );
   const missing = EXPLORE_NEEDLES.filter(
-    (n) => !marked.some((q) => hasNeedle(q.query, n.needle)),
+    (n) => !plan.some((q) => hasNeedle(q.query, n.needle)),
   ).map((n, i) => ({
     id: `e${i + 1}`,
     query: n.query(seed.replace(/\s+/g, " ").trim() || "this space"),
     intent: n.intent,
     checked: true,
   }));
-  const combined = [...marked, ...missing];
-  const cap = DEPTH_LIMITS[depth].maxQueries;
-  return combined.slice(0, cap);
+  return [...plan, ...missing].slice(0, DEPTH_LIMITS[depth].maxQueries);
 }
 
 /**
@@ -135,7 +129,7 @@ export function fillSolutionsFromPlayers(
       return {
         text,
         evidenceIds,
-        ...(evidenceIds.length ? {} : { unsupported: true as const }),
+        ...(evidenceIds.length ? {} : { unsupported: true }),
       };
     });
     return { ...section, claims };

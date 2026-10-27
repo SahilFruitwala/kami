@@ -9,14 +9,18 @@ import {
   type RunRow,
   type TopicRow,
 } from "@/lib/research-db.server.ts";
-import { getReportByRun, topicEvidenceIds, upsertReport } from "@/lib/research-reports-db.server.ts";
+import {
+  getReportByRun,
+  topicEvidenceIds,
+  upsertReport,
+} from "@/lib/research-reports-db.server.ts";
 import type { RunSpend } from "@/lib/research/credits.ts";
 import { OPEN_WEB, PLAN_INTENTS, planSite, validatePlan } from "@/lib/research/discover.ts";
 import type { PlanQuery } from "@/lib/research/kinds.ts";
 import { assembleQuestionReport } from "@/lib/research/report.ts";
 import { asDocument } from "@/server/ai";
 import { gatherSteps, type DiscoverDeps } from "./discover";
-import { callModel, type Generate } from "./models";
+import { callModel } from "./models";
 import {
   RunStepError,
   registerRunSteps,
@@ -187,7 +191,9 @@ export function questionReportStep(deps: QuestionDeps = {}): ResearchStep {
           schema: reportSchema,
           promptVersion: QUESTION_REPORT_PROMPT_VERSION,
           instructions: REPORT_INSTRUCTIONS,
-          prompt: [`Question: ${question}`, `Quotes:\n${asDocument(list || "(none)")}`].join("\n\n"),
+          prompt: [`Question: ${question}`, `Quotes:\n${asDocument(list || "(none)")}`].join(
+            "\n\n",
+          ),
           maxOutputTokens: 3_000,
           temperature: 0.2,
         },
