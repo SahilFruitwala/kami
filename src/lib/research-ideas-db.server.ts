@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNotNull, or, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { IdeaScore } from "./research/kinds.ts";
 import { IDEA_EVIDENCE_KINDS } from "./research/kinds.ts";
@@ -238,12 +238,21 @@ export async function topicIdeas(
     .orderBy(desc(researchIdeas.scoreTotal), asc(researchIdeas.createdAt));
 }
 
-/** The topic's latest run that has finished (its ideas get the "New" and "+N" badges). */
+/**
+ * The topic's latest run that ran and finished (its ideas get the "New" and
+ * "+N" badges). A plan discarded before it ran never started, so it doesn't count.
+ */
 export async function latestFinishedRunId(db: Db, topicId: string): Promise<string | null> {
   const [row] = await db
     .select({ id: researchRuns.id })
     .from(researchRuns)
-    .where(and(eq(researchRuns.topicId, topicId), inArray(researchRuns.state, ["done", "stopped"])))
+    .where(
+      and(
+        eq(researchRuns.topicId, topicId),
+        inArray(researchRuns.state, ["done", "stopped"]),
+        isNotNull(researchRuns.startedAt),
+      ),
+    )
     .orderBy(desc(researchRuns.finishedAt))
     .limit(1);
   return row?.id ?? null;

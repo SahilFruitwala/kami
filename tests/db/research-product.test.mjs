@@ -236,6 +236,16 @@ describe("research product API", { skip: skipWithoutDb }, () => {
       "noise again from neighbours",
       "transcript misspells every name",
     ]);
+    // A plan discarded afterwards never ran, so the badges still come from the run.
+    const draft = await rdb.createRun(db, owner.id, topic.id, {
+      kind: "discover",
+      depth: "quick",
+      input: { seed: "discarded" },
+    });
+    await db
+      .update(schema.researchRuns)
+      .set({ state: "stopped", stopReason: "user", chargedCredits: 0, finishedAt: new Date() })
+      .where(eq(schema.researchRuns.id, draft.id));
     const second = await byTitle();
     assert.equal(second["Editing takes hours"].evidenceCount, 4);
     assert.equal(second["Editing takes hours"].addedLastRun, 1, "+1 from the latest run");
