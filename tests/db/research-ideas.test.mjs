@@ -200,7 +200,7 @@ describe("discover: match, name, score", { skip: skipWithoutDb }, () => {
     assert.equal(editing.firstRunId, run1.id);
     assert.equal(editing.addedLastRun, 3);
     assert.ok(editing.scoreTotal > 0);
-    assert.equal(editing.score.intensity, 0.667);
+    assert.equal(editing.score.intensity, 0.458, "2 of 3 felt, plus 3 average quotes: 2.75 / 6");
     assert.equal(find("cost").score.pays, 0.4);
     assert.equal(find("cost").score.competition, "some");
 

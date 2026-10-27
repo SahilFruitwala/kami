@@ -21,8 +21,8 @@ export type DepthLimits = {
 
 /** _(start values, tuned in ticket 09)_ */
 export const DEPTH_LIMITS: Record<Depth, DepthLimits> = {
-  quick: { maxQueries: 12, resultsPerQuery: 8, pagesToRead: 12, maxCandidates: 40 },
-  deep: { maxQueries: 25, resultsPerQuery: 15, pagesToRead: 40, maxCandidates: 120 },
+  quick: { maxQueries: 12, resultsPerQuery: 10, pagesToRead: 12, maxCandidates: 40 },
+  deep: { maxQueries: 20, resultsPerQuery: 10, pagesToRead: 40, maxCandidates: 120 },
 };
 
 export const MAX_QUERY_CHARS = 200;

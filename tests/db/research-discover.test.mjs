@@ -276,6 +276,30 @@ describe("discover: plan, search, triage", { skip: skipWithoutDb }, () => {
     assert.deepEqual(row.progress.spares, []);
   });
 
+  it("plans no Reddit searches while Reddit's API isn't set up", async () => {
+    // A fresh topic, so none of the fake plan's queries count as already searched.
+    const fresh = await rdb.createTopic(db, user.id, `no reddit ${process.pid}-${Date.now()}`);
+    delete process.env.REDDIT_CLIENT_SECRET;
+    try {
+      const { run } = await runs.draftRun(
+        user.id,
+        {
+          topicId: fresh.id,
+          kind: "discover",
+          input: { seed: `no reddit plan ${process.pid}-${Date.now()}` },
+          depth: "quick",
+        },
+        discover.discoverDrafter({ generate: fakeGenerate }),
+      );
+      assert.ok(run.plan.length > 0);
+      assert.ok(run.plan.every((q) => q.site !== "reddit.com"));
+      const planCall = modelCalls.at(-1);
+      assert.match(planCall.prompt, /Never these sites: reddit\.com/);
+    } finally {
+      process.env.REDDIT_CLIENT_SECRET = "reddit-secret";
+    }
+  });
+
   it("refuses an edited plan with nothing checked", async () => {
     await assert.rejects(
       discover.validateEditedPlan(

@@ -192,7 +192,7 @@ Where intermediate output lives: `research_queries` (search done), a `triage` li
 
 ### 4.4 Discover: plan
 
-Writer-tier call. Input: seed, filters, the topic's existing idea titles (so the plan looks for new ground and for more support for open ideas), and the last 50 queries in the topic. Output: 10 to 25 queries, each `{ query, site?, intent }` where `intent` is `pain`, `wish`, `switching`, `alternatives` or `pricing`. A good plan mixes sites (Reddit, HN, G2/Capterra/Trustpilot/app-store reviews, Product Hunt, the open web) and phrasings that find complaints ("frustrating", "I wish", "alternative to", "switched from", "is there a tool").
+Writer-tier call. Input: seed, filters, the topic's existing idea titles (so the plan looks for new ground and for more support for open ideas), and the last 50 queries in the topic. Output: 10 to 20 queries, each `{ query, site?, intent }` where `intent` is `pain`, `wish`, `switching`, `alternatives` or `pricing`. A good plan mixes sites (Reddit, HN, G2/Capterra/Trustpilot/app-store reviews, Product Hunt, the open web) and phrasings that find complaints ("frustrating", "I wish", "alternative to", "switched from", "is there a tool").
 
 Validation in code: at most `maxQueries[depth]` queries, each ≤ 200 chars, sites only from `includeSites` when given and never from `excludeSites`; repeats (same `query_norm` already sent in this topic) are flagged and left unchecked in the UI by default.
 
@@ -206,7 +206,7 @@ Validation in code: at most `maxQueries[depth]` queries, each ≤ 200 chars, sit
 
 - Source cache first: a source with the same `url_key` is reused when it's fresher than its kind's limit: `thread` and `review` 30 days, `pricing` and `homepage` 7 days, `article` 90 days _(start)_. Reuse costs nothing.
 - Otherwise the page is read from the source that serves it, capped at `RESEARCH_MAX_PAGE_CHARS`. Kind is inferred from the host and path.
-  - Reddit threads: the thread's public `.json` (Firecrawl refuses reddit.com), free, with an identifying User-Agent and at least 6.5 s between reads.
+  - Reddit threads: Reddit's official API with app-only OAuth (`REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET`), free, with an identifying User-Agent and at least 1 s between reads. Firecrawl refuses reddit.com and Reddit refuses unauthenticated `.json` reads (403), and Reddit now approves API access before an app can be created. **Without the keys Reddit is not read at all:** triage leaves Reddit threads out and a skipped pick is replaced by the next-best spare (`progress.spares`).
   - Hacker News discussions: the Algolia items API, free.
   - Everything else: a metered Firecrawl scrape (`onlyMainContent`, its own `maxAge` cache), trimmed.
   - Discussion readers write one Markdown block per comment (author, date, score, then the comment as written), so quotes verify against them like any page.
@@ -233,27 +233,27 @@ Author handles are hashed into `author_key` here and then thrown away.
 
 **Scoring** (`src/lib/research/score.ts`, pure). Over an idea's evidence; each sub-score is 0 to 1:
 
-| Sub-score   | Computed from                                                                      | Start formula                                                                          |
-| ----------- | ---------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Frequency   | distinct authors (quotes with no author count 0.5 each)                            | `min(1, log2(1 + n) / log2(1 + 30))`                                                   |
-| Spread      | distinct sites and distinct sources                                                | `min(1, (sites − 1) / 4) * 0.6 + min(1, sources / 10) * 0.4`                           |
-| Intensity   | share of quotes with `strong` or sentiment ≤ −2                                    | ratio                                                                                  |
-| Pays        | quotes with `pays`                                                                 | `min(1, n / 5)`                                                                        |
-| Recency     | age of each quote's `posted_at`                                                    | mean of `0.5 ^ (ageDays / 180)`                                                        |
-| Competition | products named in the idea's evidence, and how negative the quotes naming them are | shown as a label (`none`, `some`, `crowded`, `crowded but disliked`), not in the total |
+| Sub-score   | Computed from                                                                      | Start formula                                                                              |
+| ----------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Frequency   | distinct authors (quotes with no author count 0.5 each)                            | `min(1, log2(1 + n) / log2(1 + 30))`                                                       |
+| Spread      | distinct sites and distinct sources                                                | `min(1, (sites − 1) / 4) * 0.6 + min(1, sources / 10) * 0.4`                               |
+| Intensity   | share of quotes with `strong` or sentiment ≤ −2                                    | `(felt + 0.25 × 3) / (n + 3)`: the share, pulled toward 0.25 while there are few quotes    |
+| Pays        | quotes with `pays`                                                                 | `min(1, n / 5)`                                                                            |
+| Recency     | age of each quote's `posted_at`                                                    | `(Σ 0.5 ^ (ageDays / 180) + 0.5 × 3) / (dated + 3)`: the mean, pulled toward 0.5 while few |
+| Competition | products named in the idea's evidence, and how negative the quotes naming them are | shown as a label (`none`, `some`, `crowded`, `crowded but disliked`), not in the total     |
 
-`total = 0.25 frequency + 0.15 spread + 0.25 intensity + 0.25 pays + 0.10 recency`. The weights live in one constant. Competition stays out of the total because it can count for an idea or against it; the user reads it.
+`total = 0.35 frequency + 0.20 spread + 0.15 intensity + 0.20 pays + 0.10 recency`. The weights live in one constant. **Tuned in ticket 09** (were 0.25 / 0.15 / 0.25 / 0.25 / 0.10, with intensity and recency as plain shares): on the first three real seeds, one strongly felt quote scored intensity 1 and outranked ideas four or five people raised. Counting 3 average quotes on top of every idea's own and weighting support higher put well-supported ideas first; the average quotes behind the top 5 ideas went from 1.2–2.8 to 3.2–4.0. Competition stays out of the total because it can count for an idea or against it; the user reads it.
 
 After scoring, ideas touched by the run get `last_run_id` and `added_last_run`; ideas created in the run also get `first_run_id`.
 
 ### 4.10 Budgets and estimates _(start values)_
 
-|                           | Quick                                                              | Deep |
-| ------------------------- | ------------------------------------------------------------------ | ---- |
-| Max queries               | 12                                                                 | 25   |
-| Results per query         | 8                                                                  | 15   |
-| Pages to read             | 12                                                                 | 40   |
-| Budget (research credits) | 45 (was 30: 12 searches cost 24, leaving too little to read pages) | 100  |
+|                           | Quick                                                                           | Deep                                                              |
+| ------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Max queries               | 12                                                                              | 20 (was 25: 25 searches at 15 results cost ~90 of the 100 budget) |
+| Results per query         | 10 (was 8: Firecrawl bills per started 10, so 8 and 10 cost the same 2 credits) | 10 (was 15)                                                       |
+| Pages to read             | 12                                                                              | 40                                                                |
+| Budget (research credits) | 45 (was 30: 12 searches cost 24, leaving too little to read pages)              | 100                                                               |
 
 The estimate on the plan screen = searches × Firecrawl credits per search + pages to read × (1 − expected cache hit rate) × credits per scrape + expected tokens ÷ `RESEARCH_TOKENS_PER_CREDIT`, shown as a range up to the budget. The cost table (credits per search by result count, per scrape) lives in one constant and is checked against Firecrawl's billing in ticket 09.
 

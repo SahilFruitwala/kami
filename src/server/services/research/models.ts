@@ -63,6 +63,10 @@ async function saveCutOff(record: Record<string, unknown>) {
   }
 }
 
+/** Retries for an unusable answer, and how much warmer each one runs. */
+const UNUSABLE_RETRIES = 1;
+const RETRY_WARMER = 0.3;
+
 const liveGenerate: Generate = async (model, call) => {
   const result = await generateText({
     model,
@@ -129,41 +133,60 @@ export async function callModel<S extends z.ZodType>(
     tokensOut: call.maxOutputTokens,
   });
 
-  let result: GenerateResult;
-  try {
-    result = await generate(tier.model, { ...sent, schema: call.schema });
-  } catch (err) {
-    if (NoObjectGeneratedError.isInstance(err) && err.finishReason !== "stop") {
-      await saveCutOff({
-        model: tier.id,
-        finishReason: err.finishReason,
-        usage: err.usage,
-        text: err.text ?? null,
-        prompt: call.prompt,
+  // An unusable answer (cut off, usually a loop at temperature 0, or
+  // off-schema) is retried once a little warmer, which breaks the loop.
+  // Only failures pay for the second call.
+  for (let attempt = 0; ; attempt++) {
+    if (attempt > 0) {
+      meter.ensureBudget({
+        tokensIn: estimateTokens(`${call.instructions}\n${UNTRUSTED_GUARD}\n${call.prompt}`),
+        tokensOut: call.maxOutputTokens,
       });
     }
-    console.error(`[research] ${tier.id} failed`, err);
-    throw new RunStepError(aiError(err).message);
-  }
-  // Charged even when the answer is unusable: the provider billed it.
-  await meter.recordSpend({ tokensIn: result.inputTokens, tokensOut: result.outputTokens });
+    const temperature = Math.min(1, sent.temperature + attempt * RETRY_WARMER);
+    const last = attempt >= UNUSABLE_RETRIES;
+    let result: GenerateResult;
+    try {
+      result = await generate(tier.model, { ...sent, temperature, schema: call.schema });
+    } catch (err) {
+      const cutOff = NoObjectGeneratedError.isInstance(err) && err.finishReason !== "stop";
+      if (cutOff) {
+        await saveCutOff({
+          model: tier.id,
+          finishReason: err.finishReason,
+          usage: err.usage,
+          text: err.text ?? null,
+          prompt: call.prompt,
+        });
+        if (!last) {
+          console.warn(`[research] ${tier.id} answer cut off; retrying once`);
+          continue;
+        }
+      }
+      console.error(`[research] ${tier.id} failed`, err);
+      throw new RunStepError(aiError(err).message);
+    }
+    // Charged even when the answer is unusable: the provider billed it.
+    await meter.recordSpend({ tokensIn: result.inputTokens, tokensOut: result.outputTokens });
 
-  const parsed = call.schema.safeParse(result.output);
-  if (!parsed.success) {
-    console.error(
-      `[research] ${result.modelId} answered off-schema`,
-      parsed.error.issues.slice(0, 3),
-    );
-    throw new RunStepError(
-      "The AI returned an answer that couldn't be used. Try again in a moment.",
-    );
+    const parsed = call.schema.safeParse(result.output);
+    if (!parsed.success) {
+      console.error(
+        `[research] ${result.modelId} answered off-schema`,
+        parsed.error.issues.slice(0, 3),
+      );
+      if (!last) continue;
+      throw new RunStepError(
+        "The AI returned an answer that couldn't be used. Try again in a moment.",
+      );
+    }
+    await storeAnswer(db, {
+      key,
+      model: result.modelId,
+      output: parsed.data,
+      tokensIn: result.inputTokens,
+      tokensOut: result.outputTokens,
+    });
+    return parsed.data;
   }
-  await storeAnswer(db, {
-    key,
-    model: result.modelId,
-    output: parsed.data,
-    tokensIn: result.inputTokens,
-    tokensOut: result.outputTokens,
-  });
-  return parsed.data;
 }

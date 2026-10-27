@@ -104,14 +104,30 @@ describe("research model calls", { skip: skipWithoutDb }, () => {
     assert.deepEqual(spent, { tokensIn: 0, tokensOut: 0 });
   });
 
-  it("charges an off-schema answer but doesn't cache it", async () => {
+  it("charges an off-schema answer, retries it once warmer, and doesn't cache it", async () => {
     answer = { ideas: "not a list" };
     const c = call("bad");
     await assert.rejects(models.callModel(meter, c, fakeGenerate), runs.RunStepError);
-    assert.deepEqual(spent, { tokensIn: 1200, tokensOut: 80 });
+    assert.equal(generated.length, 2, "one retry");
+    assert.ok(generated[1].temperature > generated[0].temperature, "the retry runs warmer");
+    assert.deepEqual(spent, { tokensIn: 2400, tokensOut: 160 }, "both calls charged");
     answer = { ideas: ["ok now"] };
     assert.deepEqual(await models.callModel(meter, c, fakeGenerate), { ideas: ["ok now"] });
-    assert.equal(generated.length, 2, "the bad answer wasn't served from the cache");
+    assert.equal(generated.length, 3, "the bad answer wasn't served from the cache");
+  });
+
+  it("uses the retry's answer when the first one is unusable", async () => {
+    let calls = 0;
+    const flaky = async (model, c) => {
+      calls++;
+      return fakeGenerate(model, c).then((r) =>
+        calls === 1 ? { ...r, output: null } : { ...r, output: { ideas: ["second try"] } },
+      );
+    };
+    assert.deepEqual(await models.callModel(meter, call("flaky"), flaky), {
+      ideas: ["second try"],
+    });
+    assert.equal(calls, 2);
   });
 
   it("turns a provider failure into a message for the user", async () => {

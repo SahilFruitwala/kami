@@ -43,8 +43,13 @@ describe("idea sub-scores", () => {
     near(spreadScore(fiveSites), 0.8);
   });
 
-  it("intensity is the share of strongly felt or very negative quotes", () => {
-    assert.equal(intensityScore([e({ strong: true }), e({ sentiment: -2 }), e(), e()]), 0.5);
+  it("intensity is the share of strongly felt or very negative quotes, pulled toward 0.25 while few", () => {
+    const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} ≈ ${b}`);
+    // 2 of 4, plus 3 average quotes at 0.25: (2 + 0.75) / 7.
+    near(intensityScore([e({ strong: true }), e({ sentiment: -2 }), e(), e()]), 2.75 / 7);
+    near(intensityScore([e({ strong: true })]), 1.75 / 4, "one strong quote is not 1");
+    const many = Array.from({ length: 60 }, () => e({ strong: true }));
+    assert.ok(intensityScore(many) > 0.95, "many strong quotes approach 1");
     assert.equal(intensityScore([]), 0);
   });
 
@@ -55,14 +60,15 @@ describe("idea sub-scores", () => {
 
   it("recency halves every 180 days, and is neutral when nothing is dated", () => {
     assert.equal(recencyScore([e()], NOW), 0.5);
-    assert.equal(recencyScore([e({ postedAt: new Date(NOW) })], NOW), 1);
+    // Dated weights plus 3 average quotes at 0.5.
+    assert.equal(recencyScore([e({ postedAt: new Date(NOW) })], NOW), (1 + 1.5) / 4);
     assert.equal(recencyScore([e({ postedAt: new Date(NOW - 180 * DAY) })], NOW), 0.5);
     assert.equal(
       recencyScore(
         [e({ postedAt: new Date(NOW) }), e({ postedAt: new Date(NOW - 360 * DAY) })],
         NOW,
       ),
-      (1 + 0.25) / 2,
+      (1 + 0.25 + 1.5) / 5,
     );
   });
 });
@@ -92,9 +98,20 @@ describe("scoreIdea", () => {
       SCORE_WEIGHTS.pays * s.pays +
       SCORE_WEIGHTS.recency * s.recency;
     assert.equal(s.total, Math.round(expected * 1000) / 1000);
-    assert.equal(s.intensity, 1);
+    assert.equal(s.intensity, 0.55, "(2 + 0.75) / 5");
     assert.equal(s.competition, "some");
     assert.deepEqual(scoreIdea(evidence, NOW), s, "same evidence, same score");
+  });
+
+  it("ranks an idea several people raise above one strongly felt quote", () => {
+    const lone = scoreIdea([e({ authorKey: "a", strong: true, postedAt: new Date(NOW) })], NOW);
+    const shared = scoreIdea(
+      ["a", "b", "c", "d", "e"].map((who, i) =>
+        e({ authorKey: who, site: ["x.com", "y.com", "z.com"][i % 3], sourceId: `s${i}` }),
+      ),
+      NOW,
+    );
+    assert.ok(shared.total > lone.total, `${shared.total} > ${lone.total}`);
   });
 
   it("weights add up to 1", () => {

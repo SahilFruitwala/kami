@@ -16,41 +16,42 @@ blocked-by: [08-idea-matching-and-scoring.md]
 
 ## Done when
 
-- Five seeds produce ideas you'd act on, each with checked quotes, inside their budgets. Actual cost per Quick and Deep run is recorded here.
+- Three seeds at Quick and a Deep check produce ideas you'd act on, each with checked quotes, inside their budgets (reduced from five seeds at both depths to save credits). Actual cost per Quick and Deep run is recorded here.
 
-## Checkpoint (2026-10-26): in progress, waiting on a decision
+## Checkpoint (2026-10-27): tuning runs done
 
-Where to pick up: branch `research/09-debug` (stacked on `research/08-ideas`, PR #87). Not pushed and no PR yet.
+Where to pick up: branch `research/09-debug` (stacked on `research/08-ideas`, PR #87), pushed to origin at `e711798a`; no PR for it yet (target `research/08-ideas`).
+
+**Decision made: Reddit** (both parts built)
+
+- Until Reddit can be read, triage leaves Reddit threads out and the rest of its ranked picks are kept as `progress.spares`; a page the fetch step skips is replaced by the best spare.
+- Reddit's official API with app-only OAuth, used only when `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` are set. **No keys yet:** Reddit now approves API access (Responsible Builder Policy) before an app can be created. Add the keys when approved; no code change needed.
 
 **Built so far**
 
-- Debug page `/research/debug` (`src/routes/research/debug.tsx`) and its API under `/api/research/debug/*` (`src/server/services/research/debug.ts`, types in `src/lib/api/research.ts`). Gated by `RESEARCH_DEBUG_EMAILS` (404 for everyone else) instead of a `user_feature_flags` column, so no migration.
-- Terminal tuning scripts in [`../tuning/`](../tuning/README.md), for when the page can't be reached signed in.
-- Fixes found by real runs (see the run table in `../tuning/README.md`):
-  - The plan prompt requires a `site` per query (`discover-plan-v2`, `planSite`).
-  - Firecrawl 429 waits and retries, following `Retry-After` (`src/lib/research/backoff.ts`); retries are free. Step time budgets went to 120/150 s and `LEASE_MS` to 300 s.
-  - A failed run shows the source's own message (`PageReadError`, `src/lib/page-read-error.ts`).
-  - A topic's stored search for the same query within 14 days is reused for free (`SEARCH_REUSE_DAYS`, `storedTopicHits`, `progress.reusedSearches`).
-  - Quick budget is 45 (was 30).
-  - Firecrawl 403 means "this site isn't supported" (`422`, skipped), and only 401 means a bad key.
-  - Hacker News goes through the free Algolia API for search and reading (ticket 18, closed).
-  - A Reddit `.json` reader exists (`src/lib/reddit.server.ts`), **but Reddit refuses unauthenticated reads (403)**, so it reads nothing today.
+- Debug page `/research/debug` and its API (`src/server/services/research/debug.ts`), gated by `RESEARCH_DEBUG_EMAILS`.
+- Terminal tuning scripts in [`../tuning/`](../tuning/README.md) and a run table there.
+- Fixes found by real runs: plan `site` per query, 429 wait-and-retry, stored-search reuse (14 days), Quick budget 45, Firecrawl 403 = unsupported site, Hacker News via Algolia, Reddit gate and spares, extract capped at 5 quotes per block / 40 per call (`discover-extract-v2`, 8,000 output tokens), match batches of 15 (6,000 tokens), cut-off model answers saved to `<tmpdir>/kami-research-cutoffs/`, and idea titles that carry their summary are split (`ideaText`).
 
-**Findings**
+**First real end-to-end run** (`77cd5966`, Quick, topic "tools for indie podcasters"): 12 stored searches reused free; 12 pages read (5 Indie Hackers, 3 HN, 3 G2, 1 other); 115 exact quotes, 0 dropped; 32 ideas, none broken after the naming pass. Charged **13 credits** in total (9 Firecrawl, 4 model tokens) across 4 resumes after failures that are now fixed, so a clean Quick run on stored searches costs roughly that. A first run with fresh searches also pays for them (the earlier runs spent 21 credits on 10 of 12 searches).
 
-- Firecrawl does not scrape reddit.com. Reddit's public JSON also refuses this client. Don't work around that with browser-like User-Agents: that's circumventing a bot check.
-- Triage picked only Reddit threads (discussion pages score highest), and a skipped pick isn't replaced, so the last run read nothing.
-- Spend so far: 26 research credits across the runs. Local balance is about 174 of 200.
+**Measured on real runs (2026-10-27)**
 
-**Open decision (the user's)**
+| Run                                 | Depth | Searches          | Pages read | Quotes (dropped) | Ideas | Charged                     |
+| ----------------------------------- | ----- | ----------------- | ---------- | ---------------- | ----- | --------------------------- |
+| Seed 1, invoicing (`438dd6f3`)      | Quick | 12 (11 paid)      | 11         | 131 (0)          | 37    | 36 (33 Firecrawl, 3 tokens) |
+| Seed 2, home lab (`5fd625e6`)       | Quick | 12 (10 paid)      | 8          | 65 (0)           | 17    | 30 (28 Firecrawl, 2 tokens) |
+| Podcasters (`77cd5966`)             | Quick | 12 (stored, free) | 12         | 115 (0)          | 32    | 13 (9 Firecrawl, 4 tokens)  |
+| Invoicing plan at Deep (`a6955991`) | Deep  | 12 (stored, free) | 28         | 235 (1)          | +40   | 35 (28 Firecrawl, 7 tokens) |
 
-1. Until Reddit can be read, keep Reddit threads out of triage picks, and backfill a skipped pick with the next-best candidate, so runs read pages they can get (HN, review sites, forums). Recommended now.
-2. Add Reddit's official API with app-only OAuth (`REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` from a "script" app at reddit.com/prefs/apps), used only when set. Needs the user to create the app. Recommended alongside 1.
+- A Quick run with fresh searches costs **30–38**; on stored searches about **13**. Deep on stored searches costs about **35**; with 20 fresh searches add up to 40 (2 each), so about **75–85**, inside its 100 budget.
+- Cache: a re-run of a plan in the same topic reuses every search and every stored page for free (`a6955991` reused 12 of 12 searches and skipped the 11 pages already read). The separate cache re-run was skipped to save credits.
+- Triage picks fewer pages than allowed when results are thin (8–12 of 12 at Quick, 29 of 40 at Deep).
+- Score weights tuned (spec §4.9). Quote matching: 99.4% exact; the close-match threshold stays as is.
+- Model answers can loop at temperature 0; an unusable answer is now retried once, 0.3 warmer.
 
-**Then**
+**Scope change (agreed 2026-10-27):** to save Firecrawl and model credits, ticket 09 ends at 3 seeds at Quick plus a Deep check on one of them, instead of 5 seeds at both depths.
 
-- Re-run the indie-podcasters plan; it should be nearly free, since its searches are stored.
-- Then 4 more seeds at both depths, asking before each run that spends credits.
-- Record real costs, the cache hit rate, the close-match threshold and the score weights here and in `spec.md`.
+**Left before closing:** a broad idea can soak up quotes ("Getting paid and reconciling is hard" holds 76): watch it in the ideas tab (ticket 12, merging and splitting). Commit and open the PR.
 
 ## Resolution

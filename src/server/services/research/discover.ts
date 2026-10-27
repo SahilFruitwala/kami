@@ -139,10 +139,12 @@ export function discoverDrafter(deps: DiscoverDeps = {}) {
     };
     const input = run.input;
     const limits = DEPTH_LIMITS[run.depth];
+    const never = [...(input.excludeSites ?? []), ...(redditConfigured() ? [] : ["reddit.com"])];
     const filters = [
       input.audience && input.audience !== "any" ? `Audience: ${input.audience.toUpperCase()}` : "",
       input.includeSites?.length ? `Only these sites: ${input.includeSites.join(", ")}` : "",
-      input.excludeSites?.length ? `Never these sites: ${input.excludeSites.join(", ")}` : "",
+      // Reddit can't be read until its API is set up, so searching it would be wasted.
+      never.length ? `Never these sites: ${never.join(", ")}` : "",
       input.sinceMonths ? `Results from the last ${input.sinceMonths} months only.` : "",
     ].filter(Boolean);
     const prompt = [
@@ -172,7 +174,9 @@ export function discoverDrafter(deps: DiscoverDeps = {}) {
       },
       deps.generate,
     );
-    const plan = planFromModel(output, run, sent);
+    const plan = planFromModel(output, run, sent).filter(
+      (q) => redditConfigured() || q.site !== "reddit.com",
+    );
     if (!plan.some((q) => q.checked)) {
       throw new RunStepError(
         "Couldn't draft new searches for that seed. Try wording it differently.",
