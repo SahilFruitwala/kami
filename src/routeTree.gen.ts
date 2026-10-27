@@ -116,6 +116,7 @@ import { Route as ApiResearchRunsIdStartRouteImport } from './routes/api/researc
 import { Route as ApiResearchRunsIdStopRouteImport } from './routes/api/research/runs/$id/stop'
 import { Route as ApiResearchTopicsIdIdeasRouteImport } from './routes/api/research/topics/$id/ideas'
 import { Route as ApiResearchTopicsIdLinksRouteImport } from './routes/api/research/topics/$id/links'
+import { Route as ApiResearchTopicsIdPlayersRouteImport } from './routes/api/research/topics/$id/players'
 import { Route as ApiResearchTopicsIdReportsRouteImport } from './routes/api/research/topics/$id/reports'
 import { Route as ApiResearchTopicsIdSourcesRouteImport } from './routes/api/research/topics/$id/sources'
 import { Route as ApiShelvesBookIdPageCountRouteImport } from './routes/api/shelves/book/$id/page-count'
@@ -672,6 +673,12 @@ const ApiResearchTopicsIdLinksRoute =
     path: '/links',
     getParentRoute: () => ApiResearchTopicsIdRoute,
   } as any)
+const ApiResearchTopicsIdPlayersRoute =
+  ApiResearchTopicsIdPlayersRouteImport.update({
+    id: '/players',
+    path: '/players',
+    getParentRoute: () => ApiResearchTopicsIdRoute,
+  } as any)
 const ApiResearchTopicsIdReportsRoute =
   ApiResearchTopicsIdReportsRouteImport.update({
     id: '/reports',
@@ -855,6 +862,7 @@ export interface FileRoutesByFullPath {
   '/api/research/runs/$id/stop': typeof ApiResearchRunsIdStopRoute
   '/api/research/topics/$id/ideas': typeof ApiResearchTopicsIdIdeasRoute
   '/api/research/topics/$id/links': typeof ApiResearchTopicsIdLinksRoute
+  '/api/research/topics/$id/players': typeof ApiResearchTopicsIdPlayersRoute
   '/api/research/topics/$id/reports': typeof ApiResearchTopicsIdReportsRoute
   '/api/research/topics/$id/sources': typeof ApiResearchTopicsIdSourcesRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
@@ -976,6 +984,7 @@ export interface FileRoutesByTo {
   '/api/research/runs/$id/stop': typeof ApiResearchRunsIdStopRoute
   '/api/research/topics/$id/ideas': typeof ApiResearchTopicsIdIdeasRoute
   '/api/research/topics/$id/links': typeof ApiResearchTopicsIdLinksRoute
+  '/api/research/topics/$id/players': typeof ApiResearchTopicsIdPlayersRoute
   '/api/research/topics/$id/reports': typeof ApiResearchTopicsIdReportsRoute
   '/api/research/topics/$id/sources': typeof ApiResearchTopicsIdSourcesRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
@@ -1099,6 +1108,7 @@ export interface FileRoutesById {
   '/api/research/runs/$id/stop': typeof ApiResearchRunsIdStopRoute
   '/api/research/topics/$id/ideas': typeof ApiResearchTopicsIdIdeasRoute
   '/api/research/topics/$id/links': typeof ApiResearchTopicsIdLinksRoute
+  '/api/research/topics/$id/players': typeof ApiResearchTopicsIdPlayersRoute
   '/api/research/topics/$id/reports': typeof ApiResearchTopicsIdReportsRoute
   '/api/research/topics/$id/sources': typeof ApiResearchTopicsIdSourcesRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
@@ -1223,6 +1233,7 @@ export interface FileRouteTypes {
     | '/api/research/runs/$id/stop'
     | '/api/research/topics/$id/ideas'
     | '/api/research/topics/$id/links'
+    | '/api/research/topics/$id/players'
     | '/api/research/topics/$id/reports'
     | '/api/research/topics/$id/sources'
     | '/api/shelves/book/$id/page-count'
@@ -1344,6 +1355,7 @@ export interface FileRouteTypes {
     | '/api/research/runs/$id/stop'
     | '/api/research/topics/$id/ideas'
     | '/api/research/topics/$id/links'
+    | '/api/research/topics/$id/players'
     | '/api/research/topics/$id/reports'
     | '/api/research/topics/$id/sources'
     | '/api/shelves/book/$id/page-count'
@@ -1466,6 +1478,7 @@ export interface FileRouteTypes {
     | '/api/research/runs/$id/stop'
     | '/api/research/topics/$id/ideas'
     | '/api/research/topics/$id/links'
+    | '/api/research/topics/$id/players'
     | '/api/research/topics/$id/reports'
     | '/api/research/topics/$id/sources'
     | '/api/shelves/book/$id/page-count'
@@ -2328,6 +2341,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiResearchTopicsIdLinksRouteImport
       parentRoute: typeof ApiResearchTopicsIdRoute
     }
+    '/api/research/topics/$id/players': {
+      id: '/api/research/topics/$id/players'
+      path: '/players'
+      fullPath: '/api/research/topics/$id/players'
+      preLoaderRoute: typeof ApiResearchTopicsIdPlayersRouteImport
+      parentRoute: typeof ApiResearchTopicsIdRoute
+    }
     '/api/research/topics/$id/reports': {
       id: '/api/research/topics/$id/reports'
       path: '/reports'
@@ -2557,6 +2577,7 @@ const ApiResearchRunsIdRouteWithChildren =
 interface ApiResearchTopicsIdRouteChildren {
   ApiResearchTopicsIdIdeasRoute: typeof ApiResearchTopicsIdIdeasRoute
   ApiResearchTopicsIdLinksRoute: typeof ApiResearchTopicsIdLinksRoute
+  ApiResearchTopicsIdPlayersRoute: typeof ApiResearchTopicsIdPlayersRoute
   ApiResearchTopicsIdReportsRoute: typeof ApiResearchTopicsIdReportsRoute
   ApiResearchTopicsIdSourcesRoute: typeof ApiResearchTopicsIdSourcesRoute
 }
@@ -2564,6 +2585,7 @@ interface ApiResearchTopicsIdRouteChildren {
 const ApiResearchTopicsIdRouteChildren: ApiResearchTopicsIdRouteChildren = {
   ApiResearchTopicsIdIdeasRoute: ApiResearchTopicsIdIdeasRoute,
   ApiResearchTopicsIdLinksRoute: ApiResearchTopicsIdLinksRoute,
+  ApiResearchTopicsIdPlayersRoute: ApiResearchTopicsIdPlayersRoute,
   ApiResearchTopicsIdReportsRoute: ApiResearchTopicsIdReportsRoute,
   ApiResearchTopicsIdSourcesRoute: ApiResearchTopicsIdSourcesRoute,
 }

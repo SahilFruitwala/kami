@@ -329,16 +329,18 @@ export type EvidenceInput = Omit<typeof researchEvidence.$inferInsert, "id" | "c
 /**
  * Store checked quotes. A quote already stored for the same topic and source
  * is skipped (the unique index), so re-running an extraction adds nothing.
- * Returns how many were new.
+ * Returns the rows that were new (conflict skips).
  */
-export async function insertEvidence(db: Db, rows: EvidenceInput[]): Promise<number> {
-  if (!rows.length) return 0;
-  const inserted = await db
+export async function insertEvidence(
+  db: Db,
+  rows: EvidenceInput[],
+): Promise<Array<{ id: string; names: string[] }>> {
+  if (!rows.length) return [];
+  return db
     .insert(researchEvidence)
     .values(rows.map((r) => ({ id: randomUUID(), ...r })))
     .onConflictDoNothing()
-    .returning({ id: researchEvidence.id });
-  return inserted.length;
+    .returning({ id: researchEvidence.id, names: researchEvidence.names });
 }
 
 /** A run's stored evidence, oldest first. */

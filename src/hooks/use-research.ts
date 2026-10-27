@@ -72,6 +72,13 @@ export function useResearchReport(id: string) {
   });
 }
 
+export function useTopicPlayers(topicId: string) {
+  return useQuery({
+    queryKey: queryKeys.research.players(topicId),
+    queryFn: () => researchApi.players(topicId),
+  });
+}
+
 /** Refetch everything Research shows (after a change: start, stop, star, merge, rename…). */
 export function useResearchRefresh() {
   const client = useQueryClient();

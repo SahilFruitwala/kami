@@ -9,6 +9,7 @@ import {
   type EvidenceInput,
   type SourceRow,
 } from "@/lib/research-db.server.ts";
+import { syncPlayersFromEvidence } from "@/lib/research-players-db.server.ts";
 import { authorKey, cleanNames, parsePostedAt, selectChunks } from "@/lib/research/evidence.ts";
 import { EVIDENCE_KINDS } from "@/lib/research/kinds.ts";
 import { batchItems } from "@/lib/research/model-calls.ts";
@@ -208,11 +209,14 @@ export function extractStep(deps: StepDeps): ResearchStep {
           match: checked.match,
         });
       }
-      const stored = await insertEvidence(await getDb(), rows);
+      const db = await getDb();
+      const stored = await insertEvidence(db, rows);
+      const named = await syncPlayersFromEvidence(db, run.userId, run.topicId, stored);
       await ctx.saveProgress({
         extractBatches: done + 1,
-        quotes: (run.progress.quotes ?? 0) + stored,
+        quotes: (run.progress.quotes ?? 0) + stored.length,
         dropped: (run.progress.dropped ?? 0) + dropped,
+        players: (run.progress.players ?? 0) + named,
       });
       return done + 1 >= batches.length;
     },

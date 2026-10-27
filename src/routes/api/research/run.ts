@@ -3,6 +3,7 @@ import { continueRun, runBody, runSecretMatches } from "@/server/services/resear
 import "@/server/services/research/discover";
 import "@/server/services/research/validate";
 import "@/server/services/research/question";
+import "@/server/services/research/explore";
 
 /**
  * Internal: a research run handing itself off to a fresh invocation

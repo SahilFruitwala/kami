@@ -163,5 +163,10 @@ export type RunProgress = {
   ideasTouched?: number;
   /** Validate/question: the report has been written. */
   reported?: boolean;
+  /** Explore: players upserted from names, and how many had homepage/pricing filled. */
+  players?: number;
+  filled?: number;
+  /** Player ids this run already tried to fill, so a miss isn't retried forever. */
+  filledIds?: string[];
   stopRequested?: boolean;
 };

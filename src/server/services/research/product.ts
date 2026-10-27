@@ -20,6 +20,7 @@ import {
 import type {
   IdeaCard,
   IdeaDetail,
+  PlayerView,
   ReportSummary,
   ReportView,
   RunView,
@@ -30,6 +31,11 @@ import { estimateRun } from "@/lib/research/estimate.ts";
 import { DEPTHS } from "@/lib/research/kinds.ts";
 import { IDEA_SUMMARY_MAX, IDEA_TITLE_MAX } from "@/lib/research/match.ts";
 import {
+  listTopicPlayers,
+  playerEvidenceStats,
+  type PlayerRow,
+} from "@/lib/research-players-db.server.ts";
+import {
   evidenceByIds,
   getOwnReport,
   getReportByRun,
@@ -39,6 +45,7 @@ import { scoreIdea } from "@/lib/research/score.ts";
 import { isReadableUrl } from "@/lib/research/sources.ts";
 import { badRequest, notFound } from "@/server/http";
 import { discoverDrafter, validateEditedPlan } from "./discover";
+import { exploreDrafter } from "./explore";
 import { questionDrafter } from "./question";
 import { draftRun, getRunStatus, requestStop, startLinkRun, startRun } from "./runs";
 import { ownTopic, requireResearch } from "./topics";
@@ -56,7 +63,7 @@ const sitesInput = z.array(z.string().trim().min(1).max(100)).max(20).optional()
 
 export const draftInput = z
   .object({
-    kind: z.enum(["discover", "validate", "question"]).default("discover"),
+    kind: z.enum(["discover", "validate", "question", "explore"]).default("discover"),
     topicId: z.string().min(1).max(100).optional(),
     seed: z.string().trim().min(3).max(200).optional(),
     ideaId: z.string().min(1).max(100).optional(),
@@ -179,6 +186,7 @@ async function runView(row: RunRow, userId: string): Promise<RunView> {
     balance: await researchCreditBalance(db, userId),
     ideas,
     report: await reportForRun(row.id, userId),
+    players: row.kind === "explore" ? await hydratePlayers(userId, row.topicId) : [],
   };
 }
 
@@ -229,6 +237,25 @@ export async function draftDiscoverRun(
         },
       },
       questionDrafter(),
+    );
+    return runView(run, userId);
+  }
+  if (input.kind === "explore") {
+    const { run } = await draftRun(
+      userId,
+      {
+        topicId: input.topicId,
+        kind: "explore",
+        depth: input.depth,
+        input: {
+          seed: input.seed as string,
+          audience: input.audience,
+          includeSites: input.includeSites,
+          excludeSites: input.excludeSites,
+          sinceMonths: input.sinceMonths,
+        },
+      },
+      exploreDrafter(),
     );
     return runView(run, userId);
   }
@@ -473,4 +500,39 @@ export async function researchReport(userId: string, reportId: string): Promise<
   const row = await getOwnReport(await getDb(), userId, reportId);
   if (!row) throw notFound("Report not found");
   return hydrateReport(row);
+}
+
+function playerView(
+  row: PlayerRow,
+  stats: { evidenceCount: number; complaints: number },
+): PlayerView {
+  return {
+    id: row.id,
+    topicId: row.topicId,
+    name: row.name,
+    url: row.url,
+    category: row.category,
+    oneLiner: row.oneLiner,
+    audience: row.audience,
+    pricing: row.pricing ?? { plans: [] },
+    freePlan: row.freePlan,
+    evidenceCount: stats.evidenceCount,
+    complaints: stats.complaints,
+    updatedAt: row.updatedAt.getTime(),
+  };
+}
+
+async function hydratePlayers(userId: string, topicId: string): Promise<PlayerView[]> {
+  const db = await getDb();
+  const rows = await listTopicPlayers(db, userId, topicId);
+  const stats = await playerEvidenceStats(
+    db,
+    rows.map((r) => r.id),
+  );
+  return rows.map((r) => playerView(r, stats.get(r.id) ?? { evidenceCount: 0, complaints: 0 }));
+}
+
+export async function listResearchPlayers(userId: string, topicId: string): Promise<PlayerView[]> {
+  await ownTopic(userId, topicId);
+  return hydratePlayers(userId, topicId);
 }

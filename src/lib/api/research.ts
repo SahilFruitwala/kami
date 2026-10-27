@@ -1,5 +1,6 @@
 import type { ResearchCreditEntry } from "../research/credits.ts";
 import type { RunEstimate } from "../research/estimate.ts";
+import type { PlayerPricing } from "../research/players.ts";
 import type {
   Depth,
   DiscoverInput,
@@ -147,7 +148,7 @@ export type RunSummary = {
 export type ResearchTopicDetail = { topic: ResearchTopic; runs: RunSummary[] };
 
 export type DraftRunInput = {
-  kind?: "discover" | "validate" | "question";
+  kind?: "discover" | "validate" | "question" | "explore";
   /** An existing topic, or a new one named after the seed. */
   topicId?: string;
   seed?: string;
@@ -204,6 +205,8 @@ export type RunView = {
   ideas: IdeaCard[];
   /** Validate/question: the cited report once the run has written it. */
   report: ReportView | null;
+  /** Explore: players in the topic so far. */
+  players: PlayerView[];
 };
 
 export type EvidenceView = {
@@ -257,6 +260,21 @@ export type ReportView = {
   sections: Array<{ id: string; title: string; claims: ReportClaimView[] }>;
 };
 
+export type PlayerView = {
+  id: string;
+  topicId: string;
+  name: string;
+  url: string;
+  category: string;
+  oneLiner: string;
+  audience: string;
+  pricing: PlayerPricing;
+  freePlan: boolean;
+  evidenceCount: number;
+  complaints: number;
+  updatedAt: number;
+};
+
 export type TopicSource = {
   id: string;
   url: string;
@@ -293,6 +311,7 @@ export const researchApi = {
     http.post<{ runId: string }>(`${topicPath(topicId)}/links`, { url }),
   reports: (topicId: string) => http.get<ReportSummary[]>(`${topicPath(topicId)}/reports`),
   report: (id: string) => http.get<ReportView>(`/api/research/reports/${seg(id)}`),
+  players: (topicId: string) => http.get<PlayerView[]>(`${topicPath(topicId)}/players`),
 
   draft: (input: DraftRunInput) => http.post<RunView>("/api/research/runs", input),
   run: (id: string) => http.get<RunView>(runPath(id)),

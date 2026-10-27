@@ -66,6 +66,15 @@ describe("research validate", { skip: skipWithoutDb }, () => {
         modelId: "fake",
       };
     }
+    if (call.instructions.startsWith("You choose which search results")) {
+      const lines = call.prompt.split("\n").filter((l) => /^\d+\. /.test(l));
+      return {
+        output: { read: lines.map((l) => Number(l.split(".")[0])) },
+        inputTokens: 100,
+        outputTokens: 10,
+        modelId: "fake",
+      };
+    }
     if (call.instructions.startsWith("You pull out")) {
       const label = call.prompt.match(/source="(S\d+)"/)?.[1] ?? "S1";
       return {

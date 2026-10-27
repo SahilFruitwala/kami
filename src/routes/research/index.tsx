@@ -6,6 +6,7 @@ import { GlossHeader } from "@/components/gloss/primitives.tsx";
 import { CreditsPanel } from "@/components/research/credits-panel.tsx";
 import { AskQuestionForm } from "@/components/research/ask-question-form.tsx";
 import { FindIdeasForm } from "@/components/research/find-ideas-form.tsx";
+import { MapSpaceForm } from "@/components/research/map-space-form.tsx";
 import { ResearchUnavailable } from "@/components/research/research-ui.tsx";
 import { TopicsList } from "@/components/research/topics-list.tsx";
 import { useResearchStatus } from "@/hooks/use-research.ts";
@@ -17,13 +18,13 @@ export const Route = createFileRoute("/research/")({
 });
 
 /**
- * Research home: three ways to start (Find ideas and Ask a question; Map a
- * space ships with Explore), the caller's topics, and their credits.
+ * Research home: three ways to start (Find ideas, Ask a question, Map a
+ * space), the caller's topics, and their credits.
  */
 function ResearchHome() {
   const navigate = Route.useNavigate();
   const status = useResearchStatus();
-  const [starting, setStarting] = useState<"find" | "ask" | null>(null);
+  const [starting, setStarting] = useState<"find" | "ask" | "map" | null>(null);
 
   function openItem(item: LibraryItem) {
     startTransition(() => {
@@ -63,7 +64,9 @@ function ResearchHome() {
               <StartCard
                 icon={<Compass className="size-4" aria-hidden="true" />}
                 title="Map a space"
-                copy="See who's already there and what they charge. Coming soon."
+                copy="See who's already there and what they charge."
+                active={starting === "map"}
+                onClick={() => setStarting((v) => (v === "map" ? null : "map"))}
               />
             </section>
             {starting === "find" ? (
@@ -74,6 +77,11 @@ function ResearchHome() {
             {starting === "ask" ? (
               <section aria-label="Ask a question" className="kami-sheet p-4 sm:p-6">
                 <AskQuestionForm />
+              </section>
+            ) : null}
+            {starting === "map" ? (
+              <section aria-label="Map a space" className="kami-sheet p-4 sm:p-6">
+                <MapSpaceForm />
               </section>
             ) : null}
             <CreditsPanel />

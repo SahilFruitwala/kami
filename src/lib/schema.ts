@@ -824,6 +824,7 @@ import type {
   SourceKind,
   SourceOrigin,
 } from "./research/kinds.ts";
+import type { PlayerPricing } from "./research/players.ts";
 import type { ReportBody } from "./research/report.ts";
 
 /** Research credit ledger (0023_research.sql); same rules as `allowanceEntries`. */
@@ -1089,5 +1090,52 @@ export const researchReports = pgTable(
     uniqueIndex("research_reports_run_idx").on(t.runId),
     index("research_reports_topic_idx").on(t.topicId, desc(t.createdAt)),
     index("research_reports_user_idx").on(t.userId, desc(t.createdAt)),
+  ],
+);
+
+/** A product or company in a topic (0026_research_players.sql). */
+export const researchPlayers = pgTable(
+  "research_players",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    topicId: text("topic_id")
+      .notNull()
+      .references(() => researchTopics.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    nameKey: text("name_key").notNull(),
+    url: text("url").notNull().default(""),
+    category: text("category").notNull().default(""),
+    oneLiner: text("one_liner").notNull().default(""),
+    audience: text("audience").notNull().default(""),
+    pricing: jsonb("pricing").$type<PlayerPricing>().notNull().default({ plans: [] }),
+    freePlan: boolean("free_plan").notNull().default(false),
+    sourceIds: text("source_ids").array().notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("research_players_topic_name_idx").on(t.topicId, t.nameKey),
+    index("research_players_topic_idx").on(t.topicId, t.category, t.name),
+    index("research_players_user_idx").on(t.userId),
+  ],
+);
+
+/** Evidence that names a Player. */
+export const researchPlayerEvidence = pgTable(
+  "research_player_evidence",
+  {
+    playerId: text("player_id")
+      .notNull()
+      .references(() => researchPlayers.id, { onDelete: "cascade" }),
+    evidenceId: text("evidence_id")
+      .notNull()
+      .references(() => researchEvidence.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.playerId, t.evidenceId] }),
+    index("research_player_evidence_evidence_idx").on(t.evidenceId),
   ],
 );

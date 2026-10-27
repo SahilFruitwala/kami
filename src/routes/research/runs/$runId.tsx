@@ -5,6 +5,7 @@ import { AppShell } from "@/components/app-shell.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { IdeaCard } from "@/components/research/idea-card.tsx";
 import { PlanEditor } from "@/components/research/plan-editor.tsx";
+import { PlayersTable } from "@/components/research/players-table.tsx";
 import { ReportBodyView } from "@/components/research/report-view.tsx";
 import { EmptyNote, StatePill } from "@/components/research/research-ui.tsx";
 import { ACTIVE_RUN, useResearchRun, useResearchRefresh } from "@/hooks/use-research.ts";
@@ -68,7 +69,9 @@ function RunBody({ view }: { view: RunView }) {
       ? `Validate: ${run.input.seed}`
       : run.kind === "question"
         ? run.input.question || run.input.seed
-        : run.input.seed;
+        : run.kind === "explore"
+          ? `Map: ${run.input.seed}`
+          : run.input.seed;
   return (
     <>
       <header className="flex flex-col gap-2">
@@ -109,6 +112,10 @@ function RunBody({ view }: { view: RunView }) {
             view.report ? (
               <ReportBodyView report={view.report} />
             ) : null
+          ) : run.kind === "explore" ? (
+            view.players.length ? (
+              <PlayersTable players={view.players} />
+            ) : null
           ) : (
             <Ideas view={view} />
           )}
@@ -143,6 +150,7 @@ function EndNote({ view }: { view: RunView }) {
   }
   if (run.state === "done" && (run.kind === "validate" || run.kind === "question") && view.report)
     return null;
+  if (run.state === "done" && run.kind === "explore" && view.players.length) return null;
   if (run.state === "done" && !ideas.length) {
     const searched = run.plan.filter((q) => q.checked !== false).map((q) => q.query);
     return (
@@ -194,6 +202,15 @@ function steps(view: RunView): StepRow[] {
       key: "report",
       label: "Write report",
       detail: p.reported ? "done" : "",
+    });
+  } else if (view.run.kind === "explore") {
+    rows.push({
+      key: "fill",
+      label: "Fill players",
+      detail:
+        p.players !== undefined
+          ? `${n(p.players)} players${p.filled ? `, ${p.filled} filled` : ""}`
+          : "",
     });
   } else {
     rows.push(

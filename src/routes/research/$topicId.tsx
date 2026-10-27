@@ -18,6 +18,8 @@ import { Input } from "@/components/ui/input.tsx";
 import { Segmented } from "@/components/gloss/primitives.tsx";
 import { AskQuestionForm } from "@/components/research/ask-question-form.tsx";
 import { FindIdeasForm } from "@/components/research/find-ideas-form.tsx";
+import { MapSpaceForm } from "@/components/research/map-space-form.tsx";
+import { PlayersTable } from "@/components/research/players-table.tsx";
 import { IdeaCard } from "@/components/research/idea-card.tsx";
 import { IdeaDetailSheet } from "@/components/research/idea-detail.tsx";
 import { relativeDay } from "@/components/research/research-format.ts";
@@ -28,6 +30,7 @@ import {
   useTopicIdeas,
   useTopicSources,
   useTopicReports,
+  useTopicPlayers,
   useResearchRefresh,
 } from "@/hooks/use-research.ts";
 import { researchApi, type IdeaCard as Idea, type RunSummary } from "@/lib/api/research.ts";
@@ -35,12 +38,15 @@ import { confirmAction } from "@/lib/confirm.ts";
 import { errorMessage, toastError } from "@/lib/errors";
 import type { LibraryItem } from "@/lib/library-item.ts";
 
-type Tab = "ideas" | "sources" | "runs" | "reports";
+type Tab = "ideas" | "sources" | "runs" | "reports" | "players";
 
 export const Route = createFileRoute("/research/$topicId")({
   validateSearch: (search: Record<string, unknown>): { tab?: Tab } => ({
     tab:
-      search.tab === "sources" || search.tab === "runs" || search.tab === "reports"
+      search.tab === "sources" ||
+      search.tab === "runs" ||
+      search.tab === "reports" ||
+      search.tab === "players"
         ? search.tab
         : undefined,
   }),
@@ -97,12 +103,14 @@ function TopicPage() {
                   { id: "sources", label: "Sources" },
                   { id: "runs", label: "Runs" },
                   { id: "reports", label: "Reports" },
+                  { id: "players", label: "Players" },
                 ]}
               />
               {tab === "ideas" ? <IdeasTab topicId={topicId} /> : null}
               {tab === "sources" ? <SourcesTab topicId={topicId} /> : null}
               {tab === "runs" ? <RunsTab runs={topic.data.runs} /> : null}
               {tab === "reports" ? <ReportsTab topicId={topicId} /> : null}
+              {tab === "players" ? <PlayersTab topicId={topicId} /> : null}
             </>
           )}
         </div>
@@ -194,6 +202,7 @@ function TopicActions({ topicId }: { topicId: string }) {
   const navigate = Route.useNavigate();
   const [finding, setFinding] = useState(false);
   const [asking, setAsking] = useState(false);
+  const [mapping, setMapping] = useState(false);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -221,6 +230,7 @@ function TopicActions({ topicId }: { topicId: string }) {
           onClick={() => {
             setFinding((v) => !v);
             setAsking(false);
+            setMapping(false);
           }}
           aria-expanded={finding}
         >
@@ -232,10 +242,22 @@ function TopicActions({ topicId }: { topicId: string }) {
           onClick={() => {
             setAsking((v) => !v);
             setFinding(false);
+            setMapping(false);
           }}
           aria-expanded={asking}
         >
           Ask a question
+        </Button>
+        <Button
+          variant={mapping ? "secondary" : "outline"}
+          onClick={() => {
+            setMapping((v) => !v);
+            setFinding(false);
+            setAsking(false);
+          }}
+          aria-expanded={mapping}
+        >
+          Map a space
         </Button>
         <form onSubmit={paste} className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex gap-2">
@@ -275,6 +297,11 @@ function TopicActions({ topicId }: { topicId: string }) {
       {asking ? (
         <section aria-label="Ask a question" className="kami-sheet p-4 sm:p-6">
           <AskQuestionForm topicId={topicId} />
+        </section>
+      ) : null}
+      {mapping ? (
+        <section aria-label="Map a space" className="kami-sheet p-4 sm:p-6">
+          <MapSpaceForm topicId={topicId} />
         </section>
       ) : null}
     </div>
@@ -530,6 +557,26 @@ function SourcesTab({ topicId }: { topicId: string }) {
   );
 }
 
+function PlayersTab({ topicId }: { topicId: string }) {
+  const players = useTopicPlayers(topicId);
+  if (players.isPending) {
+    return <div className="kami-sheet h-40 animate-pulse opacity-60" aria-hidden="true" />;
+  }
+  if (players.isError) return <EmptyNote>Couldn't load the players.</EmptyNote>;
+  if (!players.data.length) {
+    return (
+      <EmptyNote>
+        No players yet. Names in quotes become Players, or choose Map a space to search for them.
+      </EmptyNote>
+    );
+  }
+  return (
+    <div className="kami-sheet overflow-hidden">
+      <PlayersTable players={players.data} />
+    </div>
+  );
+}
+
 function ReportsTab({ topicId }: { topicId: string }) {
   const reports = useTopicReports(topicId);
   if (reports.isPending) {
@@ -582,15 +629,19 @@ function RunsTab({ runs }: { runs: RunSummary[] }) {
                 ? `Validate: ${r.seed}`
                 : r.kind === "question"
                   ? r.seed
-                  : r.addedBy === "link"
-                    ? "Pasted link"
-                    : r.seed}
+                  : r.kind === "explore"
+                    ? `Map: ${r.seed}`
+                    : r.addedBy === "link"
+                      ? "Pasted link"
+                      : r.seed}
             </span>
             <span className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[11px] text-ink-muted">
               <StatePill state={r.state} stopReason={r.stopReason} started={r.started} />
               {r.addedBy === "plan" ? <span>{r.depth === "deep" ? "Deep" : "Quick"}</span> : null}
               {r.kind === "validate" || r.kind === "question" ? (
                 <span>Report</span>
+              ) : r.kind === "explore" ? (
+                <span>Players</span>
               ) : (
                 <span>
                   {r.ideasNew} new {r.ideasNew === 1 ? "idea" : "ideas"}

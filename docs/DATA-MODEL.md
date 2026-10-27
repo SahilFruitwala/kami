@@ -190,7 +190,7 @@ Highlight notes (inside `articles.highlights` jsonb) are capped at 1000 chars (`
 
 ### Research — `research_*`
 
-Private to one user (every table has `user_id` and cascades with the user). Built in `0023_research.sql` (plus `0024_research_query_hits.sql` and `0025_research_reports.sql`); queries in `src/lib/research-*-db.server.ts`. Terms are defined in `GLOSSARY.md`.
+Private to one user (every table has `user_id` and cascades with the user). Built in `0023_research.sql` (plus `0024_research_query_hits.sql`, `0025_research_reports.sql` and `0026_research_players.sql`); queries in `src/lib/research-*-db.server.ts`. Terms are defined in `GLOSSARY.md`.
 
 | Table                     | Purpose                                                                                                                                                                                                                                                    |
 | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -205,6 +205,8 @@ Private to one user (every table has `user_id` and cascades with the user). Buil
 | `research_idea_evidence`  | Which idea each quote supports (one idea per quote), and the run that linked it                                                                                                                                                                            |
 | `research_model_cache`    | Model answers by input hash, kept 30 days, so a resumed or repeated call costs nothing                                                                                                                                                                     |
 | `research_reports`        | A cited Validate (or question) write-up: `kind`, optional `idea_id`, `question`, `body` (sections of `{ text, evidenceIds[], unsupported? }`). One per run. Code checks every cited id against the topic                                                                                  |
+| `research_players`        | A product in a topic: `name`, unique `name_key`, `url`, `category`, `one_liner`, `audience`, `pricing` jsonb, `free_plan`, `source_ids` of the homepage and pricing pages the fields were filled from                                                                                    |
+| `research_player_evidence`| Quotes that name a Player                                                                                                                                                                                                                                                               |
 
 ### Misc
 
