@@ -147,11 +147,12 @@ export type RunSummary = {
 export type ResearchTopicDetail = { topic: ResearchTopic; runs: RunSummary[] };
 
 export type DraftRunInput = {
-  kind?: "discover" | "validate";
+  kind?: "discover" | "validate" | "question";
   /** An existing topic, or a new one named after the seed. */
   topicId?: string;
   seed?: string;
   ideaId?: string;
+  question?: string;
   depth: Depth;
   audience?: "b2b" | "b2c" | "any";
   includeSites?: string[];

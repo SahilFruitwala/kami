@@ -178,9 +178,9 @@ export function validateDrafter(deps: ValidateDeps = {}) {
   };
 }
 
-type Citeable = { id: string; quote: string; kind: string; pays: boolean; names: string[] };
+export type Citeable = { id: string; quote: string; kind: string; pays: boolean; names: string[] };
 
-async function citeableEvidence(ctx: StepContext): Promise<Citeable[]> {
+export async function citeableEvidence(ctx: StepContext): Promise<Citeable[]> {
   const db = await getDb();
   const ideaId = ctx.run.input.ideaId;
   const [fromIdea, fromRun] = await Promise.all([
@@ -203,7 +203,10 @@ async function citeableEvidence(ctx: StepContext): Promise<Citeable[]> {
   return out;
 }
 
-function labelsFor(quotes: Citeable[]): { labelOf: Map<string, string>; idOf: Map<string, string> } {
+export function labelsFor(quotes: Citeable[]): {
+  labelOf: Map<string, string>;
+  idOf: Map<string, string>;
+} {
   const labelOf = new Map<string, string>();
   const idOf = new Map<string, string>();
   quotes.forEach((q, i) => {
@@ -214,7 +217,7 @@ function labelsFor(quotes: Citeable[]): { labelOf: Map<string, string>; idOf: Ma
   return { labelOf, idOf };
 }
 
-function resolveClaims(
+export function resolveClaims(
   claims: Array<{ text: string; evidence: string[] }>,
   idOf: Map<string, string>,
 ): ReportClaim[] {

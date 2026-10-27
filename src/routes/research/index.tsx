@@ -4,6 +4,7 @@ import { Compass, HelpCircle, Lightbulb, Search } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { GlossHeader } from "@/components/gloss/primitives.tsx";
 import { CreditsPanel } from "@/components/research/credits-panel.tsx";
+import { AskQuestionForm } from "@/components/research/ask-question-form.tsx";
 import { FindIdeasForm } from "@/components/research/find-ideas-form.tsx";
 import { ResearchUnavailable } from "@/components/research/research-ui.tsx";
 import { TopicsList } from "@/components/research/topics-list.tsx";
@@ -16,13 +17,13 @@ export const Route = createFileRoute("/research/")({
 });
 
 /**
- * Research home: three ways to start (Find ideas works; the other two ship
- * with Validate and Explore), the caller's topics, and their credits.
+ * Research home: three ways to start (Find ideas and Ask a question; Map a
+ * space ships with Explore), the caller's topics, and their credits.
  */
 function ResearchHome() {
   const navigate = Route.useNavigate();
   const status = useResearchStatus();
-  const [finding, setFinding] = useState(false);
+  const [starting, setStarting] = useState<"find" | "ask" | null>(null);
 
   function openItem(item: LibraryItem) {
     startTransition(() => {
@@ -49,13 +50,15 @@ function ResearchHome() {
                 icon={<Search className="size-4" aria-hidden="true" />}
                 title="Find ideas"
                 copy="Search discussions and reviews in a space for problems worth solving."
-                active={finding}
-                onClick={() => setFinding((v) => !v)}
+                active={starting === "find"}
+                onClick={() => setStarting((v) => (v === "find" ? null : "find"))}
               />
               <StartCard
                 icon={<HelpCircle className="size-4" aria-hidden="true" />}
                 title="Ask a question"
-                copy="Check an idea against what people say. Coming soon."
+                copy="Get a cited answer from what people say in this space."
+                active={starting === "ask"}
+                onClick={() => setStarting((v) => (v === "ask" ? null : "ask"))}
               />
               <StartCard
                 icon={<Compass className="size-4" aria-hidden="true" />}
@@ -63,9 +66,14 @@ function ResearchHome() {
                 copy="See who's already there and what they charge. Coming soon."
               />
             </section>
-            {finding ? (
+            {starting === "find" ? (
               <section aria-label="Find ideas" className="kami-sheet p-4 sm:p-6">
                 <FindIdeasForm />
+              </section>
+            ) : null}
+            {starting === "ask" ? (
+              <section aria-label="Ask a question" className="kami-sheet p-4 sm:p-6">
+                <AskQuestionForm />
               </section>
             ) : null}
             <CreditsPanel />

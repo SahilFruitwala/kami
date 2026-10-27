@@ -478,7 +478,7 @@ sequenceDiagram
 
 ## Research
 
-`/research` finds product ideas in what real people say online. **Discover** takes a seed ("invoicing for freelance designers"), searches discussion and review sites, keeps people's exact words as checked quotes, groups them into ideas and ranks the ideas from that evidence. **Validate** starts from an idea, searches for support and a required counter-evidence set, and writes a cited report (unknown citations are marked unsupported; the counter-evidence section is never empty). Explore comes later on the same engine. The build spec is [`docs/wayfinder/research/spec.md`](wayfinder/research/spec.md); terms are in `GLOSSARY.md`.
+`/research` finds product ideas in what real people say online. **Discover** takes a seed ("invoicing for freelance designers"), searches discussion and review sites, keeps people's exact words as checked quotes, groups them into ideas and ranks the ideas from that evidence. **Validate** starts from an idea, searches for support and a required counter-evidence set, and writes a cited report (unknown citations are marked unsupported; the counter-evidence section is never empty). **Ask a question** is the same engine with a free-form cited answer instead of the six Validate sections. Explore comes later on the same engine. The build spec is [`docs/wayfinder/research/spec.md`](wayfinder/research/spec.md); terms are in `GLOSSARY.md`.
 
 ### Turning it on
 
@@ -503,6 +503,10 @@ sequenceDiagram
 
 Started from **Validate this idea** on an idea card or its sheet. The plan is the idea's words plus required counter-evidence searches ("good enough", "why I stopped using", "not worth it", "shut down", "market too small"). The run reuses `search` → `extract`, then a writer call drafts six sections of claims. **Code** checks every cited evidence id against the topic (ADR 0002) and fills an empty counter-evidence section with what was searched. The report lives on the run page, the topic's Reports tab, and `/research/reports/:id`.
 
+### A question run
+
+Started from **Ask a question** on `/research` or a topic. Same draft → start flow as Discover (`kind = question`); the run reuses `search` → `extract`, then a writer drafts free-form sections of claims. **Code** checks every cited evidence id the same way as Validate. There is no fixed template and no required counter-evidence set.
+
 Runs work in the background on the narration pattern ([ADR 0001](adr/0001-narration-runs-in-self-chaining-waituntil.md)): saved progress per unit, a lease, a hand-off before the function budget runs out, and a resume that never pays twice. "Paste a link" on a topic is a small run that starts at `fetch` with one URL and a 5-credit budget.
 
 | Concern  | Approach                                                                                                                                                                                                                                 |
@@ -517,7 +521,7 @@ Runs work in the background on the narration pattern ([ADR 0001](adr/0001-narrat
 | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | `src/lib/research/*`                                                              | Pure parts (tested): plan checks, sources, quote checking, scoring, engine |
 | `src/server/services/research/runs.ts`                                            | Draft, start, stop, the background run loop, paste-a-link runs             |
-| `src/server/services/research/{discover,evidence,ideas,validate}.ts`              | Discover and Validate steps                                                |
+| `src/server/services/research/{discover,evidence,ideas,validate,question}.ts`     | Discover, Validate and question steps                                      |
 | `src/server/services/research/{topics,product}.ts`                                | The product API                                                            |
 | `src/routes/research/*`, `src/components/research/*`, `src/hooks/use-research.ts` | `/research`, topic, run and report pages                                   |
 | `src/routes/research/debug.tsx`, `docs/wayfinder/research/tuning/`                | Operator debug page and terminal tuning scripts                            |

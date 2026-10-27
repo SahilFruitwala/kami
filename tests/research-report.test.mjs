@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  assembleQuestionReport,
   assembleValidateReport,
   checkClaims,
   ensureCounterSection,
@@ -124,5 +125,47 @@ describe("validate reports", () => {
     const merged = mergeCounterQueries(filler, "invoicing", "quick");
     assert.ok(merged.length <= 12);
     assert.equal(merged.filter((q) => q.counter).length, 5);
+  });
+});
+
+describe("question reports", () => {
+  it("keeps the model's sections, checks citations, and has no fixed template", () => {
+    const body = assembleQuestionReport(
+      [
+        {
+          title: "  What people say  ",
+          claims: [
+            { text: "Editing takes hours.", evidenceIds: ["e1", "ghost"] },
+            { text: "Invented.", evidenceIds: ["nope"] },
+          ],
+        },
+        { title: "Open questions", claims: [{ text: "Would they pay?", evidenceIds: [] }] },
+      ],
+      new Set(["e1"]),
+    );
+    assert.deepEqual(
+      body.sections.map((s) => s.title),
+      ["What people say", "Open questions"],
+    );
+    assert.notDeepEqual(
+      body.sections.map((s) => s.id),
+      [...VALIDATE_SECTION_IDS],
+    );
+    assert.deepEqual(body.sections[0].claims, [
+      { text: "Editing takes hours.", evidenceIds: ["e1"] },
+      { text: "Invented.", evidenceIds: [], unsupported: true },
+    ]);
+    assert.equal(body.sections[1].claims[0].unsupported, true);
+  });
+
+  it("always produces a section when the model wrote nothing usable", () => {
+    const body = assembleQuestionReport(
+      [{ title: "Empty", claims: [{ text: "   ", evidenceIds: ["e1"] }] }],
+      new Set(["e1"]),
+    );
+    assert.equal(body.sections.length, 1);
+    assert.equal(body.sections[0].title, "Answer");
+    assert.equal(body.sections[0].claims[0].unsupported, true);
+    assert.match(body.sections[0].claims[0].text, /Nothing in the quotes/);
   });
 });

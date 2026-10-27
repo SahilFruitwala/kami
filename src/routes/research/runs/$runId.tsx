@@ -66,7 +66,9 @@ function RunBody({ view }: { view: RunView }) {
     ? "Reading a link"
     : run.kind === "validate"
       ? `Validate: ${run.input.seed}`
-      : run.input.seed;
+      : run.kind === "question"
+        ? run.input.question || run.input.seed
+        : run.input.seed;
   return (
     <>
       <header className="flex flex-col gap-2">
@@ -103,7 +105,7 @@ function RunBody({ view }: { view: RunView }) {
         <>
           <EndNote view={view} />
           <Progress view={view} />
-          {run.kind === "validate" ? (
+          {run.kind === "validate" || run.kind === "question" ? (
             view.report ? (
               <ReportBodyView report={view.report} />
             ) : null
@@ -139,7 +141,8 @@ function EndNote({ view }: { view: RunView }) {
   if (run.state === "stopped" && run.stopReason === "user") {
     return <EmptyNote>You stopped this run. It kept and scored what it had found.</EmptyNote>;
   }
-  if (run.state === "done" && run.kind === "validate" && view.report) return null;
+  if (run.state === "done" && (run.kind === "validate" || run.kind === "question") && view.report)
+    return null;
   if (run.state === "done" && !ideas.length) {
     const searched = run.plan.filter((q) => q.checked !== false).map((q) => q.query);
     return (
@@ -186,7 +189,7 @@ function steps(view: RunView): StepRow[] {
       detail: `${n(p.quotes)} checked quotes${p.dropped ? `, ${p.dropped} dropped` : ""}`,
     },
   );
-  if (view.run.kind === "validate") {
+  if (view.run.kind === "validate" || view.run.kind === "question") {
     rows.push({
       key: "report",
       label: "Write report",

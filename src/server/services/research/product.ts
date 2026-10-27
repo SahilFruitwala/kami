@@ -39,6 +39,7 @@ import { scoreIdea } from "@/lib/research/score.ts";
 import { isReadableUrl } from "@/lib/research/sources.ts";
 import { badRequest, notFound } from "@/server/http";
 import { discoverDrafter, validateEditedPlan } from "./discover";
+import { questionDrafter } from "./question";
 import { draftRun, getRunStatus, requestStop, startLinkRun, startRun } from "./runs";
 import { ownTopic, requireResearch } from "./topics";
 import { validateDrafter } from "./validate";
@@ -55,10 +56,11 @@ const sitesInput = z.array(z.string().trim().min(1).max(100)).max(20).optional()
 
 export const draftInput = z
   .object({
-    kind: z.enum(["discover", "validate"]).default("discover"),
+    kind: z.enum(["discover", "validate", "question"]).default("discover"),
     topicId: z.string().min(1).max(100).optional(),
     seed: z.string().trim().min(3).max(200).optional(),
     ideaId: z.string().min(1).max(100).optional(),
+    question: z.string().trim().min(3).max(400).optional(),
     depth: z.enum(DEPTHS),
     audience: z.enum(["b2b", "b2c", "any"]).optional(),
     includeSites: sitesInput,
@@ -68,6 +70,14 @@ export const draftInput = z
   .superRefine((v, ctx) => {
     if (v.kind === "validate") {
       if (!v.ideaId) ctx.addIssue({ code: "custom", message: "Pick an idea to validate.", path: ["ideaId"] });
+    } else if (v.kind === "question") {
+      if (!v.question || v.question.length < 3) {
+        ctx.addIssue({
+          code: "custom",
+          message: "Write a question of at least 3 characters.",
+          path: ["question"],
+        });
+      }
     } else if (!v.seed || v.seed.length < 3) {
       ctx.addIssue({
         code: "custom",
@@ -198,6 +208,27 @@ export async function draftDiscoverRun(
         input: { seed: idea.title, ideaId: idea.id },
       },
       validateDrafter(),
+    );
+    return runView(run, userId);
+  }
+  if (input.kind === "question") {
+    const question = input.question as string;
+    const { run } = await draftRun(
+      userId,
+      {
+        topicId: input.topicId,
+        kind: "question",
+        depth: input.depth,
+        input: {
+          seed: question,
+          question,
+          audience: input.audience,
+          includeSites: input.includeSites,
+          excludeSites: input.excludeSites,
+          sinceMonths: input.sinceMonths,
+        },
+      },
+      questionDrafter(),
     );
     return runView(run, userId);
   }
@@ -382,7 +413,7 @@ function evidenceView(e: {
 }
 
 async function hydrateReport(
-  row: Awaited<ReturnType<typeof getOwnReport>> & {},
+  row: NonNullable<Awaited<ReturnType<typeof getOwnReport>>>,
 ): Promise<ReportView> {
   if (!row) throw notFound("Report not found");
   const db = await getDb();

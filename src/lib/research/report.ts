@@ -144,6 +144,49 @@ export function assembleValidateReport(
   return { sections: ensureCounterSection(sections, searched) };
 }
 
+function questionSectionId(title: string, index: number): string {
+  const slug = title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_|_$/g, "")
+    .slice(0, 40);
+  return `${slug || "s"}_${index + 1}`;
+}
+
+/**
+ * A free-form question report: the model's own sections, with the same
+ * citation check as Validate. No fixed template. Always at least one section.
+ */
+export function assembleQuestionReport(
+  modelSections: Array<{ title?: string; claims: ReportClaim[] }>,
+  knownIds: ReadonlySet<string>,
+): ReportBody {
+  const sections = checkClaims(
+    modelSections.map((s, i) => {
+      const title =
+        (s.title ?? "").replace(/\s+/g, " ").trim() || (i === 0 ? "Answer" : `Section ${i + 1}`);
+      return { id: questionSectionId(title, i), title, claims: s.claims };
+    }),
+    knownIds,
+  ).filter((s) => s.claims.length);
+  if (sections.length) return { sections };
+  return {
+    sections: [
+      {
+        id: "answer_1",
+        title: "Answer",
+        claims: [
+          {
+            text: "Nothing in the quotes answered this question.",
+            evidenceIds: [],
+            unsupported: true,
+          },
+        ],
+      },
+    ],
+  };
+}
+
 function ideaLabel(ideaTitle: string): string {
   return ideaTitle.replace(/\s+/g, " ").trim() || "this";
 }

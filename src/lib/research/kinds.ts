@@ -78,6 +78,10 @@ export type IdeaNamer = (typeof IDEA_NAMERS)[number];
 export const REPORT_KINDS = ["validate", "question"] as const;
 export type ReportKind = (typeof REPORT_KINDS)[number];
 
+export function isCitedReportKind(kind: string): kind is ReportKind {
+  return (REPORT_KINDS as readonly string[]).includes(kind);
+}
+
 export type CompetitionLabel = "none" | "some" | "crowded" | "crowded_disliked";
 
 /** Sub-scores are 0–1; `total` is their weighted sum (competition is a label, not in the total). */

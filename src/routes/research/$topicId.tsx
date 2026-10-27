@@ -16,6 +16,7 @@ import { AppShell } from "@/components/app-shell.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Segmented } from "@/components/gloss/primitives.tsx";
+import { AskQuestionForm } from "@/components/research/ask-question-form.tsx";
 import { FindIdeasForm } from "@/components/research/find-ideas-form.tsx";
 import { IdeaCard } from "@/components/research/idea-card.tsx";
 import { IdeaDetailSheet } from "@/components/research/idea-detail.tsx";
@@ -192,6 +193,7 @@ function TopicActions({ topicId }: { topicId: string }) {
   const refresh = useResearchRefresh();
   const navigate = Route.useNavigate();
   const [finding, setFinding] = useState(false);
+  const [asking, setAsking] = useState(false);
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -216,11 +218,24 @@ function TopicActions({ topicId }: { topicId: string }) {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
         <Button
           variant={finding ? "secondary" : "default"}
-          onClick={() => setFinding((v) => !v)}
+          onClick={() => {
+            setFinding((v) => !v);
+            setAsking(false);
+          }}
           aria-expanded={finding}
         >
           <Search className="size-4" aria-hidden="true" />
           Find more ideas
+        </Button>
+        <Button
+          variant={asking ? "secondary" : "outline"}
+          onClick={() => {
+            setAsking((v) => !v);
+            setFinding(false);
+          }}
+          aria-expanded={asking}
+        >
+          Ask a question
         </Button>
         <form onSubmit={paste} className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex gap-2">
@@ -255,6 +270,11 @@ function TopicActions({ topicId }: { topicId: string }) {
       {finding ? (
         <section aria-label="Find more ideas" className="kami-sheet p-4 sm:p-6">
           <FindIdeasForm topicId={topicId} />
+        </section>
+      ) : null}
+      {asking ? (
+        <section aria-label="Ask a question" className="kami-sheet p-4 sm:p-6">
+          <AskQuestionForm topicId={topicId} />
         </section>
       ) : null}
     </div>
@@ -519,7 +539,7 @@ function ReportsTab({ topicId }: { topicId: string }) {
   if (!reports.data.length) {
     return (
       <EmptyNote>
-        No reports yet. Open an idea and choose Validate this idea to write a cited report.
+        No reports yet. Validate an idea or ask a question to write a cited report.
       </EmptyNote>
     );
   }
@@ -560,14 +580,16 @@ function RunsTab({ runs }: { runs: RunSummary[] }) {
             <span className="min-w-0 flex-1 font-body text-sm break-words text-ink">
               {r.kind === "validate"
                 ? `Validate: ${r.seed}`
-                : r.addedBy === "link"
-                  ? "Pasted link"
-                  : r.seed}
+                : r.kind === "question"
+                  ? r.seed
+                  : r.addedBy === "link"
+                    ? "Pasted link"
+                    : r.seed}
             </span>
             <span className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[11px] text-ink-muted">
               <StatePill state={r.state} stopReason={r.stopReason} started={r.started} />
               {r.addedBy === "plan" ? <span>{r.depth === "deep" ? "Deep" : "Quick"}</span> : null}
-              {r.kind === "validate" ? (
+              {r.kind === "validate" || r.kind === "question" ? (
                 <span>Report</span>
               ) : (
                 <span>
