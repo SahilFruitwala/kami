@@ -125,14 +125,14 @@ describe("research source cache", { skip: skipWithoutDb }, () => {
       request(`https://www.reddit.com/r/podcasting/comments/a${tag}/slug/`),
       reddit,
     );
-    clock += 1_000;
+    clock += 400;
     await fetch.getOrFetchSource(
       meter,
       request(`https://old.reddit.com/r/podcasting/comments/b${tag}/`),
       reddit,
     );
     assert.equal(reads.length, 2);
-    assert.deepEqual(waits, [5_500], "the second read waited out the 6.5 s gap");
+    assert.deepEqual(waits, [600], "the second read waited out the 1 s gap");
     assert.equal(calls.scrape.length, 0);
     assert.deepEqual(calls.checks, [], "free: no budget check");
     assert.equal(spent, 0);

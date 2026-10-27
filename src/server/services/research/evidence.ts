@@ -27,7 +27,7 @@ import { RunStepError, type ResearchStep, type StepContext } from "./runs";
  * aren't on the page are dropped and counted, never stored.
  */
 
-export const EXTRACT_PROMPT_VERSION = "discover-extract-v1";
+export const EXTRACT_PROMPT_VERSION = "discover-extract-v2";
 
 /** Chunks per extraction call, and the characters they may take. */
 const EXTRACT_BATCH = { maxItems: 12, maxChars: 24_000 };
@@ -47,8 +47,8 @@ async function pickedSources(ctx: StepContext): Promise<SourceRow[]> {
 
 /**
  * `fetch`: one unit per picked page. A page that can't be read is skipped
- * and listed in `progress.skippedUrls` (never retried); a fresh cached copy
- * costs nothing.
+ * and listed in `progress.skippedUrls` (never retried), and the best spare
+ * pick takes its place in `toRead`; a fresh cached copy costs nothing.
  */
 export function fetchStep(deps: StepDeps): ResearchStep {
   return {
@@ -88,7 +88,9 @@ export function fetchStep(deps: StepDeps): ResearchStep {
           throw new RunStepError(err.message);
         }
         console.warn(`[research] skipped ${next}: ${err.message}`);
+        const [backfill, ...spares] = run.progress.spares ?? [];
         await ctx.saveProgress({
+          ...(backfill ? { toRead: [...toRead, backfill], spares } : {}),
           skippedUrls: [...skipped, next],
           failed: skipped.length + 1,
           read: toRead.filter(isRead).length,
@@ -119,7 +121,7 @@ const extractSchema = z.object({
 
 const EXTRACT_INSTRUCTIONS = `You pull out what real people say about problems in a space, as exact quotes. Each part of a page is in a <document source="S1"> block; several blocks can come from the same page.
 
-For each point a person makes about a problem, frustration, wish, workaround, price, or a product they use, copy their words exactly: one point per quote, one to three sentences, 20 to 600 characters. Never paraphrase, correct, shorten with "...", or join sentences from different places. Skip page furniture, the page owner's marketing, and anything not about the topic. A block with nothing useful gets no quotes.
+For each point a person makes about a problem, frustration, wish, workaround, price, or a product they use, copy their words exactly: one point per quote, one to three sentences, 20 to 600 characters. Never paraphrase, correct, shorten with "...", or join sentences from different places. Skip page furniture, the page owner's marketing, and anything not about the topic. A block with nothing useful gets no quotes. Give at most 5 quotes per block and 40 in all: when there are more, keep the most specific and most strongly felt.
 
 For each quote give:
 - source: the block's source label (e.g. "S1")
@@ -173,7 +175,8 @@ export function extractStep(deps: StepDeps): ResearchStep {
           promptVersion: EXTRACT_PROMPT_VERSION,
           instructions: EXTRACT_INSTRUCTIONS,
           prompt: `Topic: ${run.input.seed}\n\n${blocks}`,
-          maxOutputTokens: 3_000,
+          // 40 quotes with their fields fit; quote-dense review pages overran 3,000 (run 77cd5966).
+          maxOutputTokens: 8_000,
           temperature: 0,
         },
         deps.generate,

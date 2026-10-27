@@ -1,6 +1,7 @@
 import "@tanstack/react-start/server-only";
 import { z } from "zod";
 import { getDb } from "@/lib/db.server";
+import { redditConfigured } from "@/lib/reddit.server.ts";
 import {
   insertRunQuery,
   liveIdeaTitles,
@@ -291,7 +292,9 @@ async function triageBatch(
  * pain words, questions and discussion pages), then one worker call per
  * batch of the best candidates. Each batch is one unit; a resumed run
  * redoes nothing it finished (and an interrupted batch is answered from the
- * model cache). Ends with the best `pagesToRead` picks in `progress.toRead`.
+ * model cache). Ends with the best `pagesToRead` picks in `progress.toRead`
+ * and the rest, best first, in `progress.spares`. Reddit threads are left out
+ * while Reddit's API isn't set up.
  */
 function triageStep(deps: DiscoverDeps): ResearchStep {
   return {
@@ -301,8 +304,10 @@ function triageStep(deps: DiscoverDeps): ResearchStep {
       const { run } = ctx;
       const limits = DEPTH_LIMITS[run.depth];
       const hits = (await runQueries(db, run.id)).flatMap((q) => q.hits);
+      // Until Reddit's API is set up its threads can't be read, so don't pick them.
+      const unreadable = redditConfigured() ? [] : ["reddit.com"];
       const { candidates, distinct } = screenResults(hits, {
-        excludeSites: run.input.excludeSites,
+        excludeSites: [...(run.input.excludeSites ?? []), ...unreadable],
         topicKeys: await topicUrlKeys(db, run.userId, run.topicId),
         maxCandidates: limits.maxCandidates,
       });
@@ -329,13 +334,17 @@ function triageStep(deps: DiscoverDeps): ResearchStep {
       }
 
       const seen = new Set<string>();
-      const toRead = (ctx.run.progress.picks ?? [])
+      const ranked = (ctx.run.progress.picks ?? [])
         .map((p, order) => ({ ...p, order }))
         .sort((a, b) => b.score - a.score || a.order - b.order)
         .filter((p) => !seen.has(p.url) && Boolean(seen.add(p.url)))
-        .slice(0, limits.pagesToRead)
         .map((p) => p.url);
-      await ctx.saveProgress({ results: distinct, candidates: candidates.length, toRead });
+      await ctx.saveProgress({
+        results: distinct,
+        candidates: candidates.length,
+        toRead: ranked.slice(0, limits.pagesToRead),
+        spares: ranked.slice(limits.pagesToRead),
+      });
       return true;
     },
   };

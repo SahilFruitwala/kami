@@ -15,10 +15,8 @@ import {
   saveIdeaScore,
 } from "@/lib/research-ideas-db.server.ts";
 import {
-  IDEA_SUMMARY_MAX,
-  IDEA_TITLE_MAX,
+  ideaText,
   resolveAssignments,
-  tidyText,
   type LabelledIdea,
   type LabelledQuote,
   type MatchAnswer,
@@ -41,7 +39,8 @@ export const MATCH_PROMPT_VERSION = "discover-match-v1";
 export const NAME_PROMPT_VERSION = "discover-name-v1";
 
 /** Quotes per matching call; live and dismissed ideas a matcher sees _(start values)_. */
-const MATCH_BATCH = 40;
+/** Quotes per matching call; 40 ran past the output cap with no usable answer (run 77cd5966). */
+const MATCH_BATCH = 15;
 const MAX_LIVE_IDEAS = 150;
 const MAX_DISMISSED_IDEAS = 100;
 /** New ideas the naming pass renames in its one call. */
@@ -106,7 +105,9 @@ export function modelMatcher(generate?: Generate): Matcher {
         promptVersion: MATCH_PROMPT_VERSION,
         instructions: MATCH_INSTRUCTIONS,
         prompt,
-        maxOutputTokens: 2_500,
+        // A topic's first batch makes every quote a new idea with a title and summary;
+        // 40 of those overran 2,500 (run 77cd5966).
+        maxOutputTokens: 6_000,
         temperature: 0,
       },
       generate,
@@ -210,14 +211,9 @@ export function nameStep(deps: IdeaDeps): ResearchStep {
         );
         for (const named of output.ideas) {
           const idea = ideas[Number(named.idea.trim().replace(/^N/i, "")) - 1];
-          const title = tidyText(named.title, IDEA_TITLE_MAX);
+          const { title, summary } = ideaText(named.title, named.summary);
           if (!idea || !title) continue;
-          await renameModelIdea(
-            db,
-            idea.id,
-            title,
-            tidyText(named.summary, IDEA_SUMMARY_MAX) || idea.summary,
-          );
+          await renameModelIdea(db, idea.id, title, summary || idea.summary);
         }
       }
       await ctx.saveProgress({ named: true });

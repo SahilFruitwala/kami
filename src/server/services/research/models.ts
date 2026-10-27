@@ -1,5 +1,8 @@
 import "@tanstack/react-start/server-only";
-import { generateText, Output, type LanguageModel } from "ai";
+import { mkdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { generateText, NoObjectGeneratedError, Output, type LanguageModel } from "ai";
 import type { z } from "zod";
 import { getDb } from "@/lib/db.server";
 import { researchModel, type ResearchModelTier } from "@/lib/llm.server.ts";
@@ -44,6 +47,22 @@ export type Generate = (
   call: Omit<ModelCall<z.ZodType>, "tier" | "promptVersion">,
 ) => Promise<GenerateResult>;
 
+/**
+ * Save the raw text of an answer cut off before it finished, for tuning:
+ * `<tmpdir>/kami-research-cutoffs/<time>.json`. Never fails the call.
+ */
+async function saveCutOff(record: Record<string, unknown>) {
+  try {
+    const dir = join(tmpdir(), "kami-research-cutoffs");
+    await mkdir(dir, { recursive: true });
+    const file = join(dir, `${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
+    await writeFile(file, JSON.stringify(record, null, 2));
+    console.warn(`[research] cut-off answer saved to ${file}`);
+  } catch (err) {
+    console.warn("[research] couldn't save a cut-off answer", err);
+  }
+}
+
 const liveGenerate: Generate = async (model, call) => {
   const result = await generateText({
     model,
@@ -63,6 +82,15 @@ const liveGenerate: Generate = async (model, call) => {
     modelId: result.response.modelId,
   };
   if (result.finishReason !== "stop" && !result.text) {
+    console.warn(`[research] ${usage.modelId} gave no answer (finish: ${result.finishReason})`);
+    await saveCutOff({
+      model: usage.modelId,
+      finishReason: result.finishReason,
+      usage: result.usage,
+      text: result.text,
+      reasoningText: result.reasoningText ?? null,
+      prompt: call.prompt,
+    });
     return { output: null, ...usage };
   }
   return { output: result.output, ...usage };
@@ -105,6 +133,15 @@ export async function callModel<S extends z.ZodType>(
   try {
     result = await generate(tier.model, { ...sent, schema: call.schema });
   } catch (err) {
+    if (NoObjectGeneratedError.isInstance(err) && err.finishReason !== "stop") {
+      await saveCutOff({
+        model: tier.id,
+        finishReason: err.finishReason,
+        usage: err.usage,
+        text: err.text ?? null,
+        prompt: call.prompt,
+      });
+    }
     console.error(`[research] ${tier.id} failed`, err);
     throw new RunStepError(aiError(err).message);
   }

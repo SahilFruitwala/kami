@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { normalizeIdeaTitle, resolveAssignments } from "../src/lib/research/match.ts";
+import { ideaText, normalizeIdeaTitle, resolveAssignments } from "../src/lib/research/match.ts";
 
 const quotes = ["Q1", "Q2", "Q3", "Q4", "Q5", "Q6", "Q7"].map((label, i) => ({
   label,
@@ -70,5 +70,27 @@ describe("resolveAssignments", () => {
 describe("normalizeIdeaTitle", () => {
   it("ignores case, punctuation and spacing", () => {
     assert.equal(normalizeIdeaTitle("  Editing — takes HOURS!! "), "editing takes hours");
+  });
+});
+
+describe("ideaText", () => {
+  it("splits a title that carries its summary", () => {
+    assert.deepEqual(
+      ideaText(
+        "Editing podcast episodes takes too long. A podcaster who wants clean audio has to spend hours on every episode.",
+        "",
+      ),
+      {
+        title: "Editing podcast episodes takes too long",
+        summary: "A podcaster who wants clean audio has to spend hours on every episode.",
+      },
+    );
+  });
+
+  it("keeps a clean title and summary as they are", () => {
+    assert.deepEqual(ideaText("Editing takes hours", "Solo hosts, every week."), {
+      title: "Editing takes hours",
+      summary: "Solo hosts, every week.",
+    });
   });
 });

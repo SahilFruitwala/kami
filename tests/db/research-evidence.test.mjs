@@ -238,4 +238,49 @@ describe("discover: fetch, extract, verify", { skip: skipWithoutDb }, () => {
     assert.equal(row.state, "failed");
     assert.equal(row.error, "Firecrawl credits are used up.");
   });
+
+  it("reads the best spare pick in place of one it had to skip", async () => {
+    const run = await rdb.createRun(db, user.id, topic.id, {
+      kind: "discover",
+      depth: "quick",
+      input: { seed: "x" },
+    });
+    await ledger.grantResearchCredits(db, user.id, 30, "test");
+    await ledger.reserveRunCredits(db, user.id, run.id, 30, "start");
+    const { eq } = await import("drizzle-orm");
+    const { researchRuns } = await import("@/lib/schema.ts");
+    await db
+      .update(researchRuns)
+      .set({
+        state: "queued",
+        progress: {
+          toRead: ["https://s.example.com/ok", "https://s.example.com/broken"],
+          spares: ["https://s.example.com/spare-1", "https://s.example.com/spare-2"],
+        },
+      })
+      .where(eq(researchRuns.id, run.id));
+    const read = [];
+    const scrape = async (url) => {
+      read.push(url);
+      if (url.endsWith("/broken")) {
+        throw new firecrawl.FirecrawlError("Firecrawl could not read that page.", 502);
+      }
+      return { markdown: `Text of ${url}`, title: "Page", publishedAt: null, credits: 1 };
+    };
+    const row = await runSteps(run.id, [evidence.fetchStep({ calls: { scrape } })]);
+    assert.equal(row.state, "done");
+    assert.deepEqual(read, [
+      "https://s.example.com/ok",
+      "https://s.example.com/broken",
+      "https://s.example.com/spare-1",
+    ]);
+    assert.deepEqual(row.progress.toRead, [
+      "https://s.example.com/ok",
+      "https://s.example.com/broken",
+      "https://s.example.com/spare-1",
+    ]);
+    assert.deepEqual(row.progress.spares, ["https://s.example.com/spare-2"]);
+    assert.equal(row.progress.read, 2);
+    assert.equal(row.progress.failed, 1);
+  });
 });

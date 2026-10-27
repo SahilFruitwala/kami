@@ -28,6 +28,25 @@ export function tidyText(text: string | null | undefined, max: number): string {
   return (text ?? "").replace(/\s+/g, " ").trim().slice(0, max).trim();
 }
 
+/**
+ * An idea's title and summary, tidied. Models sometimes put "Title. Summary
+ * sentence…" all in the title and leave the summary empty; then the title is
+ * split at its first sentence end, so neither is cut off at the title limit.
+ */
+export function ideaText(
+  title: string | null | undefined,
+  summary: string | null | undefined,
+): { title: string; summary: string } {
+  let t = tidyText(title, Number.MAX_SAFE_INTEGER);
+  let s = tidyText(summary, Number.MAX_SAFE_INTEGER);
+  const split = t.match(/^(.+?[.!?])\s+(\S.*)$/);
+  if (split && (!s || t.length > IDEA_TITLE_MAX)) {
+    t = split[1].replace(/\.$/, "");
+    s = s || split[2];
+  }
+  return { title: tidyText(t, IDEA_TITLE_MAX), summary: tidyText(s, IDEA_SUMMARY_MAX) };
+}
+
 export type LabelledIdea = { label: string; id: string; title: string };
 export type LabelledQuote = { label: string; evidenceId: string };
 export type MatchAnswer = {
@@ -72,7 +91,8 @@ export function resolveAssignments(input: {
       out.attach.push({ evidenceId: q.evidenceId, ideaId: existing });
       continue;
     }
-    const title = ref === "NEW" ? tidyText(answer?.title, IDEA_TITLE_MAX) : "";
+    const text = ref === "NEW" ? ideaText(answer?.title, answer?.summary) : null;
+    const title = text?.title ?? "";
     const key = normalizeIdeaTitle(title);
     if (!key) {
       out.unmatched.push(q.evidenceId);
@@ -90,7 +110,7 @@ export function resolveAssignments(input: {
     }
     const fresh = {
       title,
-      summary: tidyText(answer?.summary, IDEA_SUMMARY_MAX),
+      summary: text?.summary ?? "",
       evidenceIds: [q.evidenceId],
     };
     created.set(key, fresh);

@@ -81,6 +81,8 @@ describe("discover: plan, search, triage", { skip: skipWithoutDb }, () => {
       "AI_MODELS",
       "VERCEL",
       "RESEARCH_WRITER_MODELS",
+      "REDDIT_CLIENT_ID",
+      "REDDIT_CLIENT_SECRET",
     ]) {
       saved[k] = process.env[k];
     }
@@ -89,6 +91,9 @@ describe("discover: plan, search, triage", { skip: skipWithoutDb }, () => {
     delete process.env.AI_MODELS;
     delete process.env.VERCEL;
     delete process.env.RESEARCH_WRITER_MODELS;
+    // Reddit's API is set up, so triage may pick Reddit threads.
+    process.env.REDDIT_CLIENT_ID = "reddit-id";
+    process.env.REDDIT_CLIENT_SECRET = "reddit-secret";
     db = await (await import("@/lib/db.server")).getDb();
     rdb = await import("@/lib/research-db.server.ts");
     ledger = await import("@/lib/research-credits-db.server.ts");
@@ -232,6 +237,43 @@ describe("discover: plan, search, triage", { skip: skipWithoutDb }, () => {
     const stored = await rdb.runQueries(db, run.id);
     assert.equal(stored.length, 2);
     assert.equal(stored[0].hits.length, 4, "the earlier search's results, copied");
+  });
+
+  it("leaves Reddit threads out of triage while Reddit's API isn't set up", async () => {
+    const run = await rdb.createRun(db, user.id, topic.id, {
+      kind: "discover",
+      depth: "quick",
+      input: { seed: `no reddit ${process.pid}-${Date.now()}` },
+    });
+    await rdb.insertRunQuery(db, {
+      userId: user.id,
+      topicId: topic.id,
+      runId: run.id,
+      queryNorm: "no reddit",
+      hits: (await fakeSearch(`no reddit ${run.id}`)).results,
+    });
+    searches.pop();
+    await ledger.grantResearchCredits(db, user.id, 30, "test");
+    await ledger.reserveRunCredits(db, user.id, run.id, 30, "start");
+    const { eq } = await import("drizzle-orm");
+    const { researchRuns } = await import("@/lib/schema.ts");
+    await db.update(researchRuns).set({ state: "queued" }).where(eq(researchRuns.id, run.id));
+
+    delete process.env.REDDIT_CLIENT_SECRET;
+    try {
+      const steps = discover
+        .discoverSteps({ calls, generate: fakeGenerate })
+        .filter((s) => s.name === "triage");
+      await runs.runResearch(run.id, ORIGIN, { steps, handOff: async () => {} });
+    } finally {
+      process.env.REDDIT_CLIENT_SECRET = "reddit-secret";
+    }
+
+    const row = await runsDb.getRunById(db, run.id);
+    assert.equal(row.state, "done");
+    assert.ok(row.progress.toRead.length > 0);
+    assert.ok(row.progress.toRead.every((u) => !u.includes("reddit.com")));
+    assert.deepEqual(row.progress.spares, []);
   });
 
   it("refuses an edited plan with nothing checked", async () => {
