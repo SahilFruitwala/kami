@@ -16,6 +16,7 @@ const INTENT_LABEL: Record<PlanQuery["intent"], string> = {
   switching: "Switching",
   alternatives: "Alternatives",
   pricing: "Pricing",
+  counter: "Counter-evidence",
 };
 
 /**

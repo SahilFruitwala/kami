@@ -155,6 +155,10 @@ Research (`/research`, spec in `docs/wayfinder/research/spec.md`). Every route b
 | `GET`    | `/api/research/ideas/:id`            | `src/routes/api/research/ideas/$id.ts`            |
 | `PATCH`  | `/api/research/ideas/:id`            | `src/routes/api/research/ideas/$id.ts`            |
 | `POST`   | `/api/research/ideas/merge`          | `src/routes/api/research/ideas/merge.ts`          |
+| `POST`   | `/api/research/ideas/:id/validate`   | `src/routes/api/research/ideas/$id/validate.ts`   |
+| `GET`    | `/api/research/topics/:id/reports`   | `src/routes/api/research/topics/$id/reports.ts`   |
+| `GET`    | `/api/research/topics/:id/players`   | `src/routes/api/research/topics/$id/players.ts`   |
+| `GET`    | `/api/research/reports/:id`          | `src/routes/api/research/reports/$id.ts`          |
 | `POST`   | `/api/research/runs`                 | `src/routes/api/research/runs/index.ts`           |
 | `GET`    | `/api/research/runs/:id`             | `src/routes/api/research/runs/$id.ts`             |
 | `POST`   | `/api/research/runs/:id/start`       | `src/routes/api/research/runs/$id/start.ts`       |

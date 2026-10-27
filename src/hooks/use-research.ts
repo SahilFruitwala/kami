@@ -58,6 +58,27 @@ export function useTopicSources(topicId: string) {
   });
 }
 
+export function useTopicPlayers(topicId: string) {
+  return useQuery({
+    queryKey: queryKeys.research.players(topicId),
+    queryFn: () => researchApi.players(topicId),
+  });
+}
+
+export function useTopicReports(topicId: string) {
+  return useQuery({
+    queryKey: queryKeys.research.reports(topicId),
+    queryFn: () => researchApi.reports(topicId),
+  });
+}
+
+export function useReport(id: string) {
+  return useQuery({
+    queryKey: queryKeys.research.report(id),
+    queryFn: () => researchApi.report(id),
+  });
+}
+
 /** Refetch everything Research shows (after a change: start, stop, star, merge, rename…). */
 export function useResearchRefresh() {
   const client = useQueryClient();

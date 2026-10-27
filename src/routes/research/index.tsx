@@ -16,13 +16,12 @@ export const Route = createFileRoute("/research/")({
 });
 
 /**
- * Research home: three ways to start (Find ideas works; the other two ship
- * with Validate and Explore), the caller's topics, and their credits.
+ * Research home: three ways to start (Find ideas, Ask a question and Map a space), the caller's topics, and their credits.
  */
 function ResearchHome() {
   const navigate = Route.useNavigate();
   const status = useResearchStatus();
-  const [finding, setFinding] = useState(false);
+  const [mode, setMode] = useState<"discover" | "question" | "explore" | null>(null);
 
   function openItem(item: LibraryItem) {
     startTransition(() => {
@@ -49,23 +48,36 @@ function ResearchHome() {
                 icon={<Search className="size-4" aria-hidden="true" />}
                 title="Find ideas"
                 copy="Search discussions and reviews in a space for problems worth solving."
-                active={finding}
-                onClick={() => setFinding((v) => !v)}
+                active={mode === "discover"}
+                onClick={() => setMode((m) => (m === "discover" ? null : "discover"))}
               />
               <StartCard
                 icon={<HelpCircle className="size-4" aria-hidden="true" />}
                 title="Ask a question"
-                copy="Check an idea against what people say. Coming soon."
+                copy="Get a cited answer from what people say online."
+                active={mode === "question"}
+                onClick={() => setMode((m) => (m === "question" ? null : "question"))}
               />
               <StartCard
                 icon={<Compass className="size-4" aria-hidden="true" />}
                 title="Map a space"
-                copy="See who's already there and what they charge. Coming soon."
+                copy="See who's already there and what they charge."
+                active={mode === "explore"}
+                onClick={() => setMode((m) => (m === "explore" ? null : "explore"))}
               />
             </section>
-            {finding ? (
-              <section aria-label="Find ideas" className="kami-sheet p-4 sm:p-6">
-                <FindIdeasForm />
+            {mode ? (
+              <section
+                aria-label={
+                  mode === "question"
+                    ? "Ask a question"
+                    : mode === "explore"
+                      ? "Map a space"
+                      : "Find ideas"
+                }
+                className="kami-sheet p-4 sm:p-6"
+              >
+                <FindIdeasForm key={mode} kind={mode} />
               </section>
             ) : null}
             <CreditsPanel />

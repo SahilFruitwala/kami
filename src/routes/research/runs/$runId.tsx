@@ -62,6 +62,7 @@ function RunPage() {
 function RunBody({ view }: { view: RunView }) {
   const { run } = view;
   const title = run.input.link ? "Reading a link" : run.input.seed;
+  const isReport = run.kind === "validate" || run.kind === "question";
   return (
     <>
       <header className="flex flex-col gap-2">
@@ -72,7 +73,9 @@ function RunBody({ view }: { view: RunView }) {
             started={run.state !== "stopped" || run.startedAt !== null}
           />
           <span className="font-sans text-xs text-ink-muted">
-            {run.input.link ? "Pasted link" : run.depth === "deep" ? "Deep" : "Quick"}
+            {run.input.link
+              ? "Pasted link"
+              : `${run.kind === "validate" ? "Validation · " : run.kind === "question" ? "Question · " : run.kind === "explore" ? "Map · " : ""}${run.depth === "deep" ? "Deep" : "Quick"}`}
           </span>
         </div>
         <h1 className="font-display text-3xl leading-tight text-ink break-words">{title}</h1>
@@ -98,7 +101,13 @@ function RunBody({ view }: { view: RunView }) {
         <>
           <EndNote view={view} />
           <Progress view={view} />
-          <Ideas view={view} />
+          {isReport ? (
+            <ReportLink view={view} />
+          ) : run.kind === "explore" ? (
+            <PlayersLink view={view} />
+          ) : (
+            <Ideas view={view} />
+          )}
           {run.chargedCredits !== null ? <Spend view={view} /> : null}
         </>
       )}
@@ -128,7 +137,7 @@ function EndNote({ view }: { view: RunView }) {
   if (run.state === "stopped" && run.stopReason === "user") {
     return <EmptyNote>You stopped this run. It kept and scored what it had found.</EmptyNote>;
   }
-  if (run.state === "done" && !ideas.length) {
+  if (run.state === "done" && !ideas.length && run.kind === "discover") {
     const searched = run.plan.filter((q) => q.checked !== false).map((q) => q.query);
     return (
       <EmptyNote>
@@ -173,6 +182,28 @@ function steps(view: RunView): StepRow[] {
       label: "Pull quotes",
       detail: `${n(p.quotes)} checked quotes${p.dropped ? `, ${p.dropped} dropped` : ""}`,
     },
+  );
+  if (view.run.kind === "explore") {
+    rows.push(
+      { key: "players", label: "Note products", detail: `${n(p.playersNew)} new` },
+      {
+        key: "fill",
+        label: "Read their sites",
+        detail: p.playersTotal ? `${n(p.playersFilled)} of ${p.playersTotal}` : "",
+      },
+    );
+    return rows;
+  }
+  if (view.run.kind !== "discover") {
+    rows.push({
+      key: "report",
+      label: "Write the report",
+      detail: view.reportId ? "done" : "",
+    });
+    return rows;
+  }
+  rows.push(
+    { key: "players", label: "Note products", detail: `${n(p.playersNew)} new` },
     { key: "match", label: "Group into ideas", detail: `${view.ideas.length} ideas so far` },
     { key: "name", label: "Name ideas", detail: p.named ? "done" : "" },
     {
@@ -246,6 +277,45 @@ function Progress({ view }: { view: RunView }) {
           );
         })}
       </ol>
+    </section>
+  );
+}
+
+/** Where a finished Validate or question run's report is. */
+function ReportLink({ view }: { view: RunView }) {
+  if (!view.reportId) return null;
+  return (
+    <section
+      aria-label="Report"
+      className="kami-sheet flex flex-wrap items-center justify-between gap-3 p-4 sm:p-6"
+    >
+      <h2 className="font-display text-xl text-ink">The report is ready</h2>
+      <Button asChild size="sm">
+        <Link to="/research/reports/$reportId" params={{ reportId: view.reportId }}>
+          Read the report
+        </Link>
+      </Button>
+    </section>
+  );
+}
+
+/** Where an Explore run's products are. */
+function PlayersLink({ view }: { view: RunView }) {
+  const { run } = view;
+  if (run.state === "queued" || run.state === "running") return null;
+  return (
+    <section
+      aria-label="Players"
+      className="kami-sheet flex flex-wrap items-center justify-between gap-3 p-4 sm:p-6"
+    >
+      <h2 className="font-display text-xl text-ink">
+        {run.progress.playersNew ?? 0} new products noted
+      </h2>
+      <Button asChild size="sm">
+        <Link to="/research/$topicId" params={{ topicId: run.topicId }} search={{ tab: "players" }}>
+          See the players
+        </Link>
+      </Button>
     </section>
   );
 }

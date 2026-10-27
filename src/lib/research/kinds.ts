@@ -96,6 +96,8 @@ export type DiscoverInput = {
   sinceMonths?: number;
   /** A pasted link (spec §4.11): the run reads only this page, with no plan. */
   link?: string;
+  /** A Validate run: the idea being checked (its title is the seed). */
+  ideaId?: string;
 };
 
 /** One search the run will make. `intent` steers what kind of talk it looks for. */
@@ -103,7 +105,7 @@ export type PlanQuery = {
   id: string;
   query: string;
   site?: string;
-  intent: "pain" | "wish" | "switching" | "alternatives" | "pricing";
+  intent: "pain" | "wish" | "switching" | "alternatives" | "pricing" | "counter";
   /** Unchecked queries stay in the plan but are not searched. */
   checked: boolean;
   /** Set on a query this topic has already sent; it starts unchecked. */
@@ -147,5 +149,9 @@ export type RunProgress = {
   /** Ideas this run created, and ideas it added evidence to (new ones included). */
   ideasNew?: number;
   ideasTouched?: number;
+  /** Players: new ones noted from this run's quotes; filled in so far, of how many to fill. */
+  playersNew?: number;
+  playersFilled?: number;
+  playersTotal?: number;
   stopRequested?: boolean;
 };

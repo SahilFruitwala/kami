@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, Pencil } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { ExternalLink, FlaskConical, LoaderCircle, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
@@ -47,6 +48,8 @@ export function IdeaDetailSheet({
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [open, setOpen] = useState<string>("frequency");
+  const [validating, setValidating] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     setEditing(false);
@@ -61,6 +64,19 @@ export function IdeaDetailSheet({
       refresh();
     } catch (err) {
       toastError(err, "Couldn't save that change.");
+    }
+  }
+
+  /** Draft a Validate plan for this idea, then open it on the plan screen. */
+  async function validate() {
+    if (!ideaId) return;
+    setValidating(true);
+    try {
+      const view = await researchApi.validateIdea(ideaId, "quick");
+      void navigate({ to: "/research/runs/$runId", params: { runId: view.run.id } });
+    } catch (err) {
+      toastError(err, "Couldn't draft a validation plan.");
+      setValidating(false);
     }
   }
 
@@ -138,6 +154,14 @@ export function IdeaDetailSheet({
                     Star
                   </Button>
                 )}
+                <Button size="sm" onClick={validate} disabled={validating}>
+                  {validating ? (
+                    <LoaderCircle className="size-3.5 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <FlaskConical className="size-3.5" aria-hidden="true" />
+                  )}
+                  Validate this idea
+                </Button>
                 {detail.idea.status === "dismissed" ? (
                   <Button size="sm" variant="outline" onClick={() => save({ status: "open" })}>
                     Reopen
@@ -207,7 +231,7 @@ function ScoreSections({
   );
 }
 
-function QuoteList({ evidence }: { evidence: EvidenceView[] }) {
+export function QuoteList({ evidence }: { evidence: EvidenceView[] }) {
   if (!evidence.length) return <p className="mt-2 font-body text-sm text-ink-muted">No quotes.</p>;
   return (
     <ul className="mt-2 flex flex-col gap-3">
