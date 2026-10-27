@@ -1,6 +1,6 @@
 ---
 type: build
-status: open
+status: closed
 assignee:
 phase: 2-product
 blocked-by: [11-discover-plan-and-run-ui.md, 12-ideas-tab.md, 13-paste-a-link.md]
@@ -18,3 +18,5 @@ blocked-by: [11-discover-plan-and-run-ui.md, 12-ideas-tab.md, 13-paste-a-link.md
 - A new contributor can enable Research, grant credits and run Discover from the docs alone.
 
 ## Resolution
+
+`docs/ARCHITECTURE.md` (Research: turning it on, the steps, cost and caching, code map), `docs/DATA-MODEL.md` (the `research_*` tables), `docs/API.md` (every research route), `README.md` (`pnpm research:grant`, `/research`), `.env.example` (research and Reddit lines), and [ADR 0002](../../../adr/0002-research-evidence-and-scores-in-code.md): quote-level evidence checked in code, scores computed in code.

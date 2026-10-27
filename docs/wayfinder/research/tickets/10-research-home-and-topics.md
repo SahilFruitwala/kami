@@ -1,6 +1,6 @@
 ---
 type: build
-status: open
+status: closed
 assignee:
 phase: 2-product
 blocked-by: [02-research-credits.md]
@@ -21,3 +21,5 @@ blocked-by: [02-research-credits.md]
 - Owner scoping: another user's topic 404s (test).
 
 ## Resolution
+
+Built on `research/phase-2`. `GET /api/research/status`, `/credits`, `/topics` (list, create, get, rename, delete) in `src/server/services/research/topics.ts`; every route but `status` is a 404 while Research is off, and deleting a topic is refused while a run in it is working. `/research` (start cards, credits panel with history, topics list) and `/research/$topicId` (Ideas, Sources and Runs tabs, rename and delete). The nav entry sits after Trips (last on phones) and shows only when `status.enabled`. Tested in `tests/db/research-product.test.mjs`: the off state, and another user's topic, ideas and sources are 404s.

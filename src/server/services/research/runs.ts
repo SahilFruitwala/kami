@@ -37,6 +37,7 @@ import type {
 import {
   DEPTH_BUDGETS,
   LEASE_MS,
+  LINK_BUDGET,
   fitsBudget,
   isStalledRun,
   isStopping,
@@ -244,6 +245,63 @@ export async function startRun(
   }
   kickRun(runId, origin);
   return (await getRun(db, userId, runId)) ?? queued;
+}
+
+/**
+ * Paste a link (spec §4.11): a small run in the topic that reads only `url`
+ * and then extracts, matches and scores like any run. It has no plan and
+ * starts at `fetch`, under its own small budget. A page the topic already
+ * has comes from the cache for free, and its quotes are never stored twice.
+ */
+export async function startLinkRun(
+  userId: string,
+  topicId: string,
+  url: string,
+  origin: string,
+): Promise<RunRow> {
+  const run = await createLinkRun(userId, topicId, url);
+  kickRun(run.id, origin);
+  return run;
+}
+
+/** `startLinkRun` without starting it: the run is queued with its budget set aside. */
+export async function createLinkRun(userId: string, topicId: string, url: string): Promise<RunRow> {
+  requireConfig();
+  await enforceRateLimit(userId, "research");
+  const db = await getDb();
+  const topic = await getTopic(db, userId, topicId);
+  if (!topic) throw notFound("Topic not found");
+  const id = randomUUID();
+  let row: RunRow | undefined;
+  try {
+    await db.transaction(async (tx) => {
+      [row] = await tx
+        .insert(researchRuns)
+        .values({
+          id,
+          userId,
+          topicId,
+          kind: "discover",
+          depth: "quick",
+          state: "queued",
+          step: "fetch",
+          input: { seed: topic.name, link: url },
+          progress: { toRead: [url] },
+        })
+        .returning();
+      await reserveRunCredits(db, userId, id, LINK_BUDGET, "link added", tx);
+    });
+  } catch (err) {
+    if (err instanceof ResearchCreditsShortError) {
+      throw new HttpError(
+        402,
+        `Reading a link needs ${LINK_BUDGET} research credits; you have ${err.available}.`,
+      );
+    }
+    throw err;
+  }
+  // Read it back: the reservation set its budget after the insert.
+  return (await getRun(db, userId, id)) ?? (row as RunRow);
 }
 
 /**

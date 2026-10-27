@@ -41,7 +41,7 @@ A research section in Kami (`/research`) that finds product ideas in what real p
 - **Phase 2, Discover product (v1)**: [10 home, topics, nav](tickets/10-research-home-and-topics.md), [11 plan screen and run view](tickets/11-discover-plan-and-run-ui.md), [12 ideas tab](tickets/12-ideas-tab.md), [13 paste a link](tickets/13-paste-a-link.md), [14 docs and ADR](tickets/14-docs-and-adr.md).
 - **Phase 3, Validate**: [15 validate report](tickets/15-validate-report.md), [16 free-form question](tickets/16-free-form-question.md).
 - **Phase 4, Explore**: [17 players](tickets/17-explore-players.md), [18 HN Algolia](tickets/18-hn-algolia.md).
-- Frontier now: 09 in progress (see its checkpoint: the Reddit decision is made; the seed runs are left) and 10 (01–08 and 18 closed; the engine is complete).
+- Frontier now: Phase 2 is built on `research/phase-2` (10–14 closed, checked signed in on desktop and phone). Next: Phase 3 (15, 16).
 
 ## Not yet specified
 

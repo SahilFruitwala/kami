@@ -94,6 +94,8 @@ export type DiscoverInput = {
   includeSites?: string[];
   excludeSites?: string[];
   sinceMonths?: number;
+  /** A pasted link (spec §4.11): the run reads only this page, with no plan. */
+  link?: string;
 };
 
 /** One search the run will make. `intent` steers what kind of talk it looks for. */

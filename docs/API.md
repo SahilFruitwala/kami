@@ -138,16 +138,33 @@ Owner-only (404 for anyone else). `POST /api/narrations/run` is internal: it aut
 
 ### research
 
-Research is under construction (see `docs/wayfinder/research/spec.md`). `POST /api/research/run` is internal: a run handing itself off to a fresh invocation, authenticated with `RESEARCH_RUN_SECRET`, not a session (see ADR 0001). The `/api/research/debug/*` routes back the operator's debug page and answer 404 unless the caller's email is in `RESEARCH_DEBUG_EMAILS`.
+Research (`/research`, spec in `docs/wayfinder/research/spec.md`). Every route but `status` answers 404 while Research is off (no `FIRECRAWL_API_KEY` or no AI model). Owner-only: another user's topic, idea or run is a 404. Drafting and starting a run (and pasting a link) count against the `research` rate-limit bucket; runs spend research credits, granted with `pnpm research:grant`. `POST /api/research/run` is internal: a run handing itself off to a fresh invocation, authenticated with `RESEARCH_RUN_SECRET`, not a session (see ADR 0001). The `/api/research/debug/*` routes back the operator's debug page and answer 404 unless the caller's email is in `RESEARCH_DEBUG_EMAILS`.
 
-| Method | Path                                 | Source                                            |
-| ------ | ------------------------------------ | ------------------------------------------------- |
-| `POST` | `/api/research/run`                  | `src/routes/api/research/run.ts`                  |
-| `GET`  | `/api/research/debug`                | `src/routes/api/research/debug/index.ts`          |
-| `POST` | `/api/research/debug/runs`           | `src/routes/api/research/debug/runs/index.ts`     |
-| `GET`  | `/api/research/debug/runs/:id`       | `src/routes/api/research/debug/runs/$id.ts`       |
-| `POST` | `/api/research/debug/runs/:id/start` | `src/routes/api/research/debug/runs/$id/start.ts` |
-| `POST` | `/api/research/debug/runs/:id/stop`  | `src/routes/api/research/debug/runs/$id/stop.ts`  |
+| Method   | Path                                 | Source                                            |
+| -------- | ------------------------------------ | ------------------------------------------------- |
+| `GET`    | `/api/research/status`               | `src/routes/api/research/status.ts`               |
+| `GET`    | `/api/research/credits`              | `src/routes/api/research/credits.ts`              |
+| `GET`    | `/api/research/topics`               | `src/routes/api/research/topics/index.ts`         |
+| `POST`   | `/api/research/topics`               | `src/routes/api/research/topics/index.ts`         |
+| `GET`    | `/api/research/topics/:id`           | `src/routes/api/research/topics/$id.ts`           |
+| `PATCH`  | `/api/research/topics/:id`           | `src/routes/api/research/topics/$id.ts`           |
+| `DELETE` | `/api/research/topics/:id`           | `src/routes/api/research/topics/$id.ts`           |
+| `GET`    | `/api/research/topics/:id/ideas`     | `src/routes/api/research/topics/$id/ideas.ts`     |
+| `GET`    | `/api/research/topics/:id/sources`   | `src/routes/api/research/topics/$id/sources.ts`   |
+| `POST`   | `/api/research/topics/:id/links`     | `src/routes/api/research/topics/$id/links.ts`     |
+| `GET`    | `/api/research/ideas/:id`            | `src/routes/api/research/ideas/$id.ts`            |
+| `PATCH`  | `/api/research/ideas/:id`            | `src/routes/api/research/ideas/$id.ts`            |
+| `POST`   | `/api/research/ideas/merge`          | `src/routes/api/research/ideas/merge.ts`          |
+| `POST`   | `/api/research/runs`                 | `src/routes/api/research/runs/index.ts`           |
+| `GET`    | `/api/research/runs/:id`             | `src/routes/api/research/runs/$id.ts`             |
+| `POST`   | `/api/research/runs/:id/start`       | `src/routes/api/research/runs/$id/start.ts`       |
+| `POST`   | `/api/research/runs/:id/stop`        | `src/routes/api/research/runs/$id/stop.ts`        |
+| `POST`   | `/api/research/run`                  | `src/routes/api/research/run.ts`                  |
+| `GET`    | `/api/research/debug`                | `src/routes/api/research/debug/index.ts`          |
+| `POST`   | `/api/research/debug/runs`           | `src/routes/api/research/debug/runs/index.ts`     |
+| `GET`    | `/api/research/debug/runs/:id`       | `src/routes/api/research/debug/runs/$id.ts`       |
+| `POST`   | `/api/research/debug/runs/:id/start` | `src/routes/api/research/debug/runs/$id/start.ts` |
+| `POST`   | `/api/research/debug/runs/:id/stop`  | `src/routes/api/research/debug/runs/$id/stop.ts`  |
 
 ### shelves
 

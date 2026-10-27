@@ -55,6 +55,18 @@ export const queryKeys = {
     detail: (id: string) => [...queryKeys.trips.all, "detail", id] as const,
     chat: (id: string) => [...queryKeys.trips.all, "chat", id] as const,
   },
+  research: {
+    all: ["research"] as const,
+    status: () => [...queryKeys.research.all, "status"] as const,
+    credits: () => [...queryKeys.research.all, "credits"] as const,
+    topics: () => [...queryKeys.research.all, "topics"] as const,
+    topic: (id: string) => [...queryKeys.research.all, "topic", id] as const,
+    ideas: (topicId: string, status: string) =>
+      [...queryKeys.research.all, "ideas", topicId, status] as const,
+    idea: (id: string) => [...queryKeys.research.all, "idea", id] as const,
+    sources: (topicId: string) => [...queryKeys.research.all, "sources", topicId] as const,
+    run: (id: string) => [...queryKeys.research.all, "run", id] as const,
+  },
   feeds: {
     all: ["feeds"] as const,
     overview: () => [...queryKeys.feeds.all, "overview"] as const,

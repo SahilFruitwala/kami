@@ -1,5 +1,9 @@
+import type { ResearchCreditEntry } from "../research/credits.ts";
+import type { RunEstimate } from "../research/estimate.ts";
 import type {
+  Depth,
   DiscoverInput,
+  IdeaStatus,
   IdeaScore,
   PlanQuery,
   RunProgress,
@@ -7,7 +11,9 @@ import type {
 } from "../research/kinds.ts";
 import { http, seg } from "./client";
 
-/** Shapes of the Research debug API (ticket 09); the product API arrives with tickets 10–12. */
+export type { RunEstimate };
+
+/** Shapes of the Research API: the product routes (tickets 10–13) and the debug page (ticket 09). */
 
 type DepthNumbers = Record<"quick" | "deep", number>;
 
@@ -106,4 +112,154 @@ export const researchDebugApi = {
   start: (id: string, body: { depth: "quick" | "deep"; plan: PlanQuery[] }) =>
     http.post<{ runId: string }>(`${run(id)}/start`, body),
   stop: (id: string) => http.post<{ runId: string }>(`${run(id)}/stop`),
+};
+
+// ---------- Product API (tickets 10–13) ----------
+
+export type ResearchStatus = { enabled: boolean; balance: number; writerModel: boolean };
+
+export type ResearchCredits = { enabled: boolean; balance: number; entries: ResearchCreditEntry[] };
+
+export type ResearchTopic = { id: string; name: string; createdAt: number; updatedAt: number };
+
+export type ResearchTopicSummary = ResearchTopic & { liveIdeas: number; lastRunAt: number | null };
+
+export type RunSummary = {
+  id: string;
+  topicId: string;
+  kind: string;
+  depth: Depth;
+  state: string;
+  stopReason: string | null;
+  seed: string;
+  /** A run from a pasted link, or from a plan. */
+  addedBy: "plan" | "link";
+  ideasNew: number;
+  ideasTouched: number;
+  quotes: number;
+  chargedCredits: number | null;
+  createdAt: number;
+  /** False for a plan discarded before it ran. */
+  started: boolean;
+  finishedAt: number | null;
+};
+
+export type ResearchTopicDetail = { topic: ResearchTopic; runs: RunSummary[] };
+
+export type DraftRunInput = {
+  /** An existing topic, or a new one named after the seed. */
+  topicId?: string;
+  seed: string;
+  depth: Depth;
+  audience?: "b2b" | "b2c" | "any";
+  includeSites?: string[];
+  excludeSites?: string[];
+  sinceMonths?: number;
+};
+
+export type IdeaCard = {
+  id: string;
+  topicId: string;
+  title: string;
+  summary: string;
+  status: IdeaStatus;
+  score: IdeaScore | null;
+  evidenceCount: number;
+  /** Quotes the topic's latest run added, and whether that run created it. */
+  addedLastRun: number;
+  isNew: boolean;
+  renamed: boolean;
+};
+
+export type RunView = {
+  run: {
+    id: string;
+    topicId: string;
+    topicName: string;
+    kind: string;
+    state: string;
+    stopReason: string | null;
+    step: string | null;
+    depth: Depth;
+    input: DiscoverInput;
+    plan: PlanQuery[];
+    progress: RunProgress;
+    budgetCredits: number;
+    firecrawlCredits: number;
+    tokensIn: number;
+    tokensOut: number;
+    chargedCredits: number | null;
+    error: string | null;
+    createdAt: number;
+    startedAt: number | null;
+    finishedAt: number | null;
+  };
+  /** For a run awaiting its plan: the estimate per depth, and the caller's balance. */
+  estimates: Record<Depth, RunEstimate>;
+  balance: number;
+  /** Ideas this run created or added to so far, best first. */
+  ideas: IdeaCard[];
+};
+
+export type EvidenceView = {
+  id: string;
+  quote: string;
+  kind: string;
+  match: "exact" | "close";
+  sentiment: number;
+  strong: boolean;
+  pays: boolean;
+  names: string[];
+  postedAt: number | null;
+  source: { id: string; url: string; title: string; site: string };
+};
+
+export type IdeaDetail = { idea: IdeaCard; evidence: EvidenceView[] };
+
+export type IdeaPatch = {
+  title?: string;
+  summary?: string;
+  status?: "open" | "starred" | "dismissed";
+};
+
+export type TopicSource = {
+  id: string;
+  url: string;
+  title: string;
+  site: string;
+  kind: string;
+  addedBy: string;
+  fetchedAt: number;
+  evidenceCount: number;
+};
+
+const topicPath = (id: string) => `/api/research/topics/${seg(id)}`;
+const runPath = (id: string) => `/api/research/runs/${seg(id)}`;
+const ideaPath = (id: string) => `/api/research/ideas/${seg(id)}`;
+
+export const researchApi = {
+  status: () => http.get<ResearchStatus>("/api/research/status"),
+  credits: () => http.get<ResearchCredits>("/api/research/credits"),
+
+  topics: () => http.get<ResearchTopicSummary[]>("/api/research/topics"),
+  createTopic: (name: string) => http.post<ResearchTopic>("/api/research/topics", { name }),
+  topic: (id: string) => http.get<ResearchTopicDetail>(topicPath(id)),
+  renameTopic: (id: string, name: string) => http.patch<ResearchTopic>(topicPath(id), { name }),
+  deleteTopic: (id: string) => http.delete<void>(topicPath(id)),
+
+  ideas: (topicId: string, status?: string) =>
+    http.get<IdeaCard[]>(`${topicPath(topicId)}/ideas`, { status }),
+  idea: (id: string) => http.get<IdeaDetail>(ideaPath(id)),
+  updateIdea: (id: string, patch: IdeaPatch) => http.patch<IdeaCard>(ideaPath(id), patch),
+  mergeIdeas: (intoId: string, fromIds: string[]) =>
+    http.post<IdeaCard>("/api/research/ideas/merge", { intoId, fromIds }),
+  sources: (topicId: string) => http.get<TopicSource[]>(`${topicPath(topicId)}/sources`),
+  pasteLink: (topicId: string, url: string) =>
+    http.post<{ runId: string }>(`${topicPath(topicId)}/links`, { url }),
+
+  draft: (input: DraftRunInput) => http.post<RunView>("/api/research/runs", input),
+  run: (id: string) => http.get<RunView>(runPath(id)),
+  start: (id: string, body: { depth: Depth; plan: PlanQuery[] }) =>
+    http.post<{ runId: string }>(`${runPath(id)}/start`, body),
+  stop: (id: string) => http.post<{ runId: string }>(`${runPath(id)}/stop`),
 };

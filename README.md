@@ -21,30 +21,31 @@ pnpm dev              # http://0.0.0.0:8080
 
 `DATABASE_URL` is required (local Docker Postgres or hosted Postgres/Neon).
 
-| Script                                            | What it does                                                    |
-| ------------------------------------------------- | --------------------------------------------------------------- |
-| `pnpm dev`                                        | Vite + TanStack Start on port **8080**                          |
-| `pnpm build`                                      | Production build → Vercel Nitro output + migrate                |
-| `pnpm typecheck`                                  | `tsc --noEmit`                                                  |
-| `pnpm test`                                       | Node tests under `tests/**/*.test.mjs`                          |
-| `pnpm lint` / `pnpm format` / `pnpm format:check` | ESLint / Prettier (CI runs typecheck, lint, format:check, test) |
+| Script                                            | What it does                                                                 |
+| ------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `pnpm dev`                                        | Vite + TanStack Start on port **8080**                                       |
+| `pnpm build`                                      | Production build → Vercel Nitro output + migrate                             |
+| `pnpm typecheck`                                  | `tsc --noEmit`                                                               |
+| `pnpm test`                                       | Node tests under `tests/**/*.test.mjs`                                       |
+| `pnpm lint` / `pnpm format` / `pnpm format:check` | ESLint / Prettier (CI runs typecheck, lint, format:check, test)              |
+| `pnpm research:grant <email> <credits>`           | Grant research credits to a user (Research is metered; everyone starts at 0) |
 
 ---
 
 ## What lives where
 
-| Path                                 | Role                                                                                                                                  |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
-| [`src/routes/`](src/routes/)         | File-based pages (`/`, `/library`, `/feeds`, `/extracts`, `/trips`, `/read`, `/shelves`, `/journal`, `/vault`, `/settings`, `/login`) |
-| [`src/components/`](src/components/) | UI — library, reader, shelves widgets, Kami brand primitives, shadcn `ui/`                                                            |
-| [`src/routes/api/`](src/routes/api/) | REST endpoints (`/api/*`) — thin HTTP wrappers over services. See [API reference](docs/API.md)                                        |
-| [`src/server/`](src/server/)         | Server-only: `http.ts` (auth, validation, errors) + `services/` (business logic, DB)                                                  |
-| [`src/lib/`](src/lib/)               | API client (`api/`), client sync (`*-remote.ts`), schema, auth, extract, cache                                                        |
-| [`src/hooks/`](src/hooks/)           | React hooks (capture, shelf queries, filters)                                                                                         |
-| [`migrations/`](migrations/)         | Hand-written SQL applied via `pnpm db:migrate`                                                                                        |
-| [`scripts/`](scripts/)               | Env loader, migrator, shelf import                                                                                                    |
-| [`docs/`](docs/)                     | Architecture, API, data model, development, contributing                                                                              |
-| [`extension/`](extension/)           | "Save to KAMI" browser extension (Chrome / Edge / Firefox, MV3)                                                                       |
+| Path                                 | Role                                                                                                                                               |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`src/routes/`](src/routes/)         | File-based pages (`/`, `/library`, `/feeds`, `/extracts`, `/trips`, `/research`, `/read`, `/shelves`, `/journal`, `/vault`, `/settings`, `/login`) |
+| [`src/components/`](src/components/) | UI — library, reader, shelves widgets, Kami brand primitives, shadcn `ui/`                                                                         |
+| [`src/routes/api/`](src/routes/api/) | REST endpoints (`/api/*`) — thin HTTP wrappers over services. See [API reference](docs/API.md)                                                     |
+| [`src/server/`](src/server/)         | Server-only: `http.ts` (auth, validation, errors) + `services/` (business logic, DB)                                                               |
+| [`src/lib/`](src/lib/)               | API client (`api/`), client sync (`*-remote.ts`), schema, auth, extract, cache                                                                     |
+| [`src/hooks/`](src/hooks/)           | React hooks (capture, shelf queries, filters)                                                                                                      |
+| [`migrations/`](migrations/)         | Hand-written SQL applied via `pnpm db:migrate`                                                                                                     |
+| [`scripts/`](scripts/)               | Env loader, migrator, shelf import                                                                                                                 |
+| [`docs/`](docs/)                     | Architecture, API, data model, development, contributing                                                                                           |
+| [`extension/`](extension/)           | "Save to KAMI" browser extension (Chrome / Edge / Firefox, MV3)                                                                                    |
 
 ---
 

@@ -476,6 +476,51 @@ sequenceDiagram
 
 ---
 
+## Research
+
+`/research` finds product ideas in what real people say online. **Discover** (v1) takes a seed ("invoicing for freelance designers"), searches discussion and review sites, keeps people's exact words as checked quotes, groups them into ideas and ranks the ideas from that evidence. Validate and Explore come later on the same engine. The build spec is [`docs/wayfinder/research/spec.md`](wayfinder/research/spec.md); terms are in `GLOSSARY.md`.
+
+### Turning it on
+
+1. Set `FIRECRAWL_API_KEY` and an AI model (`AI_MODELS` plus its provider key). On Vercel also set `RESEARCH_RUN_SECRET` (16+ characters, `openssl rand -hex 32`). Without these Research is off: no nav entry, and the API answers 404. Optional: `RESEARCH_WRITER_MODELS` (a stronger model for plans and idea names), `RESEARCH_TOKENS_PER_CREDIT`, `RESEARCH_MAX_PAGE_CHARS`, `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` (see `.env.example`).
+2. Grant credits: `pnpm research:grant <email> <credits>`. Everyone starts at 0; with 0 the page shows and Run is disabled.
+3. Open `/research`, **Find ideas**, check the drafted plan and **Run**. The run page shows live progress; ideas land in the topic.
+
+### A Discover run
+
+| Step      | What it does                                                                                                                                                              |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Plan      | One writer-model call drafts 12 (Quick) or 20 (Deep) searches, each aimed at a site (`site:`). Free until the run starts; the user edits it on the plan screen.           |
+| `search`  | Firecrawl search (Hacker News through the free Algolia API). A topic's identical search from the last 14 days is reused for free.                                         |
+| `triage`  | Code drops files, video sites, duplicates and pages the topic already has, and ranks the rest; the worker model picks which to read. The rest are kept as spares.         |
+| `fetch`   | Reads each pick through the per-user source cache (a fresh copy is free). A page that can't be read is skipped and replaced by the best spare.                            |
+| `extract` | The worker model copies out quotes; **code checks every quote against the stored page** and drops any it can't find (ADR 0002).                                           |
+| `match`   | The worker model assigns quotes to the topic's ideas (or proposes new ones) behind a `Matcher` interface. Dismissed ideas stay dismissed; merged ideas are never offered. |
+| `name`    | One writer call tidies new ideas' names; ideas the user renamed are never touched.                                                                                        |
+| `score`   | **Code** scores each touched idea from its evidence: people, spread, intensity, willingness to pay, recency, and a competition label (ADR 0002).                          |
+
+Runs work in the background on the narration pattern ([ADR 0001](adr/0001-narration-runs-in-self-chaining-waituntil.md)): saved progress per unit, a lease, a hand-off before the function budget runs out, and a resume that never pays twice. "Paste a link" on a topic is a small run that starts at `fetch` with one URL and a 5-credit budget.
+
+| Concern  | Approach                                                                                                                                                                                                                                 |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cost     | One research credit = one Firecrawl credit; model tokens convert at `RESEARCH_TOKENS_PER_CREDIT`. A run reserves its whole budget (Quick 45, Deep 100) when it starts and is charged only what it used. Measured costs are in ticket 09. |
+| Caching  | Searches per topic (14 days), pages per user (by `url_key`, fresh for 7–90 days by kind), model answers by input hash (30 days).                                                                                                         |
+| Failures | An unusable model answer is retried once a little warmer; Firecrawl 429s wait and retry; a page that can't be read is skipped. A run that fails shows the source's own message and is charged only what it used.                         |
+| Reddit   | Read only through Reddit's official API when `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` are set; otherwise plans and triage leave Reddit out.                                                                                           |
+| Access   | Owner-only throughout; the `research` rate-limit bucket counts drafts and starts.                                                                                                                                                        |
+
+| Path                                                                              | Role                                                                       |
+| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `src/lib/research/*`                                                              | Pure parts (tested): plan checks, sources, quote checking, scoring, engine |
+| `src/server/services/research/runs.ts`                                            | Draft, start, stop, the background run loop, paste-a-link runs             |
+| `src/server/services/research/{discover,evidence,ideas}.ts`                       | The Discover steps                                                         |
+| `src/server/services/research/{topics,product}.ts`                                | The product API                                                            |
+| `src/routes/research/*`, `src/components/research/*`, `src/hooks/use-research.ts` | `/research`, topic and run pages                                           |
+| `src/routes/research/debug.tsx`, `docs/wayfinder/research/tuning/`                | Operator debug page and terminal tuning scripts                            |
+| `migrations/0023_research.sql`                                                    | The `research_*` tables                                                    |
+
+---
+
 ## AI features
 
 Optional AI helpers across the library. They are hidden in the UI until

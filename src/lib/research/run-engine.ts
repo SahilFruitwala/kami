@@ -32,6 +32,9 @@ export const LEASE_MS = 300_000;
  */
 export const DEPTH_BUDGETS: Record<Depth, number> = { quick: 45, deep: 100 };
 
+/** A pasted link's run (spec §4.11): one page read plus a batch of model calls. */
+export const LINK_BUDGET = 5;
+
 /** States in which a run is (or should be) making progress in the background. */
 export const ACTIVE_RUN_STATES: readonly RunState[] = ["queued", "running"];
 /** States from which a run never moves again. */

@@ -9,6 +9,7 @@
  */
 
 import { PageReadError, parseRetryAfter } from "./page-read-error.ts";
+import { SCRAPE_CREDIT_COST, searchCreditCost } from "./research/estimate.ts";
 
 export const FIRECRAWL_SCRAPE_URL = "https://api.firecrawl.dev/v2/scrape";
 /** Reuse a Firecrawl-cached copy of the page up to this old (2 days). */
@@ -275,13 +276,8 @@ export const RESEARCH_MAX_SEARCH_RESULTS = 20;
 /** Research reads run in the background, so they get the full scrape timeout. */
 const RESEARCH_SCRAPE_TIMEOUT_MS = 60_000;
 
-/** What Firecrawl bills for a search returning `results` results: 2 credits per 10, rounded up. */
-export function searchCreditCost(results: number): number {
-  return results > 0 ? 2 * Math.ceil(results / 10) : 0;
-}
-
-/** What Firecrawl bills for one scrape without paid extras (no PDF parsing, no stealth proxy). */
-export const SCRAPE_CREDIT_COST = 1;
+// Firecrawl's prices, kept with the run estimate (pure, used in the browser too).
+export { SCRAPE_CREDIT_COST, searchCreditCost };
 
 /**
  * Firecrawl's own count of credits a call used, when the response carries

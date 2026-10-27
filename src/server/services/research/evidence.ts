@@ -74,7 +74,7 @@ export function fetchStep(deps: StepDeps): ResearchStep {
             topicId: run.topicId,
             runId: run.id,
             url: next,
-            addedBy: "search",
+            addedBy: run.input.link ? "link" : "search",
             maxPageChars: ctx.config.maxPageChars,
           },
           deps.calls,

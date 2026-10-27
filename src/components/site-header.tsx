@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Search,
   Plane,
+  Lightbulb,
   Plus,
   // Rss,
   // ScanSearch,
@@ -19,6 +20,7 @@ import {
 import { KAMI_GLYPH } from "@/components/kami.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { Show, SignInButton, SignUpButton, UserButton } from "@/lib/auth/gates";
+import { useResearchStatus } from "@/hooks/use-research.ts";
 import { useSlidePill } from "@/hooks/use-slide-pill.ts";
 import { cn } from "@/lib/utils.ts";
 
@@ -28,6 +30,7 @@ export type SitePane =
   | "feeds"
   | "extracts"
   | "trips"
+  | "research"
   | "vault"
   | "movies"
   | "series"
@@ -43,6 +46,7 @@ type Pane = {
     | "/feeds"
     | "/extracts"
     | "/trips"
+    | "/research"
     | "/vault"
     | "/shelves/movies"
     | "/shelves/series"
@@ -70,6 +74,9 @@ const SHELF_PANES: Pane[] = [
   { id: "wishlist", to: "/shelves/wishlist", label: "Wishlist", icon: Gift },
 ];
 
+/** Research: shown only when this server has it set up (after Trips; last on phones). */
+const RESEARCH_PANE: Pane = { id: "research", to: "/research", label: "Research", icon: Lightbulb };
+
 const PANES: Pane[] = [...SANCTUARY_PANES, ...SHELF_PANES];
 
 const SHELF_IDS = new Set<SitePane>(["movies", "series", "books", "wishlist"]);
@@ -89,7 +96,12 @@ export function SiteHeader({
   active: SitePane;
   onOpenTools?: () => void;
 }) {
-  const { ref, pill } = useSlidePill<HTMLDivElement>([active]);
+  const research = useResearchStatus().data?.enabled === true;
+  const { ref, pill } = useSlidePill<HTMLDivElement>([active, research]);
+  const trailing = SANCTUARY_PANES.slice(2).flatMap((pane) =>
+    pane.id === "trips" && research ? [pane, RESEARCH_PANE] : [pane],
+  );
+  const phonePanes = research ? [...PANES, RESEARCH_PANE] : PANES;
   const onShelf = SHELF_IDS.has(active);
   const [shelvesOpen, setShelvesOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -111,6 +123,14 @@ export function SiteHeader({
   }, [shelvesOpen]);
 
   useEffect(() => setShelvesOpen(false), [active]);
+
+  // The phone tab bar scrolls; keep the current page's tab in view (Research and Wishlist sit last).
+  const tabBar = useRef<HTMLUListElement>(null);
+  useEffect(() => {
+    tabBar.current
+      ?.querySelector('[aria-current="page"]')
+      ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [active, research]);
 
   const linkClass = (isActive: boolean) =>
     cn(NAV_LINK, isActive ? "text-ink" : "text-ink-soft hover:text-ink");
@@ -177,7 +197,7 @@ export function SiteHeader({
                 ))}
               </div>
             </div>
-            {SANCTUARY_PANES.slice(2).map((pane) => (
+            {trailing.map((pane) => (
               <Link
                 key={pane.id}
                 to={pane.to}
@@ -273,8 +293,11 @@ export function SiteHeader({
         aria-label="Pages"
         className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-paper/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
       >
-        <ul className="flex overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {PANES.map((pane) => (
+        <ul
+          ref={tabBar}
+          className="flex overflow-x-auto overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {phonePanes.map((pane) => (
             <li key={pane.id} className="min-w-[3.75rem] flex-1">
               <Link
                 to={pane.to}
