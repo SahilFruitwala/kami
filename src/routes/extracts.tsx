@@ -40,7 +40,7 @@ function ExtractsPage() {
           sourceId={search.source ?? null}
           onSelect={(id) =>
             void navigate({
-              search: (prev) => ({ ...prev, source: id ?? undefined }),
+              search: (prev: ExtractsSearch) => ({ ...prev, source: id ?? undefined }),
               replace: true,
             })
           }

@@ -43,13 +43,16 @@ function FeedsPage() {
           view={search.view ?? "unread"}
           onSelectFeed={(feed) =>
             void navigate({
-              search: (prev) => ({ ...prev, feed: feed ?? undefined }),
+              search: (prev: FeedsSearch) => ({ ...prev, feed: feed ?? undefined }),
               replace: true,
             })
           }
           onView={(view) =>
             void navigate({
-              search: (prev) => ({ ...prev, view: view === "unread" ? undefined : view }),
+              search: (prev: FeedsSearch) => ({
+                ...prev,
+                view: view === "unread" ? undefined : view,
+              }),
               replace: true,
             })
           }
