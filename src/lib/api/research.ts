@@ -147,9 +147,11 @@ export type RunSummary = {
 export type ResearchTopicDetail = { topic: ResearchTopic; runs: RunSummary[] };
 
 export type DraftRunInput = {
+  kind?: "discover" | "validate";
   /** An existing topic, or a new one named after the seed. */
   topicId?: string;
-  seed: string;
+  seed?: string;
+  ideaId?: string;
   depth: Depth;
   audience?: "b2b" | "b2c" | "any";
   includeSites?: string[];
@@ -199,6 +201,8 @@ export type RunView = {
   balance: number;
   /** Ideas this run created or added to so far, best first. */
   ideas: IdeaCard[];
+  /** Validate/question: the cited report once the run has written it. */
+  report: ReportView | null;
 };
 
 export type EvidenceView = {
@@ -220,6 +224,36 @@ export type IdeaPatch = {
   title?: string;
   summary?: string;
   status?: "open" | "starred" | "dismissed";
+};
+
+export type ReportSummary = {
+  id: string;
+  topicId: string;
+  runId: string;
+  kind: string;
+  ideaId: string | null;
+  ideaTitle: string | null;
+  question: string;
+  createdAt: number;
+};
+
+export type ReportClaimView = {
+  text: string;
+  unsupported: boolean;
+  evidence: EvidenceView[];
+};
+
+export type ReportView = {
+  id: string;
+  topicId: string;
+  topicName: string;
+  runId: string;
+  kind: string;
+  ideaId: string | null;
+  ideaTitle: string | null;
+  question: string;
+  createdAt: number;
+  sections: Array<{ id: string; title: string; claims: ReportClaimView[] }>;
 };
 
 export type TopicSource = {
@@ -256,6 +290,8 @@ export const researchApi = {
   sources: (topicId: string) => http.get<TopicSource[]>(`${topicPath(topicId)}/sources`),
   pasteLink: (topicId: string, url: string) =>
     http.post<{ runId: string }>(`${topicPath(topicId)}/links`, { url }),
+  reports: (topicId: string) => http.get<ReportSummary[]>(`${topicPath(topicId)}/reports`),
+  report: (id: string) => http.get<ReportView>(`/api/research/reports/${seg(id)}`),
 
   draft: (input: DraftRunInput) => http.post<RunView>("/api/research/runs", input),
   run: (id: string) => http.get<RunView>(runPath(id)),

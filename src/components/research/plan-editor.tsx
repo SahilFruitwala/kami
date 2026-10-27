@@ -93,6 +93,7 @@ export function PlanEditor({ view }: { view: RunView }) {
                   <span>{q.site ?? "the open web"}</span>
                   <span>{INTENT_LABEL[q.intent]}</span>
                   {q.repeat ? <span className="text-hanko">Already searched</span> : null}
+                  {q.counter ? <span>Counter-evidence</span> : null}
                 </span>
               </div>
               <button

@@ -478,7 +478,7 @@ sequenceDiagram
 
 ## Research
 
-`/research` finds product ideas in what real people say online. **Discover** (v1) takes a seed ("invoicing for freelance designers"), searches discussion and review sites, keeps people's exact words as checked quotes, groups them into ideas and ranks the ideas from that evidence. Validate and Explore come later on the same engine. The build spec is [`docs/wayfinder/research/spec.md`](wayfinder/research/spec.md); terms are in `GLOSSARY.md`.
+`/research` finds product ideas in what real people say online. **Discover** takes a seed ("invoicing for freelance designers"), searches discussion and review sites, keeps people's exact words as checked quotes, groups them into ideas and ranks the ideas from that evidence. **Validate** starts from an idea, searches for support and a required counter-evidence set, and writes a cited report (unknown citations are marked unsupported; the counter-evidence section is never empty). Explore comes later on the same engine. The build spec is [`docs/wayfinder/research/spec.md`](wayfinder/research/spec.md); terms are in `GLOSSARY.md`.
 
 ### Turning it on
 
@@ -499,6 +499,10 @@ sequenceDiagram
 | `name`    | One writer call tidies new ideas' names; ideas the user renamed are never touched.                                                                                        |
 | `score`   | **Code** scores each touched idea from its evidence: people, spread, intensity, willingness to pay, recency, and a competition label (ADR 0002).                          |
 
+### A Validate run
+
+Started from **Validate this idea** on an idea card or its sheet. The plan is the idea's words plus required counter-evidence searches ("good enough", "why I stopped using", "not worth it", "shut down", "market too small"). The run reuses `search` → `extract`, then a writer call drafts six sections of claims. **Code** checks every cited evidence id against the topic (ADR 0002) and fills an empty counter-evidence section with what was searched. The report lives on the run page, the topic's Reports tab, and `/research/reports/:id`.
+
 Runs work in the background on the narration pattern ([ADR 0001](adr/0001-narration-runs-in-self-chaining-waituntil.md)): saved progress per unit, a lease, a hand-off before the function budget runs out, and a resume that never pays twice. "Paste a link" on a topic is a small run that starts at `fetch` with one URL and a 5-credit budget.
 
 | Concern  | Approach                                                                                                                                                                                                                                 |
@@ -513,11 +517,11 @@ Runs work in the background on the narration pattern ([ADR 0001](adr/0001-narrat
 | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
 | `src/lib/research/*`                                                              | Pure parts (tested): plan checks, sources, quote checking, scoring, engine |
 | `src/server/services/research/runs.ts`                                            | Draft, start, stop, the background run loop, paste-a-link runs             |
-| `src/server/services/research/{discover,evidence,ideas}.ts`                       | The Discover steps                                                         |
+| `src/server/services/research/{discover,evidence,ideas,validate}.ts`              | Discover and Validate steps                                                |
 | `src/server/services/research/{topics,product}.ts`                                | The product API                                                            |
-| `src/routes/research/*`, `src/components/research/*`, `src/hooks/use-research.ts` | `/research`, topic and run pages                                           |
+| `src/routes/research/*`, `src/components/research/*`, `src/hooks/use-research.ts` | `/research`, topic, run and report pages                                   |
 | `src/routes/research/debug.tsx`, `docs/wayfinder/research/tuning/`                | Operator debug page and terminal tuning scripts                            |
-| `migrations/0023_research.sql`                                                    | The `research_*` tables                                                    |
+| `migrations/0023_research.sql`, `0025_research_reports.sql`                       | The `research_*` tables                                                    |
 
 ---
 

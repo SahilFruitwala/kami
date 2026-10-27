@@ -112,6 +112,7 @@ export function validatePlan(
       intent,
       checked: mode === "draft" ? !repeat : raw.checked !== false,
       ...(repeat ? { repeat: true } : {}),
+      ...(raw.counter ? { counter: true } : {}),
     });
     if (out.length >= DEPTH_LIMITS[depth].maxQueries) break;
   }

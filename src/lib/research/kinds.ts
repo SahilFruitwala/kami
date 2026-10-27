@@ -74,6 +74,10 @@ export type IdeaStatus = (typeof IDEA_STATUSES)[number];
 export const IDEA_NAMERS = ["model", "user"] as const;
 export type IdeaNamer = (typeof IDEA_NAMERS)[number];
 
+/** validate: a cited report on an idea; question: a free-form cited answer (ticket 16). */
+export const REPORT_KINDS = ["validate", "question"] as const;
+export type ReportKind = (typeof REPORT_KINDS)[number];
+
 export type CompetitionLabel = "none" | "some" | "crowded" | "crowded_disliked";
 
 /** Sub-scores are 0–1; `total` is their weighted sum (competition is a label, not in the total). */
@@ -96,6 +100,10 @@ export type DiscoverInput = {
   sinceMonths?: number;
   /** A pasted link (spec §4.11): the run reads only this page, with no plan. */
   link?: string;
+  /** Validate (ticket 15): the idea this run is checking. */
+  ideaId?: string;
+  /** Ask a question (ticket 16). */
+  question?: string;
 };
 
 /** One search the run will make. `intent` steers what kind of talk it looks for. */
@@ -108,6 +116,8 @@ export type PlanQuery = {
   checked: boolean;
   /** Set on a query this topic has already sent; it starts unchecked. */
   repeat?: boolean;
+  /** Required counter-evidence search on a Validate plan. */
+  counter?: boolean;
 };
 
 /** One search result as stored with its query. */
@@ -147,5 +157,7 @@ export type RunProgress = {
   /** Ideas this run created, and ideas it added evidence to (new ones included). */
   ideasNew?: number;
   ideasTouched?: number;
+  /** Validate/question: the report has been written. */
+  reported?: boolean;
   stopRequested?: boolean;
 };

@@ -354,15 +354,14 @@ function triageStep(deps: DiscoverDeps): ResearchStep {
   };
 }
 
+/** Search through extract: shared by Discover and Validate. */
+export function gatherSteps(deps: DiscoverDeps = {}): ResearchStep[] {
+  return [searchStep(deps), triageStep(deps), fetchStep(deps), extractStep(deps)];
+}
+
 /** Discover's steps, in order. */
 export function discoverSteps(deps: DiscoverDeps = {}): ResearchStep[] {
-  return [
-    searchStep(deps),
-    triageStep(deps),
-    fetchStep(deps),
-    extractStep(deps),
-    ...ideaSteps(deps),
-  ];
+  return [...gatherSteps(deps), ...ideaSteps(deps)];
 }
 
 registerRunSteps("discover", discoverSteps());

@@ -814,6 +814,7 @@ import type {
   IdeaScore,
   IdeaStatus,
   PlanQuery,
+  ReportKind,
   ResearchCreditKind,
   RunKind,
   RunProgress,
@@ -823,6 +824,7 @@ import type {
   SourceKind,
   SourceOrigin,
 } from "./research/kinds.ts";
+import type { ReportBody } from "./research/report.ts";
 
 /** Research credit ledger (0023_research.sql); same rules as `allowanceEntries`. */
 export const researchCreditEntries = pgTable(
@@ -1061,4 +1063,31 @@ export const researchModelCache = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("research_model_cache_created_idx").on(t.createdAt)],
+);
+
+/** A cited write-up a Validate or question run produces (0025_research_reports.sql). */
+export const researchReports = pgTable(
+  "research_reports",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    topicId: text("topic_id")
+      .notNull()
+      .references(() => researchTopics.id, { onDelete: "cascade" }),
+    runId: text("run_id")
+      .notNull()
+      .references(() => researchRuns.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<ReportKind>().notNull(),
+    ideaId: text("idea_id").references(() => researchIdeas.id, { onDelete: "set null" }),
+    question: text("question").notNull().default(""),
+    body: jsonb("body").$type<ReportBody>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("research_reports_run_idx").on(t.runId),
+    index("research_reports_topic_idx").on(t.topicId, desc(t.createdAt)),
+    index("research_reports_user_idx").on(t.userId, desc(t.createdAt)),
+  ],
 );

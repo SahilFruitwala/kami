@@ -5,6 +5,7 @@ import { AppShell } from "@/components/app-shell.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { IdeaCard } from "@/components/research/idea-card.tsx";
 import { PlanEditor } from "@/components/research/plan-editor.tsx";
+import { ReportBodyView } from "@/components/research/report-view.tsx";
 import { EmptyNote, StatePill } from "@/components/research/research-ui.tsx";
 import { ACTIVE_RUN, useResearchRun, useResearchRefresh } from "@/hooks/use-research.ts";
 import { researchApi, type RunView } from "@/lib/api/research.ts";
@@ -61,7 +62,11 @@ function RunPage() {
 
 function RunBody({ view }: { view: RunView }) {
   const { run } = view;
-  const title = run.input.link ? "Reading a link" : run.input.seed;
+  const title = run.input.link
+    ? "Reading a link"
+    : run.kind === "validate"
+      ? `Validate: ${run.input.seed}`
+      : run.input.seed;
   return (
     <>
       <header className="flex flex-col gap-2">
@@ -98,7 +103,13 @@ function RunBody({ view }: { view: RunView }) {
         <>
           <EndNote view={view} />
           <Progress view={view} />
-          <Ideas view={view} />
+          {run.kind === "validate" ? (
+            view.report ? (
+              <ReportBodyView report={view.report} />
+            ) : null
+          ) : (
+            <Ideas view={view} />
+          )}
           {run.chargedCredits !== null ? <Spend view={view} /> : null}
         </>
       )}
@@ -128,6 +139,7 @@ function EndNote({ view }: { view: RunView }) {
   if (run.state === "stopped" && run.stopReason === "user") {
     return <EmptyNote>You stopped this run. It kept and scored what it had found.</EmptyNote>;
   }
+  if (run.state === "done" && run.kind === "validate" && view.report) return null;
   if (run.state === "done" && !ideas.length) {
     const searched = run.plan.filter((q) => q.checked !== false).map((q) => q.query);
     return (
@@ -173,15 +185,25 @@ function steps(view: RunView): StepRow[] {
       label: "Pull quotes",
       detail: `${n(p.quotes)} checked quotes${p.dropped ? `, ${p.dropped} dropped` : ""}`,
     },
-    { key: "match", label: "Group into ideas", detail: `${view.ideas.length} ideas so far` },
-    { key: "name", label: "Name ideas", detail: p.named ? "done" : "" },
-    {
-      key: "score",
-      label: "Score",
-      detail:
-        p.ideasTouched !== undefined ? `${n(p.ideasNew)} new, ${n(p.ideasTouched)} updated` : "",
-    },
   );
+  if (view.run.kind === "validate") {
+    rows.push({
+      key: "report",
+      label: "Write report",
+      detail: p.reported ? "done" : "",
+    });
+  } else {
+    rows.push(
+      { key: "match", label: "Group into ideas", detail: `${view.ideas.length} ideas so far` },
+      { key: "name", label: "Name ideas", detail: p.named ? "done" : "" },
+      {
+        key: "score",
+        label: "Score",
+        detail:
+          p.ideasTouched !== undefined ? `${n(p.ideasNew)} new, ${n(p.ideasTouched)} updated` : "",
+      },
+    );
+  }
   return rows;
 }
 

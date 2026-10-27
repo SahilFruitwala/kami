@@ -7,6 +7,7 @@ import {
   Merge,
   Pencil,
   Search,
+  ShieldCheck,
   Star,
   Trash2,
   X,
@@ -25,6 +26,7 @@ import {
   useResearchTopic,
   useTopicIdeas,
   useTopicSources,
+  useTopicReports,
   useResearchRefresh,
 } from "@/hooks/use-research.ts";
 import { researchApi, type IdeaCard as Idea, type RunSummary } from "@/lib/api/research.ts";
@@ -32,11 +34,14 @@ import { confirmAction } from "@/lib/confirm.ts";
 import { errorMessage, toastError } from "@/lib/errors";
 import type { LibraryItem } from "@/lib/library-item.ts";
 
-type Tab = "ideas" | "sources" | "runs";
+type Tab = "ideas" | "sources" | "runs" | "reports";
 
 export const Route = createFileRoute("/research/$topicId")({
   validateSearch: (search: Record<string, unknown>): { tab?: Tab } => ({
-    tab: search.tab === "sources" || search.tab === "runs" ? search.tab : undefined,
+    tab:
+      search.tab === "sources" || search.tab === "runs" || search.tab === "reports"
+        ? search.tab
+        : undefined,
   }),
   component: TopicPage,
 });
@@ -90,11 +95,13 @@ function TopicPage() {
                   { id: "ideas", label: "Ideas" },
                   { id: "sources", label: "Sources" },
                   { id: "runs", label: "Runs" },
+                  { id: "reports", label: "Reports" },
                 ]}
               />
               {tab === "ideas" ? <IdeasTab topicId={topicId} /> : null}
               {tab === "sources" ? <SourcesTab topicId={topicId} /> : null}
               {tab === "runs" ? <RunsTab runs={topic.data.runs} /> : null}
+              {tab === "reports" ? <ReportsTab topicId={topicId} /> : null}
             </>
           )}
         </div>
@@ -256,13 +263,36 @@ function TopicActions({ topicId }: { topicId: string }) {
 
 type IdeaFilter = "live" | "starred" | "dismissed";
 
+async function startValidate(
+  ideaId: string,
+  navigate: ReturnType<typeof Route.useNavigate>,
+) {
+  const view = await researchApi.draft({ kind: "validate", ideaId, depth: "quick" });
+  startTransition(() => {
+    addTransitionType("nav-forward");
+    void navigate({ to: "/research/runs/$runId", params: { runId: view.run.id } });
+  });
+}
+
 function IdeasTab({ topicId }: { topicId: string }) {
   const refresh = useResearchRefresh();
+  const navigate = Route.useNavigate();
   const [filter, setFilter] = useState<IdeaFilter>("live");
   const [openId, setOpenId] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [merging, setMerging] = useState(false);
+  const [validating, setValidating] = useState<string | null>(null);
   const ideas = useTopicIdeas(topicId, filter);
+
+  async function validate(ideaId: string) {
+    setValidating(ideaId);
+    try {
+      await startValidate(ideaId, navigate);
+    } catch (err) {
+      toastError(err, "Couldn't start a Validate run.");
+      setValidating(null);
+    }
+  }
 
   async function setStatus(idea: Idea, status: "open" | "starred" | "dismissed") {
     try {
@@ -383,6 +413,20 @@ function IdeasTab({ topicId }: { topicId: string }) {
                   ) : (
                     <>
                       <Button
+                        size="xs"
+                        variant="ghost"
+                        aria-label="Validate this idea"
+                        disabled={validating === idea.id}
+                        onClick={() => void validate(idea.id)}
+                      >
+                        {validating === idea.id ? (
+                          <LoaderCircle className="size-3 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <ShieldCheck className="size-3" aria-hidden="true" />
+                        )}
+                        Validate
+                      </Button>
+                      <Button
                         size="icon-xs"
                         variant="ghost"
                         aria-label={idea.status === "starred" ? "Unstar" : "Star"}
@@ -414,7 +458,11 @@ function IdeasTab({ topicId }: { topicId: string }) {
           ))}
         </ul>
       )}
-      <IdeaDetailSheet ideaId={openId} onClose={() => setOpenId(null)} />
+      <IdeaDetailSheet
+        ideaId={openId}
+        onClose={() => setOpenId(null)}
+        onValidate={(id) => void validate(id)}
+      />
     </section>
   );
 }
@@ -462,6 +510,42 @@ function SourcesTab({ topicId }: { topicId: string }) {
   );
 }
 
+function ReportsTab({ topicId }: { topicId: string }) {
+  const reports = useTopicReports(topicId);
+  if (reports.isPending) {
+    return <div className="kami-sheet h-40 animate-pulse opacity-60" aria-hidden="true" />;
+  }
+  if (reports.isError) return <EmptyNote>Couldn't load the reports.</EmptyNote>;
+  if (!reports.data.length) {
+    return (
+      <EmptyNote>
+        No reports yet. Open an idea and choose Validate this idea to write a cited report.
+      </EmptyNote>
+    );
+  }
+  return (
+    <ul className="kami-sheet divide-y divide-line">
+      {reports.data.map((r) => (
+        <li key={r.id}>
+          <Link
+            to="/research/reports/$reportId"
+            params={{ reportId: r.id }}
+            className="flex flex-col gap-1 p-4 transition-colors hover:bg-paper-warm sm:flex-row sm:items-center sm:gap-4"
+          >
+            <span className="min-w-0 flex-1 font-body text-sm break-words text-ink">
+              {r.kind === "question" ? r.question || "Question" : r.ideaTitle || "Validate"}
+            </span>
+            <span className="flex shrink-0 flex-wrap gap-x-3 font-sans text-[11px] text-ink-muted">
+              <span>{r.kind === "question" ? "Question" : "Validate"}</span>
+              <span>{relativeDay(r.createdAt)}</span>
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function RunsTab({ runs }: { runs: RunSummary[] }) {
   if (!runs.length) return <EmptyNote>No runs yet.</EmptyNote>;
   return (
@@ -474,14 +558,22 @@ function RunsTab({ runs }: { runs: RunSummary[] }) {
             className="flex flex-col gap-1 p-4 transition-colors hover:bg-paper-warm sm:flex-row sm:items-center sm:gap-4"
           >
             <span className="min-w-0 flex-1 font-body text-sm break-words text-ink">
-              {r.addedBy === "link" ? "Pasted link" : r.seed}
+              {r.kind === "validate"
+                ? `Validate: ${r.seed}`
+                : r.addedBy === "link"
+                  ? "Pasted link"
+                  : r.seed}
             </span>
             <span className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[11px] text-ink-muted">
               <StatePill state={r.state} stopReason={r.stopReason} started={r.started} />
               {r.addedBy === "plan" ? <span>{r.depth === "deep" ? "Deep" : "Quick"}</span> : null}
-              <span>
-                {r.ideasNew} new {r.ideasNew === 1 ? "idea" : "ideas"}
-              </span>
+              {r.kind === "validate" ? (
+                <span>Report</span>
+              ) : (
+                <span>
+                  {r.ideasNew} new {r.ideasNew === 1 ? "idea" : "ideas"}
+                </span>
+              )}
               <span>{r.chargedCredits === null ? "—" : `${r.chargedCredits} credits`}</span>
               <span>{relativeDay(r.createdAt)}</span>
             </span>

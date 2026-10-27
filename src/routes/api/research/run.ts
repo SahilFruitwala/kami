@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { continueRun, runBody, runSecretMatches } from "@/server/services/research/runs";
+import "@/server/services/research/discover";
+import "@/server/services/research/validate";
 
 /**
  * Internal: a research run handing itself off to a fresh invocation

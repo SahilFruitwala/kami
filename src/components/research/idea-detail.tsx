@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, Pencil } from "lucide-react";
+import { ExternalLink, Pencil, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Textarea } from "@/components/ui/textarea.tsx";
@@ -36,9 +36,11 @@ const SCORE_HELP: Record<(typeof SUB_SCORES)[number]["key"], string> = {
 export function IdeaDetailSheet({
   ideaId,
   onClose,
+  onValidate,
 }: {
   ideaId: string | null;
   onClose: () => void;
+  onValidate?: (ideaId: string) => void;
 }) {
   const refresh = useResearchRefresh();
   const query = useIdea(ideaId);
@@ -147,6 +149,12 @@ export function IdeaDetailSheet({
                     Dismiss
                   </Button>
                 )}
+                {onValidate && ideaId ? (
+                  <Button size="sm" variant="outline" onClick={() => onValidate(ideaId)}>
+                    <ShieldCheck className="size-3.5" aria-hidden="true" />
+                    Validate this idea
+                  </Button>
+                ) : null}
               </div>
             ) : null}
 

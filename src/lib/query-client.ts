@@ -65,6 +65,8 @@ export const queryKeys = {
       [...queryKeys.research.all, "ideas", topicId, status] as const,
     idea: (id: string) => [...queryKeys.research.all, "idea", id] as const,
     sources: (topicId: string) => [...queryKeys.research.all, "sources", topicId] as const,
+    reports: (topicId: string) => [...queryKeys.research.all, "reports", topicId] as const,
+    report: (id: string) => [...queryKeys.research.all, "report", id] as const,
     run: (id: string) => [...queryKeys.research.all, "run", id] as const,
   },
   feeds: {

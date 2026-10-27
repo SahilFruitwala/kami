@@ -17,17 +17,31 @@ import {
   updateIdea,
   type IdeaRow,
 } from "@/lib/research-ideas-db.server.ts";
-import type { IdeaCard, IdeaDetail, RunView, TopicSource } from "@/lib/api/research.ts";
+import type {
+  IdeaCard,
+  IdeaDetail,
+  ReportSummary,
+  ReportView,
+  RunView,
+  TopicSource,
+} from "@/lib/api/research.ts";
 import { PLAN_INTENTS } from "@/lib/research/discover.ts";
 import { estimateRun } from "@/lib/research/estimate.ts";
 import { DEPTHS } from "@/lib/research/kinds.ts";
 import { IDEA_SUMMARY_MAX, IDEA_TITLE_MAX } from "@/lib/research/match.ts";
+import {
+  evidenceByIds,
+  getOwnReport,
+  getReportByRun,
+  listTopicReports,
+} from "@/lib/research-reports-db.server.ts";
 import { scoreIdea } from "@/lib/research/score.ts";
 import { isReadableUrl } from "@/lib/research/sources.ts";
 import { badRequest, notFound } from "@/server/http";
 import { discoverDrafter, validateEditedPlan } from "./discover";
 import { draftRun, getRunStatus, requestStop, startLinkRun, startRun } from "./runs";
 import { ownTopic, requireResearch } from "./topics";
+import { validateDrafter } from "./validate";
 
 /**
  * The Research product API behind the Find ideas flow, the run view, the
@@ -39,15 +53,29 @@ import { ownTopic, requireResearch } from "./topics";
 
 const sitesInput = z.array(z.string().trim().min(1).max(100)).max(20).optional();
 
-export const draftInput = z.object({
-  topicId: z.string().min(1).max(100).optional(),
-  seed: z.string().trim().min(3).max(200),
-  depth: z.enum(DEPTHS),
-  audience: z.enum(["b2b", "b2c", "any"]).optional(),
-  includeSites: sitesInput,
-  excludeSites: sitesInput,
-  sinceMonths: z.number().int().min(1).max(60).optional(),
-});
+export const draftInput = z
+  .object({
+    kind: z.enum(["discover", "validate"]).default("discover"),
+    topicId: z.string().min(1).max(100).optional(),
+    seed: z.string().trim().min(3).max(200).optional(),
+    ideaId: z.string().min(1).max(100).optional(),
+    depth: z.enum(DEPTHS),
+    audience: z.enum(["b2b", "b2c", "any"]).optional(),
+    includeSites: sitesInput,
+    excludeSites: sitesInput,
+    sinceMonths: z.number().int().min(1).max(60).optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.kind === "validate") {
+      if (!v.ideaId) ctx.addIssue({ code: "custom", message: "Pick an idea to validate.", path: ["ideaId"] });
+    } else if (!v.seed || v.seed.length < 3) {
+      ctx.addIssue({
+        code: "custom",
+        message: "Write a seed of at least 3 characters.",
+        path: ["seed"],
+      });
+    }
+  });
 
 export const startInput = z.object({
   depth: z.enum(DEPTHS),
@@ -59,6 +87,7 @@ export const startInput = z.object({
         site: z.string().max(100).optional(),
         intent: z.enum(PLAN_INTENTS).optional(),
         checked: z.boolean().optional(),
+        counter: z.boolean().optional(),
       }),
     )
     .max(40),
@@ -139,7 +168,15 @@ async function runView(row: RunRow, userId: string): Promise<RunView> {
     estimates: { quick: estimateRun(row.plan, "quick"), deep: estimateRun(row.plan, "deep") },
     balance: await researchCreditBalance(db, userId),
     ideas,
+    report: await reportForRun(row.id, userId),
   };
+}
+
+async function reportForRun(runId: string, userId: string): Promise<ReportView | null> {
+  const db = await getDb();
+  const row = await getReportByRun(db, runId);
+  if (!row || row.userId !== userId) return null;
+  return hydrateReport(row);
 }
 
 // ---------- Runs (ticket 11) ----------
@@ -149,6 +186,21 @@ export async function draftDiscoverRun(
   input: z.output<typeof draftInput>,
 ): Promise<RunView> {
   requireResearch();
+  if (input.kind === "validate") {
+    const idea = await ownIdea(userId, input.ideaId as string);
+    if (idea.status === "merged") throw badRequest("That idea was merged into another.");
+    const { run } = await draftRun(
+      userId,
+      {
+        topicId: idea.topicId,
+        kind: "validate",
+        depth: input.depth,
+        input: { seed: idea.title, ideaId: idea.id },
+      },
+      validateDrafter(),
+    );
+    return runView(run, userId);
+  }
   const { run } = await draftRun(
     userId,
     {
@@ -156,7 +208,7 @@ export async function draftDiscoverRun(
       kind: "discover",
       depth: input.depth,
       input: {
-        seed: input.seed,
+        seed: input.seed as string,
         audience: input.audience,
         includeSites: input.includeSites,
         excludeSites: input.excludeSites,
@@ -296,4 +348,98 @@ export async function pasteLink(userId: string, topicId: string, url: string, or
     throw badRequest("Research only reads web pages (http or https, no files).");
   const run = await startLinkRun(userId, topicId, url, origin);
   return { runId: run.id };
+}
+
+// ---------- Reports (ticket 15) ----------
+
+function evidenceView(e: {
+  id: string;
+  quote: string;
+  kind: string;
+  match: "exact" | "close";
+  sentiment: number;
+  strong: boolean;
+  pays: boolean;
+  names: string[];
+  postedAt: Date | null;
+  sourceId: string;
+  url: string;
+  title: string;
+  site: string;
+}): import("@/lib/api/research.ts").EvidenceView {
+  return {
+    id: e.id,
+    quote: e.quote,
+    kind: e.kind,
+    match: e.match,
+    sentiment: e.sentiment,
+    strong: e.strong,
+    pays: e.pays,
+    names: e.names,
+    postedAt: e.postedAt ? e.postedAt.getTime() : null,
+    source: { id: e.sourceId, url: e.url, title: e.title, site: e.site },
+  };
+}
+
+async function hydrateReport(
+  row: Awaited<ReturnType<typeof getOwnReport>> & {},
+): Promise<ReportView> {
+  if (!row) throw notFound("Report not found");
+  const db = await getDb();
+  const ids = [...new Set(row.body.sections.flatMap((s) => s.claims.flatMap((c) => c.evidenceIds)))];
+  const evidence = await evidenceByIds(db, row.topicId, ids);
+  const byId = new Map(evidence.map((e) => [e.id, evidenceView(e)]));
+  const idea = row.ideaId ? await getIdea(db, row.ideaId) : null;
+  const topic = await getTopic(db, row.userId, row.topicId);
+  return {
+    id: row.id,
+    topicId: row.topicId,
+    topicName: topic?.name ?? "",
+    runId: row.runId,
+    kind: row.kind,
+    ideaId: row.ideaId,
+    ideaTitle: idea?.title ?? null,
+    question: row.question,
+    createdAt: row.createdAt.getTime(),
+    sections: row.body.sections.map((section) => ({
+      id: section.id,
+      title: section.title,
+      claims: section.claims.map((claim) => ({
+        text: claim.text,
+        unsupported: Boolean(claim.unsupported),
+        evidence: claim.evidenceIds.map((id) => byId.get(id)).filter((e) => e !== undefined),
+      })),
+    })),
+  };
+}
+
+export async function listResearchReports(
+  userId: string,
+  topicId: string,
+): Promise<ReportSummary[]> {
+  await ownTopic(userId, topicId);
+  const rows = await listTopicReports(await getDb(), userId, topicId);
+  const db = await getDb();
+  return Promise.all(
+    rows.map(async (r) => {
+      const idea = r.ideaId ? await getIdea(db, r.ideaId) : null;
+      return {
+        id: r.id,
+        topicId: r.topicId,
+        runId: r.runId,
+        kind: r.kind,
+        ideaId: r.ideaId,
+        ideaTitle: idea?.title ?? null,
+        question: r.question,
+        createdAt: r.createdAt.getTime(),
+      };
+    }),
+  );
+}
+
+export async function researchReport(userId: string, reportId: string): Promise<ReportView> {
+  requireResearch();
+  const row = await getOwnReport(await getDb(), userId, reportId);
+  if (!row) throw notFound("Report not found");
+  return hydrateReport(row);
 }
