@@ -20,7 +20,7 @@ A research section in Kami (`/research`) that finds product ideas in what real p
 1. **Placement**: inside Kami's codebase as a fresh product; Kami's existing content is not a data source.
 2. **Main job**: all three modes: Discover (find ideas), Research (answer questions and validate ideas), Explore (map a space).
 3. **Shape**: a Topic workspace is the container; three separate starts on `/research` (Find ideas, Ask a question, Map a space). Every run lands in a Topic, auto-created from the prompt when none is picked.
-4. **Sources**: Firecrawl search and scrape with `site:` targeting (Reddit, Hacker News, review sites, Product Hunt) plus the free HN Algolia API; a "paste a link" box in every Topic. No native Reddit, X or Product Hunt APIs in v1.
+4. **Sources**: Firecrawl search and scrape with `site:` targeting (Reddit, review sites, Product Hunt, forums), the free HN Algolia API for Hacker News searches and discussions, and a "paste a link" box in every Topic. **Revised in ticket 09:** Firecrawl refuses reddit.com, so Reddit threads are read through Reddit's public `.json` (free, keyless, paced at about 9 reads a minute with an identifying User-Agent; fine at a personal tool's scale, to revisit if Kami opens up). Firecrawl still finds Reddit threads in search. No X or Product Hunt APIs in v1.
 5. **Access**: every user, metered; everyone starts at 0 research credits and the operator grants them by script.
 6. **Execution**: background runs with saved steps, on the narration self-chaining `waitUntil` pattern; live progress, partial results, resume without paying twice.
 7. **Evidence**: quote-level and strictly cited. Claims cite evidence ids; code checks every quote against its stored source; uncited claims show as "unsupported".
@@ -41,7 +41,7 @@ A research section in Kami (`/research`) that finds product ideas in what real p
 - **Phase 2, Discover product (v1)**: [10 home, topics, nav](tickets/10-research-home-and-topics.md), [11 plan screen and run view](tickets/11-discover-plan-and-run-ui.md), [12 ideas tab](tickets/12-ideas-tab.md), [13 paste a link](tickets/13-paste-a-link.md), [14 docs and ADR](tickets/14-docs-and-adr.md).
 - **Phase 3, Validate**: [15 validate report](tickets/15-validate-report.md), [16 free-form question](tickets/16-free-form-question.md).
 - **Phase 4, Explore**: [17 players](tickets/17-explore-players.md), [18 HN Algolia](tickets/18-hn-algolia.md).
-- Frontier now: 09 and 10 (01–08 closed; the engine is complete).
+- Frontier now: 09 in progress (see its checkpoint: waiting on the Reddit decision) and 10 (01–08 and 18 closed; the engine is complete).
 
 ## Not yet specified
 

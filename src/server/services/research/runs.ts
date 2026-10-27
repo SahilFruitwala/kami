@@ -4,6 +4,7 @@ import { getDeadline } from "@vercel/functions";
 import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db.server";
+import { PageReadError } from "@/lib/page-read-error.ts";
 import { enforceRateLimit } from "@/lib/rate-limit.server.ts";
 import type { ResearchConfig } from "@/lib/research-config.server.ts";
 import { ResearchCreditsShortError, reserveRunCredits } from "@/lib/research-credits-db.server.ts";
@@ -409,7 +410,11 @@ export async function runResearch(
       await endRun(row, lease, {
         state: "failed",
         stopReason: "error",
-        error: err instanceof RunStepError ? err.message : GENERIC_RUN_ERROR,
+        // Page sources' messages are written for people ("rate limiting", "credits are used up").
+        error:
+          err instanceof RunStepError || err instanceof PageReadError
+            ? err.message
+            : GENERIC_RUN_ERROR,
       });
       return;
     }

@@ -8,6 +8,8 @@
  * parser can be unit-tested (scripts/firecrawl.test.mjs).
  */
 
+import { PageReadError, parseRetryAfter } from "./page-read-error.ts";
+
 export const FIRECRAWL_SCRAPE_URL = "https://api.firecrawl.dev/v2/scrape";
 /** Reuse a Firecrawl-cached copy of the page up to this old (2 days). */
 export const DEFAULT_MAX_AGE_MS = 172_800_000;
@@ -16,16 +18,15 @@ const TIMEOUT_MS = 90_000;
 /** Answers are short by design; cap what we store. */
 export const MAX_ANSWER_CHARS = 100_000;
 
-export class FirecrawlError extends Error {
-  // Plain field (no constructor parameter property) so Node's type stripping
-  // can load this file in tests.
-  readonly status: number | undefined;
-  constructor(message: string, status?: number) {
-    super(message);
+/** A Firecrawl failure; a `PageReadError`, so research handles it like any page source's. */
+export class FirecrawlError extends PageReadError {
+  constructor(message: string, status?: number, retryAfterMs?: number) {
+    super(message, status, retryAfterMs);
     this.name = "FirecrawlError";
-    this.status = status;
   }
 }
+
+export { parseRetryAfter };
 
 export type QuestionRequest = {
   url: string;
@@ -106,12 +107,21 @@ async function firecrawlPost(url: string, body: unknown, timeoutMs = TIMEOUT_MS)
   const payload: unknown = await res.json().catch(() => null);
   if (!res.ok) {
     // Never echo upstream auth errors (they'd reveal key state to users).
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
       throw new FirecrawlError("Firecrawl rejected the server's API key.", 502);
     }
+    // 403 is Firecrawl refusing the site (e.g. reddit.com), not the key.
+    if (res.status === 403) {
+      throw new FirecrawlError("Firecrawl can't read pages on this site.", 422);
+    }
     if (res.status === 402) throw new FirecrawlError("Firecrawl credits are used up.", 502);
-    if (res.status === 429)
-      throw new FirecrawlError("Firecrawl is rate limiting — try again shortly.", 429);
+    if (res.status === 429) {
+      throw new FirecrawlError(
+        "Firecrawl is rate limiting — try again shortly.",
+        429,
+        parseRetryAfter(res.headers.get("retry-after")),
+      );
+    }
     const upstream =
       payload &&
       typeof payload === "object" &&

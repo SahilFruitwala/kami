@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type {
   Depth,
@@ -268,6 +268,31 @@ export async function insertRunQuery(
   row: { userId: string; topicId: string; runId: string; queryNorm: string; hits: SearchHit[] },
 ): Promise<void> {
   await db.insert(researchQueries).values({ id: randomUUID(), ...row, results: row.hits.length });
+}
+
+/**
+ * The newest stored results this topic has for a query sent since `since`,
+ * or null when it hasn't sent it (so a search can be reused for free).
+ */
+export async function storedTopicHits(
+  db: Db,
+  topicId: string,
+  queryNorm: string,
+  since: Date,
+): Promise<SearchHit[] | null> {
+  const [row] = await db
+    .select({ hits: researchQueries.hits })
+    .from(researchQueries)
+    .where(
+      and(
+        eq(researchQueries.topicId, topicId),
+        eq(researchQueries.queryNorm, queryNorm),
+        gte(researchQueries.createdAt, since),
+      ),
+    )
+    .orderBy(desc(researchQueries.createdAt))
+    .limit(1);
+  return row ? row.hits : null;
 }
 
 /** A run's sent queries in the order they were sent, with their results. */

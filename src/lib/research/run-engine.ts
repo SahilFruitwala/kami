@@ -24,10 +24,13 @@ export const END_STEP = "end";
 /** Worst case for one unit of work when a step doesn't say (a model call or a page read, with margin). */
 export const DEFAULT_UNIT_BUDGET_MS = 120_000;
 /** How long a run's claim lasts without renewal. Renewed after every unit; outlives any unit. */
-export const LEASE_MS = 180_000;
+export const LEASE_MS = 300_000;
 
-/** Budgets per depth, in research credits _(start values, tuned in ticket 09)_. */
-export const DEPTH_BUDGETS: Record<Depth, number> = { quick: 30, deep: 100 };
+/**
+ * Budgets per depth, in research credits. Quick was 30 until the first real
+ * run (ticket 09): 12 searches cost 24, leaving too little to read pages.
+ */
+export const DEPTH_BUDGETS: Record<Depth, number> = { quick: 45, deep: 100 };
 
 /** States in which a run is (or should be) making progress in the background. */
 export const ACTIVE_RUN_STATES: readonly RunState[] = ["queued", "running"];

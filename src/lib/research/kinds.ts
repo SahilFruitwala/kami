@@ -116,8 +116,9 @@ export type TriagePick = { url: string; score: number };
 
 /** Live counters for the run view; every field is optional so steps fill in their own. */
 export type RunProgress = {
-  /** Checked queries sent so far, of `queries`. */
+  /** Checked queries sent so far, of `queries`, and how many reused a topic's stored results. */
   searched?: number;
+  reusedSearches?: number;
   queries?: number;
   /** Distinct new results across all searches. */
   results?: number;

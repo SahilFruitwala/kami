@@ -190,3 +190,30 @@ describe("research search and scrape", () => {
     );
   });
 });
+
+describe("Firecrawl refusals", () => {
+  const answer = (status, body) => async () =>
+    new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+
+  it("tells a refused site (403) apart from a rejected key (401)", async () => {
+    const { researchScrape } = await import("../src/lib/firecrawl.server.ts");
+    const realFetch = globalThis.fetch;
+    const key = process.env.FIRECRAWL_API_KEY;
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    try {
+      globalThis.fetch = answer(403, { success: false, error: "we do not support this site" });
+      await assert.rejects(researchScrape("https://www.reddit.com/r/x/comments/1/"), (err) => {
+        assert.ok(err instanceof FirecrawlError);
+        assert.equal(err.status, 422);
+        assert.equal(err.message, "Firecrawl can't read pages on this site.");
+        return true;
+      });
+      globalThis.fetch = answer(401, { success: false, error: "Unauthorized" });
+      await assert.rejects(researchScrape("https://a.com"), /rejected the server's API key/);
+    } finally {
+      globalThis.fetch = realFetch;
+      if (key === undefined) delete process.env.FIRECRAWL_API_KEY;
+      else process.env.FIRECRAWL_API_KEY = key;
+    }
+  });
+});

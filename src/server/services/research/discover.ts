@@ -6,6 +6,7 @@ import {
   liveIdeaTitles,
   recentTopicQueries,
   runQueries,
+  storedTopicHits,
   topicQueryNorms,
   topicUrlKeys,
   type RunRow,
@@ -14,8 +15,11 @@ import {
 import type { RunSpend } from "@/lib/research/credits.ts";
 import {
   DEPTH_LIMITS,
+  OPEN_WEB,
   PLAN_INTENTS,
+  SEARCH_REUSE_DAYS,
   normalizeQuery,
+  planSite,
   screenResults,
   searchText,
   validatePlan,
@@ -48,7 +52,7 @@ import {
  * scored ideas.
  */
 
-export const PLAN_PROMPT_VERSION = "discover-plan-v1";
+export const PLAN_PROMPT_VERSION = "discover-plan-v2";
 export const TRIAGE_PROMPT_VERSION = "discover-triage-v1";
 
 /** Results per triage call, and the characters they may take. */
@@ -64,7 +68,8 @@ const planSchema = z.object({
     .array(
       z.object({
         query: z.string(),
-        site: z.string().nullish(),
+        // Required, so the model has to choose: a host, or "web" for the open web.
+        site: z.string().catch(OPEN_WEB),
         intent: z.enum(PLAN_INTENTS).catch("pain"),
       }),
     )
@@ -73,7 +78,17 @@ const planSchema = z.object({
 
 const PLAN_INSTRUCTIONS = `You plan web searches that find what real people say about their problems in a space: complaints, frustrations, wishes, workarounds, switching between tools, and what they pay.
 
-Write search queries the way people talk when something hurts ("so frustrating", "I wish", "is there a tool", "alternative to", "switched from", "how do you deal with"), not marketing language. Mix where you look: Reddit (site reddit.com), Hacker News (site news.ycombinator.com), review sites (g2.com, capterra.com, trustpilot.com, app store reviews), Product Hunt, forums and the open web. Put a site in "site", not in the query text. Each query is short (under 12 words) and different from the others and from the queries already searched.
+Write search queries the way people talk when something hurts ("so frustrating", "I wish", "is there a tool", "alternative to", "switched from", "how do you deal with"), not marketing language. Each query is short (under 12 words) and different from the others and from the queries already searched.
+
+Every query must say where to search in "site". The open web is mostly marketing pages and listicles, so send most queries to places where people talk about their own experience:
+- reddit.com (discussions; the best default)
+- news.ycombinator.com (technical and founder audiences)
+- g2.com, capterra.com, trustpilot.com (reviews of business and consumer software)
+- apps.apple.com, play.google.com (app reviews)
+- producthunt.com, indiehackers.com (launches and makers)
+- the host of a forum or community specific to this space, when you know one
+- "web" for the open web: at most a quarter of the queries.
+Spread the queries over at least three different sites. Put only the host in "site" (e.g. "reddit.com"), never in the query text.
 
 intent is one of: pain (complaints), wish (things people want), switching (moving between tools), alternatives (looking for other options), pricing (what people pay or would pay).`;
 
@@ -87,7 +102,7 @@ function planFromModel(
     output.queries.map((q, i) => ({
       id: `q${i + 1}`,
       query: q.query,
-      site: q.site ?? undefined,
+      site: planSite(q.site),
       intent: q.intent,
     })),
     run.input,
@@ -183,11 +198,17 @@ export async function validateEditedPlan(
 
 // ---------- Steps ----------
 
-/** `search`: one unit per checked query, each sent once; results are stored with the query. */
+/**
+ * `search`: one unit per checked query, each sent once; results are stored
+ * with the query. A query the topic already sent within SEARCH_REUSE_DAYS
+ * (an earlier run, or one that failed partway) reuses those results for
+ * free instead of paying Firecrawl again.
+ */
 function searchStep(deps: DiscoverDeps): ResearchStep {
   return {
     name: "search",
-    unitBudgetMs: 60_000,
+    // A search plus up to 45 s of rate-limit waits and retries.
+    unitBudgetMs: 120_000,
     async work(ctx) {
       const db = await getDb();
       const { run } = ctx;
@@ -199,21 +220,30 @@ function searchStep(deps: DiscoverDeps): ResearchStep {
         return true;
       }
       const text = searchText(next);
-      const hits = await searchForRun(
-        ctx,
-        text,
-        DEPTH_LIMITS[run.depth].resultsPerQuery,
-        { sinceMonths: run.input.sinceMonths },
-        deps.calls,
-      );
+      const queryNorm = normalizeQuery(text);
+      const since = new Date(Date.now() - SEARCH_REUSE_DAYS * 86_400_000);
+      const stored = await storedTopicHits(db, run.topicId, queryNorm, since);
+      const hits =
+        stored ??
+        (await searchForRun(
+          ctx,
+          next,
+          DEPTH_LIMITS[run.depth].resultsPerQuery,
+          { sinceMonths: run.input.sinceMonths },
+          deps.calls,
+        ));
       await insertRunQuery(db, {
         userId: run.userId,
         topicId: run.topicId,
         runId: run.id,
-        queryNorm: normalizeQuery(text),
-        hits: hits.map(({ url, title, description }) => ({ url, title, description })),
+        queryNorm,
+        hits,
       });
-      await ctx.saveProgress({ queries: plan.length, searched: sent.size + 1 });
+      await ctx.saveProgress({
+        queries: plan.length,
+        searched: sent.size + 1,
+        ...(stored ? { reusedSearches: (run.progress.reusedSearches ?? 0) + 1 } : {}),
+      });
       return sent.size + 1 >= plan.length;
     },
   };

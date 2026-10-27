@@ -1,7 +1,7 @@
 import "@tanstack/react-start/server-only";
 import { z } from "zod";
 import { getDb } from "@/lib/db.server";
-import { FirecrawlError } from "@/lib/firecrawl.server.ts";
+import { PageReadError } from "@/lib/page-read-error.ts";
 import {
   insertEvidence,
   sourcesByUrlKey,
@@ -53,7 +53,8 @@ async function pickedSources(ctx: StepContext): Promise<SourceRow[]> {
 export function fetchStep(deps: StepDeps): ResearchStep {
   return {
     name: "fetch",
-    unitBudgetMs: 75_000,
+    // A page read plus up to 45 s of rate-limit waits and retries.
+    unitBudgetMs: 150_000,
     async work(ctx) {
       const { run } = ctx;
       const toRead = run.progress.toRead ?? [];
@@ -81,8 +82,11 @@ export function fetchStep(deps: StepDeps): ResearchStep {
         have.add(urlKey(next) ?? "");
         await ctx.saveProgress({ read: toRead.filter(isRead).length, failed: skipped.length });
       } catch (err) {
-        if (!(err instanceof FirecrawlError)) throw err;
-        if (FATAL_FIRECRAWL.test(err.message)) throw new RunStepError(err.message);
+        if (!(err instanceof PageReadError)) throw err;
+        // Still rate limited after every retry: stop rather than skip page after page.
+        if (err.status === 429 || FATAL_FIRECRAWL.test(err.message)) {
+          throw new RunStepError(err.message);
+        }
         console.warn(`[research] skipped ${next}: ${err.message}`);
         await ctx.saveProgress({
           skippedUrls: [...skipped, next],

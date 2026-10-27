@@ -4,6 +4,7 @@ import {
   DEPTH_LIMITS,
   normalizeQuery,
   normalizeSite,
+  planSite,
   screenResults,
   scoreResult,
   searchText,
@@ -136,6 +137,32 @@ describe("screenResults", () => {
     assert.deepEqual(
       candidates.map((c) => c.url),
       [thread.url, plainA.url, plainB.url],
+    );
+  });
+});
+
+describe("planSite", () => {
+  it("reads the model's way of saying 'open web' as no site", () => {
+    for (const raw of ["web", " Web ", "any", "none", "", null, undefined]) {
+      assert.equal(planSite(raw), undefined, String(raw));
+    }
+    assert.equal(planSite(" reddit.com "), "reddit.com");
+  });
+
+  it("feeds validatePlan, which keeps real hosts and searches the open web otherwise", () => {
+    const plan = validatePlan(
+      [
+        { query: "editing is slow", site: planSite("reddit.com") },
+        { query: "podcast host pricing", site: planSite("web") },
+      ],
+      { seed: "x" },
+      "quick",
+      new Set(),
+      "draft",
+    );
+    assert.deepEqual(
+      plan.map((q) => searchText(q)),
+      ["editing is slow site:reddit.com", "podcast host pricing"],
     );
   });
 });

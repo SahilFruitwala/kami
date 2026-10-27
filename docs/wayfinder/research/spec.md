@@ -198,15 +198,20 @@ Validation in code: at most `maxQueries[depth]` queries, each ≤ 200 chars, sit
 
 ### 4.5 Discover: search and triage
 
-- **Search**: one Firecrawl search per query, `limit = resultsPerQuery[depth]`, `sources: ["web"]`, plus `tbs` for `sinceMonths`. Requires a research variant of `buildSearchBody` with its own cap; the trip agent's `MAX_SEARCH_RESULTS = 8` stays as it is. Results are deduped by `url_key`; results already in this topic's sources are dropped.
+- **Search**: a query targeting `news.ycombinator.com` goes to the free HN Algolia search (stories and comments, one hit per discussion); every other query is one Firecrawl search, `limit = resultsPerQuery[depth]`, `sources: ["web"]`, plus `tbs` for `sinceMonths`. Requires a research variant of `buildSearchBody` with its own cap; the trip agent's `MAX_SEARCH_RESULTS = 8` stays as it is. Results are deduped by `url_key`; results already in this topic's sources are dropped.
 - **Code filter first**: drop excluded sites, non-HTML files, login walls and obvious listicle spam (a short blocklist), then score each result on its title and snippet with cheap signals: pain words, a question form, a discussion site, recency.
 - **Triage (one batched worker call)**: the surviving results' titles and snippets, 40 per call, are rated `read` / `skip`, with a reason. The top `pagesToRead[depth]` rated `read` go on, ordered by code score.
 
 ### 4.6 Discover: fetch
 
 - Source cache first: a source with the same `url_key` is reused when it's fresher than its kind's limit: `thread` and `review` 30 days, `pricing` and `homepage` 7 days, `article` 90 days _(start)_. Reuse costs nothing.
-- Otherwise `readPage` (Firecrawl scrape, `onlyMainContent`, its own `maxAge` cache) with a research cap of `RESEARCH_MAX_PAGE_CHARS`. Kind is inferred from the host and path.
-- Failed pages are skipped and counted; one bad page never fails a run.
+- Otherwise the page is read from the source that serves it, capped at `RESEARCH_MAX_PAGE_CHARS`. Kind is inferred from the host and path.
+  - Reddit threads: the thread's public `.json` (Firecrawl refuses reddit.com), free, with an identifying User-Agent and at least 6.5 s between reads.
+  - Hacker News discussions: the Algolia items API, free.
+  - Everything else: a metered Firecrawl scrape (`onlyMainContent`, its own `maxAge` cache), trimmed.
+  - Discussion readers write one Markdown block per comment (author, date, score, then the comment as written), so quotes verify against them like any page.
+- Every source is retried while it rate limits (429), following `Retry-After` when given, up to about 45 s per unit.
+- Failed pages, including sites Firecrawl refuses, are skipped and counted; one bad page never fails a run. Failures that would fail every page (credits used up, a rejected key, rate limits that outlast the retries) stop the run with the source's own message.
 
 ### 4.7 Discover: extract
 
@@ -243,12 +248,12 @@ After scoring, ideas touched by the run get `last_run_id` and `added_last_run`; 
 
 ### 4.10 Budgets and estimates _(start values)_
 
-|                           | Quick | Deep |
-| ------------------------- | ----- | ---- |
-| Max queries               | 12    | 25   |
-| Results per query         | 8     | 15   |
-| Pages to read             | 12    | 40   |
-| Budget (research credits) | 30    | 100  |
+|                           | Quick                                                              | Deep |
+| ------------------------- | ------------------------------------------------------------------ | ---- |
+| Max queries               | 12                                                                 | 25   |
+| Results per query         | 8                                                                  | 15   |
+| Pages to read             | 12                                                                 | 40   |
+| Budget (research credits) | 45 (was 30: 12 searches cost 24, leaving too little to read pages) | 100  |
 
 The estimate on the plan screen = searches × Firecrawl credits per search + pages to read × (1 − expected cache hit rate) × credits per scrape + expected tokens ÷ `RESEARCH_TOKENS_PER_CREDIT`, shown as a range up to the budget. The cost table (credits per search by result count, per scrape) lives in one constant and is checked against Firecrawl's billing in ticket 09.
 

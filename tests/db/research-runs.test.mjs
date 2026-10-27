@@ -187,6 +187,21 @@ describe("research run loop", { skip: skipWithoutDb }, () => {
     assert.equal(await ledger.researchCreditBalance(db, user.id), balanceBefore + 28);
   });
 
+  it("a Firecrawl failure ends the run with Firecrawl's own message", async () => {
+    const { FirecrawlError } = await import("@/lib/firecrawl.server.ts");
+    const run = await queuedRun(30);
+    const limited = {
+      name: "limited",
+      async work() {
+        throw new FirecrawlError("Firecrawl is rate limiting — try again shortly.", 429);
+      },
+    };
+    await runs.runResearch(run.id, ORIGIN, { steps: [limited, score] });
+    const row = await runsDb.getRunById(db, run.id);
+    assert.equal(row.state, "failed");
+    assert.equal(row.error, "Firecrawl is rate limiting — try again shortly.");
+  });
+
   it("never works a run another invocation holds", async () => {
     const run = await queuedRun(30);
     assert.ok(await runsDb.claimRun(db, run.id, "someone-else", 60_000));

@@ -43,6 +43,14 @@ describe("discover: plan, search, triage", { skip: skipWithoutDb }, () => {
     };
   };
 
+  /** Hacker News searches go to its free API; this fake records them and returns the same hits. */
+  const hnSearches = [];
+  const fakeHnSearch = async (query) => {
+    hnSearches.push(query);
+    return (await fakeSearch(`${query} site:news.ycombinator.com`)).results;
+  };
+  const calls = { search: fakeSearch, hnSearch: fakeHnSearch };
+
   /** Plans three queries (one a repeat); triage reads everything except listicles. */
   const fakeGenerate = async (_model, call) => {
     modelCalls.push(call);
@@ -143,7 +151,7 @@ describe("discover: plan, search, triage", { skip: skipWithoutDb }, () => {
 
     // Just search and triage; reading the picks is covered in research-evidence.test.mjs.
     const steps = discover
-      .discoverSteps({ calls: { search: fakeSearch }, generate: fakeGenerate })
+      .discoverSteps({ calls, generate: fakeGenerate })
       .filter((s) => s.name === "search" || s.name === "triage");
     let row;
     for (let i = 0; i < 20; i++) {
@@ -173,9 +181,57 @@ describe("discover: plan, search, triage", { skip: skipWithoutDb }, () => {
     assert.ok(row.progress.toRead[0].includes("reddit.com"), "best-scored first");
     assert.equal(modelCalls.filter((c) => c.prompt.includes("Results:")).length, 1);
 
-    // 3 searches at 2 credits + ceil((700+150+900+20) / 20,000) = 7.
-    assert.equal(row.firecrawlCredits, 6);
-    assert.equal(row.chargedCredits, 7);
+    assert.deepEqual(hnSearches, ["riverside alternative"], "Hacker News went to its free API");
+
+    // 2 Firecrawl searches at 2 credits (HN is free) + ceil((700+150+900+20) / 20,000) = 5.
+    assert.equal(row.firecrawlCredits, 4);
+    assert.equal(row.chargedCredits, 5);
+  });
+
+  it("reuses the topic's stored results for a query it already sent, for free", async () => {
+    // The first test sent these queries in this topic; run them again.
+    const run = await rdb.createRun(db, user.id, topic.id, {
+      kind: "discover",
+      depth: "quick",
+      input: { seed: "again" },
+    });
+    await ledger.grantResearchCredits(db, user.id, 45, "test");
+    await ledger.reserveRunCredits(db, user.id, run.id, 45, "start");
+    const { eq } = await import("drizzle-orm");
+    const { researchRuns } = await import("@/lib/schema.ts");
+    await db
+      .update(researchRuns)
+      .set({
+        state: "queued",
+        plan: [
+          {
+            id: "q1",
+            query: "podcast editing frustrating",
+            site: "reddit.com",
+            intent: "pain",
+            checked: true,
+          },
+          { id: "q2", query: "brand new query", intent: "pain", checked: true },
+        ],
+      })
+      .where(eq(researchRuns.id, run.id));
+    const before = searches.length;
+    const steps = discover
+      .discoverSteps({ calls, generate: fakeGenerate })
+      .filter((s) => s.name === "search");
+    await runs.runResearch(run.id, ORIGIN, { steps, handOff: async () => {} });
+
+    const row = await runsDb.getRunById(db, run.id);
+    assert.deepEqual(
+      searches.slice(before),
+      ["brand new query"],
+      "only the new query was paid for",
+    );
+    assert.equal(row.progress.reusedSearches, 1);
+    assert.equal(row.firecrawlCredits, 2);
+    const stored = await rdb.runQueries(db, run.id);
+    assert.equal(stored.length, 2);
+    assert.equal(stored[0].hits.length, 4, "the earlier search's results, copied");
   });
 
   it("refuses an edited plan with nothing checked", async () => {

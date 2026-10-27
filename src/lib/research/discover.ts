@@ -27,6 +27,9 @@ export const DEPTH_LIMITS: Record<Depth, DepthLimits> = {
 
 export const MAX_QUERY_CHARS = 200;
 
+/** A topic's stored search results are reused for the same query this long, for free _(start value)_. */
+export const SEARCH_REUSE_DAYS = 14;
+
 export const PLAN_INTENTS = ["pain", "wish", "switching", "alternatives", "pricing"] as const;
 
 /** A site filter as a bare host: no scheme, no `www.`, no path, lowercase. */
@@ -35,6 +38,21 @@ export function normalizeSite(raw: string): string | null {
   if (!text) return null;
   const site = siteOf(/^[a-z]+:\/\//.test(text) ? text : `https://${text}`);
   return site && /^[a-z0-9.-]+\.[a-z]{2,}$/.test(site) ? site : null;
+}
+
+/** What a plan's "site" says for "no site": search the open web. */
+export const OPEN_WEB = "web";
+
+/**
+ * A planned site as `validatePlan` takes it: undefined for the open web
+ * ("web", "any", "none", empty), otherwise the host as given (validatePlan
+ * normalises it, and drops it if it isn't one).
+ */
+export function planSite(raw: string | null | undefined): string | undefined {
+  const text = raw?.trim().toLowerCase() ?? "";
+  return !text || ["web", "any", "none", "open web", "all"].includes(text)
+    ? undefined
+    : raw?.trim();
 }
 
 /** The text actually searched: the query, plus `site:` when the plan targets one. */
