@@ -57,7 +57,9 @@ function ReportPage() {
                 <span className="font-sans text-xs text-ink-muted">
                   {report.kind === "question" ? "Question" : "Validate"}
                 </span>
-                <h1 className="font-display text-3xl leading-tight text-ink break-words">{title}</h1>
+                <h1 className="font-display text-3xl leading-tight text-ink break-words">
+                  {title}
+                </h1>
               </header>
               <ReportBodyView report={report} />
             </>
