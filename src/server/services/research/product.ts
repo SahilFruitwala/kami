@@ -4,6 +4,13 @@ import { getDb } from "@/lib/db.server";
 import { researchCreditBalance } from "@/lib/research-credits-db.server.ts";
 import { getRun, getTopic, type RunRow } from "@/lib/research-db.server.ts";
 import {
+  evidenceByIds,
+  getOwnReport,
+  reportForRun,
+  topicReports,
+  type ReportRow,
+} from "@/lib/research-reports-db.server.ts";
+import {
   getIdea,
   getOwnIdea,
   ideaEvidence,
@@ -17,17 +24,35 @@ import {
   updateIdea,
   type IdeaRow,
 } from "@/lib/research-ideas-db.server.ts";
-import type { IdeaCard, IdeaDetail, RunView, TopicSource } from "@/lib/api/research.ts";
+import type {
+  EvidenceView,
+  IdeaCard,
+  IdeaDetail,
+  PlayerView,
+  ReportSummary,
+  ReportView,
+  RunView,
+  TopicSource,
+} from "@/lib/api/research.ts";
 import { PLAN_INTENTS } from "@/lib/research/discover.ts";
 import { estimateRun } from "@/lib/research/estimate.ts";
 import { DEPTHS } from "@/lib/research/kinds.ts";
 import { IDEA_SUMMARY_MAX, IDEA_TITLE_MAX } from "@/lib/research/match.ts";
+import {
+  MIN_COUNTER_QUERIES,
+  citedEvidenceIds,
+  counterQueryCount,
+  unsupportedCount,
+} from "@/lib/research/report.ts";
 import { scoreIdea } from "@/lib/research/score.ts";
 import { isReadableUrl } from "@/lib/research/sources.ts";
 import { badRequest, notFound } from "@/server/http";
 import { discoverDrafter, validateEditedPlan } from "./discover";
 import { draftRun, getRunStatus, requestStop, startLinkRun, startRun } from "./runs";
 import { ownTopic, requireResearch } from "./topics";
+import { topicPlayers } from "@/lib/research-players-db.server.ts";
+import { exploreDrafter } from "./explore";
+import { validateDrafter } from "./validate";
 
 /**
  * The Research product API behind the Find ideas flow, the run view, the
@@ -40,6 +65,8 @@ import { ownTopic, requireResearch } from "./topics";
 const sitesInput = z.array(z.string().trim().min(1).max(100)).max(20).optional();
 
 export const draftInput = z.object({
+  /** Find ideas (the default), Ask a question, or Map a space. */
+  kind: z.enum(["discover", "question", "explore"]).default("discover"),
   topicId: z.string().min(1).max(100).optional(),
   seed: z.string().trim().min(3).max(200),
   depth: z.enum(DEPTHS),
@@ -63,6 +90,8 @@ export const startInput = z.object({
     )
     .max(40),
 });
+
+export const validateInput = z.object({ depth: z.enum(DEPTHS) });
 
 export const ideasQuery = z.object({
   status: z.enum(["live", "open", "starred", "dismissed", "merged"]).optional(),
@@ -113,7 +142,10 @@ async function runView(row: RunRow, userId: string): Promise<RunView> {
       // A run still working hasn't scored yet; its own ideas are all it shows.
       return { ...card, isNew: i.firstRunId === row.id };
     });
+  const report =
+    row.kind === "discover" || row.kind === "explore" ? null : await reportForRun(db, row.id);
   return {
+    reportId: report?.id ?? null,
     run: {
       id: row.id,
       topicId: row.topicId,
@@ -136,7 +168,10 @@ async function runView(row: RunRow, userId: string): Promise<RunView> {
       startedAt: row.startedAt ? row.startedAt.getTime() : null,
       finishedAt: row.finishedAt ? row.finishedAt.getTime() : null,
     },
-    estimates: { quick: estimateRun(row.plan, "quick"), deep: estimateRun(row.plan, "deep") },
+    estimates: {
+      quick: estimateRun(row.plan, "quick", row.kind),
+      deep: estimateRun(row.plan, "deep", row.kind),
+    },
     balance: await researchCreditBalance(db, userId),
     ideas,
   };
@@ -153,7 +188,7 @@ export async function draftDiscoverRun(
     userId,
     {
       topicId: input.topicId,
-      kind: "discover",
+      kind: input.kind,
       depth: input.depth,
       input: {
         seed: input.seed,
@@ -163,7 +198,32 @@ export async function draftDiscoverRun(
         sinceMonths: input.sinceMonths,
       },
     },
-    discoverDrafter(),
+    input.kind === "question"
+      ? validateDrafter({}, "question")
+      : input.kind === "explore"
+        ? exploreDrafter()
+        : discoverDrafter(),
+  );
+  return runView(run, userId);
+}
+
+/** "Validate this idea": a Validate run in the idea's topic, awaiting its plan. */
+export async function draftValidateRun(
+  userId: string,
+  ideaId: string,
+  input: z.output<typeof validateInput>,
+): Promise<RunView> {
+  const idea = await ownIdea(userId, ideaId);
+  if (idea.status === "merged") throw badRequest("That idea was merged into another.");
+  const { run } = await draftRun(
+    userId,
+    {
+      topicId: idea.topicId,
+      kind: "validate",
+      depth: input.depth,
+      input: { seed: idea.title, ideaId: idea.id },
+    },
+    validateDrafter(),
   );
   return runView(run, userId);
 }
@@ -178,6 +238,11 @@ export async function startDiscoverRun(
   const run = await getRun(await getDb(), userId, runId);
   if (!run) throw notFound("Run not found");
   const plan = await validateEditedPlan(run, input.plan, input.depth);
+  if (run.kind === "validate" && counterQueryCount(plan) < MIN_COUNTER_QUERIES) {
+    throw badRequest(
+      `Keep at least ${MIN_COUNTER_QUERIES} counter-evidence searches: a validation has to look for reasons the idea may not work.`,
+    );
+  }
   await startRun(userId, runId, { plan, depth: input.depth }, origin);
   return { runId };
 }
@@ -217,6 +282,21 @@ async function ownIdea(userId: string, ideaId: string): Promise<IdeaRow> {
   return idea;
 }
 
+function evidenceView(e: Awaited<ReturnType<typeof evidenceByIds>>[number]): EvidenceView {
+  return {
+    id: e.id,
+    quote: e.quote,
+    kind: e.kind,
+    match: e.match,
+    sentiment: e.sentiment,
+    strong: e.strong,
+    pays: e.pays,
+    names: e.names,
+    postedAt: e.postedAt ? e.postedAt.getTime() : null,
+    source: { id: e.sourceId, url: e.url, title: e.title, site: e.site },
+  };
+}
+
 export async function researchIdea(userId: string, ideaId: string): Promise<IdeaDetail> {
   const idea = await ownIdea(userId, ideaId);
   const db = await getDb();
@@ -226,18 +306,7 @@ export async function researchIdea(userId: string, ideaId: string): Promise<Idea
   ]);
   return {
     idea: ideaCard(idea, latest),
-    evidence: evidence.map((e) => ({
-      id: e.id,
-      quote: e.quote,
-      kind: e.kind,
-      match: e.match,
-      sentiment: e.sentiment,
-      strong: e.strong,
-      pays: e.pays,
-      names: e.names,
-      postedAt: e.postedAt ? e.postedAt.getTime() : null,
-      source: { id: e.sourceId, url: e.url, title: e.title, site: e.site },
-    })),
+    evidence: evidence.map(evidenceView),
   };
 }
 
@@ -296,4 +365,63 @@ export async function pasteLink(userId: string, topicId: string, url: string, or
     throw badRequest("Research only reads web pages (http or https, no files).");
   const run = await startLinkRun(userId, topicId, url, origin);
   return { runId: run.id };
+}
+
+// ---------- Reports (tickets 15–16) ----------
+
+function reportSummary(r: ReportRow): ReportSummary {
+  return {
+    id: r.id,
+    topicId: r.topicId,
+    runId: r.runId,
+    kind: r.kind,
+    ideaId: r.ideaId,
+    question: r.question,
+    claims: r.body.sections.reduce((n, s) => n + s.claims.filter((c) => !c.note).length, 0),
+    unsupported: unsupportedCount(r.body),
+    partial: Boolean(r.body.partial),
+    createdAt: r.createdAt.getTime(),
+  };
+}
+
+export async function listTopicReports(userId: string, topicId: string): Promise<ReportSummary[]> {
+  await ownTopic(userId, topicId);
+  return (await topicReports(await getDb(), topicId)).map(reportSummary);
+}
+
+/** A report with the evidence its claims cite (each quote with its source). */
+export async function researchReport(userId: string, reportId: string): Promise<ReportView> {
+  requireResearch();
+  const db = await getDb();
+  const report = await getOwnReport(db, userId, reportId);
+  if (!report) throw notFound("Report not found");
+  const rows = await evidenceByIds(db, report.topicId, citedEvidenceIds(report.body));
+  return {
+    report: reportSummary(report),
+    body: report.body,
+    evidence: Object.fromEntries(rows.map((e) => [e.id, evidenceView(e)])),
+  };
+}
+
+// ---------- Players (ticket 17) ----------
+
+/** A topic's players, most-mentioned first (the table sorts and groups them). */
+export async function listTopicPlayers(userId: string, topicId: string): Promise<PlayerView[]> {
+  await ownTopic(userId, topicId);
+  const rows = await topicPlayers(await getDb(), topicId);
+  return rows
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      url: p.url,
+      category: p.category,
+      oneLiner: p.oneLiner,
+      audience: p.audience,
+      plans: p.pricing?.plans ?? [],
+      freePlan: p.freePlan,
+      mentions: p.mentions,
+      complaints: p.complaints,
+      filled: p.filledAt !== null,
+    }))
+    .sort((a, b) => b.mentions - a.mentions || a.name.localeCompare(b.name));
 }

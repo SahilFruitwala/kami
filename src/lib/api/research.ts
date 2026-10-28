@@ -9,6 +9,7 @@ import type {
   RunProgress,
   SearchHit,
 } from "../research/kinds.ts";
+import type { ReportBody } from "../research/report.ts";
 import { http, seg } from "./client";
 
 export type { RunEstimate };
@@ -147,6 +148,8 @@ export type RunSummary = {
 export type ResearchTopicDetail = { topic: ResearchTopic; runs: RunSummary[] };
 
 export type DraftRunInput = {
+  /** Find ideas (default) or Ask a question. */
+  kind?: "discover" | "question" | "explore";
   /** An existing topic, or a new one named after the seed. */
   topicId?: string;
   seed: string;
@@ -199,6 +202,46 @@ export type RunView = {
   balance: number;
   /** Ideas this run created or added to so far, best first. */
   ideas: IdeaCard[];
+  /** The report a Validate or question run wrote, once it has. */
+  reportId: string | null;
+};
+
+export type PlayerView = {
+  id: string;
+  name: string;
+  url: string | null;
+  category: string | null;
+  oneLiner: string | null;
+  audience: "b2b" | "b2c" | "both" | null;
+  plans: Array<{ name: string; price: string }>;
+  freePlan: boolean | null;
+  /** Quotes that name it, and how many of those are negative. */
+  mentions: number;
+  complaints: number;
+  /** Looked up on its own pages (a player can be filled with nothing found). */
+  filled: boolean;
+};
+
+export type ReportSummary = {
+  id: string;
+  topicId: string;
+  runId: string;
+  kind: "validate" | "question";
+  ideaId: string | null;
+  question: string;
+  /** Claims written by the model (notes written by code don't count). */
+  claims: number;
+  unsupported: number;
+  /** Written without a full draft: no evidence, or the run's budget ran out. */
+  partial: boolean;
+  createdAt: number;
+};
+
+export type ReportView = {
+  report: ReportSummary;
+  body: ReportBody;
+  /** The evidence the report cites, by id. */
+  evidence: Record<string, EvidenceView>;
 };
 
 export type EvidenceView = {
@@ -253,6 +296,11 @@ export const researchApi = {
   updateIdea: (id: string, patch: IdeaPatch) => http.patch<IdeaCard>(ideaPath(id), patch),
   mergeIdeas: (intoId: string, fromIds: string[]) =>
     http.post<IdeaCard>("/api/research/ideas/merge", { intoId, fromIds }),
+  players: (topicId: string) => http.get<PlayerView[]>(`${topicPath(topicId)}/players`),
+  reports: (topicId: string) => http.get<ReportSummary[]>(`${topicPath(topicId)}/reports`),
+  report: (id: string) => http.get<ReportView>(`/api/research/reports/${seg(id)}`),
+  validateIdea: (ideaId: string, depth: Depth) =>
+    http.post<RunView>(`${ideaPath(ideaId)}/validate`, { depth }),
   sources: (topicId: string) => http.get<TopicSource[]>(`${topicPath(topicId)}/sources`),
   pasteLink: (topicId: string, url: string) =>
     http.post<{ runId: string }>(`${topicPath(topicId)}/links`, { url }),

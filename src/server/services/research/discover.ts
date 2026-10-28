@@ -33,6 +33,7 @@ import { badRequest } from "@/server/http";
 import { extractStep, fetchStep, type StepDeps } from "./evidence";
 import { ideaSteps, type IdeaDeps } from "./ideas";
 import { searchForRun } from "./fetch";
+import { playersStep } from "./players";
 import { callModel, type Generate } from "./models";
 import {
   RunStepError,
@@ -55,6 +56,7 @@ import {
 
 export const PLAN_PROMPT_VERSION = "discover-plan-v2";
 export const TRIAGE_PROMPT_VERSION = "discover-triage-v1";
+export const EXPLORE_TRIAGE_PROMPT_VERSION = "explore-triage-v1";
 
 /** Results per triage call, and the characters they may take. */
 const TRIAGE_BATCH = { maxItems: 40, maxChars: 24_000 };
@@ -64,7 +66,7 @@ export type DiscoverDeps = StepDeps & IdeaDeps;
 
 // ---------- Plan ----------
 
-const planSchema = z.object({
+export const planSchema = z.object({
   queries: z
     .array(
       z.object({
@@ -77,7 +79,7 @@ const planSchema = z.object({
     .max(40),
 });
 
-const PLAN_INSTRUCTIONS = `You plan web searches that find what real people say about their problems in a space: complaints, frustrations, wishes, workarounds, switching between tools, and what they pay.
+export const PLAN_INSTRUCTIONS = `You plan web searches that find what real people say about their problems in a space: complaints, frustrations, wishes, workarounds, switching between tools, and what they pay.
 
 Write search queries the way people talk when something hurts ("so frustrating", "I wish", "is there a tool", "alternative to", "switched from", "how do you deal with"), not marketing language. Each query is short (under 12 words) and different from the others and from the queries already searched.
 
@@ -94,7 +96,7 @@ Spread the queries over at least three different sites. Put only the host in "si
 intent is one of: pain (complaints), wish (things people want), switching (moving between tools), alternatives (looking for other options), pricing (what people pay or would pay).`;
 
 /** Turns a model's plan into a clean one; shared by drafting and tests. */
-function planFromModel(
+export function planFromModel(
   output: z.output<typeof planSchema>,
   run: Pick<RunRow, "input" | "depth">,
   sent: ReadonlySet<string>,
@@ -209,7 +211,7 @@ export async function validateEditedPlan(
  * (an earlier run, or one that failed partway) reuses those results for
  * free instead of paying Firecrawl again.
  */
-function searchStep(deps: DiscoverDeps): ResearchStep {
+export function searchStep(deps: DiscoverDeps): ResearchStep {
   return {
     name: "search",
     // A search plus up to 45 s of rate-limit waits and retries.
@@ -263,12 +265,20 @@ Skip: marketing and product pages, "best tools" listicles, news with no discussi
 
 Answer with the numbers of the results to read. When unsure, skip.`;
 
+const EXPLORE_TRIAGE_INSTRUCTIONS = `You choose which search results are worth reading to learn which products and companies already exist in a space: what they are, who they are for, what they cost and what people think of them.
+
+Read: "best tools" roundups, alternatives and comparison pages, product directories, review pages, and discussions where people recommend or compare tools.
+Skip: a single vendor's marketing or documentation pages, news with no product comparison, tutorials, and anything off the topic.
+
+Answer with the numbers of the results to read. When unsure, skip.`;
+
 /** One worker call over a batch of results; returns the ones it chose. */
 async function triageBatch(
   ctx: StepContext,
   seed: string,
   batch: ScreenedResult[],
   generate?: Generate,
+  mode: "discover" | "explore" = "discover",
 ): Promise<ScreenedResult[]> {
   const list = batch
     .map((r, i) => `${i + 1}. ${r.title}\n   ${r.site}\n   ${r.description}`)
@@ -278,8 +288,8 @@ async function triageBatch(
     {
       tier: "worker",
       schema: triageSchema,
-      promptVersion: TRIAGE_PROMPT_VERSION,
-      instructions: TRIAGE_INSTRUCTIONS,
+      promptVersion: mode === "explore" ? EXPLORE_TRIAGE_PROMPT_VERSION : TRIAGE_PROMPT_VERSION,
+      instructions: mode === "explore" ? EXPLORE_TRIAGE_INSTRUCTIONS : TRIAGE_INSTRUCTIONS,
       prompt: `Topic: ${seed}\n\nResults:\n${asDocument(list)}`,
       maxOutputTokens: 300,
       temperature: 0,
@@ -300,7 +310,10 @@ async function triageBatch(
  * and the rest, best first, in `progress.spares`. Reddit threads are left out
  * while Reddit's API isn't set up.
  */
-function triageStep(deps: DiscoverDeps): ResearchStep {
+export function triageStep(
+  deps: DiscoverDeps,
+  mode: "discover" | "explore" = "discover",
+): ResearchStep {
   return {
     name: "triage",
     async work(ctx) {
@@ -323,7 +336,7 @@ function triageStep(deps: DiscoverDeps): ResearchStep {
       const done = run.progress.triageBatches ?? 0;
 
       if (done < batches.length) {
-        const chosen = await triageBatch(ctx, run.input.seed, batches[done], deps.generate);
+        const chosen = await triageBatch(ctx, run.input.seed, batches[done], deps.generate, mode);
         const picks: TriagePick[] = [
           ...(run.progress.picks ?? []),
           ...chosen.map((c) => ({ url: c.url, score: c.score })),
@@ -337,6 +350,9 @@ function triageStep(deps: DiscoverDeps): ResearchStep {
         if (done + 1 < batches.length) return false;
       }
 
+      // Explore keeps most of its budget for looking up the products it finds.
+      const pagesToRead =
+        mode === "explore" ? Math.ceil(limits.pagesToRead / 2) : limits.pagesToRead;
       const seen = new Set<string>();
       const ranked = (ctx.run.progress.picks ?? [])
         .map((p, order) => ({ ...p, order }))
@@ -346,8 +362,8 @@ function triageStep(deps: DiscoverDeps): ResearchStep {
       await ctx.saveProgress({
         results: distinct,
         candidates: candidates.length,
-        toRead: ranked.slice(0, limits.pagesToRead),
-        spares: ranked.slice(limits.pagesToRead),
+        toRead: ranked.slice(0, pagesToRead),
+        spares: ranked.slice(pagesToRead),
       });
       return true;
     },
@@ -361,6 +377,7 @@ export function discoverSteps(deps: DiscoverDeps = {}): ResearchStep[] {
     triageStep(deps),
     fetchStep(deps),
     extractStep(deps),
+    playersStep(),
     ...ideaSteps(deps),
   ];
 }

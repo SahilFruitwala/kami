@@ -1,12 +1,13 @@
 // Draft a Discover plan as the debug operator, through the app's own draftRun.
-// Usage: node --experimental-transform-types --import <repo>/tests/support/register.mjs draft.mjs "<seed>" quick
+// Usage: node --experimental-transform-types --import <repo>/tests/support/register.mjs draft.mjs "<seed>" quick [topicId] [stopRunId] [discover|explore]
 const ROOT = new URL("../../../../", import.meta.url).pathname.replace(/\/$/, "");
 const { loadDotenv } = await import(`${ROOT}/scripts/load-dotenv.mjs`);
 loadDotenv(ROOT);
-const [seed, depth = "quick", topicId, stopRunId] = process.argv.slice(2);
+const [seed, depth = "quick", topicId, stopRunId, kind = "discover"] = process.argv.slice(2);
 const { getDb } = await import(`${ROOT}/src/lib/db.server.ts`);
 const runs = await import(`${ROOT}/src/server/services/research/runs.ts`);
 const { discoverDrafter } = await import(`${ROOT}/src/server/services/research/discover.ts`);
+const { exploreDrafter } = await import(`${ROOT}/src/server/services/research/explore.ts`);
 const { researchCreditBalance } = await import(`${ROOT}/src/lib/research-credits-db.server.ts`);
 
 const email = (process.env.RESEARCH_DEBUG_EMAILS ?? "").split(",")[0].trim();
@@ -25,8 +26,8 @@ if (stopRunId) {
 }
 const { run, topic } = await runs.draftRun(
   userId,
-  { kind: "discover", depth, input: { seed }, topicId: topicId || undefined },
-  discoverDrafter(),
+  { kind, depth, input: { seed }, topicId: topicId || undefined },
+  kind === "explore" ? exploreDrafter() : discoverDrafter(),
 );
 console.log(
   JSON.stringify(
@@ -34,6 +35,7 @@ console.log(
       runId: run.id,
       topicId: topic.id,
       state: run.state,
+      budget: run.budgetCredits,
       tokensIn: run.tokensIn,
       tokensOut: run.tokensOut,
     },

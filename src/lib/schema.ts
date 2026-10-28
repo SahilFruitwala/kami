@@ -823,6 +823,8 @@ import type {
   SourceKind,
   SourceOrigin,
 } from "./research/kinds.ts";
+import type { PlayerAudience, PlayerPricing } from "./research/players.ts";
+import type { ReportBody } from "./research/report.ts";
 
 /** Research credit ledger (0023_research.sql); same rules as `allowanceEntries`. */
 export const researchCreditEntries = pgTable(
@@ -1046,6 +1048,77 @@ export const researchIdeaEvidence = pgTable(
   (t) => [
     primaryKey({ columns: [t.ideaId, t.evidenceId] }),
     uniqueIndex("research_idea_evidence_evidence_idx").on(t.evidenceId),
+  ],
+);
+
+/** The cited write-up a Validate or question run produces (0025_research_reports.sql). */
+export const researchReports = pgTable(
+  "research_reports",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    topicId: text("topic_id")
+      .notNull()
+      .references(() => researchTopics.id, { onDelete: "cascade" }),
+    runId: text("run_id")
+      .notNull()
+      .references(() => researchRuns.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<"validate" | "question">().notNull(),
+    ideaId: text("idea_id").references(() => researchIdeas.id, { onDelete: "set null" }),
+    question: text("question").notNull(),
+    body: jsonb("body").$type<ReportBody>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("research_reports_run_idx").on(t.runId),
+    index("research_reports_topic_idx").on(t.topicId, desc(t.createdAt)),
+  ],
+);
+
+/** A product already in a topic's space, filled from its own pages (0026_research_players.sql). */
+export const researchPlayers = pgTable(
+  "research_players",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    topicId: text("topic_id")
+      .notNull()
+      .references(() => researchTopics.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    nameKey: text("name_key").notNull(),
+    url: text("url"),
+    category: text("category"),
+    oneLiner: text("one_liner"),
+    audience: text("audience").$type<PlayerAudience>(),
+    pricing: jsonb("pricing").$type<PlayerPricing>(),
+    freePlan: boolean("free_plan"),
+    sourceIds: jsonb("source_ids").$type<string[]>().notNull().default([]),
+    /** Set once the player has been looked up, found or not, so it is never filled twice. */
+    filledAt: timestamp("filled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("research_players_key_idx").on(t.topicId, t.nameKey)],
+);
+
+/** Evidence that names a player. */
+export const researchPlayerEvidence = pgTable(
+  "research_player_evidence",
+  {
+    playerId: text("player_id")
+      .notNull()
+      .references(() => researchPlayers.id, { onDelete: "cascade" }),
+    evidenceId: text("evidence_id")
+      .notNull()
+      .references(() => researchEvidence.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.playerId, t.evidenceId] }),
+    index("research_player_evidence_evidence_idx").on(t.evidenceId),
   ],
 );
 

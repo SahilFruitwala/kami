@@ -1,4 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+// Each run kind registers its steps when its module loads; the hand-off needs them all.
+import "@/server/services/research/discover";
+import "@/server/services/research/explore";
+import "@/server/services/research/validate";
 import { continueRun, runBody, runSecretMatches } from "@/server/services/research/runs";
 
 /**

@@ -41,14 +41,12 @@ A research section in Kami (`/research`) that finds product ideas in what real p
 - **Phase 2, Discover product (v1)**: [10 home, topics, nav](tickets/10-research-home-and-topics.md), [11 plan screen and run view](tickets/11-discover-plan-and-run-ui.md), [12 ideas tab](tickets/12-ideas-tab.md), [13 paste a link](tickets/13-paste-a-link.md), [14 docs and ADR](tickets/14-docs-and-adr.md).
 - **Phase 3, Validate**: [15 validate report](tickets/15-validate-report.md), [16 free-form question](tickets/16-free-form-question.md).
 - **Phase 4, Explore**: [17 players](tickets/17-explore-players.md), [18 HN Algolia](tickets/18-hn-algolia.md).
-- Frontier now: Phase 2 is built on `research/phase-2` (10–14 closed, checked signed in on desktop and phone). Next: Phase 3 (15, 16).
+- Frontier now: all 18 tickets closed. Validate, Ask a question and Map a space (15, 16, 17) are built on `research/phase-3` but not yet run with real credits; next is one real run of each (Map a space first), plus a Discover re-run to confirm the narrower matching.
 
 ## Not yet specified
 
-- Exact Quick and Deep budgets and the Firecrawl cost table: measured on real seeds in [ticket 09](tickets/09-debug-page-and-tuning.md); spec.md gives starting values.
-- Quote matching thresholds (exact vs fuzzy) beyond the starting rule in spec.md: tuned in ticket 09.
 - Whether a plan that is drafted but never run is charged (spec.md says no; revisit if plan drafting gets abused).
-- How the Validate report is laid out on the page, and how Players render on phone: settled when those tickets open.
+- Known rough edges: Hacker News points don't count towards Frequency (the points aren't stored yet); Reddit waits on API approval (keys only, no code).
 
 ## Later (not v1, no tickets yet)
 

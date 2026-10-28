@@ -9,6 +9,9 @@ const [runId] = process.argv.slice(2);
 const { getDb } = await import(`${ROOT}/src/lib/db.server.ts`);
 const runs = await import(`${ROOT}/src/server/services/research/runs.ts`);
 const { validateEditedPlan } = await import(`${ROOT}/src/server/services/research/discover.ts`);
+// Each run kind registers its steps when its module loads.
+await import(`${ROOT}/src/server/services/research/validate.ts`);
+await import(`${ROOT}/src/server/services/research/explore.ts`);
 const { getRunById } = await import(`${ROOT}/src/lib/research-runs-db.server.ts`);
 const { isStalledRun, isTerminalRun } = await import(`${ROOT}/src/lib/research/run-engine.ts`);
 

@@ -24,7 +24,15 @@ const FIELD = "font-sans text-xs font-medium text-ink-soft";
  * plan is free; the run page then shows the plan to check before anything
  * is spent. "Skip review" starts the drafted plan straight away.
  */
-export function FindIdeasForm({ topicId: fixedTopic }: { topicId?: string }) {
+export function FindIdeasForm({
+  topicId: fixedTopic,
+  kind = "discover",
+}: {
+  topicId?: string;
+  kind?: "discover" | "question" | "explore";
+}) {
+  const asking = kind === "question";
+  const mapping = kind === "explore";
   const navigate = useNavigate();
   const refresh = useResearchRefresh();
   const topics = useResearchTopics();
@@ -46,6 +54,7 @@ export function FindIdeasForm({ topicId: fixedTopic }: { topicId?: string }) {
     setBusy(true);
     setError(null);
     const input: DraftRunInput = {
+      kind,
       seed: seed.trim(),
       depth,
       topicId: topicId || undefined,
@@ -68,11 +77,21 @@ export function FindIdeasForm({ topicId: fixedTopic }: { topicId?: string }) {
   return (
     <form onSubmit={submit} className="flex flex-col gap-4">
       <label className="flex flex-col gap-1.5">
-        <span className={FIELD}>What space should we look into?</span>
+        <span className={FIELD}>
+          {asking
+            ? "What do you want to know?"
+            : mapping
+              ? "Which space should we map?"
+              : "What space should we look into?"}
+        </span>
         <Input
           value={seed}
           onChange={(e) => setSeed(e.target.value)}
-          placeholder="e.g. invoicing for freelance designers"
+          placeholder={
+            asking
+              ? "e.g. What do freelance designers use to chase late invoices, and do they like it?"
+              : "e.g. invoicing for freelance designers"
+          }
           maxLength={200}
           required
           minLength={3}

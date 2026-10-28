@@ -249,6 +249,8 @@ export async function latestFinishedRunId(db: Db, topicId: string): Promise<stri
     .where(
       and(
         eq(researchRuns.topicId, topicId),
+        // Reports don't change ideas, so they never count as "the last run".
+        eq(researchRuns.kind, "discover"),
         inArray(researchRuns.state, ["done", "stopped"]),
         isNotNull(researchRuns.startedAt),
       ),

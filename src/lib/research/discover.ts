@@ -30,7 +30,14 @@ export const MAX_QUERY_CHARS = 200;
 /** A topic's stored search results are reused for the same query this long, for free _(start value)_. */
 export const SEARCH_REUSE_DAYS = 14;
 
-export const PLAN_INTENTS = ["pain", "wish", "switching", "alternatives", "pricing"] as const;
+export const PLAN_INTENTS = [
+  "pain",
+  "wish",
+  "switching",
+  "alternatives",
+  "pricing",
+  "counter",
+] as const;
 
 /** A site filter as a bare host: no scheme, no `www.`, no path, lowercase. */
 export function normalizeSite(raw: string): string | null {

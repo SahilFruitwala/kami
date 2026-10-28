@@ -36,10 +36,10 @@ const EXTRACT_BATCH = { maxItems: 12, maxChars: 24_000 };
 export type StepDeps = { calls?: Partial<FirecrawlCalls>; generate?: Generate };
 
 /** Firecrawl failures that will fail every page, so the run should stop rather than skip. */
-const FATAL_FIRECRAWL = /credits are used up|rejected the server's API key|not configured/i;
+export const FATAL_FIRECRAWL = /credits are used up|rejected the server's API key|not configured/i;
 
 /** The run's picked pages that are now stored sources, in pick order. */
-async function pickedSources(ctx: StepContext): Promise<SourceRow[]> {
+export async function pickedSources(ctx: StepContext): Promise<SourceRow[]> {
   const keys = (ctx.run.progress.toRead ?? []).map(urlKey).filter((k): k is string => Boolean(k));
   const found = await sourcesByUrlKey(await getDb(), ctx.run.userId, keys);
   return keys.map((k) => found.get(k)).filter((s): s is SourceRow => Boolean(s));
@@ -133,6 +133,23 @@ For each quote give:
 - author: the handle shown with the quote, if any
 - date: the date shown with the quote, if any, as YYYY-MM-DD`;
 
+/** Explore reads for the products people name, not their problems. */
+export const EXPLORE_EXTRACT_PROMPT_VERSION = "explore-extract-v1";
+
+const EXPLORE_EXTRACT_INSTRUCTIONS = `You pull out which products and companies already exist in a space, as exact quotes. Each part of a page is in a <document source="S1"> block; several blocks can come from the same page.
+
+For each sentence (or two) that names products or companies people use, recommend, compare or complain about for the topic, copy the words exactly: 20 to 600 characters, never paraphrased, corrected, shortened with "..." or joined from different places. Skip page furniture and anything not about the topic. Give at most 5 quotes per block and 40 in all: prefer quotes that say what a product is for, who uses it, what it costs or what people dislike about it.
+
+For each quote give:
+- source: the block's source label (e.g. "S1")
+- kind: competitor (a view on a named product), price (what something costs), pain (a problem with a product), stat (a number about the space), opinion (anything else)
+- sentiment: -2 (very negative) to 2 (very positive)
+- strong: true when strongly felt
+- pays: true when they mention paying, a price or a budget
+- names: the products or companies named in the quote (required, at least one)
+- author: the handle shown with the quote, if any
+- date: the date shown with the quote, if any, as YYYY-MM-DD`;
+
 type Chunk = { source: SourceRow; text: string };
 
 /**
@@ -142,7 +159,10 @@ type Chunk = { source: SourceRow; text: string };
  * page's own words when the match is close. Re-running a batch stores
  * nothing twice and, through the model cache, costs nothing.
  */
-export function extractStep(deps: StepDeps): ResearchStep {
+export function extractStep(
+  deps: StepDeps,
+  mode: "discover" | "explore" = "discover",
+): ResearchStep {
   return {
     name: "extract",
     async work(ctx) {
@@ -172,8 +192,9 @@ export function extractStep(deps: StepDeps): ResearchStep {
         {
           tier: "worker",
           schema: extractSchema,
-          promptVersion: EXTRACT_PROMPT_VERSION,
-          instructions: EXTRACT_INSTRUCTIONS,
+          promptVersion:
+            mode === "explore" ? EXPLORE_EXTRACT_PROMPT_VERSION : EXTRACT_PROMPT_VERSION,
+          instructions: mode === "explore" ? EXPLORE_EXTRACT_INSTRUCTIONS : EXTRACT_INSTRUCTIONS,
           prompt: `Topic: ${run.input.seed}\n\n${blocks}`,
           // 40 quotes with their fields fit; quote-dense review pages overran 3,000 (run 77cd5966).
           maxOutputTokens: 8_000,

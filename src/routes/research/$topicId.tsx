@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useState } from "react";
 import {
   ArrowLeft,
+  Compass,
   Link2,
   LoaderCircle,
   Merge,
@@ -24,19 +25,33 @@ import {
   useResearchStatus,
   useResearchTopic,
   useTopicIdeas,
+  useTopicPlayers,
+  useTopicReports,
   useTopicSources,
   useResearchRefresh,
 } from "@/hooks/use-research.ts";
-import { researchApi, type IdeaCard as Idea, type RunSummary } from "@/lib/api/research.ts";
+import {
+  researchApi,
+  type IdeaCard as Idea,
+  type PlayerView,
+  type RunSummary,
+} from "@/lib/api/research.ts";
+import { groupPlayers, type PlayerSortKey } from "@/lib/research/players.ts";
 import { confirmAction } from "@/lib/confirm.ts";
 import { errorMessage, toastError } from "@/lib/errors";
 import type { LibraryItem } from "@/lib/library-item.ts";
 
-type Tab = "ideas" | "sources" | "runs";
+type Tab = "ideas" | "players" | "reports" | "sources" | "runs";
 
 export const Route = createFileRoute("/research/$topicId")({
   validateSearch: (search: Record<string, unknown>): { tab?: Tab } => ({
-    tab: search.tab === "sources" || search.tab === "runs" ? search.tab : undefined,
+    tab:
+      search.tab === "players" ||
+      search.tab === "reports" ||
+      search.tab === "sources" ||
+      search.tab === "runs"
+        ? search.tab
+        : undefined,
   }),
   component: TopicPage,
 });
@@ -88,11 +103,15 @@ function TopicPage() {
                 }
                 options={[
                   { id: "ideas", label: "Ideas" },
+                  { id: "players", label: "Players" },
+                  { id: "reports", label: "Reports" },
                   { id: "sources", label: "Sources" },
                   { id: "runs", label: "Runs" },
                 ]}
               />
               {tab === "ideas" ? <IdeasTab topicId={topicId} /> : null}
+              {tab === "players" ? <PlayersTab topicId={topicId} /> : null}
+              {tab === "reports" ? <ReportsTab topicId={topicId} /> : null}
               {tab === "sources" ? <SourcesTab topicId={topicId} /> : null}
               {tab === "runs" ? <RunsTab runs={topic.data.runs} /> : null}
             </>
@@ -479,9 +498,15 @@ function RunsTab({ runs }: { runs: RunSummary[] }) {
             <span className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[11px] text-ink-muted">
               <StatePill state={r.state} stopReason={r.stopReason} started={r.started} />
               {r.addedBy === "plan" ? <span>{r.depth === "deep" ? "Deep" : "Quick"}</span> : null}
-              <span>
-                {r.ideasNew} new {r.ideasNew === 1 ? "idea" : "ideas"}
-              </span>
+              {r.kind === "discover" ? (
+                <span>
+                  {r.ideasNew} new {r.ideasNew === 1 ? "idea" : "ideas"}
+                </span>
+              ) : (
+                <span>
+                  {r.kind === "validate" ? "Validation" : r.kind === "explore" ? "Map" : "Question"}
+                </span>
+              )}
               <span>{r.chargedCredits === null ? "—" : `${r.chargedCredits} credits`}</span>
               <span>{relativeDay(r.createdAt)}</span>
             </span>
@@ -489,5 +514,197 @@ function RunsTab({ runs }: { runs: RunSummary[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+function ReportsTab({ topicId }: { topicId: string }) {
+  const reports = useTopicReports(topicId);
+  if (reports.isPending) {
+    return <div className="kami-sheet h-32 animate-pulse opacity-60" aria-hidden="true" />;
+  }
+  if (reports.isError) return <EmptyNote>Couldn't load reports.</EmptyNote>;
+  if (!reports.data.length) {
+    return (
+      <EmptyNote>
+        No reports yet. Open an idea and choose “Validate this idea” to check it against what people
+        say online.
+      </EmptyNote>
+    );
+  }
+  return (
+    <ul className="kami-sheet divide-y divide-line">
+      {reports.data.map((r) => (
+        <li key={r.id}>
+          <Link
+            to="/research/reports/$reportId"
+            params={{ reportId: r.id }}
+            className="flex flex-col gap-1 p-4 transition-colors hover:bg-paper-warm sm:flex-row sm:items-center sm:gap-4"
+          >
+            <span className="min-w-0 flex-1 font-body text-sm break-words text-ink">
+              {r.question}
+            </span>
+            <span className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[11px] text-ink-muted">
+              <span>{r.kind === "validate" ? "Validation" : "Question"}</span>
+              <span>
+                {r.claims} {r.claims === 1 ? "claim" : "claims"}
+              </span>
+              {r.unsupported ? (
+                <span className="text-destructive">{r.unsupported} unsupported</span>
+              ) : null}
+              {r.partial ? <span>Partial</span> : null}
+              <span>{relativeDay(r.createdAt)}</span>
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+const SORTS: Array<{ id: PlayerSortKey; label: string }> = [
+  { id: "mentions", label: "Most mentioned" },
+  { id: "complaints", label: "Most complaints" },
+  { id: "free", label: "Free plan first" },
+  { id: "name", label: "Name" },
+];
+
+const AUDIENCE_LABEL = { b2b: "Businesses", b2c: "Consumers", both: "Both" } as const;
+
+/** The products in the topic's space: sortable, grouped by category, every field from the product's own pages. */
+function PlayersTab({ topicId }: { topicId: string }) {
+  const players = useTopicPlayers(topicId);
+  const [sort, setSort] = useState<PlayerSortKey>("mentions");
+  const [mapping, setMapping] = useState(false);
+
+  const toolbar = (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <Button
+        variant={mapping ? "secondary" : "outline"}
+        size="sm"
+        aria-expanded={mapping}
+        onClick={() => setMapping((v) => !v)}
+      >
+        <Compass className="size-4" aria-hidden="true" />
+        Map this space
+      </Button>
+      {players.data?.length ? (
+        <label className="flex items-center gap-2 font-sans text-xs text-ink-soft">
+          Sort by
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as PlayerSortKey)}
+            className="h-8 rounded-lg border border-line bg-surface px-2 font-sans text-xs text-ink"
+          >
+            {SORTS.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+    </div>
+  );
+  const form = mapping ? (
+    <section aria-label="Map this space" className="kami-sheet p-4 sm:p-6">
+      <FindIdeasForm topicId={topicId} kind="explore" />
+    </section>
+  ) : null;
+
+  if (players.isPending) {
+    return <div className="kami-sheet h-32 animate-pulse opacity-60" aria-hidden="true" />;
+  }
+  if (players.isError) return <EmptyNote>Couldn't load players.</EmptyNote>;
+  if (!players.data.length) {
+    return (
+      <div className="flex flex-col gap-4">
+        {toolbar}
+        {form}
+        <EmptyNote>
+          No products yet. Products that people name in the quotes this topic collects show up here
+          on their own; “Map this space” goes looking for the rest and reads each one's homepage and
+          pricing page.
+        </EmptyNote>
+      </div>
+    );
+  }
+  const groups = groupPlayers(players.data, sort);
+  return (
+    <div className="flex flex-col gap-4">
+      {toolbar}
+      {form}
+      {groups.map((g) => (
+        <section key={g.category} aria-label={g.category} className="flex flex-col gap-2">
+          <h2 className="font-display text-lg text-ink">
+            {g.category}{" "}
+            <span className="font-sans text-xs text-ink-muted">{g.players.length}</span>
+          </h2>
+          <div className="kami-sheet overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left">
+              <thead>
+                <tr className="border-b border-line font-sans text-[11px] text-ink-muted">
+                  <th className="p-3 font-medium">Product</th>
+                  <th className="p-3 font-medium">For</th>
+                  <th className="p-3 font-medium">Pricing</th>
+                  <th className="p-3 text-right font-medium">Quotes</th>
+                  <th className="p-3 text-right font-medium">Complaints</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {g.players.map((p) => (
+                  <PlayerRow key={p.id} player={p} />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function PlayerRow({ player: p }: { player: PlayerView }) {
+  return (
+    <tr className="align-top">
+      <td className="p-3">
+        <div className="font-body text-sm text-ink">
+          {p.url ? (
+            <a
+              href={p.url}
+              target="_blank"
+              rel="noreferrer"
+              className="hover:text-hanko hover:underline"
+            >
+              {p.name}
+            </a>
+          ) : (
+            p.name
+          )}
+        </div>
+        <div className="font-body text-xs text-ink-soft">
+          {p.oneLiner ?? (p.filled ? "No site found." : "Not looked up yet.")}
+        </div>
+      </td>
+      <td className="p-3 font-sans text-xs text-ink-soft">
+        {p.audience ? AUDIENCE_LABEL[p.audience] : "—"}
+      </td>
+      <td className="p-3 font-sans text-xs text-ink-soft">
+        {p.plans.length ? (
+          <ul className="flex flex-col gap-0.5">
+            {p.plans.map((plan) => (
+              <li key={plan.name}>
+                {plan.name}: {plan.price}
+              </li>
+            ))}
+          </ul>
+        ) : p.freePlan ? (
+          "Has a free plan"
+        ) : (
+          "—"
+        )}
+      </td>
+      <td className="p-3 text-right font-sans text-xs text-ink tabular-nums">{p.mentions}</td>
+      <td className="p-3 text-right font-sans text-xs text-ink tabular-nums">{p.complaints}</td>
+    </tr>
   );
 }
