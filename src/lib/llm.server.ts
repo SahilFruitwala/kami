@@ -45,7 +45,11 @@ export const aiConfigured = () => aiModelChain().length > 0;
  * or null when no provider has a key.
  */
 export function aiLanguageModel(): LanguageModel | null {
-  const chain = aiModelChain();
+  return chainModel(aiModelChain());
+}
+
+/** One model over `chain` that falls back in order; null for an empty chain. */
+function chainModel(chain: AiModel[]): LanguageModel | null {
   if (!chain.length) return null;
   return fallbackModel(
     chain.map((m) => ({ id: m.id, model: languageModel(m) as ProviderModel })),
@@ -58,4 +62,26 @@ export function aiLanguageModel(): LanguageModel | null {
     // A provider that hangs (seen with Gemini) must not stall the chain.
     { attemptTimeoutMs: AI_ATTEMPT_TIMEOUT_MS },
   );
+}
+
+/**
+ * Research's model tiers. The worker tier (triage, extraction, matching) is
+ * the `AI_MODELS` chain. The writer tier (plans, idea names, reports) is
+ * `RESEARCH_WRITER_MODELS` when it names a model with a key, otherwise the
+ * worker chain, so a stronger writer is something the operator opts into.
+ * `id` names the chain (its model ids, comma-joined) for answer caching.
+ */
+export type ResearchModelTier = "worker" | "writer";
+
+export function researchModel(
+  tier: ResearchModelTier,
+): { id: string; model: LanguageModel } | null {
+  const worker = aiModelChain();
+  const writer =
+    tier === "writer"
+      ? parseModelList(process.env.RESEARCH_WRITER_MODELS, "").filter((m) => hasKey(m.provider))
+      : [];
+  const chain = writer.length ? writer : worker;
+  const model = chainModel(chain);
+  return model ? { id: chain.map((m) => m.id).join(","), model } : null;
 }

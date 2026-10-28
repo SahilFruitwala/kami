@@ -1,11 +1,15 @@
 /**
  * Firecrawl client: the `/v2/scrape` `question` format (ask one page a
  * plain-English question, used by Extracts), plus `/v2/search` and Markdown
- * page reads used by the trip agent's research tools, and page metadata for link previews.
+ * page reads used by the trip agent's research tools, page metadata for link previews,
+ * and metered search and page reads for Research runs (which report what each call cost).
  *
  * Kept free of DB / framework imports so the request builder and response
  * parser can be unit-tested (scripts/firecrawl.test.mjs).
  */
+
+import { PageReadError, parseRetryAfter } from "./page-read-error.ts";
+import { SCRAPE_CREDIT_COST, searchCreditCost } from "./research/estimate.ts";
 
 export const FIRECRAWL_SCRAPE_URL = "https://api.firecrawl.dev/v2/scrape";
 /** Reuse a Firecrawl-cached copy of the page up to this old (2 days). */
@@ -15,16 +19,15 @@ const TIMEOUT_MS = 90_000;
 /** Answers are short by design; cap what we store. */
 export const MAX_ANSWER_CHARS = 100_000;
 
-export class FirecrawlError extends Error {
-  // Plain field (no constructor parameter property) so Node's type stripping
-  // can load this file in tests.
-  readonly status: number | undefined;
-  constructor(message: string, status?: number) {
-    super(message);
+/** A Firecrawl failure; a `PageReadError`, so research handles it like any page source's. */
+export class FirecrawlError extends PageReadError {
+  constructor(message: string, status?: number, retryAfterMs?: number) {
+    super(message, status, retryAfterMs);
     this.name = "FirecrawlError";
-    this.status = status;
   }
 }
+
+export { parseRetryAfter };
 
 export type QuestionRequest = {
   url: string;
@@ -105,12 +108,21 @@ async function firecrawlPost(url: string, body: unknown, timeoutMs = TIMEOUT_MS)
   const payload: unknown = await res.json().catch(() => null);
   if (!res.ok) {
     // Never echo upstream auth errors (they'd reveal key state to users).
-    if (res.status === 401 || res.status === 403) {
+    if (res.status === 401) {
       throw new FirecrawlError("Firecrawl rejected the server's API key.", 502);
     }
+    // 403 is Firecrawl refusing the site (e.g. reddit.com), not the key.
+    if (res.status === 403) {
+      throw new FirecrawlError("Firecrawl can't read pages on this site.", 422);
+    }
     if (res.status === 402) throw new FirecrawlError("Firecrawl credits are used up.", 502);
-    if (res.status === 429)
-      throw new FirecrawlError("Firecrawl is rate limiting — try again shortly.", 429);
+    if (res.status === 429) {
+      throw new FirecrawlError(
+        "Firecrawl is rate limiting — try again shortly.",
+        429,
+        parseRetryAfter(res.headers.get("retry-after")),
+      );
+    }
     const upstream =
       payload &&
       typeof payload === "object" &&
@@ -146,8 +158,12 @@ export function buildSearchBody(query: string, limit = 5) {
   };
 }
 
-/** Read search results; accepts the v2 `{ data: { web: [] } }` and a flat `{ data: [] }` shape. */
-export function parseSearchResponse(payload: unknown): SearchResult[] {
+/**
+ * Read search results; accepts the v2 `{ data: { web: [] } }` and a flat
+ * `{ data: [] }` shape. Keeps at most `max` (the trip agent's cap unless a
+ * caller asks for more).
+ */
+export function parseSearchResponse(payload: unknown, max = MAX_SEARCH_RESULTS): SearchResult[] {
   if (!payload || typeof payload !== "object") {
     throw new FirecrawlError("Firecrawl returned an unreadable response.");
   }
@@ -174,7 +190,7 @@ export function parseSearchResponse(payload: unknown): SearchResult[] {
       description: typeof e.description === "string" ? e.description.slice(0, 600) : "",
     });
   }
-  return results.slice(0, MAX_SEARCH_RESULTS);
+  return results.slice(0, max);
 }
 
 export function buildReadBody(url: string) {
@@ -249,6 +265,138 @@ export async function readPageMetadata(url: string): Promise<PageMetadata> {
       FIRECRAWL_SCRAPE_URL,
       { url, onlyMainContent: true, maxAge: DEFAULT_MAX_AGE_MS, formats: ["markdown"] },
       30_000,
+    ),
+  );
+}
+
+// ---------- Research search + page reads (metered) ----------
+
+/** Research asks for more results per query than the trip agent; Firecrawl bills per 10. */
+export const RESEARCH_MAX_SEARCH_RESULTS = 20;
+/** Research reads run in the background, so they get the full scrape timeout. */
+const RESEARCH_SCRAPE_TIMEOUT_MS = 60_000;
+
+// Firecrawl's prices, kept with the run estimate (pure, used in the browser too).
+export { SCRAPE_CREDIT_COST, searchCreditCost };
+
+/**
+ * Firecrawl's own count of credits a call used, when the response carries
+ * one (`creditsUsed` at the top level, or in `data.metadata` for scrapes).
+ */
+export function parseCreditsUsed(payload: unknown): number | null {
+  const body = payload as {
+    creditsUsed?: unknown;
+    data?: { metadata?: { creditsUsed?: unknown } };
+  } | null;
+  const value = body?.creditsUsed ?? body?.data?.metadata?.creditsUsed;
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+/** `tbs` for "results from the last `months` months" (Google's custom date range). */
+export function sinceMonthsTbs(months: number, now: Date): string {
+  const from = new Date(now);
+  from.setUTCMonth(from.getUTCMonth() - Math.max(1, Math.floor(months)));
+  const day = `${from.getUTCMonth() + 1}/${from.getUTCDate()}/${from.getUTCFullYear()}`;
+  return `cdr:1,cd_min:${day}`;
+}
+
+export function buildResearchSearchBody(
+  query: string,
+  limit: number,
+  options: { sinceMonths?: number; now?: Date } = {},
+) {
+  return {
+    query,
+    limit: Math.min(RESEARCH_MAX_SEARCH_RESULTS, Math.max(1, Math.floor(limit))),
+    sources: ["web"],
+    ...(options.sinceMonths
+      ? { tbs: sinceMonthsTbs(options.sinceMonths, options.now ?? new Date()) }
+      : {}),
+  };
+}
+
+export type ResearchSearch = { results: SearchResult[]; credits: number };
+
+/** Search the web for a research run, with what it cost. */
+export async function researchSearch(
+  query: string,
+  limit: number,
+  options: { sinceMonths?: number } = {},
+): Promise<ResearchSearch> {
+  const body = buildResearchSearchBody(query, limit, options);
+  const payload = await firecrawlPost(FIRECRAWL_SEARCH_URL, body, RESEARCH_TIMEOUT_MS);
+  const results = parseSearchResponse(payload, RESEARCH_MAX_SEARCH_RESULTS);
+  return { results, credits: parseCreditsUsed(payload) ?? searchCreditCost(results.length) };
+}
+
+/**
+ * A main-content Markdown scrape. No PDF parser: Firecrawl bills PDFs per
+ * page, and research skips PDFs before scraping anyway.
+ */
+export function buildResearchScrapeBody(url: string) {
+  return {
+    url,
+    onlyMainContent: true,
+    maxAge: DEFAULT_MAX_AGE_MS,
+    parsers: [],
+    formats: ["markdown"],
+  };
+}
+
+export type ResearchPage = {
+  markdown: string;
+  title: string;
+  publishedAt: Date | null;
+  credits: number;
+};
+
+/** A date from page metadata, when it is one. */
+function metadataDate(m: Record<string, unknown>): Date | null {
+  for (const key of ["publishedTime", "article:published_time", "datePublished", "date"]) {
+    const v = m[key];
+    if (typeof v !== "string") continue;
+    const d = new Date(v);
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
+/** Pull the page Markdown, title, date and cost out of a research scrape response. */
+export function parseResearchScrapeResponse(payload: unknown): ResearchPage {
+  if (!payload || typeof payload !== "object") {
+    throw new FirecrawlError("Firecrawl returned an unreadable response.");
+  }
+  const body = payload as { success?: boolean; error?: unknown; data?: unknown };
+  if (body.success === false) {
+    throw new FirecrawlError(
+      typeof body.error === "string" && body.error
+        ? body.error
+        : "Firecrawl could not read that page.",
+    );
+  }
+  const data = (body.data ?? {}) as { markdown?: unknown; metadata?: Record<string, unknown> };
+  if (typeof data.markdown !== "string" || !data.markdown.trim()) {
+    throw new FirecrawlError("That page had no readable text.");
+  }
+  const m = data.metadata ?? {};
+  const title = [m.title, m["og:title"], m.ogTitle].find(
+    (t): t is string => typeof t === "string" && Boolean(t.trim()),
+  );
+  return {
+    markdown: data.markdown,
+    title: title?.trim().slice(0, 300) ?? "",
+    publishedAt: metadataDate(m),
+    credits: parseCreditsUsed(payload) ?? SCRAPE_CREDIT_COST,
+  };
+}
+
+/** Read one page for a research run, with what it cost. Untrimmed; the caller trims and caps. */
+export async function researchScrape(url: string): Promise<ResearchPage> {
+  return parseResearchScrapeResponse(
+    await firecrawlPost(
+      FIRECRAWL_SCRAPE_URL,
+      buildResearchScrapeBody(url),
+      RESEARCH_SCRAPE_TIMEOUT_MS,
     ),
   );
 }

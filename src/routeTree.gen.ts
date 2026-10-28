@@ -23,6 +23,9 @@ import { Route as ShelvesRouteRouteImport } from './routes/shelves/route'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as ApiImgRouteImport } from './routes/api/img'
 import { Route as LoginSplatRouteImport } from './routes/login.$'
+import { Route as ResearchIndexRouteImport } from './routes/research/index'
+import { Route as ResearchTopicIdRouteImport } from './routes/research/$topicId'
+import { Route as ResearchDebugRouteImport } from './routes/research/debug'
 import { Route as ShelvesIndexRouteImport } from './routes/shelves/index'
 import { Route as ShelvesWishlistRouteImport } from './routes/shelves/wishlist'
 import { Route as SignUpSplatRouteImport } from './routes/sign-up.$'
@@ -58,9 +61,14 @@ import { Route as ApiLookupTmdbRouteImport } from './routes/api/lookup/tmdb'
 import { Route as ApiLookupWatchProvidersRouteImport } from './routes/api/lookup/watch-providers'
 import { Route as ApiNarrationsIdRouteImport } from './routes/api/narrations/$id'
 import { Route as ApiNarrationsRunRouteImport } from './routes/api/narrations/run'
+import { Route as ApiResearchCreditsRouteImport } from './routes/api/research/credits'
+import { Route as ApiResearchRunRouteImport } from './routes/api/research/run'
+import { Route as ApiResearchStatusRouteImport } from './routes/api/research/status'
 import { Route as ApiShelvesCountsRouteImport } from './routes/api/shelves/counts'
 import { Route as ApiTripsIndexRouteImport } from './routes/api/trips/index'
 import { Route as ApiTripsIdRouteImport } from './routes/api/trips/$id'
+import { Route as ResearchReportsReportIdRouteImport } from './routes/research/reports/$reportId'
+import { Route as ResearchRunsRunIdRouteImport } from './routes/research/runs/$runId'
 import { Route as ShelvesBooksIndexRouteImport } from './routes/shelves/books/index'
 import { Route as ShelvesBooksIdRouteImport } from './routes/shelves/books/$id'
 import { Route as ShelvesMoviesIndexRouteImport } from './routes/shelves/movies/index'
@@ -79,6 +87,14 @@ import { Route as ApiLibraryItemsIndexRouteImport } from './routes/api/library/i
 import { Route as ApiLibraryItemsIdRouteImport } from './routes/api/library/items/$id'
 import { Route as ApiNarrationsIdAudioRouteImport } from './routes/api/narrations/$id/audio'
 import { Route as ApiNarrationsIdPositionRouteImport } from './routes/api/narrations/$id/position'
+import { Route as ApiResearchDebugIndexRouteImport } from './routes/api/research/debug/index'
+import { Route as ApiResearchIdeasIdRouteImport } from './routes/api/research/ideas/$id'
+import { Route as ApiResearchIdeasMergeRouteImport } from './routes/api/research/ideas/merge'
+import { Route as ApiResearchReportsIdRouteImport } from './routes/api/research/reports/$id'
+import { Route as ApiResearchRunsIndexRouteImport } from './routes/api/research/runs/index'
+import { Route as ApiResearchRunsIdRouteImport } from './routes/api/research/runs/$id'
+import { Route as ApiResearchTopicsIndexRouteImport } from './routes/api/research/topics/index'
+import { Route as ApiResearchTopicsIdRouteImport } from './routes/api/research/topics/$id'
 import { Route as ApiShelvesTypeIndexRouteImport } from './routes/api/shelves/$type/index'
 import { Route as ApiShelvesTypeIdRouteImport } from './routes/api/shelves/$type/$id'
 import { Route as ApiShelvesTypeDuplicatesRouteImport } from './routes/api/shelves/$type/duplicates'
@@ -94,11 +110,23 @@ import { Route as ApiAiArticlesIdSummaryRouteImport } from './routes/api/ai/arti
 import { Route as ApiAiArticlesIdTidyRouteImport } from './routes/api/ai/articles/$id/tidy'
 import { Route as ApiExtractsResultsIdAcceptRouteImport } from './routes/api/extracts/results/$id/accept'
 import { Route as ApiFeedsEntriesIdArticleRouteImport } from './routes/api/feeds/entries/$id/article'
+import { Route as ApiResearchDebugRunsIndexRouteImport } from './routes/api/research/debug/runs/index'
+import { Route as ApiResearchDebugRunsIdRouteImport } from './routes/api/research/debug/runs/$id'
+import { Route as ApiResearchIdeasIdValidateRouteImport } from './routes/api/research/ideas/$id/validate'
+import { Route as ApiResearchRunsIdStartRouteImport } from './routes/api/research/runs/$id/start'
+import { Route as ApiResearchRunsIdStopRouteImport } from './routes/api/research/runs/$id/stop'
+import { Route as ApiResearchTopicsIdIdeasRouteImport } from './routes/api/research/topics/$id/ideas'
+import { Route as ApiResearchTopicsIdLinksRouteImport } from './routes/api/research/topics/$id/links'
+import { Route as ApiResearchTopicsIdPlayersRouteImport } from './routes/api/research/topics/$id/players'
+import { Route as ApiResearchTopicsIdReportsRouteImport } from './routes/api/research/topics/$id/reports'
+import { Route as ApiResearchTopicsIdSourcesRouteImport } from './routes/api/research/topics/$id/sources'
 import { Route as ApiShelvesBookIdPageCountRouteImport } from './routes/api/shelves/book/$id/page-count'
 import { Route as ApiShelvesBookIdProgressRouteImport } from './routes/api/shelves/book/$id/progress'
 import { Route as ApiShelvesTvIdWatchedRouteImport } from './routes/api/shelves/tv/$id/watched'
 import { Route as ApiTripsIdHotelsHotelIdRouteImport } from './routes/api/trips/$id/hotels/$hotelId'
 import { Route as ApiTripsIdItemsItemIdRouteImport } from './routes/api/trips/$id/items/$itemId'
+import { Route as ApiResearchDebugRunsIdStartRouteImport } from './routes/api/research/debug/runs/$id/start'
+import { Route as ApiResearchDebugRunsIdStopRouteImport } from './routes/api/research/debug/runs/$id/stop'
 import { Route as ApiShelvesTvIdEpisodesToggleRouteImport } from './routes/api/shelves/tv/$id/episodes/toggle'
 import { Route as ApiShelvesTvIdSeasonsIndexRouteImport } from './routes/api/shelves/tv/$id/seasons/index'
 import { Route as ApiShelvesTvIdSeasonsSeasonRouteImport } from './routes/api/shelves/tv/$id/seasons/$season'
@@ -172,6 +200,21 @@ const ApiImgRoute = ApiImgRouteImport.update({
 const LoginSplatRoute = LoginSplatRouteImport.update({
   id: '/login/$',
   path: '/login/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResearchIndexRoute = ResearchIndexRouteImport.update({
+  id: '/research/',
+  path: '/research/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResearchTopicIdRoute = ResearchTopicIdRouteImport.update({
+  id: '/research/$topicId',
+  path: '/research/$topicId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResearchDebugRoute = ResearchDebugRouteImport.update({
+  id: '/research/debug',
+  path: '/research/debug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShelvesIndexRoute = ShelvesIndexRouteImport.update({
@@ -349,6 +392,21 @@ const ApiNarrationsRunRoute = ApiNarrationsRunRouteImport.update({
   path: '/api/narrations/run',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiResearchCreditsRoute = ApiResearchCreditsRouteImport.update({
+  id: '/api/research/credits',
+  path: '/api/research/credits',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResearchRunRoute = ApiResearchRunRouteImport.update({
+  id: '/api/research/run',
+  path: '/api/research/run',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResearchStatusRoute = ApiResearchStatusRouteImport.update({
+  id: '/api/research/status',
+  path: '/api/research/status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiShelvesCountsRoute = ApiShelvesCountsRouteImport.update({
   id: '/api/shelves/counts',
   path: '/api/shelves/counts',
@@ -362,6 +420,16 @@ const ApiTripsIndexRoute = ApiTripsIndexRouteImport.update({
 const ApiTripsIdRoute = ApiTripsIdRouteImport.update({
   id: '/api/trips/$id',
   path: '/api/trips/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResearchReportsReportIdRoute = ResearchReportsReportIdRouteImport.update({
+  id: '/research/reports/$reportId',
+  path: '/research/reports/$reportId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResearchRunsRunIdRoute = ResearchRunsRunIdRouteImport.update({
+  id: '/research/runs/$runId',
+  path: '/research/runs/$runId',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShelvesBooksIndexRoute = ShelvesBooksIndexRouteImport.update({
@@ -454,6 +522,46 @@ const ApiNarrationsIdPositionRoute = ApiNarrationsIdPositionRouteImport.update({
   path: '/position',
   getParentRoute: () => ApiNarrationsIdRoute,
 } as any)
+const ApiResearchDebugIndexRoute = ApiResearchDebugIndexRouteImport.update({
+  id: '/api/research/debug/',
+  path: '/api/research/debug/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResearchIdeasIdRoute = ApiResearchIdeasIdRouteImport.update({
+  id: '/api/research/ideas/$id',
+  path: '/api/research/ideas/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResearchIdeasMergeRoute = ApiResearchIdeasMergeRouteImport.update({
+  id: '/api/research/ideas/merge',
+  path: '/api/research/ideas/merge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResearchReportsIdRoute = ApiResearchReportsIdRouteImport.update({
+  id: '/api/research/reports/$id',
+  path: '/api/research/reports/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResearchRunsIndexRoute = ApiResearchRunsIndexRouteImport.update({
+  id: '/api/research/runs/',
+  path: '/api/research/runs/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResearchRunsIdRoute = ApiResearchRunsIdRouteImport.update({
+  id: '/api/research/runs/$id',
+  path: '/api/research/runs/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResearchTopicsIndexRoute = ApiResearchTopicsIndexRouteImport.update({
+  id: '/api/research/topics/',
+  path: '/api/research/topics/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResearchTopicsIdRoute = ApiResearchTopicsIdRouteImport.update({
+  id: '/api/research/topics/$id',
+  path: '/api/research/topics/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiShelvesTypeIndexRoute = ApiShelvesTypeIndexRouteImport.update({
   id: '/api/shelves/$type/',
   path: '/api/shelves/$type/',
@@ -533,6 +641,63 @@ const ApiFeedsEntriesIdArticleRoute =
     path: '/api/feeds/entries/$id/article',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiResearchDebugRunsIndexRoute =
+  ApiResearchDebugRunsIndexRouteImport.update({
+    id: '/api/research/debug/runs/',
+    path: '/api/research/debug/runs/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiResearchDebugRunsIdRoute = ApiResearchDebugRunsIdRouteImport.update({
+  id: '/api/research/debug/runs/$id',
+  path: '/api/research/debug/runs/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiResearchIdeasIdValidateRoute =
+  ApiResearchIdeasIdValidateRouteImport.update({
+    id: '/validate',
+    path: '/validate',
+    getParentRoute: () => ApiResearchIdeasIdRoute,
+  } as any)
+const ApiResearchRunsIdStartRoute = ApiResearchRunsIdStartRouteImport.update({
+  id: '/start',
+  path: '/start',
+  getParentRoute: () => ApiResearchRunsIdRoute,
+} as any)
+const ApiResearchRunsIdStopRoute = ApiResearchRunsIdStopRouteImport.update({
+  id: '/stop',
+  path: '/stop',
+  getParentRoute: () => ApiResearchRunsIdRoute,
+} as any)
+const ApiResearchTopicsIdIdeasRoute =
+  ApiResearchTopicsIdIdeasRouteImport.update({
+    id: '/ideas',
+    path: '/ideas',
+    getParentRoute: () => ApiResearchTopicsIdRoute,
+  } as any)
+const ApiResearchTopicsIdLinksRoute =
+  ApiResearchTopicsIdLinksRouteImport.update({
+    id: '/links',
+    path: '/links',
+    getParentRoute: () => ApiResearchTopicsIdRoute,
+  } as any)
+const ApiResearchTopicsIdPlayersRoute =
+  ApiResearchTopicsIdPlayersRouteImport.update({
+    id: '/players',
+    path: '/players',
+    getParentRoute: () => ApiResearchTopicsIdRoute,
+  } as any)
+const ApiResearchTopicsIdReportsRoute =
+  ApiResearchTopicsIdReportsRouteImport.update({
+    id: '/reports',
+    path: '/reports',
+    getParentRoute: () => ApiResearchTopicsIdRoute,
+  } as any)
+const ApiResearchTopicsIdSourcesRoute =
+  ApiResearchTopicsIdSourcesRouteImport.update({
+    id: '/sources',
+    path: '/sources',
+    getParentRoute: () => ApiResearchTopicsIdRoute,
+  } as any)
 const ApiShelvesBookIdPageCountRoute =
   ApiShelvesBookIdPageCountRouteImport.update({
     id: '/api/shelves/book/$id/page-count',
@@ -560,6 +725,18 @@ const ApiTripsIdItemsItemIdRoute = ApiTripsIdItemsItemIdRouteImport.update({
   path: '/$itemId',
   getParentRoute: () => ApiTripsIdItemsRoute,
 } as any)
+const ApiResearchDebugRunsIdStartRoute =
+  ApiResearchDebugRunsIdStartRouteImport.update({
+    id: '/start',
+    path: '/start',
+    getParentRoute: () => ApiResearchDebugRunsIdRoute,
+  } as any)
+const ApiResearchDebugRunsIdStopRoute =
+  ApiResearchDebugRunsIdStopRouteImport.update({
+    id: '/stop',
+    path: '/stop',
+    getParentRoute: () => ApiResearchDebugRunsIdRoute,
+  } as any)
 const ApiShelvesTvIdEpisodesToggleRoute =
   ApiShelvesTvIdEpisodesToggleRouteImport.update({
     id: '/api/shelves/tv/$id/episodes/toggle',
@@ -600,9 +777,12 @@ export interface FileRoutesByFullPath {
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
   '/login/$': typeof LoginSplatRoute
+  '/research/$topicId': typeof ResearchTopicIdRoute
+  '/research/debug': typeof ResearchDebugRoute
   '/shelves/wishlist': typeof ShelvesWishlistRoute
   '/sign-up/$': typeof SignUpSplatRoute
   '/trips/$id': typeof TripsIdRoute
+  '/research/': typeof ResearchIndexRoute
   '/shelves/': typeof ShelvesIndexRoute
   '/trips/': typeof TripsIndexRoute
   '/api/ai/organize': typeof ApiAiOrganizeRoute
@@ -630,8 +810,13 @@ export interface FileRoutesByFullPath {
   '/api/lookup/watch-providers': typeof ApiLookupWatchProvidersRoute
   '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
   '/api/narrations/run': typeof ApiNarrationsRunRoute
+  '/api/research/credits': typeof ApiResearchCreditsRoute
+  '/api/research/run': typeof ApiResearchRunRoute
+  '/api/research/status': typeof ApiResearchStatusRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
   '/api/trips/$id': typeof ApiTripsIdRouteWithChildren
+  '/research/reports/$reportId': typeof ResearchReportsReportIdRoute
+  '/research/runs/$runId': typeof ResearchRunsRunIdRoute
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
@@ -653,6 +838,11 @@ export interface FileRoutesByFullPath {
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
   '/api/narrations/$id/position': typeof ApiNarrationsIdPositionRoute
+  '/api/research/ideas/$id': typeof ApiResearchIdeasIdRouteWithChildren
+  '/api/research/ideas/merge': typeof ApiResearchIdeasMergeRoute
+  '/api/research/reports/$id': typeof ApiResearchReportsIdRoute
+  '/api/research/runs/$id': typeof ApiResearchRunsIdRouteWithChildren
+  '/api/research/topics/$id': typeof ApiResearchTopicsIdRouteWithChildren
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
@@ -663,6 +853,9 @@ export interface FileRoutesByFullPath {
   '/api/feeds/entries/': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
+  '/api/research/debug/': typeof ApiResearchDebugIndexRoute
+  '/api/research/runs/': typeof ApiResearchRunsIndexRoute
+  '/api/research/topics/': typeof ApiResearchTopicsIndexRoute
   '/api/shelves/$type/': typeof ApiShelvesTypeIndexRoute
   '/api/ai/articles/$id/autotag': typeof ApiAiArticlesIdAutotagRoute
   '/api/ai/articles/$id/original': typeof ApiAiArticlesIdOriginalRoute
@@ -671,11 +864,23 @@ export interface FileRoutesByFullPath {
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
   '/api/extracts/results/$id/accept': typeof ApiExtractsResultsIdAcceptRoute
   '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
+  '/api/research/debug/runs/$id': typeof ApiResearchDebugRunsIdRouteWithChildren
+  '/api/research/ideas/$id/validate': typeof ApiResearchIdeasIdValidateRoute
+  '/api/research/runs/$id/start': typeof ApiResearchRunsIdStartRoute
+  '/api/research/runs/$id/stop': typeof ApiResearchRunsIdStopRoute
+  '/api/research/topics/$id/ideas': typeof ApiResearchTopicsIdIdeasRoute
+  '/api/research/topics/$id/links': typeof ApiResearchTopicsIdLinksRoute
+  '/api/research/topics/$id/players': typeof ApiResearchTopicsIdPlayersRoute
+  '/api/research/topics/$id/reports': typeof ApiResearchTopicsIdReportsRoute
+  '/api/research/topics/$id/sources': typeof ApiResearchTopicsIdSourcesRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
   '/api/shelves/book/$id/progress': typeof ApiShelvesBookIdProgressRoute
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
   '/api/trips/$id/hotels/$hotelId': typeof ApiTripsIdHotelsHotelIdRoute
   '/api/trips/$id/items/$itemId': typeof ApiTripsIdItemsItemIdRouteWithChildren
+  '/api/research/debug/runs/': typeof ApiResearchDebugRunsIndexRoute
+  '/api/research/debug/runs/$id/start': typeof ApiResearchDebugRunsIdStartRoute
+  '/api/research/debug/runs/$id/stop': typeof ApiResearchDebugRunsIdStopRoute
   '/api/shelves/tv/$id/episodes/toggle': typeof ApiShelvesTvIdEpisodesToggleRoute
   '/api/shelves/tv/$id/seasons/$season': typeof ApiShelvesTvIdSeasonsSeasonRoute
   '/api/trips/$id/items/$itemId/move': typeof ApiTripsIdItemsItemIdMoveRoute
@@ -695,9 +900,12 @@ export interface FileRoutesByTo {
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
   '/login/$': typeof LoginSplatRoute
+  '/research/$topicId': typeof ResearchTopicIdRoute
+  '/research/debug': typeof ResearchDebugRoute
   '/shelves/wishlist': typeof ShelvesWishlistRoute
   '/sign-up/$': typeof SignUpSplatRoute
   '/trips/$id': typeof TripsIdRoute
+  '/research': typeof ResearchIndexRoute
   '/shelves': typeof ShelvesIndexRoute
   '/trips': typeof TripsIndexRoute
   '/api/ai/organize': typeof ApiAiOrganizeRoute
@@ -725,8 +933,13 @@ export interface FileRoutesByTo {
   '/api/lookup/watch-providers': typeof ApiLookupWatchProvidersRoute
   '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
   '/api/narrations/run': typeof ApiNarrationsRunRoute
+  '/api/research/credits': typeof ApiResearchCreditsRoute
+  '/api/research/run': typeof ApiResearchRunRoute
+  '/api/research/status': typeof ApiResearchStatusRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
   '/api/trips/$id': typeof ApiTripsIdRouteWithChildren
+  '/research/reports/$reportId': typeof ResearchReportsReportIdRoute
+  '/research/runs/$runId': typeof ResearchRunsRunIdRoute
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
@@ -748,6 +961,11 @@ export interface FileRoutesByTo {
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
   '/api/narrations/$id/position': typeof ApiNarrationsIdPositionRoute
+  '/api/research/ideas/$id': typeof ApiResearchIdeasIdRouteWithChildren
+  '/api/research/ideas/merge': typeof ApiResearchIdeasMergeRoute
+  '/api/research/reports/$id': typeof ApiResearchReportsIdRoute
+  '/api/research/runs/$id': typeof ApiResearchRunsIdRouteWithChildren
+  '/api/research/topics/$id': typeof ApiResearchTopicsIdRouteWithChildren
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
@@ -758,6 +976,9 @@ export interface FileRoutesByTo {
   '/api/feeds/entries': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items': typeof ApiLibraryItemsIndexRoute
+  '/api/research/debug': typeof ApiResearchDebugIndexRoute
+  '/api/research/runs': typeof ApiResearchRunsIndexRoute
+  '/api/research/topics': typeof ApiResearchTopicsIndexRoute
   '/api/shelves/$type': typeof ApiShelvesTypeIndexRoute
   '/api/ai/articles/$id/autotag': typeof ApiAiArticlesIdAutotagRoute
   '/api/ai/articles/$id/original': typeof ApiAiArticlesIdOriginalRoute
@@ -766,11 +987,23 @@ export interface FileRoutesByTo {
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
   '/api/extracts/results/$id/accept': typeof ApiExtractsResultsIdAcceptRoute
   '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
+  '/api/research/debug/runs/$id': typeof ApiResearchDebugRunsIdRouteWithChildren
+  '/api/research/ideas/$id/validate': typeof ApiResearchIdeasIdValidateRoute
+  '/api/research/runs/$id/start': typeof ApiResearchRunsIdStartRoute
+  '/api/research/runs/$id/stop': typeof ApiResearchRunsIdStopRoute
+  '/api/research/topics/$id/ideas': typeof ApiResearchTopicsIdIdeasRoute
+  '/api/research/topics/$id/links': typeof ApiResearchTopicsIdLinksRoute
+  '/api/research/topics/$id/players': typeof ApiResearchTopicsIdPlayersRoute
+  '/api/research/topics/$id/reports': typeof ApiResearchTopicsIdReportsRoute
+  '/api/research/topics/$id/sources': typeof ApiResearchTopicsIdSourcesRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
   '/api/shelves/book/$id/progress': typeof ApiShelvesBookIdProgressRoute
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
   '/api/trips/$id/hotels/$hotelId': typeof ApiTripsIdHotelsHotelIdRoute
   '/api/trips/$id/items/$itemId': typeof ApiTripsIdItemsItemIdRouteWithChildren
+  '/api/research/debug/runs': typeof ApiResearchDebugRunsIndexRoute
+  '/api/research/debug/runs/$id/start': typeof ApiResearchDebugRunsIdStartRoute
+  '/api/research/debug/runs/$id/stop': typeof ApiResearchDebugRunsIdStopRoute
   '/api/shelves/tv/$id/episodes/toggle': typeof ApiShelvesTvIdEpisodesToggleRoute
   '/api/shelves/tv/$id/seasons/$season': typeof ApiShelvesTvIdSeasonsSeasonRoute
   '/api/trips/$id/items/$itemId/move': typeof ApiTripsIdItemsItemIdMoveRoute
@@ -792,9 +1025,12 @@ export interface FileRoutesById {
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
   '/login/$': typeof LoginSplatRoute
+  '/research/$topicId': typeof ResearchTopicIdRoute
+  '/research/debug': typeof ResearchDebugRoute
   '/shelves/wishlist': typeof ShelvesWishlistRoute
   '/sign-up/$': typeof SignUpSplatRoute
   '/trips/$id': typeof TripsIdRoute
+  '/research/': typeof ResearchIndexRoute
   '/shelves/': typeof ShelvesIndexRoute
   '/trips/': typeof TripsIndexRoute
   '/api/ai/organize': typeof ApiAiOrganizeRoute
@@ -822,8 +1058,13 @@ export interface FileRoutesById {
   '/api/lookup/watch-providers': typeof ApiLookupWatchProvidersRoute
   '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
   '/api/narrations/run': typeof ApiNarrationsRunRoute
+  '/api/research/credits': typeof ApiResearchCreditsRoute
+  '/api/research/run': typeof ApiResearchRunRoute
+  '/api/research/status': typeof ApiResearchStatusRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
   '/api/trips/$id': typeof ApiTripsIdRouteWithChildren
+  '/research/reports/$reportId': typeof ResearchReportsReportIdRoute
+  '/research/runs/$runId': typeof ResearchRunsRunIdRoute
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
@@ -845,6 +1086,11 @@ export interface FileRoutesById {
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
   '/api/narrations/$id/position': typeof ApiNarrationsIdPositionRoute
+  '/api/research/ideas/$id': typeof ApiResearchIdeasIdRouteWithChildren
+  '/api/research/ideas/merge': typeof ApiResearchIdeasMergeRoute
+  '/api/research/reports/$id': typeof ApiResearchReportsIdRoute
+  '/api/research/runs/$id': typeof ApiResearchRunsIdRouteWithChildren
+  '/api/research/topics/$id': typeof ApiResearchTopicsIdRouteWithChildren
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
@@ -855,6 +1101,9 @@ export interface FileRoutesById {
   '/api/feeds/entries/': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
+  '/api/research/debug/': typeof ApiResearchDebugIndexRoute
+  '/api/research/runs/': typeof ApiResearchRunsIndexRoute
+  '/api/research/topics/': typeof ApiResearchTopicsIndexRoute
   '/api/shelves/$type/': typeof ApiShelvesTypeIndexRoute
   '/api/ai/articles/$id/autotag': typeof ApiAiArticlesIdAutotagRoute
   '/api/ai/articles/$id/original': typeof ApiAiArticlesIdOriginalRoute
@@ -863,11 +1112,23 @@ export interface FileRoutesById {
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
   '/api/extracts/results/$id/accept': typeof ApiExtractsResultsIdAcceptRoute
   '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
+  '/api/research/debug/runs/$id': typeof ApiResearchDebugRunsIdRouteWithChildren
+  '/api/research/ideas/$id/validate': typeof ApiResearchIdeasIdValidateRoute
+  '/api/research/runs/$id/start': typeof ApiResearchRunsIdStartRoute
+  '/api/research/runs/$id/stop': typeof ApiResearchRunsIdStopRoute
+  '/api/research/topics/$id/ideas': typeof ApiResearchTopicsIdIdeasRoute
+  '/api/research/topics/$id/links': typeof ApiResearchTopicsIdLinksRoute
+  '/api/research/topics/$id/players': typeof ApiResearchTopicsIdPlayersRoute
+  '/api/research/topics/$id/reports': typeof ApiResearchTopicsIdReportsRoute
+  '/api/research/topics/$id/sources': typeof ApiResearchTopicsIdSourcesRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
   '/api/shelves/book/$id/progress': typeof ApiShelvesBookIdProgressRoute
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
   '/api/trips/$id/hotels/$hotelId': typeof ApiTripsIdHotelsHotelIdRoute
   '/api/trips/$id/items/$itemId': typeof ApiTripsIdItemsItemIdRouteWithChildren
+  '/api/research/debug/runs/': typeof ApiResearchDebugRunsIndexRoute
+  '/api/research/debug/runs/$id/start': typeof ApiResearchDebugRunsIdStartRoute
+  '/api/research/debug/runs/$id/stop': typeof ApiResearchDebugRunsIdStopRoute
   '/api/shelves/tv/$id/episodes/toggle': typeof ApiShelvesTvIdEpisodesToggleRoute
   '/api/shelves/tv/$id/seasons/$season': typeof ApiShelvesTvIdSeasonsSeasonRoute
   '/api/trips/$id/items/$itemId/move': typeof ApiTripsIdItemsItemIdMoveRoute
@@ -890,9 +1151,12 @@ export interface FileRouteTypes {
     | '/vault'
     | '/api/img'
     | '/login/$'
+    | '/research/$topicId'
+    | '/research/debug'
     | '/shelves/wishlist'
     | '/sign-up/$'
     | '/trips/$id'
+    | '/research/'
     | '/shelves/'
     | '/trips/'
     | '/api/ai/organize'
@@ -920,8 +1184,13 @@ export interface FileRouteTypes {
     | '/api/lookup/watch-providers'
     | '/api/narrations/$id'
     | '/api/narrations/run'
+    | '/api/research/credits'
+    | '/api/research/run'
+    | '/api/research/status'
     | '/api/shelves/counts'
     | '/api/trips/$id'
+    | '/research/reports/$reportId'
+    | '/research/runs/$runId'
     | '/shelves/books/$id'
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
@@ -943,6 +1212,11 @@ export interface FileRouteTypes {
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
     | '/api/narrations/$id/position'
+    | '/api/research/ideas/$id'
+    | '/api/research/ideas/merge'
+    | '/api/research/reports/$id'
+    | '/api/research/runs/$id'
+    | '/api/research/topics/$id'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
@@ -953,6 +1227,9 @@ export interface FileRouteTypes {
     | '/api/feeds/entries/'
     | '/api/library/folders/'
     | '/api/library/items/'
+    | '/api/research/debug/'
+    | '/api/research/runs/'
+    | '/api/research/topics/'
     | '/api/shelves/$type/'
     | '/api/ai/articles/$id/autotag'
     | '/api/ai/articles/$id/original'
@@ -961,11 +1238,23 @@ export interface FileRouteTypes {
     | '/api/ai/articles/$id/tidy'
     | '/api/extracts/results/$id/accept'
     | '/api/feeds/entries/$id/article'
+    | '/api/research/debug/runs/$id'
+    | '/api/research/ideas/$id/validate'
+    | '/api/research/runs/$id/start'
+    | '/api/research/runs/$id/stop'
+    | '/api/research/topics/$id/ideas'
+    | '/api/research/topics/$id/links'
+    | '/api/research/topics/$id/players'
+    | '/api/research/topics/$id/reports'
+    | '/api/research/topics/$id/sources'
     | '/api/shelves/book/$id/page-count'
     | '/api/shelves/book/$id/progress'
     | '/api/shelves/tv/$id/watched'
     | '/api/trips/$id/hotels/$hotelId'
     | '/api/trips/$id/items/$itemId'
+    | '/api/research/debug/runs/'
+    | '/api/research/debug/runs/$id/start'
+    | '/api/research/debug/runs/$id/stop'
     | '/api/shelves/tv/$id/episodes/toggle'
     | '/api/shelves/tv/$id/seasons/$season'
     | '/api/trips/$id/items/$itemId/move'
@@ -985,9 +1274,12 @@ export interface FileRouteTypes {
     | '/vault'
     | '/api/img'
     | '/login/$'
+    | '/research/$topicId'
+    | '/research/debug'
     | '/shelves/wishlist'
     | '/sign-up/$'
     | '/trips/$id'
+    | '/research'
     | '/shelves'
     | '/trips'
     | '/api/ai/organize'
@@ -1015,8 +1307,13 @@ export interface FileRouteTypes {
     | '/api/lookup/watch-providers'
     | '/api/narrations/$id'
     | '/api/narrations/run'
+    | '/api/research/credits'
+    | '/api/research/run'
+    | '/api/research/status'
     | '/api/shelves/counts'
     | '/api/trips/$id'
+    | '/research/reports/$reportId'
+    | '/research/runs/$runId'
     | '/shelves/books/$id'
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
@@ -1038,6 +1335,11 @@ export interface FileRouteTypes {
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
     | '/api/narrations/$id/position'
+    | '/api/research/ideas/$id'
+    | '/api/research/ideas/merge'
+    | '/api/research/reports/$id'
+    | '/api/research/runs/$id'
+    | '/api/research/topics/$id'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
@@ -1048,6 +1350,9 @@ export interface FileRouteTypes {
     | '/api/feeds/entries'
     | '/api/library/folders'
     | '/api/library/items'
+    | '/api/research/debug'
+    | '/api/research/runs'
+    | '/api/research/topics'
     | '/api/shelves/$type'
     | '/api/ai/articles/$id/autotag'
     | '/api/ai/articles/$id/original'
@@ -1056,11 +1361,23 @@ export interface FileRouteTypes {
     | '/api/ai/articles/$id/tidy'
     | '/api/extracts/results/$id/accept'
     | '/api/feeds/entries/$id/article'
+    | '/api/research/debug/runs/$id'
+    | '/api/research/ideas/$id/validate'
+    | '/api/research/runs/$id/start'
+    | '/api/research/runs/$id/stop'
+    | '/api/research/topics/$id/ideas'
+    | '/api/research/topics/$id/links'
+    | '/api/research/topics/$id/players'
+    | '/api/research/topics/$id/reports'
+    | '/api/research/topics/$id/sources'
     | '/api/shelves/book/$id/page-count'
     | '/api/shelves/book/$id/progress'
     | '/api/shelves/tv/$id/watched'
     | '/api/trips/$id/hotels/$hotelId'
     | '/api/trips/$id/items/$itemId'
+    | '/api/research/debug/runs'
+    | '/api/research/debug/runs/$id/start'
+    | '/api/research/debug/runs/$id/stop'
     | '/api/shelves/tv/$id/episodes/toggle'
     | '/api/shelves/tv/$id/seasons/$season'
     | '/api/trips/$id/items/$itemId/move'
@@ -1081,9 +1398,12 @@ export interface FileRouteTypes {
     | '/vault'
     | '/api/img'
     | '/login/$'
+    | '/research/$topicId'
+    | '/research/debug'
     | '/shelves/wishlist'
     | '/sign-up/$'
     | '/trips/$id'
+    | '/research/'
     | '/shelves/'
     | '/trips/'
     | '/api/ai/organize'
@@ -1111,8 +1431,13 @@ export interface FileRouteTypes {
     | '/api/lookup/watch-providers'
     | '/api/narrations/$id'
     | '/api/narrations/run'
+    | '/api/research/credits'
+    | '/api/research/run'
+    | '/api/research/status'
     | '/api/shelves/counts'
     | '/api/trips/$id'
+    | '/research/reports/$reportId'
+    | '/research/runs/$runId'
     | '/shelves/books/$id'
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
@@ -1134,6 +1459,11 @@ export interface FileRouteTypes {
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
     | '/api/narrations/$id/position'
+    | '/api/research/ideas/$id'
+    | '/api/research/ideas/merge'
+    | '/api/research/reports/$id'
+    | '/api/research/runs/$id'
+    | '/api/research/topics/$id'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
@@ -1144,6 +1474,9 @@ export interface FileRouteTypes {
     | '/api/feeds/entries/'
     | '/api/library/folders/'
     | '/api/library/items/'
+    | '/api/research/debug/'
+    | '/api/research/runs/'
+    | '/api/research/topics/'
     | '/api/shelves/$type/'
     | '/api/ai/articles/$id/autotag'
     | '/api/ai/articles/$id/original'
@@ -1152,11 +1485,23 @@ export interface FileRouteTypes {
     | '/api/ai/articles/$id/tidy'
     | '/api/extracts/results/$id/accept'
     | '/api/feeds/entries/$id/article'
+    | '/api/research/debug/runs/$id'
+    | '/api/research/ideas/$id/validate'
+    | '/api/research/runs/$id/start'
+    | '/api/research/runs/$id/stop'
+    | '/api/research/topics/$id/ideas'
+    | '/api/research/topics/$id/links'
+    | '/api/research/topics/$id/players'
+    | '/api/research/topics/$id/reports'
+    | '/api/research/topics/$id/sources'
     | '/api/shelves/book/$id/page-count'
     | '/api/shelves/book/$id/progress'
     | '/api/shelves/tv/$id/watched'
     | '/api/trips/$id/hotels/$hotelId'
     | '/api/trips/$id/items/$itemId'
+    | '/api/research/debug/runs/'
+    | '/api/research/debug/runs/$id/start'
+    | '/api/research/debug/runs/$id/stop'
     | '/api/shelves/tv/$id/episodes/toggle'
     | '/api/shelves/tv/$id/seasons/$season'
     | '/api/trips/$id/items/$itemId/move'
@@ -1178,8 +1523,11 @@ export interface RootRouteChildren {
   VaultRoute: typeof VaultRoute
   ApiImgRoute: typeof ApiImgRoute
   LoginSplatRoute: typeof LoginSplatRoute
+  ResearchTopicIdRoute: typeof ResearchTopicIdRoute
+  ResearchDebugRoute: typeof ResearchDebugRoute
   SignUpSplatRoute: typeof SignUpSplatRoute
   TripsIdRoute: typeof TripsIdRoute
+  ResearchIndexRoute: typeof ResearchIndexRoute
   TripsIndexRoute: typeof TripsIndexRoute
   ApiAiOrganizeRoute: typeof ApiAiOrganizeRoute
   ApiAiStatusRoute: typeof ApiAiStatusRoute
@@ -1206,8 +1554,13 @@ export interface RootRouteChildren {
   ApiLookupWatchProvidersRoute: typeof ApiLookupWatchProvidersRoute
   ApiNarrationsIdRoute: typeof ApiNarrationsIdRouteWithChildren
   ApiNarrationsRunRoute: typeof ApiNarrationsRunRoute
+  ApiResearchCreditsRoute: typeof ApiResearchCreditsRoute
+  ApiResearchRunRoute: typeof ApiResearchRunRoute
+  ApiResearchStatusRoute: typeof ApiResearchStatusRoute
   ApiShelvesCountsRoute: typeof ApiShelvesCountsRoute
   ApiTripsIdRoute: typeof ApiTripsIdRouteWithChildren
+  ResearchReportsReportIdRoute: typeof ResearchReportsReportIdRoute
+  ResearchRunsRunIdRoute: typeof ResearchRunsRunIdRoute
   ApiAllowanceIndexRoute: typeof ApiAllowanceIndexRoute
   ApiExtractsIndexRoute: typeof ApiExtractsIndexRoute
   ApiFeedsIndexRoute: typeof ApiFeedsIndexRoute
@@ -1219,12 +1572,20 @@ export interface RootRouteChildren {
   ApiFeedsEntriesReadAllRoute: typeof ApiFeedsEntriesReadAllRoute
   ApiLibraryFoldersIdRoute: typeof ApiLibraryFoldersIdRoute
   ApiLibraryItemsIdRoute: typeof ApiLibraryItemsIdRoute
+  ApiResearchIdeasIdRoute: typeof ApiResearchIdeasIdRouteWithChildren
+  ApiResearchIdeasMergeRoute: typeof ApiResearchIdeasMergeRoute
+  ApiResearchReportsIdRoute: typeof ApiResearchReportsIdRoute
+  ApiResearchRunsIdRoute: typeof ApiResearchRunsIdRouteWithChildren
+  ApiResearchTopicsIdRoute: typeof ApiResearchTopicsIdRouteWithChildren
   ApiShelvesTypeIdRoute: typeof ApiShelvesTypeIdRoute
   ApiShelvesTypeDuplicatesRoute: typeof ApiShelvesTypeDuplicatesRoute
   ApiShelvesBookImportRoute: typeof ApiShelvesBookImportRoute
   ApiFeedsEntriesIndexRoute: typeof ApiFeedsEntriesIndexRoute
   ApiLibraryFoldersIndexRoute: typeof ApiLibraryFoldersIndexRoute
   ApiLibraryItemsIndexRoute: typeof ApiLibraryItemsIndexRoute
+  ApiResearchDebugIndexRoute: typeof ApiResearchDebugIndexRoute
+  ApiResearchRunsIndexRoute: typeof ApiResearchRunsIndexRoute
+  ApiResearchTopicsIndexRoute: typeof ApiResearchTopicsIndexRoute
   ApiShelvesTypeIndexRoute: typeof ApiShelvesTypeIndexRoute
   ApiAiArticlesIdAutotagRoute: typeof ApiAiArticlesIdAutotagRoute
   ApiAiArticlesIdOriginalRoute: typeof ApiAiArticlesIdOriginalRoute
@@ -1232,9 +1593,11 @@ export interface RootRouteChildren {
   ApiAiArticlesIdSummaryRoute: typeof ApiAiArticlesIdSummaryRoute
   ApiAiArticlesIdTidyRoute: typeof ApiAiArticlesIdTidyRoute
   ApiFeedsEntriesIdArticleRoute: typeof ApiFeedsEntriesIdArticleRoute
+  ApiResearchDebugRunsIdRoute: typeof ApiResearchDebugRunsIdRouteWithChildren
   ApiShelvesBookIdPageCountRoute: typeof ApiShelvesBookIdPageCountRoute
   ApiShelvesBookIdProgressRoute: typeof ApiShelvesBookIdProgressRoute
   ApiShelvesTvIdWatchedRoute: typeof ApiShelvesTvIdWatchedRoute
+  ApiResearchDebugRunsIndexRoute: typeof ApiResearchDebugRunsIndexRoute
   ApiShelvesTvIdEpisodesToggleRoute: typeof ApiShelvesTvIdEpisodesToggleRoute
   ApiShelvesTvIdSeasonsSeasonRoute: typeof ApiShelvesTvIdSeasonsSeasonRoute
   ApiShelvesTvIdSeasonsIndexRoute: typeof ApiShelvesTvIdSeasonsIndexRoute
@@ -1338,6 +1701,27 @@ declare module '@tanstack/react-router' {
       path: '/login/$'
       fullPath: '/login/$'
       preLoaderRoute: typeof LoginSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/research/': {
+      id: '/research/'
+      path: '/research'
+      fullPath: '/research/'
+      preLoaderRoute: typeof ResearchIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/research/$topicId': {
+      id: '/research/$topicId'
+      path: '/research/$topicId'
+      fullPath: '/research/$topicId'
+      preLoaderRoute: typeof ResearchTopicIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/research/debug': {
+      id: '/research/debug'
+      path: '/research/debug'
+      fullPath: '/research/debug'
+      preLoaderRoute: typeof ResearchDebugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shelves/': {
@@ -1585,6 +1969,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiNarrationsRunRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/research/credits': {
+      id: '/api/research/credits'
+      path: '/api/research/credits'
+      fullPath: '/api/research/credits'
+      preLoaderRoute: typeof ApiResearchCreditsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/research/run': {
+      id: '/api/research/run'
+      path: '/api/research/run'
+      fullPath: '/api/research/run'
+      preLoaderRoute: typeof ApiResearchRunRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/research/status': {
+      id: '/api/research/status'
+      path: '/api/research/status'
+      fullPath: '/api/research/status'
+      preLoaderRoute: typeof ApiResearchStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/shelves/counts': {
       id: '/api/shelves/counts'
       path: '/api/shelves/counts'
@@ -1604,6 +2009,20 @@ declare module '@tanstack/react-router' {
       path: '/api/trips/$id'
       fullPath: '/api/trips/$id'
       preLoaderRoute: typeof ApiTripsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/research/reports/$reportId': {
+      id: '/research/reports/$reportId'
+      path: '/research/reports/$reportId'
+      fullPath: '/research/reports/$reportId'
+      preLoaderRoute: typeof ResearchReportsReportIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/research/runs/$runId': {
+      id: '/research/runs/$runId'
+      path: '/research/runs/$runId'
+      fullPath: '/research/runs/$runId'
+      preLoaderRoute: typeof ResearchRunsRunIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shelves/books/': {
@@ -1732,6 +2151,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiNarrationsIdPositionRouteImport
       parentRoute: typeof ApiNarrationsIdRoute
     }
+    '/api/research/debug/': {
+      id: '/api/research/debug/'
+      path: '/api/research/debug'
+      fullPath: '/api/research/debug/'
+      preLoaderRoute: typeof ApiResearchDebugIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/research/ideas/$id': {
+      id: '/api/research/ideas/$id'
+      path: '/api/research/ideas/$id'
+      fullPath: '/api/research/ideas/$id'
+      preLoaderRoute: typeof ApiResearchIdeasIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/research/ideas/merge': {
+      id: '/api/research/ideas/merge'
+      path: '/api/research/ideas/merge'
+      fullPath: '/api/research/ideas/merge'
+      preLoaderRoute: typeof ApiResearchIdeasMergeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/research/reports/$id': {
+      id: '/api/research/reports/$id'
+      path: '/api/research/reports/$id'
+      fullPath: '/api/research/reports/$id'
+      preLoaderRoute: typeof ApiResearchReportsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/research/runs/': {
+      id: '/api/research/runs/'
+      path: '/api/research/runs'
+      fullPath: '/api/research/runs/'
+      preLoaderRoute: typeof ApiResearchRunsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/research/runs/$id': {
+      id: '/api/research/runs/$id'
+      path: '/api/research/runs/$id'
+      fullPath: '/api/research/runs/$id'
+      preLoaderRoute: typeof ApiResearchRunsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/research/topics/': {
+      id: '/api/research/topics/'
+      path: '/api/research/topics'
+      fullPath: '/api/research/topics/'
+      preLoaderRoute: typeof ApiResearchTopicsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/research/topics/$id': {
+      id: '/api/research/topics/$id'
+      path: '/api/research/topics/$id'
+      fullPath: '/api/research/topics/$id'
+      preLoaderRoute: typeof ApiResearchTopicsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/shelves/$type/': {
       id: '/api/shelves/$type/'
       path: '/api/shelves/$type'
@@ -1837,6 +2312,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFeedsEntriesIdArticleRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/research/debug/runs/': {
+      id: '/api/research/debug/runs/'
+      path: '/api/research/debug/runs'
+      fullPath: '/api/research/debug/runs/'
+      preLoaderRoute: typeof ApiResearchDebugRunsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/research/debug/runs/$id': {
+      id: '/api/research/debug/runs/$id'
+      path: '/api/research/debug/runs/$id'
+      fullPath: '/api/research/debug/runs/$id'
+      preLoaderRoute: typeof ApiResearchDebugRunsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/research/ideas/$id/validate': {
+      id: '/api/research/ideas/$id/validate'
+      path: '/validate'
+      fullPath: '/api/research/ideas/$id/validate'
+      preLoaderRoute: typeof ApiResearchIdeasIdValidateRouteImport
+      parentRoute: typeof ApiResearchIdeasIdRoute
+    }
+    '/api/research/runs/$id/start': {
+      id: '/api/research/runs/$id/start'
+      path: '/start'
+      fullPath: '/api/research/runs/$id/start'
+      preLoaderRoute: typeof ApiResearchRunsIdStartRouteImport
+      parentRoute: typeof ApiResearchRunsIdRoute
+    }
+    '/api/research/runs/$id/stop': {
+      id: '/api/research/runs/$id/stop'
+      path: '/stop'
+      fullPath: '/api/research/runs/$id/stop'
+      preLoaderRoute: typeof ApiResearchRunsIdStopRouteImport
+      parentRoute: typeof ApiResearchRunsIdRoute
+    }
+    '/api/research/topics/$id/ideas': {
+      id: '/api/research/topics/$id/ideas'
+      path: '/ideas'
+      fullPath: '/api/research/topics/$id/ideas'
+      preLoaderRoute: typeof ApiResearchTopicsIdIdeasRouteImport
+      parentRoute: typeof ApiResearchTopicsIdRoute
+    }
+    '/api/research/topics/$id/links': {
+      id: '/api/research/topics/$id/links'
+      path: '/links'
+      fullPath: '/api/research/topics/$id/links'
+      preLoaderRoute: typeof ApiResearchTopicsIdLinksRouteImport
+      parentRoute: typeof ApiResearchTopicsIdRoute
+    }
+    '/api/research/topics/$id/players': {
+      id: '/api/research/topics/$id/players'
+      path: '/players'
+      fullPath: '/api/research/topics/$id/players'
+      preLoaderRoute: typeof ApiResearchTopicsIdPlayersRouteImport
+      parentRoute: typeof ApiResearchTopicsIdRoute
+    }
+    '/api/research/topics/$id/reports': {
+      id: '/api/research/topics/$id/reports'
+      path: '/reports'
+      fullPath: '/api/research/topics/$id/reports'
+      preLoaderRoute: typeof ApiResearchTopicsIdReportsRouteImport
+      parentRoute: typeof ApiResearchTopicsIdRoute
+    }
+    '/api/research/topics/$id/sources': {
+      id: '/api/research/topics/$id/sources'
+      path: '/sources'
+      fullPath: '/api/research/topics/$id/sources'
+      preLoaderRoute: typeof ApiResearchTopicsIdSourcesRouteImport
+      parentRoute: typeof ApiResearchTopicsIdRoute
+    }
     '/api/shelves/book/$id/page-count': {
       id: '/api/shelves/book/$id/page-count'
       path: '/api/shelves/book/$id/page-count'
@@ -1871,6 +2416,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/trips/$id/items/$itemId'
       preLoaderRoute: typeof ApiTripsIdItemsItemIdRouteImport
       parentRoute: typeof ApiTripsIdItemsRoute
+    }
+    '/api/research/debug/runs/$id/start': {
+      id: '/api/research/debug/runs/$id/start'
+      path: '/start'
+      fullPath: '/api/research/debug/runs/$id/start'
+      preLoaderRoute: typeof ApiResearchDebugRunsIdStartRouteImport
+      parentRoute: typeof ApiResearchDebugRunsIdRoute
+    }
+    '/api/research/debug/runs/$id/stop': {
+      id: '/api/research/debug/runs/$id/stop'
+      path: '/stop'
+      fullPath: '/api/research/debug/runs/$id/stop'
+      preLoaderRoute: typeof ApiResearchDebugRunsIdStopRouteImport
+      parentRoute: typeof ApiResearchDebugRunsIdRoute
     }
     '/api/shelves/tv/$id/episodes/toggle': {
       id: '/api/shelves/tv/$id/episodes/toggle'
@@ -2022,6 +2581,65 @@ const ApiExtractsResultsIdRouteChildren: ApiExtractsResultsIdRouteChildren = {
 const ApiExtractsResultsIdRouteWithChildren =
   ApiExtractsResultsIdRoute._addFileChildren(ApiExtractsResultsIdRouteChildren)
 
+interface ApiResearchIdeasIdRouteChildren {
+  ApiResearchIdeasIdValidateRoute: typeof ApiResearchIdeasIdValidateRoute
+}
+
+const ApiResearchIdeasIdRouteChildren: ApiResearchIdeasIdRouteChildren = {
+  ApiResearchIdeasIdValidateRoute: ApiResearchIdeasIdValidateRoute,
+}
+
+const ApiResearchIdeasIdRouteWithChildren =
+  ApiResearchIdeasIdRoute._addFileChildren(ApiResearchIdeasIdRouteChildren)
+
+interface ApiResearchRunsIdRouteChildren {
+  ApiResearchRunsIdStartRoute: typeof ApiResearchRunsIdStartRoute
+  ApiResearchRunsIdStopRoute: typeof ApiResearchRunsIdStopRoute
+}
+
+const ApiResearchRunsIdRouteChildren: ApiResearchRunsIdRouteChildren = {
+  ApiResearchRunsIdStartRoute: ApiResearchRunsIdStartRoute,
+  ApiResearchRunsIdStopRoute: ApiResearchRunsIdStopRoute,
+}
+
+const ApiResearchRunsIdRouteWithChildren =
+  ApiResearchRunsIdRoute._addFileChildren(ApiResearchRunsIdRouteChildren)
+
+interface ApiResearchTopicsIdRouteChildren {
+  ApiResearchTopicsIdIdeasRoute: typeof ApiResearchTopicsIdIdeasRoute
+  ApiResearchTopicsIdLinksRoute: typeof ApiResearchTopicsIdLinksRoute
+  ApiResearchTopicsIdPlayersRoute: typeof ApiResearchTopicsIdPlayersRoute
+  ApiResearchTopicsIdReportsRoute: typeof ApiResearchTopicsIdReportsRoute
+  ApiResearchTopicsIdSourcesRoute: typeof ApiResearchTopicsIdSourcesRoute
+}
+
+const ApiResearchTopicsIdRouteChildren: ApiResearchTopicsIdRouteChildren = {
+  ApiResearchTopicsIdIdeasRoute: ApiResearchTopicsIdIdeasRoute,
+  ApiResearchTopicsIdLinksRoute: ApiResearchTopicsIdLinksRoute,
+  ApiResearchTopicsIdPlayersRoute: ApiResearchTopicsIdPlayersRoute,
+  ApiResearchTopicsIdReportsRoute: ApiResearchTopicsIdReportsRoute,
+  ApiResearchTopicsIdSourcesRoute: ApiResearchTopicsIdSourcesRoute,
+}
+
+const ApiResearchTopicsIdRouteWithChildren =
+  ApiResearchTopicsIdRoute._addFileChildren(ApiResearchTopicsIdRouteChildren)
+
+interface ApiResearchDebugRunsIdRouteChildren {
+  ApiResearchDebugRunsIdStartRoute: typeof ApiResearchDebugRunsIdStartRoute
+  ApiResearchDebugRunsIdStopRoute: typeof ApiResearchDebugRunsIdStopRoute
+}
+
+const ApiResearchDebugRunsIdRouteChildren: ApiResearchDebugRunsIdRouteChildren =
+  {
+    ApiResearchDebugRunsIdStartRoute: ApiResearchDebugRunsIdStartRoute,
+    ApiResearchDebugRunsIdStopRoute: ApiResearchDebugRunsIdStopRoute,
+  }
+
+const ApiResearchDebugRunsIdRouteWithChildren =
+  ApiResearchDebugRunsIdRoute._addFileChildren(
+    ApiResearchDebugRunsIdRouteChildren,
+  )
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   ShelvesRouteRoute: ShelvesRouteRouteWithChildren,
@@ -2037,8 +2655,11 @@ const rootRouteChildren: RootRouteChildren = {
   VaultRoute: VaultRoute,
   ApiImgRoute: ApiImgRoute,
   LoginSplatRoute: LoginSplatRoute,
+  ResearchTopicIdRoute: ResearchTopicIdRoute,
+  ResearchDebugRoute: ResearchDebugRoute,
   SignUpSplatRoute: SignUpSplatRoute,
   TripsIdRoute: TripsIdRoute,
+  ResearchIndexRoute: ResearchIndexRoute,
   TripsIndexRoute: TripsIndexRoute,
   ApiAiOrganizeRoute: ApiAiOrganizeRoute,
   ApiAiStatusRoute: ApiAiStatusRoute,
@@ -2065,8 +2686,13 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLookupWatchProvidersRoute: ApiLookupWatchProvidersRoute,
   ApiNarrationsIdRoute: ApiNarrationsIdRouteWithChildren,
   ApiNarrationsRunRoute: ApiNarrationsRunRoute,
+  ApiResearchCreditsRoute: ApiResearchCreditsRoute,
+  ApiResearchRunRoute: ApiResearchRunRoute,
+  ApiResearchStatusRoute: ApiResearchStatusRoute,
   ApiShelvesCountsRoute: ApiShelvesCountsRoute,
   ApiTripsIdRoute: ApiTripsIdRouteWithChildren,
+  ResearchReportsReportIdRoute: ResearchReportsReportIdRoute,
+  ResearchRunsRunIdRoute: ResearchRunsRunIdRoute,
   ApiAllowanceIndexRoute: ApiAllowanceIndexRoute,
   ApiExtractsIndexRoute: ApiExtractsIndexRoute,
   ApiFeedsIndexRoute: ApiFeedsIndexRoute,
@@ -2078,12 +2704,20 @@ const rootRouteChildren: RootRouteChildren = {
   ApiFeedsEntriesReadAllRoute: ApiFeedsEntriesReadAllRoute,
   ApiLibraryFoldersIdRoute: ApiLibraryFoldersIdRoute,
   ApiLibraryItemsIdRoute: ApiLibraryItemsIdRoute,
+  ApiResearchIdeasIdRoute: ApiResearchIdeasIdRouteWithChildren,
+  ApiResearchIdeasMergeRoute: ApiResearchIdeasMergeRoute,
+  ApiResearchReportsIdRoute: ApiResearchReportsIdRoute,
+  ApiResearchRunsIdRoute: ApiResearchRunsIdRouteWithChildren,
+  ApiResearchTopicsIdRoute: ApiResearchTopicsIdRouteWithChildren,
   ApiShelvesTypeIdRoute: ApiShelvesTypeIdRoute,
   ApiShelvesTypeDuplicatesRoute: ApiShelvesTypeDuplicatesRoute,
   ApiShelvesBookImportRoute: ApiShelvesBookImportRoute,
   ApiFeedsEntriesIndexRoute: ApiFeedsEntriesIndexRoute,
   ApiLibraryFoldersIndexRoute: ApiLibraryFoldersIndexRoute,
   ApiLibraryItemsIndexRoute: ApiLibraryItemsIndexRoute,
+  ApiResearchDebugIndexRoute: ApiResearchDebugIndexRoute,
+  ApiResearchRunsIndexRoute: ApiResearchRunsIndexRoute,
+  ApiResearchTopicsIndexRoute: ApiResearchTopicsIndexRoute,
   ApiShelvesTypeIndexRoute: ApiShelvesTypeIndexRoute,
   ApiAiArticlesIdAutotagRoute: ApiAiArticlesIdAutotagRoute,
   ApiAiArticlesIdOriginalRoute: ApiAiArticlesIdOriginalRoute,
@@ -2091,9 +2725,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiArticlesIdSummaryRoute: ApiAiArticlesIdSummaryRoute,
   ApiAiArticlesIdTidyRoute: ApiAiArticlesIdTidyRoute,
   ApiFeedsEntriesIdArticleRoute: ApiFeedsEntriesIdArticleRoute,
+  ApiResearchDebugRunsIdRoute: ApiResearchDebugRunsIdRouteWithChildren,
   ApiShelvesBookIdPageCountRoute: ApiShelvesBookIdPageCountRoute,
   ApiShelvesBookIdProgressRoute: ApiShelvesBookIdProgressRoute,
   ApiShelvesTvIdWatchedRoute: ApiShelvesTvIdWatchedRoute,
+  ApiResearchDebugRunsIndexRoute: ApiResearchDebugRunsIndexRoute,
   ApiShelvesTvIdEpisodesToggleRoute: ApiShelvesTvIdEpisodesToggleRoute,
   ApiShelvesTvIdSeasonsSeasonRoute: ApiShelvesTvIdSeasonsSeasonRoute,
   ApiShelvesTvIdSeasonsIndexRoute: ApiShelvesTvIdSeasonsIndexRoute,

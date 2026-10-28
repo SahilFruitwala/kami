@@ -120,3 +120,100 @@ describe("page reading", () => {
     assert.throws(() => parseReadResponse({ success: true, data: {} }), FirecrawlError);
   });
 });
+
+describe("research search and scrape", () => {
+  it("prices searches at 2 credits per 10 results, rounded up", async () => {
+    const { searchCreditCost } = await import("../src/lib/firecrawl.server.ts");
+    assert.equal(searchCreditCost(0), 0);
+    assert.equal(searchCreditCost(1), 2);
+    assert.equal(searchCreditCost(10), 2);
+    assert.equal(searchCreditCost(11), 4);
+    assert.equal(searchCreditCost(20), 4);
+  });
+
+  it("caps research results at 20 and adds a date window when asked", async () => {
+    const { buildResearchSearchBody } = await import("../src/lib/firecrawl.server.ts");
+    assert.deepEqual(buildResearchSearchBody("q", 50), { query: "q", limit: 20, sources: ["web"] });
+    assert.deepEqual(
+      buildResearchSearchBody("q", 15, { sinceMonths: 12, now: new Date("2026-10-26T12:00:00Z") }),
+      { query: "q", limit: 15, sources: ["web"], tbs: "cdr:1,cd_min:10/26/2025" },
+    );
+  });
+
+  it("keeps more than the trip agent's 8 results when asked", async () => {
+    const entries = Array.from({ length: 12 }, (_, i) => ({
+      url: `https://a.com/${i}`,
+      title: "t",
+    }));
+    assert.equal(parseSearchResponse({ success: true, data: { web: entries } }).length, 8);
+    assert.equal(parseSearchResponse({ success: true, data: { web: entries } }, 20).length, 12);
+  });
+
+  it("reads Firecrawl's own credit count from search and scrape responses", async () => {
+    const { parseCreditsUsed } = await import("../src/lib/firecrawl.server.ts");
+    assert.equal(parseCreditsUsed({ creditsUsed: 4 }), 4);
+    assert.equal(parseCreditsUsed({ data: { metadata: { creditsUsed: 1 } } }), 1);
+    assert.equal(parseCreditsUsed({ data: {} }), null);
+    assert.equal(parseCreditsUsed(null), null);
+  });
+
+  it("scrapes main content as Markdown without the per-page PDF parser", async () => {
+    const { buildResearchScrapeBody } = await import("../src/lib/firecrawl.server.ts");
+    assert.deepEqual(buildResearchScrapeBody("https://a.com"), {
+      url: "https://a.com",
+      onlyMainContent: true,
+      maxAge: DEFAULT_MAX_AGE_MS,
+      parsers: [],
+      formats: ["markdown"],
+    });
+  });
+
+  it("parses a scrape into text, title, date and cost", async () => {
+    const { parseResearchScrapeResponse } = await import("../src/lib/firecrawl.server.ts");
+    const page = parseResearchScrapeResponse({
+      success: true,
+      data: {
+        markdown: "Hello",
+        metadata: { title: " A thread ", publishedTime: "2026-01-02T00:00:00Z", creditsUsed: 1 },
+      },
+    });
+    assert.equal(page.markdown, "Hello");
+    assert.equal(page.title, "A thread");
+    assert.equal(page.publishedAt?.toISOString(), "2026-01-02T00:00:00.000Z");
+    assert.equal(page.credits, 1);
+    const bare = parseResearchScrapeResponse({ success: true, data: { markdown: "x" } });
+    assert.equal(bare.credits, 1);
+    assert.equal(bare.publishedAt, null);
+    assert.throws(
+      () => parseResearchScrapeResponse({ success: true, data: { markdown: " " } }),
+      FirecrawlError,
+    );
+  });
+});
+
+describe("Firecrawl refusals", () => {
+  const answer = (status, body) => async () =>
+    new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
+
+  it("tells a refused site (403) apart from a rejected key (401)", async () => {
+    const { researchScrape } = await import("../src/lib/firecrawl.server.ts");
+    const realFetch = globalThis.fetch;
+    const key = process.env.FIRECRAWL_API_KEY;
+    process.env.FIRECRAWL_API_KEY = "fc-test";
+    try {
+      globalThis.fetch = answer(403, { success: false, error: "we do not support this site" });
+      await assert.rejects(researchScrape("https://www.reddit.com/r/x/comments/1/"), (err) => {
+        assert.ok(err instanceof FirecrawlError);
+        assert.equal(err.status, 422);
+        assert.equal(err.message, "Firecrawl can't read pages on this site.");
+        return true;
+      });
+      globalThis.fetch = answer(401, { success: false, error: "Unauthorized" });
+      await assert.rejects(researchScrape("https://a.com"), /rejected the server's API key/);
+    } finally {
+      globalThis.fetch = realFetch;
+      if (key === undefined) delete process.env.FIRECRAWL_API_KEY;
+      else process.env.FIRECRAWL_API_KEY = key;
+    }
+  });
+});

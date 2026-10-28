@@ -31,6 +31,8 @@ export const RATE_LIMITS = {
   ai: { limit: 300, windowSeconds: 3600 },
   /** Create audio (each start can spend Deepgram credit on a whole article). */
   narration: { limit: 30, windowSeconds: 3600 },
+  /** Research run drafts and starts (credits are the real limit; this stops scripted abuse). */
+  research: { limit: 20, windowSeconds: 3600 },
   /** Inbound newsletter emails stored per user. */
   inbound: { limit: 300, windowSeconds: 86_400 },
 } as const;
@@ -49,6 +51,7 @@ const FAIL_CLOSED: ReadonlySet<RateLimitBucket> = new Set([
   "ai",
   "narration",
   "agent",
+  "research",
   "imageStore",
 ]);
 

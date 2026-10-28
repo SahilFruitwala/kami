@@ -10,9 +10,11 @@ import {
   pgTable,
   primaryKey,
   real,
+  smallint,
   text,
   timestamp,
   uniqueIndex,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import type { Slot as TripSlot, TripHotelStatus, TripStatus } from "./trip-days.ts";
 
@@ -800,3 +802,336 @@ export const r2Orphans = pgTable("r2_orphans", {
   attempts: integer("attempts").notNull().default(0),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ---------- Research ----------
+
+import type {
+  Depth,
+  DiscoverInput,
+  EvidenceKind,
+  EvidenceMatch,
+  IdeaNamer,
+  IdeaScore,
+  IdeaStatus,
+  PlanQuery,
+  ResearchCreditKind,
+  RunKind,
+  RunProgress,
+  RunState,
+  RunStopReason,
+  SearchHit,
+  SourceKind,
+  SourceOrigin,
+} from "./research/kinds.ts";
+import type { PlayerAudience, PlayerPricing } from "./research/players.ts";
+import type { ReportBody } from "./research/report.ts";
+
+/** Research credit ledger (0023_research.sql); same rules as `allowanceEntries`. */
+export const researchCreditEntries = pgTable(
+  "research_credit_entries",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<ResearchCreditKind>().notNull(),
+    /** Signed: + for grant/release, − for reserve. */
+    credits: integer("credits").notNull(),
+    note: text("note").notNull().default(""),
+    /** Not a foreign key: the history outlives deleted runs. */
+    runId: text("run_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("research_credit_entries_user_idx").on(t.userId, desc(t.createdAt))],
+);
+
+export const researchTopics = pgTable(
+  "research_topics",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("research_topics_user_idx").on(t.userId, desc(t.updatedAt))],
+);
+
+/** One execution inside a topic; steps resume from `step` under a lease. */
+export const researchRuns = pgTable(
+  "research_runs",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    topicId: text("topic_id")
+      .notNull()
+      .references(() => researchTopics.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<RunKind>().notNull(),
+    state: text("state").$type<RunState>().notNull(),
+    stopReason: text("stop_reason").$type<RunStopReason>(),
+    depth: text("depth").$type<Depth>().notNull(),
+    input: jsonb("input").$type<DiscoverInput>().notNull(),
+    plan: jsonb("plan").$type<PlanQuery[]>().notNull().default([]),
+    step: text("step"),
+    progress: jsonb("progress").$type<RunProgress>().notNull().default({}),
+    budgetCredits: integer("budget_credits").notNull().default(0),
+    firecrawlCredits: integer("firecrawl_credits").notNull().default(0),
+    tokensIn: integer("tokens_in").notNull().default(0),
+    tokensOut: integer("tokens_out").notNull().default(0),
+    /** Settled when the run ends: reserve minus release. */
+    chargedCredits: integer("charged_credits"),
+    /** User-facing message when the run failed. */
+    error: text("error"),
+    runLease: text("run_lease"),
+    leaseUntil: timestamp("lease_until", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    startedAt: timestamp("started_at", { withTimezone: true }),
+    finishedAt: timestamp("finished_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("research_runs_topic_idx").on(t.topicId, desc(t.createdAt)),
+    index("research_runs_user_state_idx").on(t.userId, t.state),
+  ],
+);
+
+/** Every query a run sent, so later plans can flag repeats. */
+export const researchQueries = pgTable(
+  "research_queries",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    topicId: text("topic_id")
+      .notNull()
+      .references(() => researchTopics.id, { onDelete: "cascade" }),
+    runId: text("run_id")
+      .notNull()
+      .references(() => researchRuns.id, { onDelete: "cascade" }),
+    queryNorm: text("query_norm").notNull(),
+    results: integer("results").notNull().default(0),
+    /** The search's results as returned (0024_research_query_hits.sql); triage reads them. */
+    hits: jsonb("hits").$type<SearchHit[]>().notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("research_queries_topic_idx").on(t.topicId, t.queryNorm),
+    index("research_queries_run_idx").on(t.runId),
+  ],
+);
+
+/** Per-user page cache, one row per normalised URL. */
+export const researchSources = pgTable(
+  "research_sources",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    url: text("url").notNull(),
+    urlKey: text("url_key").notNull(),
+    site: text("site").notNull(),
+    kind: text("kind").$type<SourceKind>().notNull(),
+    title: text("title").notNull().default(""),
+    markdown: text("markdown").notNull(),
+    /** sha256 of `markdown`. */
+    contentHash: text("content_hash").notNull(),
+    publishedAt: timestamp("published_at", { withTimezone: true }),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+    addedBy: text("added_by").$type<SourceOrigin>().notNull(),
+  },
+  (t) => [uniqueIndex("research_sources_user_url_idx").on(t.userId, t.urlKey)],
+);
+
+/** Which cached sources a topic has used; deleting a topic leaves the cache. */
+export const researchTopicSources = pgTable(
+  "research_topic_sources",
+  {
+    topicId: text("topic_id")
+      .notNull()
+      .references(() => researchTopics.id, { onDelete: "cascade" }),
+    sourceId: text("source_id")
+      .notNull()
+      .references(() => researchSources.id, { onDelete: "cascade" }),
+    firstRunId: text("first_run_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.topicId, t.sourceId] }),
+    index("research_topic_sources_source_idx").on(t.sourceId),
+  ],
+);
+
+/** One checked quote from a source; the only thing claims may cite. */
+export const researchEvidence = pgTable(
+  "research_evidence",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    topicId: text("topic_id")
+      .notNull()
+      .references(() => researchTopics.id, { onDelete: "cascade" }),
+    sourceId: text("source_id")
+      .notNull()
+      .references(() => researchSources.id, { onDelete: "cascade" }),
+    runId: text("run_id").references(() => researchRuns.id, { onDelete: "set null" }),
+    quote: text("quote").notNull(),
+    kind: text("kind").$type<EvidenceKind>().notNull(),
+    /** −2 … +2 */
+    sentiment: smallint("sentiment").notNull().default(0),
+    strong: boolean("strong").notNull().default(false),
+    pays: boolean("pays").notNull().default(false),
+    /** Products named in the quote. */
+    names: text("names").array().notNull().default([]),
+    /** sha256 of site + author handle; the handle is never stored. */
+    authorKey: text("author_key"),
+    postedAt: timestamp("posted_at", { withTimezone: true }),
+    match: text("match").$type<EvidenceMatch>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("research_evidence_quote_idx").on(t.topicId, t.sourceId, sql`md5(${t.quote})`),
+    index("research_evidence_topic_idx").on(t.topicId, t.kind),
+    index("research_evidence_run_idx").on(t.runId),
+  ],
+);
+
+/** A product opportunity in a topic, scored in code from its evidence. */
+export const researchIdeas = pgTable(
+  "research_ideas",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    topicId: text("topic_id")
+      .notNull()
+      .references(() => researchTopics.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    summary: text("summary").notNull().default(""),
+    status: text("status").$type<IdeaStatus>().notNull().default("open"),
+    mergedInto: text("merged_into").references((): AnyPgColumn => researchIdeas.id, {
+      onDelete: "set null",
+    }),
+    namedBy: text("named_by").$type<IdeaNamer>().notNull().default("model"),
+    score: jsonb("score").$type<IdeaScore>(),
+    /** `score.total`, copied out for sorting. */
+    scoreTotal: real("score_total").notNull().default(0),
+    evidenceCount: integer("evidence_count").notNull().default(0),
+    firstRunId: text("first_run_id"),
+    lastRunId: text("last_run_id"),
+    addedLastRun: integer("added_last_run").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("research_ideas_topic_idx").on(t.topicId, t.status, desc(t.scoreTotal))],
+);
+
+/** Evidence behind an idea; a quote belongs to at most one idea. */
+export const researchIdeaEvidence = pgTable(
+  "research_idea_evidence",
+  {
+    ideaId: text("idea_id")
+      .notNull()
+      .references(() => researchIdeas.id, { onDelete: "cascade" }),
+    evidenceId: text("evidence_id")
+      .notNull()
+      .references(() => researchEvidence.id, { onDelete: "cascade" }),
+    runId: text("run_id"),
+  },
+  (t) => [
+    primaryKey({ columns: [t.ideaId, t.evidenceId] }),
+    uniqueIndex("research_idea_evidence_evidence_idx").on(t.evidenceId),
+  ],
+);
+
+/** The cited write-up a Validate or question run produces (0025_research_reports.sql). */
+export const researchReports = pgTable(
+  "research_reports",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    topicId: text("topic_id")
+      .notNull()
+      .references(() => researchTopics.id, { onDelete: "cascade" }),
+    runId: text("run_id")
+      .notNull()
+      .references(() => researchRuns.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<"validate" | "question">().notNull(),
+    ideaId: text("idea_id").references(() => researchIdeas.id, { onDelete: "set null" }),
+    question: text("question").notNull(),
+    body: jsonb("body").$type<ReportBody>().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("research_reports_run_idx").on(t.runId),
+    index("research_reports_topic_idx").on(t.topicId, desc(t.createdAt)),
+  ],
+);
+
+/** A product already in a topic's space, filled from its own pages (0026_research_players.sql). */
+export const researchPlayers = pgTable(
+  "research_players",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    topicId: text("topic_id")
+      .notNull()
+      .references(() => researchTopics.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    nameKey: text("name_key").notNull(),
+    url: text("url"),
+    category: text("category"),
+    oneLiner: text("one_liner"),
+    audience: text("audience").$type<PlayerAudience>(),
+    pricing: jsonb("pricing").$type<PlayerPricing>(),
+    freePlan: boolean("free_plan"),
+    sourceIds: jsonb("source_ids").$type<string[]>().notNull().default([]),
+    /** Set once the player has been looked up, found or not, so it is never filled twice. */
+    filledAt: timestamp("filled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("research_players_key_idx").on(t.topicId, t.nameKey)],
+);
+
+/** Evidence that names a player. */
+export const researchPlayerEvidence = pgTable(
+  "research_player_evidence",
+  {
+    playerId: text("player_id")
+      .notNull()
+      .references(() => researchPlayers.id, { onDelete: "cascade" }),
+    evidenceId: text("evidence_id")
+      .notNull()
+      .references(() => researchEvidence.id, { onDelete: "cascade" }),
+  },
+  (t) => [
+    primaryKey({ columns: [t.playerId, t.evidenceId] }),
+    index("research_player_evidence_evidence_idx").on(t.evidenceId),
+  ],
+);
+
+/** Model answers keyed by sha256(model id + prompt version + input). */
+export const researchModelCache = pgTable(
+  "research_model_cache",
+  {
+    key: text("key").primaryKey(),
+    model: text("model").notNull(),
+    output: jsonb("output").notNull(),
+    tokensIn: integer("tokens_in").notNull().default(0),
+    tokensOut: integer("tokens_out").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("research_model_cache_created_idx").on(t.createdAt)],
+);
