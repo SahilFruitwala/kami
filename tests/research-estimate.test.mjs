@@ -31,4 +31,12 @@ describe("estimateRun", () => {
     const huge = Array.from({ length: 60 }, (_, i) => q(`q${i}`));
     assert.equal(estimateRun(huge, "deep").high, 100);
   });
+  it("adds Map a space's Player fills to the budget and the range", () => {
+    const plan = [q("a"), q("b")];
+    const discover = estimateRun(plan, "quick");
+    const explore = estimateRun(plan, "quick", "explore");
+    assert.equal(explore.budget, discover.budget + 32);
+    assert.equal(explore.high, discover.high + 32);
+    assert.equal(explore.low, discover.low + 16);
+  });
 });

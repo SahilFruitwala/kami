@@ -1,4 +1,5 @@
-import type { Depth, RunState, RunStopReason } from "./kinds.ts";
+import type { Depth, RunKind, RunState, RunStopReason } from "./kinds.ts";
+import { FILL_CREDITS, FILL_LIMITS } from "./players.ts";
 import { chargedCredits, type RunSpend } from "./credits.ts";
 
 /**
@@ -31,6 +32,15 @@ export const LEASE_MS = 300_000;
  * run (ticket 09): 12 searches cost 24, leaving too little to read pages.
  */
 export const DEPTH_BUDGETS: Record<Depth, number> = { quick: 45, deep: 100 };
+
+/**
+ * A run's budget. Map a space reads pages like Discover and then fills
+ * Players, so its fills get their own share on top: a Quick run with only the
+ * Discover budget spent it all on searches and pages and filled 4 of 8.
+ */
+export function runBudget(kind: RunKind, depth: Depth): number {
+  return DEPTH_BUDGETS[depth] + (kind === "explore" ? FILL_LIMITS[depth] * FILL_CREDITS : 0);
+}
 
 /** A pasted link's run (spec §4.11): one page read plus a batch of model calls. */
 export const LINK_BUDGET = 5;

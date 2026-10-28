@@ -5,6 +5,7 @@ import {
   groupPlayers,
   nameKey,
   pickHomepage,
+  pricingLinkFrom,
   pricingUrl,
 } from "../src/lib/research/players.ts";
 
@@ -15,6 +16,11 @@ describe("nameKey", () => {
     }
     assert.equal(nameKey("Café Tool"), "cafetool");
     assert.equal(nameKey("Monday.com"), "monday");
+    assert.equal(nameKey("QuickBooks Online"), "quickbooks");
+    assert.equal(nameKey("QuickBooks"), "quickbooks");
+    assert.equal(nameKey("AND CO."), "andco");
+    assert.equal(nameKey("AndCo"), "andco");
+    assert.equal(nameKey("Acme Co."), "acme");
   });
 
   it("rejects names with too little left", () => {
@@ -39,6 +45,12 @@ describe("pickHomepage", () => {
   });
   it("builds the pricing url", () => {
     assert.equal(pricingUrl("https://www.notion.com/"), "https://www.notion.com/pricing");
+  });
+  it("finds a pricing link on the homepage when /pricing isn't it", () => {
+    const md = "[Blog](https://other.com/pricing) [Plans](/en/plans#top) [Pricing](/pricing)";
+    assert.equal(pricingLinkFrom(md, "https://www.acme.com"), "https://www.acme.com/en/plans");
+    assert.equal(pricingLinkFrom("[Pricing](/pricing)", "https://acme.com"), null);
+    assert.equal(pricingLinkFrom("[About](/about)", "https://acme.com"), null);
   });
 });
 

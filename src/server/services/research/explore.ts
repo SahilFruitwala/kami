@@ -25,6 +25,7 @@ import {
   PLAYER_AUDIENCES,
   checkPricing,
   pickHomepage,
+  pricingLinkFrom,
   pricingUrl,
 } from "@/lib/research/players.ts";
 import { asDocument } from "@/server/ai";
@@ -185,16 +186,21 @@ async function fillPlayer(ctx: StepContext, player: PlayerRow, deps: StepDeps): 
     maxPageChars: ctx.config.maxPageChars,
   };
   const pages: Array<{ label: string; markdown: string; id: string }> = [];
-  for (const [label, url] of [
-    ["homepage", origin],
-    ["pricing", pricingUrl(origin)],
-  ] as const) {
+  const fetchPage = async (label: string, url: string) => {
     try {
       const { source } = await getOrFetchSource(ctx, { ...request, url }, deps.calls);
       pages.push({ label, markdown: source.markdown, id: source.id });
+      return true;
     } catch (err) {
       skipOrThrow(err);
+      return false;
     }
+  };
+  await fetchPage("homepage", origin);
+  if (!(await fetchPage("pricing", pricingUrl(origin)))) {
+    // No /pricing: try the pricing link on the homepage, if it has one.
+    const linked = pages[0] ? pricingLinkFrom(pages[0].markdown, origin) : null;
+    if (linked) await fetchPage("pricing", linked);
   }
   if (!pages.length) return savePlayerFill(db, player.id, { ...none, url: origin });
 

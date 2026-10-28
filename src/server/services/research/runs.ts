@@ -35,7 +35,7 @@ import type {
   RunProgress,
 } from "@/lib/research/kinds.ts";
 import {
-  DEPTH_BUDGETS,
+  runBudget,
   LEASE_MS,
   LINK_BUDGET,
   fitsBudget,
@@ -211,7 +211,9 @@ export async function startRun(
   requireConfig();
   await enforceRateLimit(userId, "research");
   const db = await getDb();
-  const budget = DEPTH_BUDGETS[final.depth];
+  const current = await getRun(db, userId, runId);
+  if (!current) throw notFound("Run not found");
+  const budget = runBudget(current.kind, final.depth);
   let queued: RunRow | undefined;
   try {
     await db.transaction(async (tx) => {

@@ -7,7 +7,7 @@ import { useResearchRefresh } from "@/hooks/use-research.ts";
 import { researchApi, type RunView } from "@/lib/api/research.ts";
 import { errorMessage } from "@/lib/errors";
 import { estimateRun } from "@/lib/research/estimate.ts";
-import type { Depth, PlanQuery } from "@/lib/research/kinds.ts";
+import type { Depth, PlanQuery, RunKind } from "@/lib/research/kinds.ts";
 import { cn } from "@/lib/utils.ts";
 
 const INTENT_LABEL: Record<PlanQuery["intent"], string> = {
@@ -34,7 +34,7 @@ export function PlanEditor({ view }: { view: RunView }) {
 
   const checked = plan.filter((q) => q.checked !== false);
   // Recomputed as the plan changes (the server's figures are for the saved plan).
-  const estimate = estimateRun(plan, depth);
+  const estimate = estimateRun(plan, depth, view.run.kind as RunKind);
   const short = view.balance < estimate.budget;
 
   const update = (id: string, patch: Partial<PlanQuery>) =>

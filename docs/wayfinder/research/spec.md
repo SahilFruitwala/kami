@@ -1,6 +1,6 @@
 # Spec: Research
 
-Status: agreed design, not built. Decisions and their reasons are in [map.md](map.md); this file is what to build. Numbers marked _(start)_ are starting values to tune in [ticket 09](tickets/09-debug-page-and-tuning.md).
+Status: built (tickets 01–18 closed; Discover tuned on real runs, Validate, Ask a question and Map a space still to be run against real credits). Decisions and their reasons are in [map.md](map.md); this file is what was built. Numbers were tuned or confirmed in [ticket 09](tickets/09-debug-page-and-tuning.md).
 
 ## 1. What it is
 
@@ -105,7 +105,7 @@ Balance = `sum(credits)`. What a run spent = its reserve minus its release.
 | `site`          | text             | e.g. `reddit.com`, `news.ycombinator.com`                                                                                                                        |
 | `kind`          | text             | `thread`, `review`, `pricing`, `homepage`, `article`, `other` (decides freshness, §4.6)                                                                          |
 | `title`         | text             |                                                                                                                                                                  |
-| `markdown`      | text             | main content, capped at `RESEARCH_MAX_PAGE_CHARS` _(start 60,000)_                                                                                               |
+| `markdown`      | text             | main content, capped at `RESEARCH_MAX_PAGE_CHARS` (60,000)                                                                                                       |
 | `content_hash`  | text             | sha256 of `markdown`                                                                                                                                             |
 | `published_at`  | timestamptz null | when known                                                                                                                                                       |
 | `fetched_at`    | timestamptz      |                                                                                                                                                                  |
@@ -204,7 +204,7 @@ Validation in code: at most `maxQueries[depth]` queries, each ≤ 200 chars, sit
 
 ### 4.6 Discover: fetch
 
-- Source cache first: a source with the same `url_key` is reused when it's fresher than its kind's limit: `thread` and `review` 30 days, `pricing` and `homepage` 7 days, `article` 90 days _(start)_. Reuse costs nothing.
+- Source cache first: a source with the same `url_key` is reused when it's fresher than its kind's limit: `thread` and `review` 30 days, `pricing` and `homepage` 7 days, `article` 90 days (kept after ticket 09: the tuning runs showed no stale reuse). Reuse costs nothing.
 - Otherwise the page is read from the source that serves it, capped at `RESEARCH_MAX_PAGE_CHARS`. Kind is inferred from the host and path.
   - Reddit threads: Reddit's official API with app-only OAuth (`REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET`), free, with an identifying User-Agent and at least 1 s between reads. Firecrawl refuses reddit.com and Reddit refuses unauthenticated `.json` reads (403), and Reddit now approves API access before an app can be created. **Without the keys Reddit is not read at all:** triage leaves Reddit threads out and a skipped pick is replaced by the next-best spare (`progress.spares`).
   - Hacker News discussions: the Algolia items API, free.
@@ -246,7 +246,7 @@ Author handles are hashed into `author_key` here and then thrown away.
 
 After scoring, ideas touched by the run get `last_run_id` and `added_last_run`; ideas created in the run also get `first_run_id`.
 
-### 4.10 Budgets and estimates _(start values)_
+### 4.10 Budgets and estimates (tuned in ticket 09)
 
 |                           | Quick                                                                           | Deep                                                              |
 | ------------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
@@ -300,7 +300,7 @@ All routes are `apiHandler` routes (Clerk session, same-site check), except the 
 | `GET /api/research/runs/$id`                 | state, step, progress, spend so far; restarts a stalled run (§4.2, step 7)                                       |
 | `POST /api/research/run`                     | internal hand-off, `x-research-secret`; not for browsers                                                         |
 
-Rate limiting: a new `research` bucket in `RATE_LIMITS`, `{ limit: 20, windowSeconds: 3600 }` _(start)_, counted on draft and start, and added to `FAIL_CLOSED`. Credits are the real limit; the bucket stops scripted abuse.
+Rate limiting: a new `research` bucket in `RATE_LIMITS`, `{ limit: 20, windowSeconds: 3600 }` (kept after ticket 09: no real use came near it), counted on draft and start, and added to `FAIL_CLOSED`. Credits are the real limit; the bucket stops scripted abuse.
 
 ## 7. UI
 
@@ -321,14 +321,14 @@ Built with Kami's existing primitives (`src/components/ui`, the Kami brand compo
 
 Add to `.env.example` in a new "Research (optional)" section:
 
-| Var                          | Default           | Notes                                                                                               |
-| ---------------------------- | ----------------- | --------------------------------------------------------------------------------------------------- |
-| `FIRECRAWL_API_KEY`          | (existing)        | required for Research                                                                               |
-| `AI_MODELS` / provider keys  | (existing)        | worker tier; required                                                                               |
-| `RESEARCH_WRITER_MODELS`     | unset             | writer tier; falls back to `AI_MODELS`                                                              |
-| `RESEARCH_TOKENS_PER_CREDIT` | `20000` _(start)_ | model tokens per research credit                                                                    |
-| `RESEARCH_MAX_PAGE_CHARS`    | `60000`           | per stored source                                                                                   |
-| `RESEARCH_RUN_SECRET`        | unset             | 16+ chars; required on Vercel for background hand-off (also uses `VERCEL_AUTOMATION_BYPASS_SECRET`) |
+| Var                          | Default    | Notes                                                                                               |
+| ---------------------------- | ---------- | --------------------------------------------------------------------------------------------------- |
+| `FIRECRAWL_API_KEY`          | (existing) | required for Research                                                                               |
+| `AI_MODELS` / provider keys  | (existing) | worker tier; required                                                                               |
+| `RESEARCH_WRITER_MODELS`     | unset      | writer tier; falls back to `AI_MODELS`                                                              |
+| `RESEARCH_TOKENS_PER_CREDIT` | `20000`    | model tokens per research credit                                                                    |
+| `RESEARCH_MAX_PAGE_CHARS`    | `60000`    | per stored source                                                                                   |
+| `RESEARCH_RUN_SECRET`        | unset      | 16+ chars; required on Vercel for background hand-off (also uses `VERCEL_AUTOMATION_BYPASS_SECRET`) |
 
 `researchConfigured()` = Firecrawl key, an AI model, and (when `VERCEL` is set) the run secret.
 

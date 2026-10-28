@@ -168,7 +168,10 @@ async function runView(row: RunRow, userId: string): Promise<RunView> {
       startedAt: row.startedAt ? row.startedAt.getTime() : null,
       finishedAt: row.finishedAt ? row.finishedAt.getTime() : null,
     },
-    estimates: { quick: estimateRun(row.plan, "quick"), deep: estimateRun(row.plan, "deep") },
+    estimates: {
+      quick: estimateRun(row.plan, "quick", row.kind),
+      deep: estimateRun(row.plan, "deep", row.kind),
+    },
     balance: await researchCreditBalance(db, userId),
     ideas,
   };

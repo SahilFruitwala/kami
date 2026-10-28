@@ -68,7 +68,11 @@ export async function notePlayers(
   return created.length;
 }
 
-/** Players still to look up, best-known first (most evidence), capped. */
+/**
+ * Players still to look up, most widely named first: by how many pages name
+ * them, then how many quotes. One vendor's own page naming itself 17 times no
+ * longer outranks a tool named across 8 threads.
+ */
 export async function playersToFill(db: Db, topicId: string, limit: number): Promise<PlayerRow[]> {
   const rows = await db
     .select({
@@ -77,9 +81,14 @@ export async function playersToFill(db: Db, topicId: string, limit: number): Pro
     })
     .from(researchPlayers)
     .leftJoin(researchPlayerEvidence, eq(researchPlayerEvidence.playerId, researchPlayers.id))
+    .leftJoin(researchEvidence, eq(researchEvidence.id, researchPlayerEvidence.evidenceId))
     .where(and(eq(researchPlayers.topicId, topicId), isNull(researchPlayers.filledAt)))
     .groupBy(researchPlayers.id)
-    .orderBy(sql`count(${researchPlayerEvidence.evidenceId}) desc`, asc(researchPlayers.createdAt))
+    .orderBy(
+      sql`count(distinct ${researchEvidence.sourceId}) desc`,
+      sql`count(${researchPlayerEvidence.evidenceId}) desc`,
+      asc(researchPlayers.createdAt),
+    )
     .limit(limit);
   return rows.map((r) => r.player);
 }

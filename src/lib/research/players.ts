@@ -16,16 +16,22 @@ export type PlayerAudience = (typeof PLAYER_AUDIENCES)[number];
 export type PlayerPlan = { name: string; price: string };
 export type PlayerPricing = { plans: PlayerPlan[] };
 
-/** Players one run fills in (each costs about 4 Firecrawl credits) _(start values)_. */
+/** Players one run fills in _(start values)_. */
 export const FILL_LIMITS = { quick: 8, deep: 20 } as const;
+/** Research credits one fill can cost: a search, two or three page reads, a model call. */
+export const FILL_CREDITS = 4;
 
 const TRAILING_WORDS = /\b(?:inc|llc|ltd|gmbh|corp|corporation|company|co|app|apps|software)\b\.?$/;
+/** Edition words that name a version of one product, not another product ("QuickBooks Online"). */
+const EDITION_WORDS = /\s(?:online|desktop|cloud|web|for (?:mac|windows|web))$/;
 const TLD = /\.(?:com|io|ai|app|co|net|org|dev|so|me|xyz)$/;
 
 /**
  * The key two spellings of one product share: lowercase, no accents, no
  * company suffix or domain ending, letters and digits only ("Notion.so",
- * "notion", "Notion Inc." → "notion"). Null when too little is left.
+ * "notion", "Notion Inc." → "notion"; "QuickBooks Online" → "quickbooks";
+ * "AND CO." → "andco", since a suffix after "and" is part of the name).
+ * Null when too little is left.
  */
 export function nameKey(raw: string): string | null {
   let s = raw.normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().trim();
@@ -33,7 +39,8 @@ export function nameKey(raw: string): string | null {
   for (let i = 0; i < 2; i++)
     s = s
       .replace(/[\s,]+$/, "")
-      .replace(TRAILING_WORDS, "")
+      .replace(TRAILING_WORDS, (word, at) => (/(?:\band|&)\s*$/.test(s.slice(0, at)) ? word : ""))
+      .replace(EDITION_WORDS, "")
       .trim();
   s = s.replace(/[^a-z0-9]+/g, "");
   return s.length >= 2 && s.length <= 60 ? s : null;
@@ -71,6 +78,36 @@ export function pricingUrl(origin: string): string {
   return `${origin.replace(/\/+$/, "")}/pricing`;
 }
 
+const PRICING_PATH = /\/(?:pricing|plans|prices|price|buy|upgrade)(?:[/?#.-]|$)/i;
+
+/**
+ * A pricing page linked from the homepage, for sites without `/pricing`: the
+ * first same-site link whose path looks like pricing. Null when there is none.
+ */
+export function pricingLinkFrom(homepageMarkdown: string, origin: string): string | null {
+  let base: URL;
+  try {
+    base = new URL(origin);
+  } catch {
+    return null;
+  }
+  const tried = pricingUrl(base.origin);
+  for (const m of homepageMarkdown.matchAll(/\]\(([^)\s]+)/g)) {
+    let url: URL;
+    try {
+      url = new URL(m[1], base);
+    } catch {
+      continue;
+    }
+    if (url.host.replace(/^www\./, "") !== base.host.replace(/^www\./, "")) continue;
+    if (!PRICING_PATH.test(url.pathname)) continue;
+    url.hash = "";
+    const href = url.toString().replace(/\/+$/, "");
+    if (href !== tried) return href;
+  }
+  return null;
+}
+
 const PRICE_TOKEN = /\d[\d,.]*/g;
 
 /**
@@ -86,7 +123,7 @@ export function checkPricing(
   const out: PlayerPlan[] = [];
   for (const plan of plans) {
     const name = (plan.name ?? "").replace(/\s+/g, " ").trim().slice(0, 40);
-    const price = (plan.price ?? "").replace(/\s+/g, " ").trim().slice(0, 40);
+    const price = (plan.price ?? "").replace(/\s+/g, " ").trim().slice(0, 80);
     if (!name || !price) continue;
     const numbers = price.match(PRICE_TOKEN) ?? [];
     const found = numbers.length
