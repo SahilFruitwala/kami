@@ -66,7 +66,30 @@ export type ReportSection = {
   claims: ReportClaim[];
 };
 
-export type ReportBody = { sections: ReportSection[] };
+export type ReportBody = {
+  sections: ReportSection[];
+  /** Set when the run had no budget left to draft the report, so code wrote it. */
+  partial?: boolean;
+};
+
+/** A model's quote label ("E3", "e3", "[E3]", "3") in canonical form, or null. */
+export function canonicalLabel(raw: string): string | null {
+  const m = raw.trim().match(/^\[?\s*e?\s*(\d{1,3})\s*\]?$/i);
+  return m ? `E${Number(m[1])}` : null;
+}
+
+/**
+ * Mark a report written without a model call (no budget left, or no quotes
+ * to cite) and say why at the top of its first section.
+ */
+export function partialReport(body: ReportBody, reason: string): ReportBody {
+  const [first, ...rest] = body.sections;
+  if (!first) return { ...body, partial: true };
+  return {
+    sections: [{ ...first, claims: [{ text: reason, evidenceIds: [] }, ...first.claims] }, ...rest],
+    partial: true,
+  };
+}
 
 export function emptyValidateSections(): ReportSection[] {
   return VALIDATE_SECTION_IDS.map((id) => ({
@@ -206,6 +229,19 @@ export function requiredCounterQueries(
 
 function hasNeedle(query: string, needle: string): boolean {
   return query.toLowerCase().includes(needle);
+}
+
+/** Checked counter-evidence searches a Validate plan must keep to start. */
+export const MIN_COUNTER_QUERIES = 2;
+
+/**
+ * Checked queries in a plan that search for a counter phrase. Read from the
+ * query text, not the `counter` flag, since an edited plan comes from the browser.
+ */
+export function counterSearchCount(plan: ReadonlyArray<Pick<PlanQuery, "query" | "checked">>) {
+  return plan.filter(
+    (q) => q.checked !== false && COUNTER_NEEDLES.some((n) => hasNeedle(q.query, n.needle)),
+  ).length;
 }
 
 /**

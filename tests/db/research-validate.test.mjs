@@ -237,4 +237,35 @@ describe("research validate", { skip: skipWithoutDb }, () => {
       (err) => err.status === 404,
     );
   });
+
+  it("stores a partial report and ends when the budget runs out (no endless report retries)", async () => {
+    const { topic, ideaId } = await seedIdea();
+    const { run } = await runs.draftRun(
+      owner.id,
+      {
+        topicId: topic.id,
+        kind: "validate",
+        depth: "quick",
+        input: { seed: "Editing remote interviews takes hours", ideaId },
+      },
+      validate.validateDrafter({ generate: fakeGenerate }),
+    );
+    await ledger.reserveRunCredits(db, owner.id, run.id, 1, "start");
+    await db
+      .update(schema.researchRuns)
+      .set({ state: "queued" })
+      .where(eq(schema.researchRuns.id, run.id));
+
+    const finished = await drive(run.id, validate.validateSteps({ generate: fakeGenerate, calls }));
+    assert.equal(finished.state, "stopped");
+    assert.equal(finished.stopReason, "budget");
+    assert.equal(finished.progress.reported, true);
+
+    const reports = await product.listResearchReports(owner.id, topic.id);
+    assert.equal(reports.length, 1);
+    const report = await product.researchReport(owner.id, reports[0].id);
+    assert.match(report.sections[0].claims[0].text, /ran out of budget|no quotes/);
+    const counter = report.sections.find((s) => s.id === "counter");
+    assert.ok(counter.claims.length >= 1);
+  });
 });

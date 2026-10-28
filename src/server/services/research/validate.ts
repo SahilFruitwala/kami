@@ -22,7 +22,9 @@ import type { PlanQuery } from "@/lib/research/kinds.ts";
 import { fillSolutionsFromPlayers } from "@/lib/research/players.ts";
 import {
   assembleValidateReport,
+  canonicalLabel,
   mergeCounterQueries,
+  partialReport,
   VALIDATE_SECTION_IDS,
   type ReportClaim,
 } from "@/lib/research/report.ts";
@@ -30,6 +32,7 @@ import { asDocument } from "@/server/ai";
 import { gatherSteps, type DiscoverDeps } from "./discover";
 import { callModel } from "./models";
 import {
+  BudgetExceededError,
   RunStepError,
   registerRunSteps,
   type DraftResult,
@@ -227,15 +230,38 @@ export function resolveClaims(
   return claims.map((c) => ({
     text: c.text,
     evidenceIds: c.evidence
-      .map((raw) => idOf.get(raw.trim().toUpperCase()) ?? raw.trim())
-      .filter(Boolean),
+      .map((raw) => {
+        const label = canonicalLabel(raw);
+        return label ? idOf.get(label) : undefined;
+      })
+      .filter((id): id is string => Boolean(id)),
   }));
+}
+
+export const NO_QUOTES_NOTE =
+  "The run found no quotes to cite, so there was nothing to draft from.";
+export const NO_BUDGET_NOTE =
+  "The run ran out of budget before the report could be drafted; this shows only what was searched.";
+
+/**
+ * The writer call for a report step, or null when it can't be afforded. A
+ * final step runs again after a budget stop, so letting the error escape
+ * would retry it forever; the caller stores a partial report instead.
+ */
+export async function draftIfAffordable<T>(call: () => Promise<T>): Promise<T | null> {
+  try {
+    return await call();
+  } catch (err) {
+    if (err instanceof BudgetExceededError) return null;
+    throw err;
+  }
 }
 
 /**
  * `report` (final): one writer call drafts the six sections, then code checks
  * every cited id against the topic and fills an empty counter-evidence
- * section. Idempotent: a report already stored for this run is left alone.
+ * section. With no quotes, or no budget left, code writes a partial report
+ * without the call. Idempotent: a report already stored for this run is left alone.
  */
 export function reportStep(deps: ValidateDeps = {}): ResearchStep {
   return {
@@ -268,30 +294,34 @@ export function reportStep(deps: ValidateDeps = {}): ResearchStep {
             .map((p) => `- ${p.name}${p.oneLiner ? `: ${p.oneLiner}` : ""}`)
             .join("\n")}`
         : "";
-      const output = await callModel(
-        ctx,
-        {
-          tier: "writer",
-          schema: reportSchema,
-          promptVersion: VALIDATE_REPORT_PROMPT_VERSION,
-          instructions: REPORT_INSTRUCTIONS,
-          prompt: [
-            `Idea: ${idea?.title ?? ctx.run.input.seed}`,
-            idea?.summary ? `Summary: ${idea.summary}` : "",
-            playerBit,
-            `Quotes:\n${asDocument(list || "(none)")}`,
-          ]
-            .filter(Boolean)
-            .join("\n\n"),
-          maxOutputTokens: 3_000,
-          temperature: 0.2,
-        },
-        deps.generate,
-      );
+      const output = quotes.length
+        ? await draftIfAffordable(() =>
+            callModel(
+              ctx,
+              {
+                tier: "writer",
+                schema: reportSchema,
+                promptVersion: VALIDATE_REPORT_PROMPT_VERSION,
+                instructions: REPORT_INSTRUCTIONS,
+                prompt: [
+                  `Idea: ${idea?.title ?? ctx.run.input.seed}`,
+                  idea?.summary ? `Summary: ${idea.summary}` : "",
+                  playerBit,
+                  `Quotes:\n${asDocument(list || "(none)")}`,
+                ]
+                  .filter(Boolean)
+                  .join("\n\n"),
+                maxOutputTokens: 3_000,
+                temperature: 0.2,
+              },
+              deps.generate,
+            ),
+          )
+        : null;
       const known = await topicEvidenceIds(db, ctx.run.topicId);
       const searched = ctx.run.plan.filter((q) => q.checked !== false).map((q) => q.query);
       const assembled = assembleValidateReport(
-        output.sections.map((s) => ({
+        (output?.sections ?? []).map((s) => ({
           id: s.id,
           claims: resolveClaims(s.claims, idOf),
         })),
@@ -302,7 +332,7 @@ export function reportStep(deps: ValidateDeps = {}): ResearchStep {
         db,
         players.map((p) => p.id),
       );
-      const body = {
+      const full = {
         sections: fillSolutionsFromPlayers(
           assembled.sections,
           players.map((p) => ({
@@ -312,6 +342,9 @@ export function reportStep(deps: ValidateDeps = {}): ResearchStep {
           })),
         ),
       };
+      const body = output
+        ? full
+        : partialReport(full, quotes.length ? NO_BUDGET_NOTE : NO_QUOTES_NOTE);
       await upsertReport(db, {
         userId: ctx.run.userId,
         topicId: ctx.run.topicId,

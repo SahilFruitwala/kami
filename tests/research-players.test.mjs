@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  checkPricing,
   fillSolutionsFromPlayers,
+  freePlanOnPages,
   mergeExploreQueries,
   nameKey,
   pickHomepage,
@@ -96,5 +98,30 @@ describe("Validate existing solutions from Players", () => {
       [{ name: "Riverside", oneLiner: "Studio", evidenceIds: ["e2"] }],
     );
     assert.deepEqual(solutions.claims, [claim]);
+  });
+});
+
+describe("player pricing checks", () => {
+  const page = "## Plans\n**Creator** $24/month, billed yearly.\nPro:  $40 / month";
+  it("keeps only plans whose price is on a fetched page", () => {
+    const { plans } = checkPricing(
+      [
+        { name: "Creator", price: "$24/month" },
+        { name: "Pro", price: "$40 / month" },
+        { name: "Team", price: "$99/month" },
+        { name: "Enterprise", price: "" },
+      ],
+      [page],
+    );
+    assert.deepEqual(
+      plans.map((p) => p.name),
+      ["Creator", "Pro"],
+    );
+  });
+
+  it("keeps a free plan only when a page says free", () => {
+    assert.equal(freePlanOnPages(true, [page]), false);
+    assert.equal(freePlanOnPages(true, [page, "Start free today"]), true);
+    assert.equal(freePlanOnPages(false, ["Free forever"]), false);
   });
 });

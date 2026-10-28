@@ -17,7 +17,7 @@ import {
 import type { RunSpend } from "@/lib/research/credits.ts";
 import { OPEN_WEB, PLAN_INTENTS, planSite, validatePlan } from "@/lib/research/discover.ts";
 import type { PlanQuery } from "@/lib/research/kinds.ts";
-import { assembleQuestionReport } from "@/lib/research/report.ts";
+import { assembleQuestionReport, partialReport } from "@/lib/research/report.ts";
 import { asDocument } from "@/server/ai";
 import { gatherSteps, type DiscoverDeps } from "./discover";
 import { callModel } from "./models";
@@ -28,7 +28,14 @@ import {
   type Meter,
   type ResearchStep,
 } from "./runs";
-import { citeableEvidence, labelsFor, resolveClaims } from "./validate";
+import {
+  NO_BUDGET_NOTE,
+  NO_QUOTES_NOTE,
+  citeableEvidence,
+  draftIfAffordable,
+  labelsFor,
+  resolveClaims,
+} from "./validate";
 
 /**
  * Ask a question: the same draft → start flow as Discover, then search →
@@ -184,29 +191,38 @@ export function questionReportStep(deps: QuestionDeps = {}): ResearchStep {
         })
         .join("\n");
       const question = ctx.run.input.question?.trim() || ctx.run.input.seed;
-      const output = await callModel(
-        ctx,
-        {
-          tier: "writer",
-          schema: reportSchema,
-          promptVersion: QUESTION_REPORT_PROMPT_VERSION,
-          instructions: REPORT_INSTRUCTIONS,
-          prompt: [`Question: ${question}`, `Quotes:\n${asDocument(list || "(none)")}`].join(
-            "\n\n",
-          ),
-          maxOutputTokens: 3_000,
-          temperature: 0.2,
-        },
-        deps.generate,
-      );
+      const output = quotes.length
+        ? await draftIfAffordable(() =>
+            callModel(
+              ctx,
+              {
+                tier: "writer",
+                schema: reportSchema,
+                promptVersion: QUESTION_REPORT_PROMPT_VERSION,
+                instructions: REPORT_INSTRUCTIONS,
+                prompt: [`Question: ${question}`, `Quotes:\n${asDocument(list || "(none)")}`].join(
+                  "\n\n",
+                ),
+                maxOutputTokens: 3_000,
+                temperature: 0.2,
+              },
+              deps.generate,
+            ),
+          )
+        : null;
       const known = await topicEvidenceIds(db, ctx.run.topicId);
-      const body = assembleQuestionReport(
-        output.sections.map((s) => ({
-          title: s.title,
-          claims: resolveClaims(s.claims, idOf),
-        })),
-        known,
-      );
+      const body = output
+        ? assembleQuestionReport(
+            output.sections.map((s) => ({
+              title: s.title,
+              claims: resolveClaims(s.claims, idOf),
+            })),
+            known,
+          )
+        : partialReport(
+            { sections: [{ id: "answer_1", title: "Answer", claims: [] }] },
+            quotes.length ? NO_BUDGET_NOTE : NO_QUOTES_NOTE,
+          );
       await upsertReport(db, {
         userId: ctx.run.userId,
         topicId: ctx.run.topicId,

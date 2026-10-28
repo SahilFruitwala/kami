@@ -21,6 +21,9 @@ import { OPEN_WEB, PLAN_INTENTS, planSite, validatePlan } from "@/lib/research/d
 import type { PlanQuery, SearchHit } from "@/lib/research/kinds.ts";
 import {
   EMPTY_PRICING,
+  FILL_LIMITS,
+  checkPricing,
+  freePlanOnPages,
   mergeExploreQueries,
   pickHomepage,
   pricingPageUrl,
@@ -31,6 +34,7 @@ import { gatherSteps, type DiscoverDeps } from "./discover";
 import { getOrFetchSource } from "./fetch";
 import { callModel } from "./models";
 import {
+  BudgetExceededError,
   RunStepError,
   registerRunSteps,
   type DraftResult,
@@ -175,15 +179,16 @@ async function runHits(runId: string): Promise<SearchHit[]> {
 }
 
 /**
- * `fill` (final): one unit per Player that still has no fetched pages. Finds
- * a homepage in this run's search hits, reads homepage + /pricing, then a
- * worker fills fields from those pages only. Idempotent: already-filled
- * Players are skipped.
+ * `fill`: one unit per Player that still has no fetched pages, up to
+ * FILL_LIMITS for the run's depth. Finds a homepage in this run's search
+ * hits, reads homepage + /pricing, then a worker fills fields from those
+ * pages only; prices and "free plan" are kept only when a page shows them.
+ * Not final, so Stop or the budget ends it; unfilled Players wait for the
+ * next run. Idempotent: already-filled Players are skipped.
  */
 export function fillPlayersStep(deps: ExploreDeps = {}): ResearchStep {
   return {
     name: "fill",
-    final: true,
     unitBudgetMs: 150_000,
     async work(ctx) {
       const db = await getDb();
@@ -192,7 +197,7 @@ export function fillPlayersStep(deps: ExploreDeps = {}): ResearchStep {
         (p) => !doneIds.includes(p.id),
       );
       const next = pending[0];
-      if (!next) {
+      if (!next || doneIds.length >= FILL_LIMITS[ctx.run.depth]) {
         await ctx.saveProgress({ players: await countTopicPlayers(db, ctx.run.topicId) });
         return true;
       }
@@ -206,7 +211,7 @@ export function fillPlayersStep(deps: ExploreDeps = {}): ResearchStep {
           filled: (ctx.run.progress.filled ?? 0) + 1,
           filledIds: [...doneIds, next.id],
         });
-        return pending.length <= 1;
+        return pending.length <= 1 || doneIds.length + 1 >= FILL_LIMITS[ctx.run.depth];
       }
       if (!next.url) await setPlayerUrl(db, next.id, home);
 
@@ -228,8 +233,9 @@ export function fillPlayersStep(deps: ExploreDeps = {}): ResearchStep {
           );
           sourceIds.push(source.id);
           pages.push({ kind: source.kind, markdown: source.markdown.slice(0, 12_000) });
-        } catch {
-          // A page we can't read is skipped; fields still only come from what we got.
+        } catch (err) {
+          // Out of budget ends the step; a page we can't read is skipped.
+          if (err instanceof BudgetExceededError) throw err;
         }
       }
 
@@ -258,15 +264,15 @@ export function fillPlayersStep(deps: ExploreDeps = {}): ResearchStep {
         oneLiner = output.one_liner.replace(/\s+/g, " ").trim().slice(0, 200);
         category = output.category.replace(/\s+/g, " ").trim().slice(0, 80);
         audience = output.audience.replace(/\s+/g, " ").trim().slice(0, 80);
-        pricing = {
-          plans: output.plans
-            .map((p) => ({
-              name: p.name.replace(/\s+/g, " ").trim().slice(0, 80),
-              price: p.price.replace(/\s+/g, " ").trim().slice(0, 80),
-            }))
-            .filter((p) => p.name),
-        };
-        freePlan = Boolean(output.free_plan);
+        const texts = pages.map((p) => p.markdown);
+        pricing = checkPricing(
+          output.plans.map((p) => ({
+            name: p.name.replace(/\s+/g, " ").trim().slice(0, 80),
+            price: p.price.replace(/\s+/g, " ").trim().slice(0, 80),
+          })),
+          texts,
+        );
+        freePlan = freePlanOnPages(Boolean(output.free_plan), texts);
       }
 
       await updatePlayerFill(db, next.id, {
@@ -283,7 +289,7 @@ export function fillPlayersStep(deps: ExploreDeps = {}): ResearchStep {
         filled: (ctx.run.progress.filled ?? 0) + 1,
         filledIds: [...doneIds, next.id],
       });
-      return pending.length <= 1;
+      return pending.length <= 1 || doneIds.length + 1 >= FILL_LIMITS[ctx.run.depth];
     },
   };
 }

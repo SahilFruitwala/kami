@@ -72,6 +72,35 @@ export function pricingPageUrl(home: string): string | null {
   }
 }
 
+/** Players a single Explore run fills, best-known first (each costs two page reads and a call). */
+export const FILL_LIMITS = { quick: 8, deep: 20 } as const;
+
+function foldPageText(text: string): string {
+  return text.toLowerCase().replace(/[*_`]/g, "").replace(/\s+/g, " ");
+}
+
+/**
+ * Keep only plans whose price appears on the fetched pages, so no price is
+ * the model's guess. A plan without a price is dropped too.
+ */
+export function checkPricing(
+  plans: ReadonlyArray<{ name: string; price: string }>,
+  pages: readonly string[],
+): PlayerPricing {
+  const text = foldPageText(pages.join("\n"));
+  return {
+    plans: plans.filter((p) => {
+      const price = foldPageText(p.price).trim();
+      return Boolean(p.name.trim() && price && text.includes(price));
+    }),
+  };
+}
+
+/** A free plan counts only when a page actually says "free". */
+export function freePlanOnPages(claimed: boolean, pages: readonly string[]): boolean {
+  return claimed && pages.some((p) => /\bfree\b/i.test(p));
+}
+
 export const EXPLORE_NEEDLES = [
   {
     needle: "best",

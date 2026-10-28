@@ -41,6 +41,7 @@ import {
   getReportByRun,
   listTopicReports,
 } from "@/lib/research-reports-db.server.ts";
+import { MIN_COUNTER_QUERIES, counterSearchCount } from "@/lib/research/report.ts";
 import { scoreIdea } from "@/lib/research/score.ts";
 import { isReadableUrl } from "@/lib/research/sources.ts";
 import { badRequest, notFound } from "@/server/http";
@@ -289,6 +290,11 @@ export async function startDiscoverRun(
   const run = await getRun(await getDb(), userId, runId);
   if (!run) throw notFound("Run not found");
   const plan = await validateEditedPlan(run, input.plan, input.depth);
+  if (run.kind === "validate" && counterSearchCount(plan) < MIN_COUNTER_QUERIES) {
+    throw badRequest(
+      `Keep at least ${MIN_COUNTER_QUERIES} counter-evidence searches checked: a validation has to look for reasons the idea may not work.`,
+    );
+  }
   await startRun(userId, runId, { plan, depth: input.depth }, origin);
   return { runId };
 }
