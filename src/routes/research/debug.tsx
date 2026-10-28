@@ -384,9 +384,7 @@ function ResearchDebugPage() {
                       className={cn("min-w-48 flex-1", !q.checked && "opacity-50")}
                       value={q.query}
                       onChange={(e) =>
-                        setPlan(
-                          plan.map((p, j) => (j === i ? { ...p, query: e.target.value } : p)),
-                        )
+                        setPlan(plan.map((p, j) => (j === i ? { ...p, query: e.target.value } : p)))
                       }
                     />
                     <span className="w-44 truncate font-sans text-xs text-ink-muted">
@@ -453,7 +451,12 @@ function ResearchDebugPage() {
           <DebugList title={`Sources read (${detail.sources.length})`}>
             {detail.sources.map((s) => (
               <li key={s.id}>
-                <a className="text-hanko underline-offset-4 hover:underline" href={s.url} target="_blank" rel="noreferrer">
+                <a
+                  className="text-hanko underline-offset-4 hover:underline"
+                  href={s.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   {s.title || s.url}
                 </a>{" "}
                 <span className="font-mono text-xs text-ink-muted">
