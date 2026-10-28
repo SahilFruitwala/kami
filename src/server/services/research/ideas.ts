@@ -35,7 +35,7 @@ import type { ResearchStep, StepContext } from "./runs";
  * the run is stopping, so what was gathered is always scored.
  */
 
-export const MATCH_PROMPT_VERSION = "discover-match-v1";
+export const MATCH_PROMPT_VERSION = "discover-match-v2";
 export const NAME_PROMPT_VERSION = "discover-name-v1";
 
 /** Quotes per matching call; live and dismissed ideas a matcher sees _(start values)_. */
@@ -77,11 +77,13 @@ const matchSchema = z.object({
 const MATCH_INSTRUCTIONS = `You group what people said into product ideas. An idea is one problem (or unmet want) that a product could solve, stated as the problem, e.g. "Editing remote interviews takes hours".
 
 For each quote, answer with:
-- the existing idea it supports (I1, I2, …), when it is about the same problem, even in different words;
+- the existing idea it supports (I1, I2, …), when it is about the same problem, even in different words: one product solving that idea would solve this quote's problem too;
 - a dismissed idea it supports (D1, D2, …), when it is about that problem;
 - or "new", with a title (the problem, under 10 words) and a one-sentence summary of who has it and when.
 
-Quotes about the same new problem get exactly the same new title. Prefer an existing idea over a new one when it fits. Answer for every quote.`;
+Keep ideas narrow. A quote about a more specific problem than an existing idea (e.g. "chasing late invoices" under "Getting paid is hard") is a new idea, not support for the broad one; never widen an idea to fit a quote, and never title a new idea with "and" joining two problems.
+
+Quotes about the same new problem get exactly the same new title. Answer for every quote.`;
 
 /** The model matcher: one worker call per batch, with quotes and ideas as untrusted text. */
 export function modelMatcher(generate?: Generate): Matcher {

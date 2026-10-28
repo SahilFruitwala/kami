@@ -1,6 +1,6 @@
 ---
 type: build
-status: open
+status: closed
 assignee: sahil
 phase: 1-engine
 blocked-by: [08-idea-matching-and-scoring.md]
@@ -52,6 +52,8 @@ Where to pick up: branch `research/09-debug` (stacked on `research/08-ideas`, PR
 
 **Scope change (agreed 2026-10-27):** to save Firecrawl and model credits, ticket 09 ends at 3 seeds at Quick plus a Deep check on one of them, instead of 5 seeds at both depths.
 
-**Left before closing:** a broad idea can soak up quotes ("Getting paid and reconciling is hard" holds 76): watch it in the ideas tab (ticket 12, merging and splitting). Commit and open the PR.
+**Broad ideas:** one idea soaked up quotes ("Getting paid and reconciling is hard" held 76 in `438dd6f3`). The matcher was told to prefer an existing idea, so narrower problems joined the broad one. `discover-match-v2` drops that, keeps ideas narrow (a more specific problem is a new idea; no titles joining two problems with "and"), and its new version means stored answers from v1 aren't reused. Not yet checked on a real run; ideas that still overlap can be merged in the ideas tab (ticket 12).
 
 ## Resolution
+
+Closed 2026-10-28. Three seeds at Quick and a Deep check produced ideas with checked quotes inside their budgets; costs are in the table above (Quick 30–38 fresh, about 13 on stored searches; Deep about 35 on stored searches). PR #88.
