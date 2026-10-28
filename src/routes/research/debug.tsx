@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
+import { ChevronDown, LoaderCircle, Play, Search } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { Segmented } from "@/components/gloss/primitives.tsx";
+import { StatePill } from "@/components/research/research-ui.tsx";
+import { useResearchTopics } from "@/hooks/use-research.ts";
+import { cn } from "@/lib/utils.ts";
 import type { Depth, PlanQuery } from "@/lib/research/kinds.ts";
 import { researchDebugApi, type DebugOverview, type DebugRun } from "@/lib/api/research.ts";
 
@@ -27,6 +32,170 @@ const list = (text: string) =>
     .split(",")
     .map((s) => s.trim())
     .filter(Boolean);
+
+type DiscoverForm = {
+  seed: string;
+  depth: Depth;
+  topicId: string;
+  sinceMonths: string;
+  includeSites: string;
+  excludeSites: string;
+};
+
+const FIELD = "font-sans text-xs font-medium text-ink-soft";
+
+/**
+ * Same shape as the product's Find ideas form, with the real numbers shown:
+ * what each depth reads and what starting it reserves. Drafting spends one
+ * writer-model call; the plan below it is where the credits are decided.
+ */
+function DiscoverRunForm({
+  form,
+  setForm,
+  overview,
+  busy,
+  onDraft,
+}: {
+  form: DiscoverForm;
+  setForm: (next: DiscoverForm) => void;
+  overview: DebugOverview | null;
+  busy: boolean;
+  onDraft: () => void;
+}) {
+  const topics = useResearchTopics();
+  const [more, setMore] = useState(false);
+  const limits = overview?.limits[form.depth];
+  const budget = overview?.budgets[form.depth];
+  const filters = [form.sinceMonths, form.includeSites, form.excludeSites].filter(Boolean).length;
+
+  return (
+    <form
+      className="kami-sheet flex flex-col gap-4 p-5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!busy && form.seed.trim().length >= 3) onDraft();
+      }}
+    >
+      <div className="space-y-1">
+        <h2 className="font-display text-lg text-ink">New Discover run</h2>
+        <p className="font-body text-sm text-ink-soft">
+          Describe a market or problem area. Discover searches the web for people complaining,
+          asking and paying, then turns what it finds into product ideas.
+        </p>
+      </div>
+
+      <label className="flex flex-col gap-1.5">
+        <span className={FIELD}>What space should we look into?</span>
+        <Input
+          value={form.seed}
+          onChange={(e) => setForm({ ...form, seed: e.target.value })}
+          placeholder="e.g. tools for indie podcasters"
+          maxLength={200}
+          minLength={3}
+          required
+        />
+      </label>
+
+      <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
+        <div className="flex flex-col gap-1.5">
+          <span className={FIELD}>Depth</span>
+          <Segmented
+            label="Depth"
+            size="sm"
+            value={form.depth}
+            onChange={(depth) => setForm({ ...form, depth })}
+            options={[
+              { id: "quick", label: "Quick" },
+              { id: "deep", label: "Deep" },
+            ]}
+          />
+          <span className="max-w-64 font-body text-xs text-ink-muted">
+            {limits
+              ? `Up to ${limits.maxQueries} searches and ${limits.pagesToRead} pages read.`
+              : "Quick for a first look, Deep for a wider sweep."}
+          </span>
+        </div>
+        <label className="flex min-w-56 flex-col gap-1.5">
+          <span className={FIELD}>Topic</span>
+          <select
+            value={form.topicId}
+            onChange={(e) => setForm({ ...form, topicId: e.target.value })}
+            className="h-9 rounded-lg border border-line bg-surface px-3 font-sans text-sm text-ink"
+          >
+            <option value="">New topic</option>
+            {(topics.data ?? []).map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+          <span className="font-body text-xs text-ink-muted">
+            Pick one to add this run's ideas to it.
+          </span>
+        </label>
+      </div>
+
+      <button
+        type="button"
+        aria-expanded={more}
+        onClick={() => setMore((v) => !v)}
+        className="flex w-fit items-center gap-1 font-sans text-xs text-hanko"
+      >
+        {filters ? `Filters (${filters} set)` : "Filters"}
+        <ChevronDown className={cn("size-3.5 transition-transform", more && "rotate-180")} />
+      </button>
+      {more ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1.5">
+            <span className={FIELD}>Only from the last</span>
+            <select
+              value={form.sinceMonths}
+              onChange={(e) => setForm({ ...form, sinceMonths: e.target.value })}
+              className="h-9 rounded-lg border border-line bg-surface px-3 font-sans text-sm text-ink"
+            >
+              <option value="">Any time</option>
+              <option value="6">6 months</option>
+              <option value="12">12 months</option>
+              <option value="24">2 years</option>
+            </select>
+          </label>
+          <span aria-hidden="true" className="hidden sm:block" />
+          <label className="flex flex-col gap-1.5">
+            <span className={FIELD}>Only these sites</span>
+            <Input
+              value={form.includeSites}
+              onChange={(e) => setForm({ ...form, includeSites: e.target.value })}
+              placeholder="reddit.com, news.ycombinator.com"
+            />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className={FIELD}>Never these sites</span>
+            <Input
+              value={form.excludeSites}
+              onChange={(e) => setForm({ ...form, excludeSites: e.target.value })}
+              placeholder="medium.com"
+            />
+          </label>
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="submit" disabled={busy || form.seed.trim().length < 3}>
+          {busy ? (
+            <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+          ) : (
+            <Search className="size-4" aria-hidden="true" />
+          )}
+          Draft a plan
+        </Button>
+        <span className="font-body text-xs text-ink-muted">
+          Drafting makes one writer-model call.
+          {budget ? ` Starting the run then reserves ${budget} credits.` : ""}
+        </span>
+      </div>
+    </form>
+  );
+}
 
 function ResearchDebugPage() {
   const navigate = Route.useNavigate();
@@ -129,115 +298,124 @@ function ResearchDebugPage() {
   return (
     <main className="mx-auto w-full max-w-[1100px] space-y-8 px-4 py-8 text-sm sm:px-8">
       <header className="space-y-1">
-        <h1 className="font-serif text-2xl">Research debug</h1>
-        <p className="text-muted-foreground">
+        <h1 className="font-display text-2xl text-ink">Research debug</h1>
+        <p className="font-body text-ink-soft">
           Operator only. Every run spends real Firecrawl and model credits.
           {overview ? ` Balance: ${overview.balance} research credits.` : ""}
         </p>
         {error && <p className="text-destructive">{error}</p>}
       </header>
 
-      <section className="space-y-3 rounded-xl border border-border p-4">
-        <h2 className="font-medium">New Discover run</h2>
-        <div className="grid gap-2 sm:grid-cols-2">
-          <Input
-            placeholder="Seed, e.g. tools for indie podcasters"
-            value={form.seed}
-            onChange={(e) => setForm({ ...form, seed: e.target.value })}
-          />
-          <div className="flex gap-2">
-            <select
-              className="rounded-md border border-border bg-card px-2"
-              value={form.depth}
-              onChange={(e) => setForm({ ...form, depth: e.target.value as Depth })}
-            >
-              <option value="quick">Quick</option>
-              <option value="deep">Deep</option>
-            </select>
-            <Input
-              placeholder="Since months (optional)"
-              value={form.sinceMonths}
-              onChange={(e) => setForm({ ...form, sinceMonths: e.target.value })}
-            />
-          </div>
-          <Input
-            placeholder="Only sites, comma-separated (optional)"
-            value={form.includeSites}
-            onChange={(e) => setForm({ ...form, includeSites: e.target.value })}
-          />
-          <Input
-            placeholder="Never sites, comma-separated (optional)"
-            value={form.excludeSites}
-            onChange={(e) => setForm({ ...form, excludeSites: e.target.value })}
-          />
-          <Input
-            placeholder="Existing topic id (optional; blank makes a new topic)"
-            value={form.topicId}
-            onChange={(e) => setForm({ ...form, topicId: e.target.value })}
-          />
-        </div>
-        <Button disabled={busy || form.seed.trim().length < 3} onClick={draft}>
-          Draft plan (one writer-model call)
-        </Button>
-      </section>
+      <DiscoverRunForm
+        form={form}
+        setForm={setForm}
+        overview={overview}
+        busy={busy}
+        onDraft={draft}
+      />
 
       {run && (
-        <section className="space-y-3 rounded-xl border border-border p-4">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="font-medium">
-              {run.input.seed} · {run.depth} · <span className="font-mono">{run.state}</span>
-              {run.stopReason ? ` (${run.stopReason})` : ""}
-              {run.step ? ` · step ${run.step}` : ""}
-            </h2>
-            <span className="font-mono text-xs text-muted-foreground">
+        <section className="kami-sheet flex flex-col gap-4 p-5">
+          <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-1">
+            <div className="min-w-0 space-y-1">
+              <h2 className="font-display text-lg break-words text-ink">{run.input.seed}</h2>
+              <div className="flex flex-wrap items-center gap-2 font-sans text-xs text-ink-soft">
+                <StatePill state={run.state} stopReason={run.stopReason} />
+                <span>{run.depth === "deep" ? "Deep" : "Quick"}</span>
+                {run.step ? <span>Step: {run.step}</span> : null}
+              </div>
+            </div>
+            <span className="font-mono text-xs text-ink-muted">
               topic {run.topicId} · run {run.id}
             </span>
           </div>
-          {run.error && <p className="text-destructive">{run.error}</p>}
-          <p className="font-mono text-xs">
-            spend: firecrawl {run.firecrawlCredits} · tokens {run.tokensIn} in / {run.tokensOut} out
-            · budget {run.budgetCredits || budget} · charged {run.chargedCredits ?? "—"}
-          </p>
-          <pre className="overflow-x-auto rounded-md bg-muted p-2 text-xs">
-            {JSON.stringify({ ...run.progress, picks: undefined, toRead: undefined }, null, 1)}
-          </pre>
+          {run.error && (
+            <p role="alert" className="font-body text-sm text-destructive">
+              {run.error}
+            </p>
+          )}
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-5">
+            {[
+              ["Firecrawl credits", run.firecrawlCredits],
+              ["Tokens in", run.tokensIn],
+              ["Tokens out", run.tokensOut],
+              ["Reserved", run.budgetCredits || budget],
+              ["Charged", run.chargedCredits ?? "—"],
+            ].map(([label, value]) => (
+              <div key={label} className="flex flex-col gap-0.5">
+                <dt className={FIELD}>{label}</dt>
+                <dd className="font-mono text-sm text-ink">{value}</dd>
+              </div>
+            ))}
+          </dl>
+          <details className="group">
+            <summary className="w-fit cursor-pointer font-sans text-xs text-hanko">
+              Progress details
+            </summary>
+            <pre className="mt-2 overflow-x-auto rounded-xl bg-paper-warm p-3 font-mono text-xs text-ink-soft">
+              {JSON.stringify({ ...run.progress, picks: undefined, toRead: undefined }, null, 1)}
+            </pre>
+          </details>
 
           {run.state === "awaiting_plan" && (
-            <div className="space-y-2">
-              <h3 className="font-medium">Plan</h3>
-              {plan.map((q, i) => (
-                <label key={q.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={q.checked}
-                    onChange={(e) =>
-                      setPlan(
-                        plan.map((p, j) => (j === i ? { ...p, checked: e.target.checked } : p)),
-                      )
-                    }
-                  />
-                  <Input
-                    className="flex-1"
-                    value={q.query}
-                    onChange={(e) =>
-                      setPlan(plan.map((p, j) => (j === i ? { ...p, query: e.target.value } : p)))
-                    }
-                  />
-                  <span className="w-48 truncate font-mono text-xs text-muted-foreground">
-                    {q.site ?? "web"} · {q.intent}
-                    {q.repeat ? " · repeat" : ""}
-                  </span>
-                </label>
-              ))}
-              <Button disabled={busy} onClick={start}>
-                Start ({plan.filter((q) => q.checked).length} searches, reserves {budget} credits)
-              </Button>
+            <div className="flex flex-col gap-3 border-t border-line pt-4">
+              <div className="space-y-1">
+                <h3 className="font-display text-base text-ink">Check the plan</h3>
+                <p className="font-body text-sm text-ink-soft">
+                  Untick a search to skip it, or edit its wording. Nothing is spent until you start.
+                </p>
+              </div>
+              <ul className="flex flex-col gap-2">
+                {plan.map((q, i) => (
+                  <li key={q.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <input
+                      type="checkbox"
+                      aria-label={`Run search ${i + 1}`}
+                      checked={q.checked}
+                      onChange={(e) =>
+                        setPlan(
+                          plan.map((p, j) => (j === i ? { ...p, checked: e.target.checked } : p)),
+                        )
+                      }
+                      className="size-4 accent-persimmon"
+                    />
+                    <Input
+                      aria-label={`Search ${i + 1}`}
+                      className={cn("min-w-48 flex-1", !q.checked && "opacity-50")}
+                      value={q.query}
+                      onChange={(e) =>
+                        setPlan(plan.map((p, j) => (j === i ? { ...p, query: e.target.value } : p)))
+                      }
+                    />
+                    <span className="w-44 truncate font-sans text-xs text-ink-muted">
+                      {q.site ?? "Web"} · {q.intent}
+                      {q.repeat ? " · repeat" : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-wrap items-center gap-3">
+                <Button disabled={busy} onClick={start}>
+                  {busy ? (
+                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Play className="size-4" aria-hidden="true" />
+                  )}
+                  Start run
+                </Button>
+                <span className="font-body text-xs text-ink-muted">
+                  {plan.filter((q) => q.checked).length} searches.
+                  {budget ? ` Reserves ${budget} credits.` : ""}
+                </span>
+              </div>
             </div>
           )}
           {ACTIVE.has(run.state) && run.state !== "drafting" && (
-            <Button variant="outline" disabled={busy} onClick={stop}>
-              Stop
-            </Button>
+            <div>
+              <Button variant="outline" disabled={busy} onClick={stop}>
+                Stop run
+              </Button>
+            </div>
           )}
         </section>
       )}
@@ -250,8 +428,8 @@ function ResearchDebugPage() {
                 <strong>{idea.title}</strong> {idea.isNew ? "· new" : ""}
                 {idea.addedLastRun ? ` · +${idea.addedLastRun}` : ""} · {idea.status} ·{" "}
                 {idea.evidenceCount} quotes
-                <div className="text-muted-foreground">{idea.summary}</div>
-                <div className="font-mono text-xs">{JSON.stringify(idea.score)}</div>
+                <div className="text-ink-soft">{idea.summary}</div>
+                <div className="font-mono text-xs text-ink-muted">{JSON.stringify(idea.score)}</div>
               </li>
             ))}
           </DebugList>
@@ -259,7 +437,7 @@ function ResearchDebugPage() {
             {detail.evidence.map((e) => (
               <li key={e.id}>
                 “{e.quote}”
-                <div className="font-mono text-xs text-muted-foreground">
+                <div className="font-mono text-xs text-ink-muted">
                   {e.kind} · {e.match} · sentiment {e.sentiment}
                   {e.strong ? " · strong" : ""}
                   {e.pays ? " · pays" : ""}
@@ -273,13 +451,18 @@ function ResearchDebugPage() {
           <DebugList title={`Sources read (${detail.sources.length})`}>
             {detail.sources.map((s) => (
               <li key={s.id}>
-                <a className="underline" href={s.url} target="_blank" rel="noreferrer">
+                <a
+                  className="text-hanko underline-offset-4 hover:underline"
+                  href={s.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   {s.title || s.url}
                 </a>{" "}
-                <span className="font-mono text-xs text-muted-foreground">
+                <span className="font-mono text-xs text-ink-muted">
                   {s.site} · {s.kind} · {s.chars} chars
                 </span>
-                <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded bg-muted p-2 text-xs">
+                <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap rounded-xl bg-paper-warm p-2 text-xs">
                   {s.preview}
                 </pre>
               </li>
@@ -297,7 +480,7 @@ function ResearchDebugPage() {
             {detail.queries.map((q) => (
               <li key={q.query}>
                 <span className="font-mono">{q.query}</span> · {q.hits.length} results
-                <ul className="ml-4 text-xs text-muted-foreground">
+                <ul className="ml-4 text-xs text-ink-muted">
                   {q.hits.map((h) => (
                     <li key={h.url}>
                       {h.title} — {h.url}
@@ -316,12 +499,12 @@ function ResearchDebugPage() {
             <li key={r.id}>
               <button
                 type="button"
-                className="underline"
+                className="text-hanko underline-offset-4 hover:underline"
                 onClick={() => void navigate({ search: { run: r.id } })}
               >
                 {r.seed}
               </button>{" "}
-              <span className="font-mono text-xs text-muted-foreground">
+              <span className="font-mono text-xs text-ink-muted">
                 {r.depth} · {r.state} · {new Date(r.createdAt).toLocaleString()}
               </span>
             </li>
@@ -335,8 +518,8 @@ function ResearchDebugPage() {
 function DebugList({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="space-y-2">
-      <h2 className="font-medium">{title}</h2>
-      <ul className="space-y-3">{children}</ul>
+      <h2 className="font-display text-lg text-ink">{title}</h2>
+      <ul className="space-y-3 font-body text-ink">{children}</ul>
     </section>
   );
 }
