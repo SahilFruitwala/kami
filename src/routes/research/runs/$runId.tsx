@@ -1,16 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useState } from "react";
-import { ArrowLeft, Check, Circle, LoaderCircle, Square } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { IdeaCard } from "@/components/research/idea-card.tsx";
 import { PlanEditor } from "@/components/research/plan-editor.tsx";
+import { RunProgressPanel } from "@/components/research/run-progress.tsx";
 import { EmptyNote, StatePill } from "@/components/research/research-ui.tsx";
-import { ACTIVE_RUN, useResearchRun, useResearchRefresh } from "@/hooks/use-research.ts";
+import { useResearchRun, useResearchRefresh } from "@/hooks/use-research.ts";
 import { researchApi, type RunView } from "@/lib/api/research.ts";
 import { toastError } from "@/lib/errors";
 import type { LibraryItem } from "@/lib/library-item.ts";
-import { cn } from "@/lib/utils.ts";
 
 export const Route = createFileRoute("/research/runs/$runId")({
   component: RunPage,
@@ -151,79 +151,10 @@ function EndNote({ view }: { view: RunView }) {
   return null;
 }
 
-type StepRow = { key: string; label: string; detail: string };
-
-function steps(view: RunView): StepRow[] {
-  const p = view.run.progress;
-  const n = (v: number | undefined) => v ?? 0;
-  const rows: StepRow[] = [];
-  if (!view.run.input.link) {
-    rows.push(
-      {
-        key: "search",
-        label: "Search",
-        detail: `${n(p.searched)} of ${n(p.queries)} searches${p.reusedSearches ? `, ${p.reusedSearches} reused` : ""} · ${n(p.results)} results`,
-      },
-      {
-        key: "triage",
-        label: "Pick pages",
-        detail: `${(p.toRead ?? []).length} picked of ${n(p.candidates)}`,
-      },
-    );
-  }
-  rows.push(
-    {
-      key: "fetch",
-      label: "Read pages",
-      detail: `${n(p.read)} read${p.failed ? `, ${p.failed} couldn't be read` : ""}`,
-    },
-    {
-      key: "extract",
-      label: "Pull quotes",
-      detail: `${n(p.quotes)} checked quotes${p.dropped ? `, ${p.dropped} dropped` : ""}`,
-    },
-  );
-  if (view.run.kind === "explore") {
-    rows.push(
-      { key: "players", label: "Note products", detail: `${n(p.playersNew)} new` },
-      {
-        key: "fill",
-        label: "Read their sites",
-        detail: p.playersTotal ? `${n(p.playersFilled)} of ${p.playersTotal}` : "",
-      },
-    );
-    return rows;
-  }
-  if (view.run.kind !== "discover") {
-    rows.push({
-      key: "report",
-      label: "Write the report",
-      detail: view.reportId ? "done" : "",
-    });
-    return rows;
-  }
-  rows.push(
-    { key: "players", label: "Note products", detail: `${n(p.playersNew)} new` },
-    { key: "match", label: "Group into ideas", detail: `${view.ideas.length} ideas so far` },
-    { key: "name", label: "Name ideas", detail: p.named ? "done" : "" },
-    {
-      key: "score",
-      label: "Score",
-      detail:
-        p.ideasTouched !== undefined ? `${n(p.ideasNew)} new, ${n(p.ideasTouched)} updated` : "",
-    },
-  );
-  return rows;
-}
-
 function Progress({ view }: { view: RunView }) {
   const refresh = useResearchRefresh();
   const [stopping, setStopping] = useState(false);
   const { run } = view;
-  const active = ACTIVE_RUN.has(run.state);
-  const rows = steps(view);
-  const current = rows.findIndex((r) => r.key === run.step);
-  const stopRequested = Boolean(run.progress.stopRequested);
 
   async function stop() {
     setStopping(true);
@@ -237,47 +168,13 @@ function Progress({ view }: { view: RunView }) {
   }
 
   return (
-    <section aria-label="Progress" className="kami-sheet flex flex-col gap-3 p-4 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="font-display text-xl text-ink">Progress</h2>
-        {active ? (
-          <Button variant="outline" size="sm" onClick={stop} disabled={stopping || stopRequested}>
-            <Square className="size-3.5" aria-hidden="true" />
-            {stopRequested ? "Stopping…" : "Stop"}
-          </Button>
-        ) : null}
-      </div>
-      <ol className="flex flex-col gap-2">
-        {rows.map((row, i) => {
-          const done = !active || (current >= 0 && i < current) || run.step === "end";
-          const now = active && i === current;
-          return (
-            <li key={row.key} className="flex items-start gap-3">
-              <span className="mt-0.5 shrink-0" aria-hidden="true">
-                {now ? (
-                  <LoaderCircle className="size-4 animate-spin text-hanko" />
-                ) : done ? (
-                  <Check className="size-4 text-ink-soft" />
-                ) : (
-                  <Circle className="size-4 text-line" />
-                )}
-              </span>
-              <span className="flex min-w-0 flex-1 flex-wrap items-baseline justify-between gap-x-3">
-                <span
-                  className={cn(
-                    "font-sans text-sm",
-                    now ? "font-medium text-ink" : "text-ink-soft",
-                  )}
-                >
-                  {row.label}
-                </span>
-                <span className="font-sans text-xs text-ink-muted tabular-nums">{row.detail}</span>
-              </span>
-            </li>
-          );
-        })}
-      </ol>
-    </section>
+    <RunProgressPanel
+      run={run}
+      ideasCount={view.ideas.length}
+      reportDone={Boolean(view.reportId)}
+      onStop={stop}
+      stopDisabled={stopping}
+    />
   );
 }
 

@@ -184,6 +184,7 @@ export async function debugRun(userId: string, runId: string, origin: string): P
     run: {
       id: run.id,
       topicId: run.topicId,
+      kind: run.kind,
       state: run.state,
       stopReason: run.stopReason,
       step: run.step,

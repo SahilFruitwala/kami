@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { clipText, fallbackModel } from "../src/lib/model-fallback.ts";
+import { clipText, fallbackModel, withoutReasoningOff } from "../src/lib/model-fallback.ts";
 import { DEFAULT_AI_MODELS, parseModelList } from "../src/lib/ai-models.ts";
 
 function fake(id, behaviour) {
@@ -81,6 +81,36 @@ describe("AI model chain", () => {
     );
     assert.equal(events[0].failed, "google:g");
     assert.equal(events[0].next, "openrouter:h");
+  });
+
+  it("leaves out the reasoning-off option for a link that prepares it away", async () => {
+    const off = { openrouter: { reasoning: { effort: "none" }, other: 1 }, google: { x: 1 } };
+    const sonnet = {
+      ...fake("openrouter:anthropic/s", "from sonnet"),
+      prepare: withoutReasoningOff,
+    };
+    const deepseek = fake("openrouter:d", "from deepseek");
+    const model = fallbackModel([sonnet, deepseek]);
+    await model.doGenerate({ temperature: 0.2, providerOptions: off });
+    assert.deepEqual(sonnet.calls[0].providerOptions, {
+      openrouter: { other: 1 },
+      google: { x: 1 },
+    });
+    assert.equal(sonnet.calls[0].temperature, 0.2, "other settings pass through");
+
+    // A fallback still gets the caller's own options, reasoning-off included.
+    const failing = {
+      ...fake("openrouter:anthropic/s", Object.assign(new Error("bad"), { statusCode: 400 })),
+      prepare: withoutReasoningOff,
+    };
+    await fallbackModel([failing, deepseek]).doGenerate({ providerOptions: off });
+    assert.deepEqual(deepseek.calls.at(-1).providerOptions, off);
+  });
+
+  it("keeps other reasoning settings as they are", () => {
+    const options = { providerOptions: { openrouter: { reasoning: { effort: "low" } } } };
+    assert.equal(withoutReasoningOff(options), options);
+    assert.equal(withoutReasoningOff({}).providerOptions, undefined);
   });
 
   it("throws the last error when every model fails", async () => {
