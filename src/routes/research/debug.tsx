@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
 import { Segmented } from "@/components/gloss/primitives.tsx";
 import { StatePill } from "@/components/research/research-ui.tsx";
+import { RunProgressPanel } from "@/components/research/run-progress.tsx";
 import { useResearchTopics } from "@/hooks/use-research.ts";
 import { cn } from "@/lib/utils.ts";
 import type { Depth, PlanQuery } from "@/lib/research/kinds.ts";
@@ -54,12 +55,14 @@ function DiscoverRunForm({
   setForm,
   overview,
   busy,
+  drafting,
   onDraft,
 }: {
   form: DiscoverForm;
   setForm: (next: DiscoverForm) => void;
   overview: DebugOverview | null;
   busy: boolean;
+  drafting: boolean;
   onDraft: () => void;
 }) {
   const topics = useResearchTopics();
@@ -189,7 +192,9 @@ function DiscoverRunForm({
           Draft a plan
         </Button>
         <span className="font-body text-xs text-ink-muted">
-          Drafting makes one writer-model call.
+          {drafting
+            ? "Drafting the plan: asking the writer model for searches. This usually takes 5–20 seconds."
+            : "Drafting makes one writer-model call."}
           {budget ? ` Starting the run then reserves ${budget} credits.` : ""}
         </span>
       </div>
@@ -205,6 +210,7 @@ function ResearchDebugPage() {
   const [plan, setPlan] = useState<PlanQuery[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [drafting, setDrafting] = useState(false);
   const [form, setForm] = useState({
     seed: "",
     depth: "quick" as Depth,
@@ -229,26 +235,31 @@ function ResearchDebugPage() {
     return next;
   }, []);
 
-  // Poll while the run is working.
+  // Load the run when it is picked.
   useEffect(() => {
     if (!runId) return;
-    let stopped = false;
-    let timer: ReturnType<typeof setTimeout>;
-    const tick = async () => {
-      try {
-        const next = await loadRun(runId);
-        if (!stopped && ACTIVE.has(next.run.state)) timer = setTimeout(tick, 2000);
-      } catch (err) {
-        setError((err as Error).message);
-      }
-    };
     setPlan([]);
-    void tick();
-    return () => {
-      stopped = true;
-      clearTimeout(timer);
-    };
+    loadRun(runId).catch((err: Error) => setError(err.message));
   }, [runId, loadRun]);
+
+  // Poll while the run is working. This is keyed on the run's state, not just
+  // its id: starting a drafted run keeps the same id, and polling that only
+  // restarted on a new id never resumed, so progress stayed frozen until Stop.
+  const working = detail ? ACTIVE.has(detail.run.state) : false;
+  useEffect(() => {
+    if (!runId || !working) return;
+    let inFlight = false;
+    const timer = setInterval(() => {
+      if (inFlight) return;
+      inFlight = true;
+      loadRun(runId)
+        .catch((err: Error) => setError(err.message))
+        .finally(() => {
+          inFlight = false;
+        });
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [runId, working, loadRun]);
 
   const act = async (fn: () => Promise<unknown>) => {
     setBusy(true);
@@ -264,16 +275,21 @@ function ResearchDebugPage() {
 
   const draft = () =>
     act(async () => {
-      const { runId: id } = await researchDebugApi.draft({
-        seed: form.seed,
-        depth: form.depth,
-        topicId: form.topicId || undefined,
-        sinceMonths: form.sinceMonths ? Number(form.sinceMonths) : undefined,
-        includeSites: form.includeSites ? list(form.includeSites) : undefined,
-        excludeSites: form.excludeSites ? list(form.excludeSites) : undefined,
-      });
-      await navigate({ search: { run: id } });
-      loadOverview();
+      setDrafting(true);
+      try {
+        const { runId: id } = await researchDebugApi.draft({
+          seed: form.seed,
+          depth: form.depth,
+          topicId: form.topicId || undefined,
+          sinceMonths: form.sinceMonths ? Number(form.sinceMonths) : undefined,
+          includeSites: form.includeSites ? list(form.includeSites) : undefined,
+          excludeSites: form.excludeSites ? list(form.excludeSites) : undefined,
+        });
+        await navigate({ search: { run: id } });
+        loadOverview();
+      } finally {
+        setDrafting(false);
+      }
     });
 
   const start = () =>
@@ -311,6 +327,7 @@ function ResearchDebugPage() {
         setForm={setForm}
         overview={overview}
         busy={busy}
+        drafting={drafting}
         onDraft={draft}
       />
 
@@ -322,7 +339,6 @@ function ResearchDebugPage() {
               <div className="flex flex-wrap items-center gap-2 font-sans text-xs text-ink-soft">
                 <StatePill state={run.state} stopReason={run.stopReason} />
                 <span>{run.depth === "deep" ? "Deep" : "Quick"}</span>
-                {run.step ? <span>Step: {run.step}</span> : null}
               </div>
             </div>
             <span className="font-mono text-xs text-ink-muted">
@@ -410,14 +426,16 @@ function ResearchDebugPage() {
               </div>
             </div>
           )}
-          {ACTIVE.has(run.state) && run.state !== "drafting" && (
-            <div>
-              <Button variant="outline" disabled={busy} onClick={stop}>
-                Stop run
-              </Button>
-            </div>
-          )}
         </section>
+      )}
+
+      {run && run.state !== "awaiting_plan" && run.state !== "drafting" && (
+        <RunProgressPanel
+          run={run}
+          ideasCount={detail?.ideas.length}
+          onStop={stop}
+          stopDisabled={busy}
+        />
       )}
 
       {detail && (

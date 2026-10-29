@@ -39,6 +39,7 @@ export type DebugRun = {
   run: {
     id: string;
     topicId: string;
+    kind: string;
     state: string;
     stopReason: string | null;
     step: string | null;

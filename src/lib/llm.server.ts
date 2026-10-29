@@ -8,7 +8,7 @@ import {
   type AiModel,
   type ModelProvider,
 } from "@/lib/ai-models.ts";
-import { fallbackModel, type ProviderModel } from "@/lib/model-fallback.ts";
+import { fallbackModel, withoutReasoningOff, type ProviderModel } from "@/lib/model-fallback.ts";
 
 /**
  * The one place model providers are chosen. Everything else works with an
@@ -52,12 +52,22 @@ export function aiLanguageModel(): LanguageModel | null {
 function chainModel(chain: AiModel[]): LanguageModel | null {
   if (!chain.length) return null;
   return fallbackModel(
-    chain.map((m) => ({ id: m.id, model: languageModel(m) as ProviderModel })),
+    chain.map((m) => ({
+      id: m.id,
+      model: languageModel(m) as ProviderModel,
+      // Claude through OpenRouter (`anthropic/claude-…`) can't have reasoning switched off.
+      prepare:
+        m.provider === "openrouter" && m.model.startsWith("anthropic/")
+          ? withoutReasoningOff
+          : undefined,
+    })),
     ({ failed, next, error }) => {
-      const e = error as { statusCode?: number; message?: string };
-      console.warn(
-        `[ai] ${failed} failed (${e?.statusCode ?? e?.message ?? "error"}), trying ${next}`,
-      );
+      const e = error as { statusCode?: number; message?: string; responseBody?: string };
+      // The status alone ("400") hides why; the provider's own message says.
+      const why = [e?.statusCode, e?.message, e?.responseBody?.slice(0, 300)]
+        .filter(Boolean)
+        .join(" · ");
+      console.warn(`[ai] ${failed} failed (${why || "error"}), trying ${next}`);
     },
     // A provider that hangs (seen with Gemini) must not stall the chain.
     { attemptTimeoutMs: AI_ATTEMPT_TIMEOUT_MS },

@@ -25,8 +25,33 @@ function isAbort(err: unknown, options: CallOptions): boolean {
   return err instanceof Error && err.name === "AbortError";
 }
 
-/** One link in the chain; `id` (e.g. `google:gemini-3.8-flash`) names it in logs and results. */
-export type ChainModel = { id: string; model: ProviderModel };
+/**
+ * One link in the chain; `id` (e.g. `google:gemini-3.8-flash`) names it in logs and results.
+ * `prepare` adjusts the call for this model only (dropping a setting it rejects).
+ */
+export type ChainModel = {
+  id: string;
+  model: ProviderModel;
+  prepare?: (options: CallOptions) => CallOptions;
+};
+
+/**
+ * Claude through OpenRouter always reasons: asking it not to (`reasoning`
+ * with effort "none", which the research and extraction calls send so that
+ * DeepSeek doesn't spend its output budget thinking) is answered with a 400,
+ * "Reasoning is mandatory for this endpoint and cannot be disabled". Links
+ * for those models leave the option out.
+ */
+export function withoutReasoningOff(options: CallOptions): CallOptions {
+  const openrouter = options.providerOptions?.openrouter as
+    { reasoning?: { effort?: string } } | undefined;
+  if (openrouter?.reasoning?.effort !== "none") return options;
+  const { reasoning: _off, ...rest } = openrouter;
+  return {
+    ...options,
+    providerOptions: { ...options.providerOptions, openrouter: rest },
+  };
+}
 
 type StreamResult = Awaited<ReturnType<ProviderModel["doStream"]>>;
 type StreamPart = StreamResult["stream"] extends ReadableStream<infer P> ? P : never;
@@ -113,7 +138,13 @@ export function fallbackModel(
     let lastError: unknown;
     for (let i = 0; i < chain.length; i++) {
       try {
-        return await run(chain[i], options, i === chain.length - 1, call);
+        const link = chain[i];
+        return await run(
+          link,
+          link.prepare ? link.prepare(options) : options,
+          i === chain.length - 1,
+          call,
+        );
       } catch (err) {
         if (isAbort(err, options)) throw err;
         lastError = err;
