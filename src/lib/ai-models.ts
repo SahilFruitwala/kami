@@ -26,6 +26,17 @@ const PROVIDER_LABEL: Record<ModelProvider, string> = {
   openrouter: "OpenRouter",
 };
 
+/**
+ * OpenRouter providers to route a model away from. DeepSeek V4 reasons by
+ * default and every request turns that off, which all providers honor except
+ * DigitalOcean: it thinks for 0 to 700+ tokens regardless, so short calls
+ * (triage answers in ~60 tokens, budgeted 300) run out of output before any
+ * text and finish with `length`. Empty for models without a known offender.
+ */
+export function openrouterIgnoredProviders(model: string): string[] {
+  return model.startsWith("deepseek/") ? ["digitalocean"] : [];
+}
+
 /** Parse one `provider:model` id; null when the provider is unknown or the model is blank. */
 export function parseModelId(raw: string): AiModel | null {
   const value = raw.trim();
