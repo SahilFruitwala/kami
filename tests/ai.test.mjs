@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { clipText, fallbackModel, withoutReasoningOff } from "../src/lib/model-fallback.ts";
-import { DEFAULT_AI_MODELS, parseModelList } from "../src/lib/ai-models.ts";
+import {
+  DEFAULT_AI_MODELS,
+  openrouterIgnoredProviders,
+  parseModelList,
+} from "../src/lib/ai-models.ts";
 
 function fake(id, behaviour) {
   const calls = [];
@@ -49,6 +53,13 @@ describe("AI model chain", () => {
       parseModelList("openrouter:x/y", DEFAULT_AI_MODELS).map((m) => m.id),
       ["openrouter:x/y"],
     );
+  });
+
+  it("routes DeepSeek away from the provider that ignores reasoning-off", () => {
+    assert.deepEqual(openrouterIgnoredProviders("deepseek/deepseek-v4.1-flash-1017"), [
+      "digitalocean",
+    ]);
+    assert.deepEqual(openrouterIgnoredProviders("anthropic/claude-sonnet-5-5"), []);
   });
 
   it("uses the first model when it answers", async () => {

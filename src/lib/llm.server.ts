@@ -4,6 +4,7 @@ import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { LanguageModel } from "ai";
 import {
   DEFAULT_AI_MODELS,
+  openrouterIgnoredProviders,
   parseModelList,
   type AiModel,
   type ModelProvider,
@@ -26,7 +27,11 @@ const hasKey = (provider: ModelProvider) => providerKey(provider) !== null;
 function languageModel(choice: AiModel): LanguageModel {
   const apiKey = providerKey(choice.provider) ?? undefined;
   if (choice.provider === "google") return createGoogle({ apiKey })(choice.model);
-  return createOpenRouter({ apiKey, headers: { "X-Title": "KAMI" } })(choice.model);
+  const ignore = openrouterIgnoredProviders(choice.model);
+  return createOpenRouter({ apiKey, headers: { "X-Title": "KAMI" } })(
+    choice.model,
+    ignore.length ? { provider: { ignore } } : undefined,
+  );
 }
 
 /** `AI_MODELS` (or the default chain), keeping only providers with a key. */
