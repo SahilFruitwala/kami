@@ -23,7 +23,7 @@ export const RATE_LIMITS = {
   imageStore: { limit: 300, windowSeconds: 3600 },
   /** Feed adds (discovery fetches) and manual refreshes. */
   feeds: { limit: 60, windowSeconds: 600 },
-  /** Firecrawl extract runs (each one spends paid Firecrawl credits). */
+  /** Firecrawl-backed trip-agent research (each call spends paid Firecrawl credits). */
   firecrawl: { limit: 30, windowSeconds: 3600 },
   /** Trip agent chat messages (each runs a multi-step model loop). */
   agent: { limit: 40, windowSeconds: 3600 },

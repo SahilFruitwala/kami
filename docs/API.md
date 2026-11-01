@@ -43,19 +43,6 @@ Path parameters are written `:name`. For exact request/response shapes read the 
 | `POST` | `/api/articles/import`  | `src/routes/api/articles/import.ts`  |
 | `POST` | `/api/articles/link`    | `src/routes/api/articles/link.ts`    |
 
-### extracts
-
-| Method   | Path                               | Source                                          |
-| -------- | ---------------------------------- | ----------------------------------------------- |
-| `PATCH`  | `/api/extracts/:id`                | `src/routes/api/extracts/$id.ts`                |
-| `DELETE` | `/api/extracts/:id`                | `src/routes/api/extracts/$id.ts`                |
-| `GET`    | `/api/extracts/:id/results`        | `src/routes/api/extracts/$id/results.ts`        |
-| `POST`   | `/api/extracts/:id/run`            | `src/routes/api/extracts/$id/run.ts`            |
-| `GET`    | `/api/extracts`                    | `src/routes/api/extracts/index.ts`              |
-| `POST`   | `/api/extracts`                    | `src/routes/api/extracts/index.ts`              |
-| `DELETE` | `/api/extracts/results/:id`        | `src/routes/api/extracts/results/$id.ts`        |
-| `POST`   | `/api/extracts/results/:id/accept` | `src/routes/api/extracts/results/$id/accept.ts` |
-
 ### feeds
 
 | Method   | Path                             | Source                                        |

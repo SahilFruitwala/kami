@@ -44,11 +44,6 @@ export const queryKeys = {
     status: () => [...queryKeys.ai.all, "status"] as const,
     summary: (articleId: string) => [...queryKeys.ai.all, "summary", articleId] as const,
   },
-  extracts: {
-    all: ["extracts"] as const,
-    overview: () => [...queryKeys.extracts.all, "overview"] as const,
-    results: (sourceId: string) => [...queryKeys.extracts.all, "results", sourceId] as const,
-  },
   trips: {
     all: ["trips"] as const,
     list: () => [...queryKeys.trips.all, "list"] as const,
