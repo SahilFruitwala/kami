@@ -295,7 +295,7 @@ export function ReaderView({
     setEditMenu(null);
   }
 
-  async function exportToJournal() {
+  async function copyReading() {
     const lines = [
       `# ${article.title}`,
       `${article.author ? `By ${article.author}, ` : ""}${article.siteName || ""}`,
@@ -517,7 +517,7 @@ export function ReaderView({
                     item={item}
                     onNote={(highlightId, note) => setHighlightNote(item.id, highlightId, note)}
                     onRemove={removeHighlightWithUndo}
-                    onExport={() => void exportToJournal()}
+                    onExport={() => void copyReading()}
                   />
 
                   <footer className="mt-10">

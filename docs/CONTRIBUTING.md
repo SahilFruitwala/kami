@@ -116,7 +116,7 @@ Checklist:
 - [ ] REST shape: `GET` reads, `POST` create/actions, `PATCH` partial update, `PUT` replace/set, `DELETE` remove; 404 for missing-or-not-yours
 - [ ] Endpoint listed in [`docs/API.md`](./API.md)
 
-Server data in components goes through hooks in `src/hooks/` (`use-shelf-queries.ts`, `use-ai.ts`, `use-feeds.ts`, …): every `useQuery` / `useMutation` lives there, keyed through the `queryKeys` factory in `src/lib/query-client.ts`, with its invalidation and error toast. ESLint rejects React Query hooks imported straight into components or pages. One-off imperative calls (export a file, save on click) may call `src/lib/api` directly. For library/journal, go through `*-remote.ts` so the outbox stays consistent.
+Server data in components goes through hooks in `src/hooks/` (`use-shelf-queries.ts`, `use-ai.ts`, …): every `useQuery` / `useMutation` lives there, keyed through the `queryKeys` factory in `src/lib/query-client.ts`, with its invalidation and error toast. ESLint rejects React Query hooks imported straight into components or pages. One-off imperative calls (export a file, save on click) may call `src/lib/api` directly. For the library, go through `*-remote.ts` so the outbox stays consistent.
 
 ### 3. Change the database schema
 
@@ -192,7 +192,7 @@ flowchart TD
   Q{What are you changing?}
   Q -->|URL / page| R[src/routes]
   Q -->|Look / layout| C[src/components]
-  Q -->|Optimistic library/journal| Z[store.ts / journal.ts / *-remote.ts]
+  Q -->|Optimistic library| Z[store.ts / *-remote.ts]
   Q -->|Shelf lists / lookups| RQ[use-shelf-queries + shelves-fns]
   Q -->|DB shape| M[migrations + schema.ts]
   Q -->|Auth| A[src/lib/auth + start.ts]

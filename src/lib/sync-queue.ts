@@ -1,6 +1,6 @@
 /**
- * Fire-and-forget server writes with a retry outbox, shared by the library and
- * journal sync layers (`*-remote.ts`).
+ * Fire-and-forget server writes with a retry outbox, shared by the library
+ * sync layers (`*-remote.ts`).
  *
  * A write is a plain-data op (e.g. `{ kind: "patch", id, patch }`) run by the
  * queue's `run` function. It runs immediately when online; if it fails (or the

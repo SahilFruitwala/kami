@@ -57,8 +57,6 @@ embedded fallback.
 | `UPSTASH_REDIS_REST_TOKEN` / `UPSTASH_TOKEN`          | optional             | Redis REST token                                                                                                         |
 | `DATABASE_POOL_MAX`                                   | optional             | pg pool size per instance (default `5`)                                                                                  |
 | `VITE_PUBLIC_HOSTNAME`                                | optional             | Public host for OG / share cards                                                                                         |
-| `CRON_SECRET`                                         | optional             | Bearer secret for the (unscheduled) feed sweep hook `/api/hooks/feeds` ([Feeds](./ARCHITECTURE.md#feeds--newsletters))   |
-| `INBOUND_EMAIL_DOMAIN` / `INBOUND_EMAIL_SECRET`       | optional             | Private newsletter addresses + inbound-email webhook secret ([Feeds](./ARCHITECTURE.md#feeds--newsletters))              |
 | `GOOGLE_GENERATIVE_AI_API_KEY` / `OPENROUTER_API_KEY` | for AI features      | Model provider keys; at least one enables the library AI features ([AI features](./ARCHITECTURE.md#ai-features))         |
 | `AI_MODELS`                                           | no                   | Model chain as `provider:model`, comma-separated, tried in order; default `openrouter:deepseek/deepseek-v4.1-flash-1017` |
 | `FIRECRAWL_API_KEY`                                   | for Trips + Research | Firecrawl API key; without it the trip agent has no web research and Research is off                                     |
@@ -105,7 +103,6 @@ src/
     id.ts          # uid()
     store.ts       # Zustand library data (client only)
     reader-prefs.ts # Zustand reader preferences, persisted per device
-    journal.ts     # Zustand journal
   styles.css       # Tailwind + Kami design tokens
 migrations/        # Ordered SQL
 scripts/           # migrate, env, import-shelves
@@ -139,7 +136,7 @@ pnpm db:up && pnpm db:migrate
 ## Testing
 
 - Script unit tests: `pnpm test` (dotenv, migration plan, with-app-env).
-- Manual: run `pnpm dev`, sign in, exercise capture → reader → vault → shelves → journal.
+- Manual: run `pnpm dev`, sign in, exercise capture → reader → vault → shelves.
 - Type safety: `pnpm typecheck` before pushing schema/API changes.
 
 ---

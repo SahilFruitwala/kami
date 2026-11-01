@@ -4,7 +4,7 @@ REST endpoints served under `/api/*`. Each is a thin wrapper (see `src/routes/ap
 
 ## Conventions
 
-- **Auth:** every endpoint except the `/api/hooks/*` webhooks requires a signed-in Clerk session. Webhooks authenticate with a bearer secret (`CRON_SECRET`, `INBOUND_EMAIL_SECRET`; see `.env.example`).
+- **Auth:** every endpoint requires a signed-in Clerk session.
 - **Same-site only:** state-changing requests must come from the app's own origin.
 - **Bodies:** `application/json`, validated with Zod schemas in `src/lib/api/schemas/`. Other content types get `415`.
 - **Verbs:** `GET` reads, `POST` creates/actions, `PATCH` partial update, `PUT` replace, `DELETE` removes.
@@ -43,44 +43,11 @@ Path parameters are written `:name`. For exact request/response shapes read the 
 | `POST` | `/api/articles/import`  | `src/routes/api/articles/import.ts`  |
 | `POST` | `/api/articles/link`    | `src/routes/api/articles/link.ts`    |
 
-### feeds
-
-| Method   | Path                             | Source                                        |
-| -------- | -------------------------------- | --------------------------------------------- |
-| `PATCH`  | `/api/feeds/:id`                 | `src/routes/api/feeds/$id.ts`                 |
-| `DELETE` | `/api/feeds/:id`                 | `src/routes/api/feeds/$id.ts`                 |
-| `POST`   | `/api/feeds/entries/:id/article` | `src/routes/api/feeds/entries/$id/article.ts` |
-| `GET`    | `/api/feeds/entries`             | `src/routes/api/feeds/entries/index.ts`       |
-| `POST`   | `/api/feeds/entries/read-all`    | `src/routes/api/feeds/entries/read-all.ts`    |
-| `POST`   | `/api/feeds/entries/read`        | `src/routes/api/feeds/entries/read.ts`        |
-| `POST`   | `/api/feeds/inbox`               | `src/routes/api/feeds/inbox.ts`               |
-| `GET`    | `/api/feeds`                     | `src/routes/api/feeds/index.ts`               |
-| `POST`   | `/api/feeds`                     | `src/routes/api/feeds/index.ts`               |
-| `GET`    | `/api/feeds/opml`                | `src/routes/api/feeds/opml.ts`                |
-| `POST`   | `/api/feeds/opml`                | `src/routes/api/feeds/opml.ts`                |
-| `POST`   | `/api/feeds/refresh`             | `src/routes/api/feeds/refresh.ts`             |
-
-### hooks
-
-| Method | Path                       | Source                                  |
-| ------ | -------------------------- | --------------------------------------- |
-| `GET`  | `/api/hooks/feeds`         | `src/routes/api/hooks/feeds.ts`         |
-| `POST` | `/api/hooks/feeds`         | `src/routes/api/hooks/feeds.ts`         |
-| `POST` | `/api/hooks/inbound-email` | `src/routes/api/hooks/inbound-email.ts` |
-
 ### img
 
 | Method | Path       | Source                  |
 | ------ | ---------- | ----------------------- |
 | `GET`  | `/api/img` | `src/routes/api/img.ts` |
-
-### journal
-
-| Method | Path                  | Source                             |
-| ------ | --------------------- | ---------------------------------- |
-| `PUT`  | `/api/journal/:date`  | `src/routes/api/journal/$date.ts`  |
-| `POST` | `/api/journal/import` | `src/routes/api/journal/import.ts` |
-| `GET`  | `/api/journal`        | `src/routes/api/journal/index.ts`  |
 
 ### library
 

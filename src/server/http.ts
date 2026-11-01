@@ -17,10 +17,10 @@ import { RateLimitError, enforceRateLimit, type RateLimitBucket } from "@/lib/ra
  *   5. Zod parsing of path params, query string and JSON body
  *   6. Result → JSON (`undefined` → 204) and error → status mapping
  *
- *   export const Route = createFileRoute("/api/journal/")({
+ *   export const Route = createFileRoute("/api/library/")({
  *     server: {
  *       handlers: {
- *         GET: apiHandler({}, ({ userId }) => listJournalEntries(userId)),
+ *         GET: apiHandler({}, ({ userId }) => listLibrary(userId)),
  *       },
  *     },
  *   });
@@ -73,7 +73,7 @@ function errorResponse(status: number, message: string, headers?: HeadersInit): 
   return json({ error: message }, { status, headers });
 }
 
-/** Map a thrown error to its JSON response. Shared by `apiHandler` and `hookHandler`. */
+/** Map a thrown error to its JSON response. */
 export function toErrorResponse(err: unknown): Response {
   if (err instanceof z.ZodError) {
     return errorResponse(400, err.issues[0]?.message ?? "Invalid request.");

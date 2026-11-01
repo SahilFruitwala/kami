@@ -1,6 +1,6 @@
 # Kami
 
-A calm personal reading library: saved articles, feeds, shelves, journal and trips for a single reader.
+A calm personal reading library: saved articles, shelves and trips for a single reader.
 
 ## Language
 
@@ -12,7 +12,7 @@ _Avoid_: Item, post, link (when the clean text exists)
 
 **Gist**:
 The AI summary of an article: a TL;DR, a handful of key points and a suggested folder.
-_Avoid_: Summary card, AI summary, digest (digest means the feed write-up)
+_Avoid_: Summary card, AI summary
 
 **Tidy**:
 Removing clutter blocks (ads, sponsor slots, subscribe prompts, footers) from an article's saved copy without rewriting any of its text; happens automatically after a single save.
@@ -61,7 +61,7 @@ _Avoid_: Trip assistant, chatbot, copilot
 ### Research
 
 **Topic**:
-A private research workspace for one space or audience, holding its runs, sources, evidence, ideas, reports and players. Stands alone: it never draws on saved articles, feeds or highlights.
+A private research workspace for one space or audience, holding its runs, sources, evidence, ideas, reports and players. Stands alone: it never draws on saved articles or highlights.
 _Avoid_: Project, space (as a noun), folder
 
 **Seed**:

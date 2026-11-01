@@ -221,7 +221,7 @@ export function SlipCard({
             onClick={() =>
               void copyText(
                 `“${highlight.text}” — ${item.author || item.siteName || "Unknown"}, ${item.title}`,
-                "Citation copied for your journal",
+                "Citation copied",
               )
             }
           >

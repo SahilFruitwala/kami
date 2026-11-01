@@ -31,9 +31,7 @@ const csrfMiddleware = createCsrfMiddleware({
     // the token itself is verified by Clerk. Cookie-auth requests stay checked.
     if (/^Bearer\s+\S/i.test(ctx.request.headers.get("authorization") ?? "")) return false;
     const path = new URL(ctx.request.url).pathname;
-    // `/api/hooks/*` are server-to-server (cron, inbound email): no browser
-    // headers to check; they authenticate with a shared secret instead.
-    return path.startsWith("/api/") && !path.startsWith("/api/hooks/");
+    return path.startsWith("/api/");
   },
 });
 

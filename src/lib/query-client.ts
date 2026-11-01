@@ -65,13 +65,6 @@ export const queryKeys = {
     reports: (topicId: string) => [...queryKeys.research.all, "reports", topicId] as const,
     report: (id: string) => [...queryKeys.research.all, "report", id] as const,
   },
-  feeds: {
-    all: ["feeds"] as const,
-    overview: () => [...queryKeys.feeds.all, "overview"] as const,
-    entriesAll: () => [...queryKeys.feeds.all, "entries"] as const,
-    entries: (view: string, feedId: string | null) =>
-      [...queryKeys.feeds.all, "entries", view, feedId ?? "all"] as const,
-  },
   shelves: {
     all: ["shelves"] as const,
     counts: () => [...queryKeys.shelves.all, "counts"] as const,

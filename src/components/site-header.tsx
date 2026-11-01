@@ -27,7 +27,6 @@ import { cn } from "@/lib/utils.ts";
 export type SitePane =
   | "home"
   | "library"
-  | "feeds"
   | "trips"
   | "research"
   | "vault"
@@ -42,7 +41,6 @@ type Pane = {
   to:
     | "/app"
     | "/library"
-    | "/feeds"
     | "/trips"
     | "/research"
     | "/vault"
@@ -58,7 +56,6 @@ type Pane = {
 const SANCTUARY_PANES: Pane[] = [
   { id: "home", to: "/app", label: "Home", icon: House },
   { id: "library", to: "/library", label: "Library", icon: LibraryBig },
-  // { id: "feeds", to: "/feeds", label: "Feeds", icon: Rss },
   { id: "trips", to: "/trips", label: "Trips", icon: Plane },
   { id: "vault", to: "/vault", label: "Vault", icon: Bookmark },
 ];

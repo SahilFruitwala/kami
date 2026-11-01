@@ -136,7 +136,7 @@ export function VaultView({
 
   const articlesConnected = useMemo(() => new Set(slips.map((s) => s.item.id)).size, [slips]);
 
-  const journalTies = useMemo(
+  const notedSlips = useMemo(
     () => slips.filter((s) => s.highlight.note.trim().length > 0).length,
     [slips],
   );
@@ -197,7 +197,7 @@ export function VaultView({
         </p>
         <p className="max-w-sm font-body text-sm leading-relaxed text-ink-muted">
           Open any work and select a passage — inked highlights are pressed here as highlight slips,
-          ready to cite in your journal.
+          ready to cite.
         </p>
         <button
           type="button"
@@ -216,7 +216,7 @@ export function VaultView({
       <div className="flex flex-wrap items-center gap-2.5">
         <MetricDot color="bg-hanko" label={`${slips.length} Passages Inked`} strong />
         <MetricDot color="bg-ok" label={`${articlesConnected} Articles Connected`} />
-        <MetricDot color="bg-ink-accent" label={`${journalTies} Journal Ties`} />
+        <MetricDot color="bg-ink-accent" label={`${notedSlips} Notes`} />
         <span className="flex items-center gap-2 rounded-lg bg-surface px-3 py-1.5 shadow-[var(--shadow-border)]">
           <Tag className="size-3.5 text-ink-muted" aria-hidden="true" />
           <span className="font-sans text-xs text-ink-muted">{tagCounts.length} Thematic Tags</span>
