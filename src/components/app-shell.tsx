@@ -21,7 +21,7 @@ const CommandPalette = lazy(() =>
 /**
  * Shared sanctuary shell: skip link, top bar,
  * footer, capture-tools dialog, command palette, and the offline/sync
- * banner. Used by Home, Library, Journal, Vault, Movies, Series, Books,
+ * banner. Used by Home, Library, Vault, Movies, Series, Books,
  * Wishlist, and Settings so chrome stays identical everywhere. Top bar
  * with a sliding pill nav on desktop, bottom tab bar on mobile.
  */

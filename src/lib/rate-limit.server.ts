@@ -21,9 +21,7 @@ export const RATE_LIMITS = {
   image: { limit: 600, windowSeconds: 60 },
   /** Images the proxy newly copies into R2 on view (saves warm theirs without it). */
   imageStore: { limit: 300, windowSeconds: 3600 },
-  /** Feed adds (discovery fetches) and manual refreshes. */
-  feeds: { limit: 60, windowSeconds: 600 },
-  /** Firecrawl extract runs (each one spends paid Firecrawl credits). */
+  /** Firecrawl-backed trip-agent research (each call spends paid Firecrawl credits). */
   firecrawl: { limit: 30, windowSeconds: 3600 },
   /** Trip agent chat messages (each runs a multi-step model loop). */
   agent: { limit: 40, windowSeconds: 3600 },
@@ -33,8 +31,6 @@ export const RATE_LIMITS = {
   narration: { limit: 30, windowSeconds: 3600 },
   /** Research run drafts and starts (credits are the real limit; this stops scripted abuse). */
   research: { limit: 20, windowSeconds: 3600 },
-  /** Inbound newsletter emails stored per user. */
-  inbound: { limit: 300, windowSeconds: 86_400 },
 } as const;
 
 export type RateLimitBucket = keyof typeof RATE_LIMITS;

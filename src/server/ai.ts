@@ -9,7 +9,7 @@ import { HttpError } from "@/server/http";
  * model chain from `llm.server.ts` (DeepSeek on OpenRouter by default), so a
  * feature only describes its prompt and output shape.
  *
- * Saved pages, feed entries and journal text are user content (and pages are
+ * Saved pages and notes are user content (and pages are
  * written by strangers): prompts wrap them in <document> tags and the shared
  * guard tells the model to treat them as data, never as instructions.
  */

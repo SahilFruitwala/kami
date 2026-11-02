@@ -1,6 +1,5 @@
 /**
- * Firecrawl client: the `/v2/scrape` `question` format (ask one page a
- * plain-English question, used by Extracts), plus `/v2/search` and Markdown
+ * Firecrawl client: `/v2/search` and Markdown
  * page reads used by the trip agent's research tools, page metadata for link previews,
  * and metered search and page reads for Research runs (which report what each call cost).
  *
@@ -14,10 +13,8 @@ import { SCRAPE_CREDIT_COST, searchCreditCost } from "./research/estimate.ts";
 export const FIRECRAWL_SCRAPE_URL = "https://api.firecrawl.dev/v2/scrape";
 /** Reuse a Firecrawl-cached copy of the page up to this old (2 days). */
 export const DEFAULT_MAX_AGE_MS = 172_800_000;
-/** Firecrawl scrapes can take a while (JS rendering + LLM answer). */
+/** Firecrawl scrapes can take a while (JS rendering). */
 const TIMEOUT_MS = 90_000;
-/** Answers are short by design; cap what we store. */
-export const MAX_ANSWER_CHARS = 100_000;
 
 /** A Firecrawl failure; a `PageReadError`, so research handles it like any page source's. */
 export class FirecrawlError extends PageReadError {
@@ -28,54 +25,6 @@ export class FirecrawlError extends PageReadError {
 }
 
 export { parseRetryAfter };
-
-export type QuestionRequest = {
-  url: string;
-  question: string;
-  /** `0` forces a live fetch; omitted uses DEFAULT_MAX_AGE_MS. */
-  maxAge?: number;
-};
-
-export function buildQuestionBody({ url, question, maxAge }: QuestionRequest) {
-  return {
-    url,
-    onlyMainContent: true,
-    maxAge: maxAge ?? DEFAULT_MAX_AGE_MS,
-    parsers: ["pdf"],
-    formats: [{ type: "question", question }],
-  };
-}
-
-/**
- * Pull the answer out of a scrape response. The SDKs expose it as
- * `doc.question`; accept a `{ answer }` object or a top-level `answer` too so
- * a small API shape change doesn't silently drop results.
- */
-export function parseQuestionResponse(payload: unknown): string {
-  if (!payload || typeof payload !== "object") {
-    throw new FirecrawlError("Firecrawl returned an unreadable response.");
-  }
-  const body = payload as { success?: boolean; error?: unknown; data?: unknown };
-  if (body.success === false) {
-    throw new FirecrawlError(
-      typeof body.error === "string" && body.error
-        ? body.error
-        : "Firecrawl could not scrape that page.",
-    );
-  }
-  const data = (body.data ?? {}) as Record<string, unknown>;
-  const candidates = [data.question, data.answer];
-  for (const c of candidates) {
-    const text =
-      typeof c === "string"
-        ? c
-        : c && typeof c === "object" && typeof (c as { answer?: unknown }).answer === "string"
-          ? (c as { answer: string }).answer
-          : null;
-    if (text && text.trim()) return text.trim().slice(0, MAX_ANSWER_CHARS);
-  }
-  throw new FirecrawlError("Firecrawl found no answer on that page. Try rephrasing the question.");
-}
 
 export function firecrawlApiKey(): string | null {
   return process.env.FIRECRAWL_API_KEY?.trim() || null;
@@ -132,11 +81,6 @@ async function firecrawlPost(url: string, body: unknown, timeoutMs = TIMEOUT_MS)
     throw new FirecrawlError(upstream.slice(0, 300), 502);
   }
   return payload;
-}
-
-/** Ask Firecrawl a question about one page; resolves to the Markdown answer. */
-export async function askPage(req: QuestionRequest): Promise<string> {
-  return parseQuestionResponse(await firecrawlPost(FIRECRAWL_SCRAPE_URL, buildQuestionBody(req)));
 }
 
 // ---------- Web search + page reading (trip agent research) ----------

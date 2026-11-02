@@ -61,7 +61,7 @@ describe("invalidateUserCache", () => {
 
   it("is a no-op without Redis", async () => {
     setCacheClientForTests(null);
-    await invalidateUserCache("u1", "journal");
+    await invalidateUserCache("u1", "library");
     setCacheClientForTests(undefined);
   });
 });

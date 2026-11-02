@@ -130,7 +130,7 @@ export async function cached<T>(
 }
 
 /** Per-user cached features: the third key part, `quarto:v1:u:<userId>:<feature>:…`. */
-export type UserCacheFeature = "library" | "shelves" | "journal";
+export type UserCacheFeature = "library" | "shelves";
 
 /** Key prefix for one user's cached reads of a feature. */
 export function userFeatureKey(userId: string, feature: UserCacheFeature, ...parts: string[]) {
@@ -139,8 +139,8 @@ export function userFeatureKey(userId: string, feature: UserCacheFeature, ...par
 
 /**
  * Drop one user's cached reads of `feature` after they write to it, leaving
- * their other features cached (marking a feed entry read no longer evicts
- * shelves and library pages).
+ * their other features cached (writing to one feature does not evict
+ * another).
  *
  * Cost is O(that user's cached keys): one SMEMBERS on the user's index set,
  * one DEL and one SREM — no keyspace scan.
@@ -171,8 +171,6 @@ export async function invalidateUserCache(
 export const CacheTTL = {
   /** Per-user shelf counts / lists / detail — invalidated on write. */
   shelfReads: 60,
-  /** Per-user journal entries — invalidated on write. */
-  journal: 120,
   /**
    * Per-user library metadata snapshot (no article bodies). Short TTL:
    * mutations are frequent; the win is absorbing burst refetches

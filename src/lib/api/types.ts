@@ -44,10 +44,6 @@ export type BulkSaveLinksResult = {
   errors: { url: string; error: string }[];
 };
 
-/* ---------- Journal ---------- */
-
-export const JOURNAL_IMPORT_MAX = 2000;
-
 /* ---------- Shelves ---------- */
 
 export type ShelfDuplicate = { id: string; title: string; status: string };

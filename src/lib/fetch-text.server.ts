@@ -18,7 +18,7 @@ export type SafeFetchResult = {
 
 /**
  * SSRF-safe GET that returns non-2xx statuses (304, 429, …) instead of
- * throwing, so callers like the feed poller can do conditional requests and
+ * throwing, so callers can do conditional requests and
  * honor Retry-After. Bodies are read with a hard byte cap.
  */
 export async function safeFetch(

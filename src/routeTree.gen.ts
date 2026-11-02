@@ -12,9 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as CaptureRouteImport } from './routes/capture'
-import { Route as ExtractsRouteImport } from './routes/extracts'
-import { Route as FeedsRouteImport } from './routes/feeds'
-import { Route as JournalRouteImport } from './routes/journal'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as ReadRouteImport } from './routes/read'
 import { Route as SettingsRouteImport } from './routes/settings'
@@ -37,18 +34,6 @@ import { Route as ApiAllowanceIndexRouteImport } from './routes/api/allowance/in
 import { Route as ApiArticlesExtractRouteImport } from './routes/api/articles/extract'
 import { Route as ApiArticlesImportRouteImport } from './routes/api/articles/import'
 import { Route as ApiArticlesLinkRouteImport } from './routes/api/articles/link'
-import { Route as ApiExtractsIndexRouteImport } from './routes/api/extracts/index'
-import { Route as ApiExtractsIdRouteImport } from './routes/api/extracts/$id'
-import { Route as ApiFeedsIndexRouteImport } from './routes/api/feeds/index'
-import { Route as ApiFeedsIdRouteImport } from './routes/api/feeds/$id'
-import { Route as ApiFeedsInboxRouteImport } from './routes/api/feeds/inbox'
-import { Route as ApiFeedsOpmlRouteImport } from './routes/api/feeds/opml'
-import { Route as ApiFeedsRefreshRouteImport } from './routes/api/feeds/refresh'
-import { Route as ApiHooksFeedsRouteImport } from './routes/api/hooks/feeds'
-import { Route as ApiHooksInboundEmailRouteImport } from './routes/api/hooks/inbound-email'
-import { Route as ApiJournalIndexRouteImport } from './routes/api/journal/index'
-import { Route as ApiJournalDateRouteImport } from './routes/api/journal/$date'
-import { Route as ApiJournalImportRouteImport } from './routes/api/journal/import'
 import { Route as ApiLibraryIndexRouteImport } from './routes/api/library/index'
 import { Route as ApiLibraryBulkRouteImport } from './routes/api/library/bulk'
 import { Route as ApiLibraryExportRouteImport } from './routes/api/library/export'
@@ -75,12 +60,6 @@ import { Route as ShelvesMoviesIndexRouteImport } from './routes/shelves/movies/
 import { Route as ShelvesMoviesIdRouteImport } from './routes/shelves/movies/$id'
 import { Route as ShelvesSeriesIndexRouteImport } from './routes/shelves/series/index'
 import { Route as ShelvesSeriesIdRouteImport } from './routes/shelves/series/$id'
-import { Route as ApiExtractsIdResultsRouteImport } from './routes/api/extracts/$id/results'
-import { Route as ApiExtractsIdRunRouteImport } from './routes/api/extracts/$id/run'
-import { Route as ApiExtractsResultsIdRouteImport } from './routes/api/extracts/results/$id'
-import { Route as ApiFeedsEntriesIndexRouteImport } from './routes/api/feeds/entries/index'
-import { Route as ApiFeedsEntriesReadRouteImport } from './routes/api/feeds/entries/read'
-import { Route as ApiFeedsEntriesReadAllRouteImport } from './routes/api/feeds/entries/read-all'
 import { Route as ApiLibraryFoldersIndexRouteImport } from './routes/api/library/folders/index'
 import { Route as ApiLibraryFoldersIdRouteImport } from './routes/api/library/folders/$id'
 import { Route as ApiLibraryItemsIndexRouteImport } from './routes/api/library/items/index'
@@ -108,8 +87,6 @@ import { Route as ApiAiArticlesIdOriginalRouteImport } from './routes/api/ai/art
 import { Route as ApiAiArticlesIdRestoreOriginalRouteImport } from './routes/api/ai/articles/$id/restore-original'
 import { Route as ApiAiArticlesIdSummaryRouteImport } from './routes/api/ai/articles/$id/summary'
 import { Route as ApiAiArticlesIdTidyRouteImport } from './routes/api/ai/articles/$id/tidy'
-import { Route as ApiExtractsResultsIdAcceptRouteImport } from './routes/api/extracts/results/$id/accept'
-import { Route as ApiFeedsEntriesIdArticleRouteImport } from './routes/api/feeds/entries/$id/article'
 import { Route as ApiResearchDebugRunsIndexRouteImport } from './routes/api/research/debug/runs/index'
 import { Route as ApiResearchDebugRunsIdRouteImport } from './routes/api/research/debug/runs/$id'
 import { Route as ApiResearchIdeasIdValidateRouteImport } from './routes/api/research/ideas/$id/validate'
@@ -145,21 +122,6 @@ const AppRoute = AppRouteImport.update({
 const CaptureRoute = CaptureRouteImport.update({
   id: '/capture',
   path: '/capture',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExtractsRoute = ExtractsRouteImport.update({
-  id: '/extracts',
-  path: '/extracts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FeedsRoute = FeedsRouteImport.update({
-  id: '/feeds',
-  path: '/feeds',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const JournalRoute = JournalRouteImport.update({
-  id: '/journal',
-  path: '/journal',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LibraryRoute = LibraryRouteImport.update({
@@ -270,66 +232,6 @@ const ApiArticlesImportRoute = ApiArticlesImportRouteImport.update({
 const ApiArticlesLinkRoute = ApiArticlesLinkRouteImport.update({
   id: '/api/articles/link',
   path: '/api/articles/link',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiExtractsIndexRoute = ApiExtractsIndexRouteImport.update({
-  id: '/api/extracts/',
-  path: '/api/extracts/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiExtractsIdRoute = ApiExtractsIdRouteImport.update({
-  id: '/api/extracts/$id',
-  path: '/api/extracts/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiFeedsIndexRoute = ApiFeedsIndexRouteImport.update({
-  id: '/api/feeds/',
-  path: '/api/feeds/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiFeedsIdRoute = ApiFeedsIdRouteImport.update({
-  id: '/api/feeds/$id',
-  path: '/api/feeds/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiFeedsInboxRoute = ApiFeedsInboxRouteImport.update({
-  id: '/api/feeds/inbox',
-  path: '/api/feeds/inbox',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiFeedsOpmlRoute = ApiFeedsOpmlRouteImport.update({
-  id: '/api/feeds/opml',
-  path: '/api/feeds/opml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiFeedsRefreshRoute = ApiFeedsRefreshRouteImport.update({
-  id: '/api/feeds/refresh',
-  path: '/api/feeds/refresh',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiHooksFeedsRoute = ApiHooksFeedsRouteImport.update({
-  id: '/api/hooks/feeds',
-  path: '/api/hooks/feeds',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiHooksInboundEmailRoute = ApiHooksInboundEmailRouteImport.update({
-  id: '/api/hooks/inbound-email',
-  path: '/api/hooks/inbound-email',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiJournalIndexRoute = ApiJournalIndexRouteImport.update({
-  id: '/api/journal/',
-  path: '/api/journal/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiJournalDateRoute = ApiJournalDateRouteImport.update({
-  id: '/api/journal/$date',
-  path: '/api/journal/$date',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiJournalImportRoute = ApiJournalImportRouteImport.update({
-  id: '/api/journal/import',
-  path: '/api/journal/import',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiLibraryIndexRoute = ApiLibraryIndexRouteImport.update({
@@ -461,36 +363,6 @@ const ShelvesSeriesIdRoute = ShelvesSeriesIdRouteImport.update({
   id: '/series/$id',
   path: '/series/$id',
   getParentRoute: () => ShelvesRouteRoute,
-} as any)
-const ApiExtractsIdResultsRoute = ApiExtractsIdResultsRouteImport.update({
-  id: '/results',
-  path: '/results',
-  getParentRoute: () => ApiExtractsIdRoute,
-} as any)
-const ApiExtractsIdRunRoute = ApiExtractsIdRunRouteImport.update({
-  id: '/run',
-  path: '/run',
-  getParentRoute: () => ApiExtractsIdRoute,
-} as any)
-const ApiExtractsResultsIdRoute = ApiExtractsResultsIdRouteImport.update({
-  id: '/api/extracts/results/$id',
-  path: '/api/extracts/results/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiFeedsEntriesIndexRoute = ApiFeedsEntriesIndexRouteImport.update({
-  id: '/api/feeds/entries/',
-  path: '/api/feeds/entries/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiFeedsEntriesReadRoute = ApiFeedsEntriesReadRouteImport.update({
-  id: '/api/feeds/entries/read',
-  path: '/api/feeds/entries/read',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiFeedsEntriesReadAllRoute = ApiFeedsEntriesReadAllRouteImport.update({
-  id: '/api/feeds/entries/read-all',
-  path: '/api/feeds/entries/read-all',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiLibraryFoldersIndexRoute = ApiLibraryFoldersIndexRouteImport.update({
   id: '/api/library/folders/',
@@ -629,18 +501,6 @@ const ApiAiArticlesIdTidyRoute = ApiAiArticlesIdTidyRouteImport.update({
   path: '/api/ai/articles/$id/tidy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiExtractsResultsIdAcceptRoute =
-  ApiExtractsResultsIdAcceptRouteImport.update({
-    id: '/accept',
-    path: '/accept',
-    getParentRoute: () => ApiExtractsResultsIdRoute,
-  } as any)
-const ApiFeedsEntriesIdArticleRoute =
-  ApiFeedsEntriesIdArticleRouteImport.update({
-    id: '/api/feeds/entries/$id/article',
-    path: '/api/feeds/entries/$id/article',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const ApiResearchDebugRunsIndexRoute =
   ApiResearchDebugRunsIndexRouteImport.update({
     id: '/api/research/debug/runs/',
@@ -767,9 +627,6 @@ export interface FileRoutesByFullPath {
   '/shelves': typeof ShelvesRouteRouteWithChildren
   '/app': typeof AppRoute
   '/capture': typeof CaptureRoute
-  '/extracts': typeof ExtractsRoute
-  '/feeds': typeof FeedsRoute
-  '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
@@ -790,15 +647,6 @@ export interface FileRoutesByFullPath {
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
   '/api/articles/link': typeof ApiArticlesLinkRoute
-  '/api/extracts/$id': typeof ApiExtractsIdRouteWithChildren
-  '/api/feeds/$id': typeof ApiFeedsIdRoute
-  '/api/feeds/inbox': typeof ApiFeedsInboxRoute
-  '/api/feeds/opml': typeof ApiFeedsOpmlRoute
-  '/api/feeds/refresh': typeof ApiFeedsRefreshRoute
-  '/api/hooks/feeds': typeof ApiHooksFeedsRoute
-  '/api/hooks/inbound-email': typeof ApiHooksInboundEmailRoute
-  '/api/journal/$date': typeof ApiJournalDateRoute
-  '/api/journal/import': typeof ApiJournalImportRoute
   '/api/library/bulk': typeof ApiLibraryBulkRoute
   '/api/library/export': typeof ApiLibraryExportRoute
   '/api/library/import': typeof ApiLibraryImportRoute
@@ -821,19 +669,11 @@ export interface FileRoutesByFullPath {
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
   '/api/allowance/': typeof ApiAllowanceIndexRoute
-  '/api/extracts/': typeof ApiExtractsIndexRoute
-  '/api/feeds/': typeof ApiFeedsIndexRoute
-  '/api/journal/': typeof ApiJournalIndexRoute
   '/api/library/': typeof ApiLibraryIndexRoute
   '/api/trips/': typeof ApiTripsIndexRoute
   '/shelves/books/': typeof ShelvesBooksIndexRoute
   '/shelves/movies/': typeof ShelvesMoviesIndexRoute
   '/shelves/series/': typeof ShelvesSeriesIndexRoute
-  '/api/extracts/$id/results': typeof ApiExtractsIdResultsRoute
-  '/api/extracts/$id/run': typeof ApiExtractsIdRunRoute
-  '/api/extracts/results/$id': typeof ApiExtractsResultsIdRouteWithChildren
-  '/api/feeds/entries/read': typeof ApiFeedsEntriesReadRoute
-  '/api/feeds/entries/read-all': typeof ApiFeedsEntriesReadAllRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
@@ -850,7 +690,6 @@ export interface FileRoutesByFullPath {
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
   '/api/trips/$id/undo': typeof ApiTripsIdUndoRoute
-  '/api/feeds/entries/': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
   '/api/research/debug/': typeof ApiResearchDebugIndexRoute
@@ -862,8 +701,6 @@ export interface FileRoutesByFullPath {
   '/api/ai/articles/$id/restore-original': typeof ApiAiArticlesIdRestoreOriginalRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
-  '/api/extracts/results/$id/accept': typeof ApiExtractsResultsIdAcceptRoute
-  '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
   '/api/research/debug/runs/$id': typeof ApiResearchDebugRunsIdRouteWithChildren
   '/api/research/ideas/$id/validate': typeof ApiResearchIdeasIdValidateRoute
   '/api/research/runs/$id/start': typeof ApiResearchRunsIdStartRoute
@@ -890,9 +727,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRoute
   '/capture': typeof CaptureRoute
-  '/extracts': typeof ExtractsRoute
-  '/feeds': typeof FeedsRoute
-  '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
@@ -913,15 +747,6 @@ export interface FileRoutesByTo {
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
   '/api/articles/link': typeof ApiArticlesLinkRoute
-  '/api/extracts/$id': typeof ApiExtractsIdRouteWithChildren
-  '/api/feeds/$id': typeof ApiFeedsIdRoute
-  '/api/feeds/inbox': typeof ApiFeedsInboxRoute
-  '/api/feeds/opml': typeof ApiFeedsOpmlRoute
-  '/api/feeds/refresh': typeof ApiFeedsRefreshRoute
-  '/api/hooks/feeds': typeof ApiHooksFeedsRoute
-  '/api/hooks/inbound-email': typeof ApiHooksInboundEmailRoute
-  '/api/journal/$date': typeof ApiJournalDateRoute
-  '/api/journal/import': typeof ApiJournalImportRoute
   '/api/library/bulk': typeof ApiLibraryBulkRoute
   '/api/library/export': typeof ApiLibraryExportRoute
   '/api/library/import': typeof ApiLibraryImportRoute
@@ -944,19 +769,11 @@ export interface FileRoutesByTo {
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
   '/api/allowance': typeof ApiAllowanceIndexRoute
-  '/api/extracts': typeof ApiExtractsIndexRoute
-  '/api/feeds': typeof ApiFeedsIndexRoute
-  '/api/journal': typeof ApiJournalIndexRoute
   '/api/library': typeof ApiLibraryIndexRoute
   '/api/trips': typeof ApiTripsIndexRoute
   '/shelves/books': typeof ShelvesBooksIndexRoute
   '/shelves/movies': typeof ShelvesMoviesIndexRoute
   '/shelves/series': typeof ShelvesSeriesIndexRoute
-  '/api/extracts/$id/results': typeof ApiExtractsIdResultsRoute
-  '/api/extracts/$id/run': typeof ApiExtractsIdRunRoute
-  '/api/extracts/results/$id': typeof ApiExtractsResultsIdRouteWithChildren
-  '/api/feeds/entries/read': typeof ApiFeedsEntriesReadRoute
-  '/api/feeds/entries/read-all': typeof ApiFeedsEntriesReadAllRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
@@ -973,7 +790,6 @@ export interface FileRoutesByTo {
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
   '/api/trips/$id/undo': typeof ApiTripsIdUndoRoute
-  '/api/feeds/entries': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items': typeof ApiLibraryItemsIndexRoute
   '/api/research/debug': typeof ApiResearchDebugIndexRoute
@@ -985,8 +801,6 @@ export interface FileRoutesByTo {
   '/api/ai/articles/$id/restore-original': typeof ApiAiArticlesIdRestoreOriginalRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
-  '/api/extracts/results/$id/accept': typeof ApiExtractsResultsIdAcceptRoute
-  '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
   '/api/research/debug/runs/$id': typeof ApiResearchDebugRunsIdRouteWithChildren
   '/api/research/ideas/$id/validate': typeof ApiResearchIdeasIdValidateRoute
   '/api/research/runs/$id/start': typeof ApiResearchRunsIdStartRoute
@@ -1015,9 +829,6 @@ export interface FileRoutesById {
   '/shelves': typeof ShelvesRouteRouteWithChildren
   '/app': typeof AppRoute
   '/capture': typeof CaptureRoute
-  '/extracts': typeof ExtractsRoute
-  '/feeds': typeof FeedsRoute
-  '/journal': typeof JournalRoute
   '/library': typeof LibraryRoute
   '/read': typeof ReadRoute
   '/settings': typeof SettingsRoute
@@ -1038,15 +849,6 @@ export interface FileRoutesById {
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
   '/api/articles/link': typeof ApiArticlesLinkRoute
-  '/api/extracts/$id': typeof ApiExtractsIdRouteWithChildren
-  '/api/feeds/$id': typeof ApiFeedsIdRoute
-  '/api/feeds/inbox': typeof ApiFeedsInboxRoute
-  '/api/feeds/opml': typeof ApiFeedsOpmlRoute
-  '/api/feeds/refresh': typeof ApiFeedsRefreshRoute
-  '/api/hooks/feeds': typeof ApiHooksFeedsRoute
-  '/api/hooks/inbound-email': typeof ApiHooksInboundEmailRoute
-  '/api/journal/$date': typeof ApiJournalDateRoute
-  '/api/journal/import': typeof ApiJournalImportRoute
   '/api/library/bulk': typeof ApiLibraryBulkRoute
   '/api/library/export': typeof ApiLibraryExportRoute
   '/api/library/import': typeof ApiLibraryImportRoute
@@ -1069,19 +871,11 @@ export interface FileRoutesById {
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
   '/api/allowance/': typeof ApiAllowanceIndexRoute
-  '/api/extracts/': typeof ApiExtractsIndexRoute
-  '/api/feeds/': typeof ApiFeedsIndexRoute
-  '/api/journal/': typeof ApiJournalIndexRoute
   '/api/library/': typeof ApiLibraryIndexRoute
   '/api/trips/': typeof ApiTripsIndexRoute
   '/shelves/books/': typeof ShelvesBooksIndexRoute
   '/shelves/movies/': typeof ShelvesMoviesIndexRoute
   '/shelves/series/': typeof ShelvesSeriesIndexRoute
-  '/api/extracts/$id/results': typeof ApiExtractsIdResultsRoute
-  '/api/extracts/$id/run': typeof ApiExtractsIdRunRoute
-  '/api/extracts/results/$id': typeof ApiExtractsResultsIdRouteWithChildren
-  '/api/feeds/entries/read': typeof ApiFeedsEntriesReadRoute
-  '/api/feeds/entries/read-all': typeof ApiFeedsEntriesReadAllRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
@@ -1098,7 +892,6 @@ export interface FileRoutesById {
   '/api/trips/$id/hotels': typeof ApiTripsIdHotelsRouteWithChildren
   '/api/trips/$id/items': typeof ApiTripsIdItemsRouteWithChildren
   '/api/trips/$id/undo': typeof ApiTripsIdUndoRoute
-  '/api/feeds/entries/': typeof ApiFeedsEntriesIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
   '/api/research/debug/': typeof ApiResearchDebugIndexRoute
@@ -1110,8 +903,6 @@ export interface FileRoutesById {
   '/api/ai/articles/$id/restore-original': typeof ApiAiArticlesIdRestoreOriginalRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
-  '/api/extracts/results/$id/accept': typeof ApiExtractsResultsIdAcceptRoute
-  '/api/feeds/entries/$id/article': typeof ApiFeedsEntriesIdArticleRoute
   '/api/research/debug/runs/$id': typeof ApiResearchDebugRunsIdRouteWithChildren
   '/api/research/ideas/$id/validate': typeof ApiResearchIdeasIdValidateRoute
   '/api/research/runs/$id/start': typeof ApiResearchRunsIdStartRoute
@@ -1141,9 +932,6 @@ export interface FileRouteTypes {
     | '/shelves'
     | '/app'
     | '/capture'
-    | '/extracts'
-    | '/feeds'
-    | '/journal'
     | '/library'
     | '/read'
     | '/settings'
@@ -1164,15 +952,6 @@ export interface FileRouteTypes {
     | '/api/articles/extract'
     | '/api/articles/import'
     | '/api/articles/link'
-    | '/api/extracts/$id'
-    | '/api/feeds/$id'
-    | '/api/feeds/inbox'
-    | '/api/feeds/opml'
-    | '/api/feeds/refresh'
-    | '/api/hooks/feeds'
-    | '/api/hooks/inbound-email'
-    | '/api/journal/$date'
-    | '/api/journal/import'
     | '/api/library/bulk'
     | '/api/library/export'
     | '/api/library/import'
@@ -1195,19 +974,11 @@ export interface FileRouteTypes {
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
     | '/api/allowance/'
-    | '/api/extracts/'
-    | '/api/feeds/'
-    | '/api/journal/'
     | '/api/library/'
     | '/api/trips/'
     | '/shelves/books/'
     | '/shelves/movies/'
     | '/shelves/series/'
-    | '/api/extracts/$id/results'
-    | '/api/extracts/$id/run'
-    | '/api/extracts/results/$id'
-    | '/api/feeds/entries/read'
-    | '/api/feeds/entries/read-all'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
@@ -1224,7 +995,6 @@ export interface FileRouteTypes {
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
     | '/api/trips/$id/undo'
-    | '/api/feeds/entries/'
     | '/api/library/folders/'
     | '/api/library/items/'
     | '/api/research/debug/'
@@ -1236,8 +1006,6 @@ export interface FileRouteTypes {
     | '/api/ai/articles/$id/restore-original'
     | '/api/ai/articles/$id/summary'
     | '/api/ai/articles/$id/tidy'
-    | '/api/extracts/results/$id/accept'
-    | '/api/feeds/entries/$id/article'
     | '/api/research/debug/runs/$id'
     | '/api/research/ideas/$id/validate'
     | '/api/research/runs/$id/start'
@@ -1264,9 +1032,6 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/capture'
-    | '/extracts'
-    | '/feeds'
-    | '/journal'
     | '/library'
     | '/read'
     | '/settings'
@@ -1287,15 +1052,6 @@ export interface FileRouteTypes {
     | '/api/articles/extract'
     | '/api/articles/import'
     | '/api/articles/link'
-    | '/api/extracts/$id'
-    | '/api/feeds/$id'
-    | '/api/feeds/inbox'
-    | '/api/feeds/opml'
-    | '/api/feeds/refresh'
-    | '/api/hooks/feeds'
-    | '/api/hooks/inbound-email'
-    | '/api/journal/$date'
-    | '/api/journal/import'
     | '/api/library/bulk'
     | '/api/library/export'
     | '/api/library/import'
@@ -1318,19 +1074,11 @@ export interface FileRouteTypes {
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
     | '/api/allowance'
-    | '/api/extracts'
-    | '/api/feeds'
-    | '/api/journal'
     | '/api/library'
     | '/api/trips'
     | '/shelves/books'
     | '/shelves/movies'
     | '/shelves/series'
-    | '/api/extracts/$id/results'
-    | '/api/extracts/$id/run'
-    | '/api/extracts/results/$id'
-    | '/api/feeds/entries/read'
-    | '/api/feeds/entries/read-all'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
@@ -1347,7 +1095,6 @@ export interface FileRouteTypes {
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
     | '/api/trips/$id/undo'
-    | '/api/feeds/entries'
     | '/api/library/folders'
     | '/api/library/items'
     | '/api/research/debug'
@@ -1359,8 +1106,6 @@ export interface FileRouteTypes {
     | '/api/ai/articles/$id/restore-original'
     | '/api/ai/articles/$id/summary'
     | '/api/ai/articles/$id/tidy'
-    | '/api/extracts/results/$id/accept'
-    | '/api/feeds/entries/$id/article'
     | '/api/research/debug/runs/$id'
     | '/api/research/ideas/$id/validate'
     | '/api/research/runs/$id/start'
@@ -1388,9 +1133,6 @@ export interface FileRouteTypes {
     | '/shelves'
     | '/app'
     | '/capture'
-    | '/extracts'
-    | '/feeds'
-    | '/journal'
     | '/library'
     | '/read'
     | '/settings'
@@ -1411,15 +1153,6 @@ export interface FileRouteTypes {
     | '/api/articles/extract'
     | '/api/articles/import'
     | '/api/articles/link'
-    | '/api/extracts/$id'
-    | '/api/feeds/$id'
-    | '/api/feeds/inbox'
-    | '/api/feeds/opml'
-    | '/api/feeds/refresh'
-    | '/api/hooks/feeds'
-    | '/api/hooks/inbound-email'
-    | '/api/journal/$date'
-    | '/api/journal/import'
     | '/api/library/bulk'
     | '/api/library/export'
     | '/api/library/import'
@@ -1442,19 +1175,11 @@ export interface FileRouteTypes {
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
     | '/api/allowance/'
-    | '/api/extracts/'
-    | '/api/feeds/'
-    | '/api/journal/'
     | '/api/library/'
     | '/api/trips/'
     | '/shelves/books/'
     | '/shelves/movies/'
     | '/shelves/series/'
-    | '/api/extracts/$id/results'
-    | '/api/extracts/$id/run'
-    | '/api/extracts/results/$id'
-    | '/api/feeds/entries/read'
-    | '/api/feeds/entries/read-all'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
@@ -1471,7 +1196,6 @@ export interface FileRouteTypes {
     | '/api/trips/$id/hotels'
     | '/api/trips/$id/items'
     | '/api/trips/$id/undo'
-    | '/api/feeds/entries/'
     | '/api/library/folders/'
     | '/api/library/items/'
     | '/api/research/debug/'
@@ -1483,8 +1207,6 @@ export interface FileRouteTypes {
     | '/api/ai/articles/$id/restore-original'
     | '/api/ai/articles/$id/summary'
     | '/api/ai/articles/$id/tidy'
-    | '/api/extracts/results/$id/accept'
-    | '/api/feeds/entries/$id/article'
     | '/api/research/debug/runs/$id'
     | '/api/research/ideas/$id/validate'
     | '/api/research/runs/$id/start'
@@ -1513,9 +1235,6 @@ export interface RootRouteChildren {
   ShelvesRouteRoute: typeof ShelvesRouteRouteWithChildren
   AppRoute: typeof AppRoute
   CaptureRoute: typeof CaptureRoute
-  ExtractsRoute: typeof ExtractsRoute
-  FeedsRoute: typeof FeedsRoute
-  JournalRoute: typeof JournalRoute
   LibraryRoute: typeof LibraryRoute
   ReadRoute: typeof ReadRoute
   SettingsRoute: typeof SettingsRoute
@@ -1534,15 +1253,6 @@ export interface RootRouteChildren {
   ApiArticlesExtractRoute: typeof ApiArticlesExtractRoute
   ApiArticlesImportRoute: typeof ApiArticlesImportRoute
   ApiArticlesLinkRoute: typeof ApiArticlesLinkRoute
-  ApiExtractsIdRoute: typeof ApiExtractsIdRouteWithChildren
-  ApiFeedsIdRoute: typeof ApiFeedsIdRoute
-  ApiFeedsInboxRoute: typeof ApiFeedsInboxRoute
-  ApiFeedsOpmlRoute: typeof ApiFeedsOpmlRoute
-  ApiFeedsRefreshRoute: typeof ApiFeedsRefreshRoute
-  ApiHooksFeedsRoute: typeof ApiHooksFeedsRoute
-  ApiHooksInboundEmailRoute: typeof ApiHooksInboundEmailRoute
-  ApiJournalDateRoute: typeof ApiJournalDateRoute
-  ApiJournalImportRoute: typeof ApiJournalImportRoute
   ApiLibraryBulkRoute: typeof ApiLibraryBulkRoute
   ApiLibraryExportRoute: typeof ApiLibraryExportRoute
   ApiLibraryImportRoute: typeof ApiLibraryImportRoute
@@ -1562,14 +1272,8 @@ export interface RootRouteChildren {
   ResearchReportsReportIdRoute: typeof ResearchReportsReportIdRoute
   ResearchRunsRunIdRoute: typeof ResearchRunsRunIdRoute
   ApiAllowanceIndexRoute: typeof ApiAllowanceIndexRoute
-  ApiExtractsIndexRoute: typeof ApiExtractsIndexRoute
-  ApiFeedsIndexRoute: typeof ApiFeedsIndexRoute
-  ApiJournalIndexRoute: typeof ApiJournalIndexRoute
   ApiLibraryIndexRoute: typeof ApiLibraryIndexRoute
   ApiTripsIndexRoute: typeof ApiTripsIndexRoute
-  ApiExtractsResultsIdRoute: typeof ApiExtractsResultsIdRouteWithChildren
-  ApiFeedsEntriesReadRoute: typeof ApiFeedsEntriesReadRoute
-  ApiFeedsEntriesReadAllRoute: typeof ApiFeedsEntriesReadAllRoute
   ApiLibraryFoldersIdRoute: typeof ApiLibraryFoldersIdRoute
   ApiLibraryItemsIdRoute: typeof ApiLibraryItemsIdRoute
   ApiResearchIdeasIdRoute: typeof ApiResearchIdeasIdRouteWithChildren
@@ -1580,7 +1284,6 @@ export interface RootRouteChildren {
   ApiShelvesTypeIdRoute: typeof ApiShelvesTypeIdRoute
   ApiShelvesTypeDuplicatesRoute: typeof ApiShelvesTypeDuplicatesRoute
   ApiShelvesBookImportRoute: typeof ApiShelvesBookImportRoute
-  ApiFeedsEntriesIndexRoute: typeof ApiFeedsEntriesIndexRoute
   ApiLibraryFoldersIndexRoute: typeof ApiLibraryFoldersIndexRoute
   ApiLibraryItemsIndexRoute: typeof ApiLibraryItemsIndexRoute
   ApiResearchDebugIndexRoute: typeof ApiResearchDebugIndexRoute
@@ -1592,7 +1295,6 @@ export interface RootRouteChildren {
   ApiAiArticlesIdRestoreOriginalRoute: typeof ApiAiArticlesIdRestoreOriginalRoute
   ApiAiArticlesIdSummaryRoute: typeof ApiAiArticlesIdSummaryRoute
   ApiAiArticlesIdTidyRoute: typeof ApiAiArticlesIdTidyRoute
-  ApiFeedsEntriesIdArticleRoute: typeof ApiFeedsEntriesIdArticleRoute
   ApiResearchDebugRunsIdRoute: typeof ApiResearchDebugRunsIdRouteWithChildren
   ApiShelvesBookIdPageCountRoute: typeof ApiShelvesBookIdPageCountRoute
   ApiShelvesBookIdProgressRoute: typeof ApiShelvesBookIdProgressRoute
@@ -1624,27 +1326,6 @@ declare module '@tanstack/react-router' {
       path: '/capture'
       fullPath: '/capture'
       preLoaderRoute: typeof CaptureRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/extracts': {
-      id: '/extracts'
-      path: '/extracts'
-      fullPath: '/extracts'
-      preLoaderRoute: typeof ExtractsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/feeds': {
-      id: '/feeds'
-      path: '/feeds'
-      fullPath: '/feeds'
-      preLoaderRoute: typeof FeedsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/journal': {
-      id: '/journal'
-      path: '/journal'
-      fullPath: '/journal'
-      preLoaderRoute: typeof JournalRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/library': {
@@ -1799,90 +1480,6 @@ declare module '@tanstack/react-router' {
       path: '/api/articles/link'
       fullPath: '/api/articles/link'
       preLoaderRoute: typeof ApiArticlesLinkRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/extracts/': {
-      id: '/api/extracts/'
-      path: '/api/extracts'
-      fullPath: '/api/extracts/'
-      preLoaderRoute: typeof ApiExtractsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/extracts/$id': {
-      id: '/api/extracts/$id'
-      path: '/api/extracts/$id'
-      fullPath: '/api/extracts/$id'
-      preLoaderRoute: typeof ApiExtractsIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/feeds/': {
-      id: '/api/feeds/'
-      path: '/api/feeds'
-      fullPath: '/api/feeds/'
-      preLoaderRoute: typeof ApiFeedsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/feeds/$id': {
-      id: '/api/feeds/$id'
-      path: '/api/feeds/$id'
-      fullPath: '/api/feeds/$id'
-      preLoaderRoute: typeof ApiFeedsIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/feeds/inbox': {
-      id: '/api/feeds/inbox'
-      path: '/api/feeds/inbox'
-      fullPath: '/api/feeds/inbox'
-      preLoaderRoute: typeof ApiFeedsInboxRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/feeds/opml': {
-      id: '/api/feeds/opml'
-      path: '/api/feeds/opml'
-      fullPath: '/api/feeds/opml'
-      preLoaderRoute: typeof ApiFeedsOpmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/feeds/refresh': {
-      id: '/api/feeds/refresh'
-      path: '/api/feeds/refresh'
-      fullPath: '/api/feeds/refresh'
-      preLoaderRoute: typeof ApiFeedsRefreshRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/hooks/feeds': {
-      id: '/api/hooks/feeds'
-      path: '/api/hooks/feeds'
-      fullPath: '/api/hooks/feeds'
-      preLoaderRoute: typeof ApiHooksFeedsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/hooks/inbound-email': {
-      id: '/api/hooks/inbound-email'
-      path: '/api/hooks/inbound-email'
-      fullPath: '/api/hooks/inbound-email'
-      preLoaderRoute: typeof ApiHooksInboundEmailRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/journal/': {
-      id: '/api/journal/'
-      path: '/api/journal'
-      fullPath: '/api/journal/'
-      preLoaderRoute: typeof ApiJournalIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/journal/$date': {
-      id: '/api/journal/$date'
-      path: '/api/journal/$date'
-      fullPath: '/api/journal/$date'
-      preLoaderRoute: typeof ApiJournalDateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/journal/import': {
-      id: '/api/journal/import'
-      path: '/api/journal/import'
-      fullPath: '/api/journal/import'
-      preLoaderRoute: typeof ApiJournalImportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/library/': {
@@ -2066,48 +1663,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/shelves/series/$id'
       preLoaderRoute: typeof ShelvesSeriesIdRouteImport
       parentRoute: typeof ShelvesRouteRoute
-    }
-    '/api/extracts/$id/results': {
-      id: '/api/extracts/$id/results'
-      path: '/results'
-      fullPath: '/api/extracts/$id/results'
-      preLoaderRoute: typeof ApiExtractsIdResultsRouteImport
-      parentRoute: typeof ApiExtractsIdRoute
-    }
-    '/api/extracts/$id/run': {
-      id: '/api/extracts/$id/run'
-      path: '/run'
-      fullPath: '/api/extracts/$id/run'
-      preLoaderRoute: typeof ApiExtractsIdRunRouteImport
-      parentRoute: typeof ApiExtractsIdRoute
-    }
-    '/api/extracts/results/$id': {
-      id: '/api/extracts/results/$id'
-      path: '/api/extracts/results/$id'
-      fullPath: '/api/extracts/results/$id'
-      preLoaderRoute: typeof ApiExtractsResultsIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/feeds/entries/': {
-      id: '/api/feeds/entries/'
-      path: '/api/feeds/entries'
-      fullPath: '/api/feeds/entries/'
-      preLoaderRoute: typeof ApiFeedsEntriesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/feeds/entries/read': {
-      id: '/api/feeds/entries/read'
-      path: '/api/feeds/entries/read'
-      fullPath: '/api/feeds/entries/read'
-      preLoaderRoute: typeof ApiFeedsEntriesReadRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/feeds/entries/read-all': {
-      id: '/api/feeds/entries/read-all'
-      path: '/api/feeds/entries/read-all'
-      fullPath: '/api/feeds/entries/read-all'
-      preLoaderRoute: typeof ApiFeedsEntriesReadAllRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/api/library/folders/': {
       id: '/api/library/folders/'
@@ -2298,20 +1853,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiArticlesIdTidyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/extracts/results/$id/accept': {
-      id: '/api/extracts/results/$id/accept'
-      path: '/accept'
-      fullPath: '/api/extracts/results/$id/accept'
-      preLoaderRoute: typeof ApiExtractsResultsIdAcceptRouteImport
-      parentRoute: typeof ApiExtractsResultsIdRoute
-    }
-    '/api/feeds/entries/$id/article': {
-      id: '/api/feeds/entries/$id/article'
-      path: '/api/feeds/entries/$id/article'
-      fullPath: '/api/feeds/entries/$id/article'
-      preLoaderRoute: typeof ApiFeedsEntriesIdArticleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/research/debug/runs/': {
       id: '/api/research/debug/runs/'
       path: '/api/research/debug/runs'
@@ -2488,20 +2029,6 @@ const ShelvesRouteRouteWithChildren = ShelvesRouteRoute._addFileChildren(
   ShelvesRouteRouteChildren,
 )
 
-interface ApiExtractsIdRouteChildren {
-  ApiExtractsIdResultsRoute: typeof ApiExtractsIdResultsRoute
-  ApiExtractsIdRunRoute: typeof ApiExtractsIdRunRoute
-}
-
-const ApiExtractsIdRouteChildren: ApiExtractsIdRouteChildren = {
-  ApiExtractsIdResultsRoute: ApiExtractsIdResultsRoute,
-  ApiExtractsIdRunRoute: ApiExtractsIdRunRoute,
-}
-
-const ApiExtractsIdRouteWithChildren = ApiExtractsIdRoute._addFileChildren(
-  ApiExtractsIdRouteChildren,
-)
-
 interface ApiNarrationsIdRouteChildren {
   ApiNarrationsIdAudioRoute: typeof ApiNarrationsIdAudioRoute
   ApiNarrationsIdPositionRoute: typeof ApiNarrationsIdPositionRoute
@@ -2570,17 +2097,6 @@ const ApiTripsIdRouteWithChildren = ApiTripsIdRoute._addFileChildren(
   ApiTripsIdRouteChildren,
 )
 
-interface ApiExtractsResultsIdRouteChildren {
-  ApiExtractsResultsIdAcceptRoute: typeof ApiExtractsResultsIdAcceptRoute
-}
-
-const ApiExtractsResultsIdRouteChildren: ApiExtractsResultsIdRouteChildren = {
-  ApiExtractsResultsIdAcceptRoute: ApiExtractsResultsIdAcceptRoute,
-}
-
-const ApiExtractsResultsIdRouteWithChildren =
-  ApiExtractsResultsIdRoute._addFileChildren(ApiExtractsResultsIdRouteChildren)
-
 interface ApiResearchIdeasIdRouteChildren {
   ApiResearchIdeasIdValidateRoute: typeof ApiResearchIdeasIdValidateRoute
 }
@@ -2645,9 +2161,6 @@ const rootRouteChildren: RootRouteChildren = {
   ShelvesRouteRoute: ShelvesRouteRouteWithChildren,
   AppRoute: AppRoute,
   CaptureRoute: CaptureRoute,
-  ExtractsRoute: ExtractsRoute,
-  FeedsRoute: FeedsRoute,
-  JournalRoute: JournalRoute,
   LibraryRoute: LibraryRoute,
   ReadRoute: ReadRoute,
   SettingsRoute: SettingsRoute,
@@ -2666,15 +2179,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiArticlesExtractRoute: ApiArticlesExtractRoute,
   ApiArticlesImportRoute: ApiArticlesImportRoute,
   ApiArticlesLinkRoute: ApiArticlesLinkRoute,
-  ApiExtractsIdRoute: ApiExtractsIdRouteWithChildren,
-  ApiFeedsIdRoute: ApiFeedsIdRoute,
-  ApiFeedsInboxRoute: ApiFeedsInboxRoute,
-  ApiFeedsOpmlRoute: ApiFeedsOpmlRoute,
-  ApiFeedsRefreshRoute: ApiFeedsRefreshRoute,
-  ApiHooksFeedsRoute: ApiHooksFeedsRoute,
-  ApiHooksInboundEmailRoute: ApiHooksInboundEmailRoute,
-  ApiJournalDateRoute: ApiJournalDateRoute,
-  ApiJournalImportRoute: ApiJournalImportRoute,
   ApiLibraryBulkRoute: ApiLibraryBulkRoute,
   ApiLibraryExportRoute: ApiLibraryExportRoute,
   ApiLibraryImportRoute: ApiLibraryImportRoute,
@@ -2694,14 +2198,8 @@ const rootRouteChildren: RootRouteChildren = {
   ResearchReportsReportIdRoute: ResearchReportsReportIdRoute,
   ResearchRunsRunIdRoute: ResearchRunsRunIdRoute,
   ApiAllowanceIndexRoute: ApiAllowanceIndexRoute,
-  ApiExtractsIndexRoute: ApiExtractsIndexRoute,
-  ApiFeedsIndexRoute: ApiFeedsIndexRoute,
-  ApiJournalIndexRoute: ApiJournalIndexRoute,
   ApiLibraryIndexRoute: ApiLibraryIndexRoute,
   ApiTripsIndexRoute: ApiTripsIndexRoute,
-  ApiExtractsResultsIdRoute: ApiExtractsResultsIdRouteWithChildren,
-  ApiFeedsEntriesReadRoute: ApiFeedsEntriesReadRoute,
-  ApiFeedsEntriesReadAllRoute: ApiFeedsEntriesReadAllRoute,
   ApiLibraryFoldersIdRoute: ApiLibraryFoldersIdRoute,
   ApiLibraryItemsIdRoute: ApiLibraryItemsIdRoute,
   ApiResearchIdeasIdRoute: ApiResearchIdeasIdRouteWithChildren,
@@ -2712,7 +2210,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiShelvesTypeIdRoute: ApiShelvesTypeIdRoute,
   ApiShelvesTypeDuplicatesRoute: ApiShelvesTypeDuplicatesRoute,
   ApiShelvesBookImportRoute: ApiShelvesBookImportRoute,
-  ApiFeedsEntriesIndexRoute: ApiFeedsEntriesIndexRoute,
   ApiLibraryFoldersIndexRoute: ApiLibraryFoldersIndexRoute,
   ApiLibraryItemsIndexRoute: ApiLibraryItemsIndexRoute,
   ApiResearchDebugIndexRoute: ApiResearchDebugIndexRoute,
@@ -2724,7 +2221,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiArticlesIdRestoreOriginalRoute: ApiAiArticlesIdRestoreOriginalRoute,
   ApiAiArticlesIdSummaryRoute: ApiAiArticlesIdSummaryRoute,
   ApiAiArticlesIdTidyRoute: ApiAiArticlesIdTidyRoute,
-  ApiFeedsEntriesIdArticleRoute: ApiFeedsEntriesIdArticleRoute,
   ApiResearchDebugRunsIdRoute: ApiResearchDebugRunsIdRouteWithChildren,
   ApiShelvesBookIdPageCountRoute: ApiShelvesBookIdPageCountRoute,
   ApiShelvesBookIdProgressRoute: ApiShelvesBookIdProgressRoute,

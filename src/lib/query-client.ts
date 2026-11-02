@@ -44,11 +44,6 @@ export const queryKeys = {
     status: () => [...queryKeys.ai.all, "status"] as const,
     summary: (articleId: string) => [...queryKeys.ai.all, "summary", articleId] as const,
   },
-  extracts: {
-    all: ["extracts"] as const,
-    overview: () => [...queryKeys.extracts.all, "overview"] as const,
-    results: (sourceId: string) => [...queryKeys.extracts.all, "results", sourceId] as const,
-  },
   trips: {
     all: ["trips"] as const,
     list: () => [...queryKeys.trips.all, "list"] as const,
@@ -69,13 +64,6 @@ export const queryKeys = {
     players: (topicId: string) => [...queryKeys.research.all, "players", topicId] as const,
     reports: (topicId: string) => [...queryKeys.research.all, "reports", topicId] as const,
     report: (id: string) => [...queryKeys.research.all, "report", id] as const,
-  },
-  feeds: {
-    all: ["feeds"] as const,
-    overview: () => [...queryKeys.feeds.all, "overview"] as const,
-    entriesAll: () => [...queryKeys.feeds.all, "entries"] as const,
-    entries: (view: string, feedId: string | null) =>
-      [...queryKeys.feeds.all, "entries", view, feedId ?? "all"] as const,
   },
   shelves: {
     all: ["shelves"] as const,

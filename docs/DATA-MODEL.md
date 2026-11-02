@@ -15,7 +15,6 @@ Column names in Postgres are **snake_case**. Drizzle fields are **camelCase** ma
 erDiagram
   user ||--o{ folders : owns
   user ||--o{ articles : owns
-  user ||--o{ journal_entries : owns
   user ||--o| user_feature_flags : has
   user ||--o{ lists : owns
   folders ||--o{ articles : contains
@@ -50,13 +49,6 @@ erDiagram
     boolean archived
     jsonb tags
     jsonb highlights
-  }
-
-  journal_entries {
-    text id PK
-    text user_id FK
-    text date
-    text text
   }
 
   lists {
@@ -112,10 +104,6 @@ Important constraints:
 - `tags` and `highlights` are **jsonb**
 - `tidy_state` (`pending` | `tidied` | `skipped` | `failed` | `restored`) and `original_html` (the body before Tidy changed it, null otherwise) — see `src/lib/tidy-state.ts` (0019_article_tidy.sql)
 
-### Journal — `journal_entries`
-
-One row per user per calendar `date` (text, unique with `user_id`). Autosaved from the journal UI via `upsertJournalEntry`.
-
 ### Shelves — lists + typed items
 
 | Table                                           | Role                                                   |
@@ -136,27 +124,6 @@ Movie/TV uniqueness (partial indexes):
 - `(list_id, tmdb_id)` when TMDB id present
 - `(list_id, normalized_title)` when title present
 
-### Feeds — `feeds`, `feed_subscriptions`, `feed_entries`, `feed_entry_states`, `newsletter_inboxes`
-
-See [Feeds & newsletters](./ARCHITECTURE.md#feeds--newsletters) for the polling design.
-
-| Table                | Role                                                                                                                                                                                                                                                                      |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `feeds`              | One row per feed URL, **shared** across users (`kind = 'rss'`), or a private per-sender newsletter feed (`kind = 'email'`, `owner_id` set). Holds poll scheduling: validators (`etag`, `last_modified`), `next_fetch_at`, `interval_minutes`, `error_count`, `last_error` |
-| `feed_subscriptions` | `(user_id, feed_id)` PK; optional custom `title`; `cleared_at` = "mark all read" watermark                                                                                                                                                                                |
-| `feed_entries`       | Entry metadata + the feed-supplied body (raw, capped; sanitized only on save). Unique `(feed_id, guid)`; 100 newest kept per feed                                                                                                                                         |
-| `feed_entry_states`  | Per-user `read` / `saved` marks (absence = unread)                                                                                                                                                                                                                        |
-| `newsletter_inboxes` | One secret inbound-email token per user (unique)                                                                                                                                                                                                                          |
-
-### Extracts — `extract_sources`, `extract_results`
-
-See [Extracts (Firecrawl)](./ARCHITECTURE.md#extracts-firecrawl).
-
-| Table             | Role                                                                                                                                                                                                                              |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `extract_sources` | Per-user saved question: `name`, `url`, `question`, `last_run_at`, `last_error`                                                                                                                                                   |
-| `extract_results` | Firecrawl's Markdown answer. `status` is `pending` (awaiting review — at most one per source, partial unique index) or `accepted`. Snapshots the `url` / `question` used so history survives edits. Discarded results are deleted |
-
 ### Trips — `trips`, `trip_hotels`, `trip_items`, `trip_messages`, `trip_snapshots`
 
 See [Trips](./ARCHITECTURE.md#trips).
@@ -173,10 +140,10 @@ See [Trips](./ARCHITECTURE.md#trips).
 
 See [AI features](./ARCHITECTURE.md#ai-features).
 
-| Table        | Role                                                                                                                                                                                                                                                                                                                                                          |
-| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ai_notes`   | Generated write-ups not tied to one article. Primary key (`user_id`, `kind`, `key`): `kind` is the feature (no feature writes here now; older `entry-summary`, `weekly-recap` and `feed-digest` rows may remain), `key` the period (e.g. the day it was made). `content` jsonb in the feature's shape, `model` that wrote it; the newest 12 per kind are kept |
-| `article_ai` | One row per article: `summary` jsonb (`tldr`, `keyPoints`, suggested `folderId`, `clipped` when made from only the first part of a long piece; older rows may still carry an unused `tags`), `content_hash` (sha256 of the body it was made from, to flag stale summaries), `model` that wrote it                                                             |
+| Table        | Role                                                                                                                                                                                                                                                                                              |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ai_notes`   | Generated write-ups not tied to one article. Primary key (`user_id`, `kind`, `key`): `kind` is the feature (no feature writes here now), `key` the period (e.g. the day it was made). `content` jsonb in the feature's shape, `model` that wrote it; the newest 12 per kind are kept              |
+| `article_ai` | One row per article: `summary` jsonb (`tldr`, `keyPoints`, suggested `folderId`, `clipped` when made from only the first part of a long piece; older rows may still carry an unused `tags`), `content_hash` (sha256 of the body it was made from, to flag stale summaries), `model` that wrote it |
 
 Highlight notes (inside `articles.highlights` jsonb) are capped at 1000 chars (`HIGHLIGHT_NOTE_MAX`).
 
@@ -251,7 +218,6 @@ Rules:
 | Table definitions    | `src/lib/schema.ts`                                                                                                                                       |
 | Library CRUD         | `src/server/services/library.ts`, `library-folders.ts`, `library-bulk.ts`                                                                                 |
 | Article extract/save | `src/server/services/articles.ts`                                                                                                                         |
-| Journal CRUD         | `src/server/services/journal.ts`                                                                                                                          |
 | Shelves CRUD         | `src/server/services/shelves.ts` (reads), `shelves-write.ts` (writes), `src/lib/shelves-db.server.ts` (helpers), `src/lib/shelves.ts` (client-safe types) |
 | Lookups / episodes   | `src/server/services/lookup.ts`, `episodes.ts`                                                                                                            |
 | DB client            | `src/lib/db.server.ts`                                                                                                                                    |

@@ -8,7 +8,6 @@
  */
 export { ApiError, isApiError } from "./client";
 export { articlesApi } from "./articles";
-export { journalApi } from "./journal";
 export { libraryApi, type LibraryItemPatch } from "./library";
 export { lookupApi } from "./lookup";
 export { shelvesApi, type BookProgress, type NewShelfItem, type ShelfType } from "./shelves";
