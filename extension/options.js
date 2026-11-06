@@ -1,5 +1,5 @@
 const api = globalThis.browser ?? globalThis.chrome;
-const DEFAULT_ORIGIN = "https://kami.sahilfruitwala.com";
+const DEFAULT_ORIGIN = "https://kami.simplystupidapps.com";
 
 const form = document.getElementById("form");
 const input = document.getElementById("origin");

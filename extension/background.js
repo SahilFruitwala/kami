@@ -13,7 +13,7 @@
 
 const api = globalThis.browser ?? globalThis.chrome;
 
-const DEFAULT_ORIGIN = "https://kami.sahilfruitwala.com";
+const DEFAULT_ORIGIN = "https://kami.simplystupidapps.com";
 const MAX_CAPTURE_HTML = 1_400_000;
 const LOAD_TIMEOUT_MS = 30_000;
 

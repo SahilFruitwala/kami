@@ -27,7 +27,7 @@ or **Skip**. Needs AI to be set up on your KAMI server.
 
 ## Self-hosting
 
-The extension defaults to `https://kami.sahilfruitwala.com`. To point it at
+The extension defaults to `https://kami.simplystupidapps.com`. To point it at
 your own deployment, open the extension's **Options**, enter your KAMI URL and
 press **Save**; the browser asks for permission to hand pages to that address.
 
