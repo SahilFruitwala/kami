@@ -18,8 +18,8 @@ import { ConfirmHost } from "@/components/confirm-dialog.tsx";
 const APP_NAME = "KAMI";
 
 // Canonical public origin for absolute OG URLs. Set VITE_PUBLIC_HOSTNAME in
-// production (e.g. kami.sahilfruitwala.com); falls back to the production host.
-const PUBLIC_HOST = import.meta.env.VITE_PUBLIC_HOSTNAME || "kami.sahilfruitwala.com";
+// production (e.g. kami.simplystupidapps.com); falls back to the production host.
+const PUBLIC_HOST = import.meta.env.VITE_PUBLIC_HOSTNAME || "kami.simplystupidapps.com";
 const SITE_URL = `https://${String(PUBLIC_HOST)
   .replace(/^https?:\/\//, "")
   .replace(/\/$/, "")}`;

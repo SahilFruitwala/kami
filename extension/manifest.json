@@ -24,7 +24,7 @@
     "scripts": ["background.js"]
   },
   "permissions": ["activeTab", "scripting", "storage", "contextMenus"],
-  "host_permissions": ["https://kami.sahilfruitwala.com/*"],
+  "host_permissions": ["https://kami.simplystupidapps.com/*"],
   "optional_host_permissions": ["https://*/*", "http://localhost/*", "http://127.0.0.1/*"],
   "options_ui": { "page": "options.html", "open_in_tab": false },
   "browser_specific_settings": {

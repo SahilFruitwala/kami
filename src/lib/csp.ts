@@ -7,7 +7,7 @@
  */
 
 const CLERK_HOSTS = [
-  "https://clerk.kami.sahilfruitwala.com",
+  "https://clerk.kami.simplystupidapps.com",
   "https://*.clerk.com",
   "https://*.clerk.accounts.dev",
 ];

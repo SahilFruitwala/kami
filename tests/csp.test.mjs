@@ -16,7 +16,7 @@ function directive(name) {
 
 describe("production CSP allows Clerk custom Frontend API", () => {
   it("includes the Kami Clerk FAPI host in script-src, connect-src, and frame-src", () => {
-    const fapi = "https://clerk.kami.sahilfruitwala.com";
+    const fapi = "https://clerk.kami.simplystupidapps.com";
     for (const name of ["script-src", "connect-src", "frame-src"]) {
       assert.match(directive(name), new RegExp(fapi.replaceAll(".", "\\.")));
     }
