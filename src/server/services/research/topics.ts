@@ -1,6 +1,7 @@
 import "@tanstack/react-start/server-only";
 import { z } from "zod";
 import { getDb } from "@/lib/db.server";
+import { userHasAiFlag } from "@/lib/feature-flags.server";
 import { researchModel } from "@/lib/llm.server";
 import { researchCreditBalance } from "@/lib/research-credits-db.server.ts";
 import {
@@ -31,13 +32,18 @@ import { getResearchCredits, researchConfigured } from "./credits";
  * is owner-scoped: another user's topic is a 404, never a 403.
  */
 
+/** Server is configured and this user has the `ai` feature flag. */
+async function researchOnFor(userId: string): Promise<boolean> {
+  return researchConfigured() && (await userHasAiFlag(userId));
+}
+
 /** Every product route but `status` calls this first. */
-export function requireResearch(): void {
-  if (!researchConfigured()) throw notFound();
+export async function requireResearch(userId: string): Promise<void> {
+  if (!(await researchOnFor(userId))) throw notFound();
 }
 
 export async function researchStatus(userId: string): Promise<ResearchStatus> {
-  if (!researchConfigured()) return { enabled: false, balance: 0, writerModel: false };
+  if (!(await researchOnFor(userId))) return { enabled: false, balance: 0, writerModel: false };
   const balance = await researchCreditBalance(await getDb(), userId);
   const writer = researchModel("writer")?.id;
   return {
@@ -48,7 +54,7 @@ export async function researchStatus(userId: string): Promise<ResearchStatus> {
 }
 
 export async function researchCredits(userId: string) {
-  requireResearch();
+  await requireResearch(userId);
   return getResearchCredits(userId);
 }
 
@@ -86,7 +92,7 @@ export function runSummary(r: RunRow): RunSummary {
 }
 
 export async function researchTopics(userId: string): Promise<ResearchTopicSummary[]> {
-  requireResearch();
+  await requireResearch(userId);
   const topics = await listTopics(await getDb(), userId);
   return topics.map((t) => ({
     ...topicView(t),
@@ -96,13 +102,13 @@ export async function researchTopics(userId: string): Promise<ResearchTopicSumma
 }
 
 export async function newResearchTopic(userId: string, name: string): Promise<ResearchTopic> {
-  requireResearch();
+  await requireResearch(userId);
   return topicView(await createTopic(await getDb(), userId, name));
 }
 
 /** The topic, or 404 when it isn't the caller's. */
 export async function ownTopic(userId: string, topicId: string): Promise<TopicRow> {
-  requireResearch();
+  await requireResearch(userId);
   const topic = await getTopic(await getDb(), userId, topicId);
   if (!topic) throw notFound("Topic not found");
   return topic;
@@ -119,7 +125,7 @@ export async function renameResearchTopic(
   topicId: string,
   name: string,
 ): Promise<ResearchTopic> {
-  requireResearch();
+  await requireResearch(userId);
   const db = await getDb();
   if (!(await renameTopic(db, userId, topicId, name))) throw notFound("Topic not found");
   return topicView((await getTopic(db, userId, topicId)) as TopicRow);

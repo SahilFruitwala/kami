@@ -119,6 +119,7 @@ function mapRow(table, row) {
   }
   if (table === "user_feature_flags") {
     r.sharing = toBool(row.sharing ?? false);
+    r.ai = toBool(row.ai ?? false);
   }
   for (const t of ["restaurants", "movies", "tv_shows", "books", "places", "wishlist_items"]) {
     if (table === t && "extra_metadata" in r) r.extra_metadata = toJson(r.extra_metadata);

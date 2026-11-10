@@ -2,6 +2,7 @@ import "@tanstack/react-start/server-only";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db.server";
+import { userHasAiFlag } from "@/lib/feature-flags.server";
 import { researchCreditBalance } from "@/lib/research-credits-db.server.ts";
 import { getRun, runEvidence, runQueries, type RunRow } from "@/lib/research-db.server.ts";
 import type { DebugOverview, DebugRun } from "@/lib/api/research.ts";
@@ -43,6 +44,7 @@ export async function requireResearchDebug(userId: string): Promise<void> {
   const db = await getDb();
   const [row] = await db.select({ email: user.email }).from(user).where(eq(user.id, userId));
   if (!row || !allowed.has(row.email.toLowerCase())) throw notFound();
+  if (!(await userHasAiFlag(userId))) throw notFound();
   if (!currentResearchConfig()) throw new HttpError(503, "Research isn't set up on this server.");
 }
 

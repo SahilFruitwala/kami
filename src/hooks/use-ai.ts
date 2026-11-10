@@ -9,7 +9,7 @@ import { queryKeys } from "@/lib/query-client.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { useReaderPrefs } from "@/lib/reader-prefs.ts";
 
-/** What the server's AI can do; buttons hide while unknown or when off. */
+/** What this user can do with AI; buttons hide while unknown or when off. */
 export function useAiStatus() {
   const query = useQuery({
     queryKey: queryKeys.ai.status(),
