@@ -854,6 +854,7 @@
   header,
   footer,
   aside[aria-label="Marginalia and reflection notes"],
+  nav[aria-label="Contents"],
   .fixed {
     display: none !important;
   }
