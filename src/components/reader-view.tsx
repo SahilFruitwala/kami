@@ -13,9 +13,11 @@ import {
   ExternalLink,
   Eye,
   EyeOff,
+  FoldHorizontal,
   PenLine,
   Printer,
   Share2,
+  UnfoldHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
 import { stampToast } from "@/components/gloss/stamp-toast.tsx";
@@ -23,7 +25,13 @@ import type { Article } from "@/lib/article-types.ts";
 import { applyHighlights } from "@/lib/highlight-html.ts";
 import { rewriteHtmlImages, previewImageSrc } from "@/lib/image-url.ts";
 import { useLibraryStore } from "@/lib/store.ts";
-import { READER_FONTS, READER_FONT_SIZES, useReaderPrefs } from "@/lib/reader-prefs.ts";
+import {
+  DEFAULT_READER_WIDTH,
+  READER_FONTS,
+  READER_FONT_SIZES,
+  READER_WIDTHS,
+  useReaderPrefs,
+} from "@/lib/reader-prefs.ts";
 import type { HighlightColorId, LibraryItem } from "@/lib/library-item.ts";
 import { OrganizeRow } from "@/components/organize-row.tsx";
 import { HighlightMenu } from "@/components/reader/highlight-menu.tsx";
@@ -68,6 +76,7 @@ export function ReaderView({
   // Select only the next item, so unrelated library changes don't re-render the reader.
   const nextItem = useLibraryStore((s) => nextInQueue(s.library, item.id));
   const readerFontSize = useReaderPrefs((s) => s.readerFontSize);
+  const readerWidth = useReaderPrefs((s) => s.readerWidth);
   const readerFont = useReaderPrefs((s) => s.readerFont);
   const highlightColor = useReaderPrefs((s) => s.highlightColor);
   const paperTone = useReaderPrefs((s) => s.paperTone);
@@ -77,6 +86,7 @@ export function ReaderView({
   const narration = useNarration(item);
   const [resumeDismissed, setResumeDismissed] = useState(false);
   const bumpReaderFontSize = useReaderPrefs((s) => s.bumpReaderFontSize);
+  const bumpReaderWidth = useReaderPrefs((s) => s.bumpReaderWidth);
   const setReaderFont = useReaderPrefs((s) => s.setReaderFont);
   const setHighlightColor = useReaderPrefs((s) => s.setHighlightColor);
   const addHighlight = useLibraryStore((s) => s.addHighlight);
@@ -90,6 +100,7 @@ export function ReaderView({
   const [editMenu, setEditMenu] = useState<EditMenu | null>(null);
 
   const fontSizeRem = READER_FONT_SIZES[readerFontSize] ?? READER_FONT_SIZES[2];
+  const columnRem = READER_WIDTHS[readerWidth] ?? READER_WIDTHS[DEFAULT_READER_WIDTH];
   const fontFamily = READER_FONTS.find((f) => f.id === readerFont)?.family;
 
   const html = useMemo(
@@ -389,10 +400,12 @@ export function ReaderView({
           prefsPanel={
             <ReaderPrefsPanel
               readerFontSize={readerFontSize}
+              readerWidth={readerWidth}
               readerFont={readerFont}
               highlightColor={highlightColor}
               paperTone={paperTone}
               onBumpSize={bumpReaderFontSize}
+              onBumpWidth={bumpReaderWidth}
               onFont={setReaderFont}
               onHighlightColor={setHighlightColor}
               onPaperTone={setPaperTone}
@@ -415,8 +428,9 @@ export function ReaderView({
       <div
         className={cn(
           "g-reader-in mx-auto w-full px-4 pb-32 sm:px-6",
-          zen ? "max-w-3xl pt-14 sm:pt-20" : "max-w-6xl pt-6",
+          zen ? "pt-14 sm:pt-20 transition-[max-width] duration-300" : "max-w-6xl pt-6",
         )}
+        style={zen ? { maxWidth: `${columnRem}rem` } : undefined}
       >
         {/* Reading sheet — in zen the card chrome falls away, leaving just text */}
         <div
@@ -433,7 +447,7 @@ export function ReaderView({
             )}
           >
             <article
-              className={cn("min-w-0 max-w-[680px]", zen ? "mx-auto w-full" : "lg:col-span-8")}
+              className={cn("min-w-0", zen ? "mx-auto w-full" : "max-w-[680px] lg:col-span-8")}
             >
               <header className="space-y-4 pb-6">
                 {!zen ? (
@@ -641,6 +655,26 @@ export function ReaderView({
             >
               {percent}%
             </span>
+            <button
+              type="button"
+              onClick={() => bumpReaderWidth(-1)}
+              disabled={readerWidth <= 0}
+              aria-label="Narrower column"
+              title="Narrower column"
+              className="flex size-11 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-paper-warm hover:text-ink disabled:pointer-events-none disabled:opacity-30 md:size-8"
+            >
+              <FoldHorizontal className="size-4" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => bumpReaderWidth(1)}
+              disabled={readerWidth >= READER_WIDTHS.length - 1}
+              aria-label="Wider column"
+              title="Wider column"
+              className="flex size-11 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-paper-warm hover:text-ink disabled:pointer-events-none disabled:opacity-30 md:size-8"
+            >
+              <UnfoldHorizontal className="size-4" aria-hidden="true" />
+            </button>
             <button
               type="button"
               onClick={() => setZen(false)}

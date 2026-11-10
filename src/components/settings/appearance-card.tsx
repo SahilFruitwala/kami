@@ -1,4 +1,9 @@
-import { READER_FONTS, READER_FONT_SIZES, useReaderPrefs } from "@/lib/reader-prefs.ts";
+import {
+  READER_FONTS,
+  READER_FONT_SIZES,
+  READER_WIDTHS,
+  useReaderPrefs,
+} from "@/lib/reader-prefs.ts";
 import { HIGHLIGHT_COLORS } from "@/lib/library-item.ts";
 import { PAPER_TONES } from "@/lib/paper-tones.ts";
 import { useTheme } from "@/hooks/use-theme.ts";
@@ -8,10 +13,12 @@ import { Card, FieldLabel } from "@/components/settings/settings-ui.tsx";
 export function AppearanceCard() {
   const { theme, isSystem, setTheme, followSystem } = useTheme();
   const readerFontSize = useReaderPrefs((s) => s.readerFontSize);
+  const readerWidth = useReaderPrefs((s) => s.readerWidth);
   const readerFont = useReaderPrefs((s) => s.readerFont);
   const highlightColor = useReaderPrefs((s) => s.highlightColor);
   const paperTone = useReaderPrefs((s) => s.paperTone);
   const bumpReaderFontSize = useReaderPrefs((s) => s.bumpReaderFontSize);
+  const bumpReaderWidth = useReaderPrefs((s) => s.bumpReaderWidth);
   const setReaderFont = useReaderPrefs((s) => s.setReaderFont);
   const setHighlightColor = useReaderPrefs((s) => s.setHighlightColor);
   const setPaperTone = useReaderPrefs((s) => s.setPaperTone);
@@ -145,6 +152,38 @@ export function AppearanceCard() {
               aria-label="Increase font size"
               disabled={readerFontSize >= READER_FONT_SIZES.length - 1}
               onClick={() => bumpReaderFontSize(1)}
+              className="flex size-9 items-center justify-center rounded-lg bg-paper-warm text-ink disabled:opacity-40"
+            >
+              +
+            </button>
+          </div>
+          <p className="mt-4 font-sans text-[11px] font-medium text-ink-muted">Focus column</p>
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              type="button"
+              aria-label="Narrower column"
+              disabled={readerWidth <= 0}
+              onClick={() => bumpReaderWidth(-1)}
+              className="flex size-9 items-center justify-center rounded-lg bg-paper-warm text-ink disabled:opacity-40"
+            >
+              −
+            </button>
+            <div className="flex flex-1 items-center justify-center gap-1.5" aria-hidden="true">
+              {READER_WIDTHS.map((_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    "h-2 w-2 rounded-full",
+                    i === readerWidth ? "scale-125 bg-ink" : "bg-faint",
+                  )}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              aria-label="Wider column"
+              disabled={readerWidth >= READER_WIDTHS.length - 1}
+              onClick={() => bumpReaderWidth(1)}
               className="flex size-9 items-center justify-center rounded-lg bg-paper-warm text-ink disabled:opacity-40"
             >
               +
