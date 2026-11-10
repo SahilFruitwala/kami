@@ -324,8 +324,34 @@ export function ReaderView({
     ...sheet.vars,
   } as CSSProperties;
 
+  // Focus paints the page with the article's paper. The sheet already uses
+  // that colour, so the card edge around the text goes away.
+  useEffect(() => {
+    if (!zen) return;
+    const root = document.documentElement;
+    const body = document.body;
+    const previous = {
+      rootBg: root.style.backgroundColor,
+      bodyBg: body.style.backgroundColor,
+      scheme: root.style.colorScheme,
+    };
+    root.style.backgroundColor = sheet.bg;
+    body.style.backgroundColor = sheet.bg;
+    root.style.colorScheme = sheet.scheme;
+    return () => {
+      root.style.backgroundColor = previous.rootBg;
+      body.style.backgroundColor = previous.bodyBg;
+      root.style.colorScheme = previous.scheme;
+    };
+  }, [zen, sheet.bg, sheet.scheme]);
+
   return (
-    <div className="kami-desk relative min-h-dvh [touch-action:manipulation]">
+    <div
+      className="kami-desk relative min-h-dvh transition-colors duration-300 [touch-action:manipulation]"
+      style={
+        zen ? { backgroundColor: sheet.bg, color: sheet.fg, colorScheme: sheet.scheme } : undefined
+      }
+    >
       {/* Reading progress — hidden in zen so only text remains */}
       {!zen ? (
         <div
@@ -418,7 +444,7 @@ export function ReaderView({
           zen ? "max-w-3xl pt-14 sm:pt-20" : "max-w-6xl pt-6",
         )}
       >
-        {/* Reading sheet — in zen the card chrome falls away, leaving just text */}
+        {/* Reading sheet — in focus the page uses this same paper, so the card edge is gone */}
         <div
           className={cn(
             "relative rounded-xl p-6 transition-colors duration-300 sm:p-8 lg:p-12",
