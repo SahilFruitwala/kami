@@ -1,5 +1,10 @@
 import { Minus, Plus } from "lucide-react";
-import { READER_FONTS, READER_FONT_SIZES, type ReaderFontId } from "@/lib/reader-prefs.ts";
+import {
+  READER_FONTS,
+  READER_FONT_SIZES,
+  READER_WIDTHS,
+  type ReaderFontId,
+} from "@/lib/reader-prefs.ts";
 import { HIGHLIGHT_COLORS, type HighlightColorId } from "@/lib/library-item.ts";
 import { PAPER_TONES, type PaperTone } from "@/lib/paper-tones.ts";
 import { Button } from "@/components/ui/button.tsx";
@@ -7,19 +12,23 @@ import { cn } from "@/lib/utils.ts";
 
 export function ReaderPrefsPanel({
   readerFontSize,
+  readerWidth,
   readerFont,
   highlightColor,
   paperTone,
   onBumpSize,
+  onBumpWidth,
   onFont,
   onHighlightColor,
   onPaperTone,
 }: {
   readerFontSize: number;
+  readerWidth: number;
   readerFont: ReaderFontId;
   highlightColor: HighlightColorId;
   paperTone: PaperTone;
   onBumpSize: (delta: number) => void;
+  onBumpWidth: (delta: number) => void;
   onFont: (font: ReaderFontId) => void;
   onHighlightColor: (color: HighlightColorId) => void;
   onPaperTone: (tone: PaperTone) => void;
@@ -102,6 +111,43 @@ export function ReaderPrefsPanel({
           disabled={readerFontSize >= READER_FONT_SIZES.length - 1}
           className="size-11 bg-paper-warm text-ink hover:bg-paper-warm/80 sm:size-9"
           onClick={() => onBumpSize(1)}
+        >
+          <Plus className="size-4" aria-hidden="true" />
+        </Button>
+      </div>
+
+      <p className="mt-4 text-[13px] font-medium text-ink-soft">Focus width</p>
+      <div className="mt-2.5 flex items-center gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          aria-label="Narrower column"
+          disabled={readerWidth <= 0}
+          className="size-11 bg-paper-warm text-ink hover:bg-paper-warm/80 sm:size-9"
+          onClick={() => onBumpWidth(-1)}
+        >
+          <Minus className="size-4" aria-hidden="true" />
+        </Button>
+        <div className="flex flex-1 items-center justify-center gap-1.5 px-1" aria-hidden="true">
+          {READER_WIDTHS.map((_, i) => (
+            <span
+              key={i}
+              className={cn(
+                "h-2 w-2 rounded-full transition-colors",
+                i === readerWidth ? "bg-ink scale-125" : "bg-faint",
+              )}
+            />
+          ))}
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          aria-label="Wider column"
+          disabled={readerWidth >= READER_WIDTHS.length - 1}
+          className="size-11 bg-paper-warm text-ink hover:bg-paper-warm/80 sm:size-9"
+          onClick={() => onBumpWidth(1)}
         >
           <Plus className="size-4" aria-hidden="true" />
         </Button>
