@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { withArticleToc } from "@/lib/article-toc.ts";
+import { activeHeadingFromTops } from "@/hooks/use-active-heading.ts";
 
 describe("withArticleToc", () => {
   it("stays quiet when there are not enough headings", () => {
@@ -51,5 +52,30 @@ describe("withArticleToc", () => {
     const result = withArticleToc(html);
     assert.equal(result.entries[0].id, "already");
     assert.match(result.html, /<h2 id="already">First<\/h2>/);
+  });
+});
+
+describe("activeHeadingFromTops", () => {
+  const tops = [
+    { id: "a", top: -80 },
+    { id: "b", top: 40 },
+    { id: "c", top: 400 },
+  ];
+
+  it("marks the last heading that has crossed the probe", () => {
+    assert.equal(activeHeadingFromTops(tops, 120), "b");
+  });
+
+  it("falls back to the first heading at the top of the page", () => {
+    assert.equal(
+      activeHeadingFromTops(
+        [
+          { id: "a", top: 200 },
+          { id: "b", top: 500 },
+        ],
+        120,
+      ),
+      "a",
+    );
   });
 });

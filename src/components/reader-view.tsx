@@ -103,7 +103,7 @@ export function ReaderView({
   );
   const toc = useMemo(() => withArticleToc(html), [html]);
   const tocIds = useMemo(() => toc.entries.map((entry) => entry.id), [toc.entries]);
-  const [activeHeadingId, setActiveHeadingId] = useActiveHeading(bodyRef, tocIds);
+  const [activeHeadingId, lockHeading] = useActiveHeading(bodyRef, tocIds, toc.html);
 
   const progress = useReaderProgress(article.canonicalUrl, item.id);
   const {
@@ -204,17 +204,14 @@ export function ReaderView({
   }
 
   useEffect(() => {
-    if (!zen) {
-      setTocOpen(false);
-      return;
-    }
+    if (!zen && !tocOpen) return;
     function onKey(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
       if (tocOpen) {
         setTocOpen(false);
         return;
       }
-      setZen(false);
+      if (zen) setZen(false);
     }
     document.addEventListener("keydown", onKey);
     return () => {
@@ -334,8 +331,9 @@ export function ReaderView({
   function jumpToHeading(id: string) {
     const heading = bodyRef.current?.querySelector(`#${CSS.escape(id)}`);
     if (!(heading instanceof HTMLElement)) return;
-    heading.scrollIntoView({ behavior: "smooth", block: "start" });
-    setActiveHeadingId(id);
+    const top = heading.getBoundingClientRect().top + window.scrollY - 96;
+    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    lockHeading(id);
     setTocOpen(false);
   }
 
@@ -466,6 +464,7 @@ export function ReaderView({
         className={cn(
           "g-reader-in mx-auto w-full px-4 pb-32 sm:px-6",
           zen ? "max-w-3xl pt-14 sm:pt-20" : "max-w-6xl pt-6",
+          !zen && toc.entries.length && "xl:pl-52",
         )}
       >
         {/* Reading sheet — in focus the page uses this same paper, so the card edge is gone */}
@@ -535,31 +534,6 @@ export function ReaderView({
 
               {!zen ? <OrganizeRow item={item} /> : null}
 
-              {toc.entries.length ? (
-                zen ? (
-                  <details className="mb-8">
-                    <summary className="flex cursor-pointer list-none items-center gap-1.5 font-sans text-[13px] text-ink-soft transition-colors hover:text-ink [&::-webkit-details-marker]:hidden">
-                      <List className="size-3.5 shrink-0" aria-hidden="true" />
-                      Contents
-                    </summary>
-                    <ReaderToc
-                      entries={toc.entries}
-                      activeId={activeHeadingId}
-                      onJump={jumpToHeading}
-                      className="mt-3"
-                      heading=""
-                    />
-                  </details>
-                ) : (
-                  <ReaderToc
-                    entries={toc.entries}
-                    activeId={activeHeadingId}
-                    onJump={jumpToHeading}
-                    className="mb-8 border-b border-line pb-6 lg:hidden"
-                  />
-                )
-              ) : null}
-
               {article.heroImage && !hasLeadImage ? (
                 <ViewTransition name={`article-image-${item.id}`} share="morph">
                   <figure className="my-6">
@@ -625,15 +599,6 @@ export function ReaderView({
                 className="flex min-w-0 flex-col gap-6 lg:col-span-4 lg:sticky lg:top-24 lg:-mx-1 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-6 kami-quiet-scroll"
                 aria-label="Marginalia and reflection notes"
               >
-                {toc.entries.length ? (
-                  <ReaderToc
-                    entries={toc.entries}
-                    activeId={activeHeadingId}
-                    onJump={jumpToHeading}
-                    className="hidden lg:block"
-                  />
-                ) : null}
-
                 <div className="flex items-center justify-between gap-2">
                   <p className="flex items-center gap-2 font-sans text-[13px] font-medium opacity-60">
                     <PenLine className="size-[18px] shrink-0" aria-hidden="true" />
@@ -706,14 +671,34 @@ export function ReaderView({
       <NarrationPlayer item={item} narration={narration} />
       <NarrationRefusalDialog narration={narration} />
 
+      {toc.entries.length ? (
+        <aside
+          className={cn(
+            "pointer-events-none fixed z-30 hidden w-52 xl:block",
+            zen ? "top-24 left-6" : "top-28 left-4",
+          )}
+        >
+          <div className="pointer-events-auto max-h-[min(28rem,calc(100dvh-8rem))] overflow-y-auto pr-1 kami-quiet-scroll">
+            <ReaderToc entries={toc.entries} activeId={activeHeadingId} onJump={jumpToHeading} />
+          </div>
+        </aside>
+      ) : null}
+
+      {tocOpen && toc.entries.length ? (
+        <div
+          className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom))] left-1/2 z-40 w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2 xl:hidden"
+          role="dialog"
+          aria-label="Contents"
+        >
+          <div className="max-h-[min(22rem,50vh)] overflow-y-auto rounded-2xl border border-line bg-surface/95 p-3 shadow-[var(--shadow-raised)] backdrop-blur-xl kami-quiet-scroll">
+            <ReaderToc entries={toc.entries} activeId={activeHeadingId} onJump={jumpToHeading} />
+          </div>
+        </div>
+      ) : null}
+
       {zen ? (
         /* Zen: quiet on desktop, fully discoverable on touch screens. */
-        <div className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2 opacity-100 transition-opacity duration-300 md:opacity-40 md:hover:opacity-100 md:focus-within:opacity-100">
-          {tocOpen && toc.entries.length ? (
-            <div className="mb-2 max-h-[min(22rem,50vh)] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto rounded-2xl border border-line bg-surface/95 p-3 shadow-[var(--shadow-raised)] backdrop-blur-xl kami-quiet-scroll">
-              <ReaderToc entries={toc.entries} activeId={activeHeadingId} onJump={jumpToHeading} />
-            </div>
-          ) : null}
+        <div className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2">
           <div className="flex items-center gap-2 rounded-full bg-surface/95 py-1.5 pr-2 pl-1.5 shadow-[var(--shadow-raised)] backdrop-blur-xl">
             <button
               type="button"
@@ -738,13 +723,12 @@ export function ReaderView({
                 aria-label="Contents"
                 title="Contents"
                 className={cn(
-                  "flex size-11 items-center justify-center rounded-full transition-colors md:size-8",
-                  tocOpen
-                    ? "bg-ink text-paper"
-                    : "text-ink-soft hover:bg-paper-warm hover:text-ink",
+                  "flex min-h-11 items-center gap-1.5 rounded-full px-3 font-sans text-xs transition-colors xl:hidden md:min-h-8",
+                  tocOpen ? "bg-ink text-paper" : "bg-paper-warm text-ink-soft hover:text-ink",
                 )}
               >
                 <List className="size-4" aria-hidden="true" />
+                <span>Contents</span>
               </button>
             ) : null}
             <button
@@ -790,6 +774,20 @@ export function ReaderView({
             ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {toc.entries.length ? (
+              <button
+                type="button"
+                onClick={() => setTocOpen((open) => !open)}
+                aria-pressed={tocOpen}
+                className={cn(
+                  "flex size-11 items-center justify-center rounded-full font-sans text-xs transition-colors xl:hidden sm:size-auto sm:min-h-8 sm:gap-1.5 sm:px-3 sm:py-1.5",
+                  tocOpen ? "bg-ink text-paper" : "bg-paper-warm text-ink-soft hover:text-ink",
+                )}
+              >
+                <List className="size-[18px]" aria-hidden="true" />
+                <span className="hidden sm:inline">Contents</span>
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => setZen((v) => !v)}
