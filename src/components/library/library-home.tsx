@@ -409,11 +409,11 @@ export function LibraryHome({
                     .join(", "),
                   label: `${it.title}${it.author ? ` by ${it.author}` : ""}, ${minutesLabel(it.readingMinutes)}`,
                 })}
-                onPick={(it) => setPicked({ id: it.id, kind: "cover" })}
+                onPick={onOpenItem}
                 decoration={topic !== "all" ? <LyingBooks topic={topic} seed={topic} /> : undefined}
               />
               <p className="mt-6 font-sans text-[13px] text-ink-muted">
-                Hover a book to face it, click to take it down. Arrow keys walk the shelf.
+                Hover a book to face it, click to read it. Arrow keys walk the shelf.
               </p>
             </>
           )
