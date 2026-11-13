@@ -3,6 +3,7 @@ import { Star } from "lucide-react";
 import { previewImageSrc } from "@/lib/image-url.ts";
 import {
   bookSpineLook,
+  type BookSpineLook,
   familyVars,
   seeded,
   topicFamily,
@@ -22,11 +23,23 @@ export function TopicIcon({ topic, className }: { topic: TopicId; className?: st
 
 /* ——— Spine ——— */
 
-export function BookSpine({ item, topic }: { item: LibraryItem; topic: TopicId }) {
-  const look = bookSpineLook(item, topic);
+/** The flat spine artwork, sized by the caller (a plain spine or one face of an angled book). */
+function SpineBody({
+  item,
+  topic,
+  look,
+  width,
+  height,
+}: {
+  item: LibraryItem;
+  topic: TopicId;
+  look: BookSpineLook;
+  width: number;
+  height: number;
+}) {
   const style = {
-    width: look.width,
-    height: look.height,
+    width,
+    height,
     "--spine": look.color,
     "--spine-ink": look.ink,
     "--spine-dark": topicFamily(topic).dark,
@@ -49,7 +62,7 @@ export function BookSpine({ item, topic }: { item: LibraryItem; topic: TopicId }
         {look.label ? (
           <span
             className="g-spine-label mx-[3px] max-h-[62%] min-h-0 shrink"
-            style={{ width: look.width - 8 }}
+            style={{ width: width - 8 }}
           >
             <span className={cn("g-spine-title max-h-full", titleClass)}>{item.title}</span>
           </span>
@@ -60,6 +73,44 @@ export function BookSpine({ item, topic }: { item: LibraryItem; topic: TopicId }
         )}
         <span className="font-sans text-[8px] font-semibold tracking-[0.12em] uppercase opacity-60">
           {(item.author || item.siteName || "").split(/\s+/).pop()?.slice(0, 7)}
+        </span>
+      </span>
+    </span>
+  );
+}
+
+/**
+ * A book standing on the shelf, turned 45° so its spine and its front cover
+ * (the article's banner) read together. Hover or focus squares it to the
+ * viewer in place; the slot keeps its width so neighbours never shift. The
+ * cover faces left and the spine sits on the right.
+ */
+export function BookSpine({ item, topic }: { item: LibraryItem; topic: TopicId }) {
+  const look = bookSpineLook(item, topic);
+  const depth = look.width;
+  const coverW = Math.round(look.height * 0.56);
+  // Width of the turned book's footprint: cover and spine each foreshortened by cos 45°.
+  const slotW = Math.round((coverW + depth) * Math.SQRT1_2) + 4;
+  return (
+    <span
+      className="g-abook-slot"
+      style={
+        {
+          width: slotW,
+          height: look.height,
+          "--W": `${coverW}px`,
+          "--T": `${depth}px`,
+        } as CSSProperties
+      }
+      aria-hidden="true"
+    >
+      <span className="g-abook">
+        <span className="g-abook-face g-abook-pages" />
+        <span className="g-abook-face g-abook-spine">
+          <SpineBody item={item} topic={topic} look={look} width={depth} height={look.height} />
+        </span>
+        <span className="g-abook-face g-abook-cover">
+          <BookCover item={item} topic={topic} />
         </span>
       </span>
     </span>
