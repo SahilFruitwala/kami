@@ -4,9 +4,9 @@ import { HIGHLIGHT_COLORS, type HighlightColorId } from "./library-item.ts";
 import { isPaperTone, type PaperTone } from "./paper-tones.ts";
 
 /**
- * Per-device reader preferences: font, size, paper tone, highlight colour,
- * reading progress and a couple of toggles. Kept apart from the library store
- * (server data) and persisted to localStorage.
+ * Per-device reader preferences: font, size, focus-column width, paper tone,
+ * highlight colour, reading progress and a couple of toggles. Kept apart from
+ * the library store (server data) and persisted to localStorage.
  *
  * Stored under the same key and version the library store used for these
  * fields, so existing preferences carry over unchanged.
@@ -38,8 +38,16 @@ export type ReaderFontId = (typeof READER_FONTS)[number]["id"];
 export const READER_FONT_SIZES = [0.95, 1.0625, 1.1875, 1.3125, 1.4375, 1.5625, 1.75] as const;
 export const DEFAULT_READER_FONT_SIZE = 2;
 
+/**
+ * Focus-mode column max-widths in rem. Index 1 (48rem) matches the previous
+ * `max-w-3xl` sheet so existing layouts stay put until the reader widens it.
+ */
+export const READER_WIDTHS = [40, 48, 56, 64, 80] as const;
+export const DEFAULT_READER_WIDTH = 1;
+
 export type ReaderPrefsState = {
   readerFontSize: number;
+  readerWidth: number;
   readerFont: ReaderFontId;
   highlightColor: HighlightColorId;
   paperTone: PaperTone;
@@ -57,6 +65,8 @@ export type ReaderPrefsState = {
   setProgress: (id: string, progress: number) => void;
   setReaderFontSize: (size: number) => void;
   bumpReaderFontSize: (delta: number) => void;
+  setReaderWidth: (size: number) => void;
+  bumpReaderWidth: (delta: number) => void;
   setReaderFont: (font: ReaderFontId) => void;
   setHighlightColor: (color: HighlightColorId) => void;
   setPaperTone: (tone: PaperTone) => void;
@@ -67,6 +77,7 @@ export type ReaderPrefsState = {
 type Persisted = {
   readerSize?: "md" | "lg";
   readerFontSize?: number;
+  readerWidth?: number;
   readerFont?: string;
   highlightColor?: string;
   paperTone?: string;
@@ -78,6 +89,10 @@ type Persisted = {
 
 function clampFontSize(value: number): number {
   return Math.min(READER_FONT_SIZES.length - 1, Math.max(0, Math.round(value)));
+}
+
+function clampWidth(value: number): number {
+  return Math.min(READER_WIDTHS.length - 1, Math.max(0, Math.round(value)));
 }
 
 function isReaderFont(value: unknown): value is ReaderFontId {
@@ -98,6 +113,8 @@ function migratePrefs(persisted: unknown) {
   const raw = (persisted || {}) as Persisted;
   return {
     readerFontSize: migrateFontSize(raw),
+    readerWidth:
+      typeof raw.readerWidth === "number" ? clampWidth(raw.readerWidth) : DEFAULT_READER_WIDTH,
     readerFont: isReaderFont(raw.readerFont) ? raw.readerFont : "newsreader",
     highlightColor: isHighlightColor(raw.highlightColor) ? raw.highlightColor : "vermilion",
     paperTone: isPaperTone(raw.paperTone) ? raw.paperTone : "pale",
@@ -115,6 +132,7 @@ export const useReaderPrefs = create<ReaderPrefsState>()(
   persist(
     (set) => ({
       readerFontSize: DEFAULT_READER_FONT_SIZE,
+      readerWidth: DEFAULT_READER_WIDTH,
       readerFont: "newsreader",
       highlightColor: "vermilion",
       paperTone: "pale",
@@ -131,6 +149,9 @@ export const useReaderPrefs = create<ReaderPrefsState>()(
       setReaderFontSize: (size) => set({ readerFontSize: clampFontSize(size) }),
       bumpReaderFontSize: (delta) =>
         set((state) => ({ readerFontSize: clampFontSize(state.readerFontSize + delta) })),
+      setReaderWidth: (size) => set({ readerWidth: clampWidth(size) }),
+      bumpReaderWidth: (delta) =>
+        set((state) => ({ readerWidth: clampWidth(state.readerWidth + delta) })),
       setReaderFont: (font) => set({ readerFont: isReaderFont(font) ? font : "newsreader" }),
       setHighlightColor: (color) =>
         set({ highlightColor: isHighlightColor(color) ? color : "vermilion" }),
@@ -145,9 +166,10 @@ export const useReaderPrefs = create<ReaderPrefsState>()(
     {
       // Historical key/version (these fields used to live on the library store).
       name: "quarto-library",
-      version: 10,
+      version: 11,
       partialize: (state) => ({
         readerFontSize: state.readerFontSize,
+        readerWidth: state.readerWidth,
         readerFont: state.readerFont,
         highlightColor: state.highlightColor,
         paperTone: state.paperTone,

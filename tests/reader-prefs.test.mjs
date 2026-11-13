@@ -41,6 +41,7 @@ describe("useReaderPrefs", () => {
     assert.deepEqual(s.progressById, { a: 0.5 });
     assert.equal(s.resumeEnabled, false);
     assert.equal(s.autoOrganize, false);
+    assert.equal(s.readerWidth, 1);
   });
 
   it("migrates older saved versions", async () => {
@@ -62,5 +63,15 @@ describe("useReaderPrefs", () => {
     s.setPaperTone("sumi");
     assert.equal(useReaderPrefs.getState().preferredLightTone, "aged");
     assert.ok(!JSON.parse(store.get("quarto-library")).state.openId, "dead openId not re-saved");
+  });
+
+  it("defaults and clamps focus column width", () => {
+    assert.equal(useReaderPrefs.getState().readerWidth, 1);
+    useReaderPrefs.getState().setReaderWidth(99);
+    assert.equal(useReaderPrefs.getState().readerWidth, 4);
+    useReaderPrefs.getState().bumpReaderWidth(-10);
+    assert.equal(useReaderPrefs.getState().readerWidth, 0);
+    const saved = JSON.parse(store.get("quarto-library")).state;
+    assert.equal(saved.readerWidth, 0);
   });
 });
