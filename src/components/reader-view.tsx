@@ -43,6 +43,7 @@ import { TONES } from "@/lib/paper-tones.ts";
 import { cn } from "@/lib/utils.ts";
 import { MarginaliaHighlights } from "@/components/reader/marginalia-highlights.tsx";
 import { ReaderAi } from "@/components/reader/reader-ai.tsx";
+import { ReaderToc, useArticleToc } from "@/components/reader/reader-toc.tsx";
 import { nextInQueue } from "@/lib/filter-library.ts";
 
 export function ReaderView({
@@ -96,6 +97,8 @@ export function ReaderView({
     () => applyHighlights(rewriteHtmlImages(article.contentHtml), item.highlights),
     [article.contentHtml, item.highlights],
   );
+
+  const tocEntries = useArticleToc(bodyRef, html);
 
   const progress = useReaderProgress(article.canonicalUrl, item.id);
   const {
@@ -386,6 +389,7 @@ export function ReaderView({
           onTogglePrefs={() => setPrefsOpen((open) => !open)}
           onArchive={onArchive}
           narration={<NarrationButton narration={narration} />}
+          toc={<ReaderToc entries={tocEntries} />}
           prefsPanel={
             <ReaderPrefsPanel
               readerFontSize={readerFontSize}

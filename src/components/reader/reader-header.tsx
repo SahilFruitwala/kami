@@ -16,6 +16,8 @@ type ReaderHeaderProps = {
   prefsPanel: React.ReactNode;
   /** Narration control (Create audio / progress / player toggle), when available. */
   narration?: React.ReactNode;
+  /** Table-of-contents control, when the article has enough headings. */
+  toc?: React.ReactNode;
 };
 
 export function ReaderHeader({
@@ -29,6 +31,7 @@ export function ReaderHeader({
   onArchive,
   prefsPanel,
   narration,
+  toc,
 }: ReaderHeaderProps) {
   return (
     <header
@@ -61,6 +64,7 @@ export function ReaderHeader({
           aria-label="Reading controls"
         >
           {narration}
+          {toc}
           <Button
             variant="ghost"
             size="icon"
