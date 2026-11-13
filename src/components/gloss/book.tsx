@@ -88,7 +88,7 @@ function SpineBody({
 export function BookSpine({ item, topic }: { item: LibraryItem; topic: TopicId }) {
   const look = bookSpineLook(item, topic);
   const depth = look.width;
-  const coverW = Math.round(look.height * 0.56);
+  const coverW = Math.round(look.height * 0.6);
   // Width of the turned book's footprint: cover and spine each foreshortened by cos 45°.
   const slotW = Math.round((coverW + depth) * Math.SQRT1_2) + 4;
   return (

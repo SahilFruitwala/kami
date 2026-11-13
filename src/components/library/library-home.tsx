@@ -37,13 +37,7 @@ import {
   type LibrarySort,
   type LibraryTab,
 } from "@/lib/filter-library.ts";
-import {
-  bookSpineLook,
-  topicFamily,
-  topicLabel,
-  topicOf,
-  type TopicId,
-} from "@/lib/gloss/palette.ts";
+import { topicFamily, topicLabel, topicOf, type TopicId } from "@/lib/gloss/palette.ts";
 import { loadMoreLibrary } from "@/lib/library-remote.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
 import { useLibraryStore } from "@/lib/store.ts";
@@ -415,11 +409,11 @@ export function LibraryHome({
                     .join(", "),
                   label: `${it.title}${it.author ? ` by ${it.author}` : ""}, ${minutesLabel(it.readingMinutes)}`,
                 })}
-                onPick={(it) => setPicked({ id: it.id, kind: "spine" })}
+                onPick={(it) => setPicked({ id: it.id, kind: "cover" })}
                 decoration={topic !== "all" ? <LyingBooks topic={topic} seed={topic} /> : undefined}
               />
               <p className="mt-6 font-sans text-[13px] text-ink-muted">
-                Click a spine to take it down. Arrow keys walk the shelf.
+                Hover a book to face it, click to take it down. Arrow keys walk the shelf.
               </p>
             </>
           )
@@ -474,14 +468,7 @@ export function LibraryHome({
           source={picked}
           label={pickedItem.title}
           coverSize={{ w: 430, h: 620 }}
-          depthRatio={
-            picked.kind === "spine"
-              ? (() => {
-                  const l = bookSpineLook(pickedItem, pickedTopic);
-                  return l.width / l.height;
-                })()
-              : 0.06
-          }
+          depthRatio={0.06}
           spineFace={<BookSpineFace item={pickedItem} topic={pickedTopic} />}
           cover={<BookCover item={pickedItem} topic={pickedTopic} />}
           inside={
