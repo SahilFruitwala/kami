@@ -1,6 +1,4 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { ListTree } from "lucide-react";
-import { Button } from "@/components/ui/button.tsx";
 import { cn } from "@/lib/utils.ts";
 
 export type TocEntry = { id: string; text: string; level: number };
@@ -34,7 +32,7 @@ export function useArticleToc(bodyRef: RefObject<HTMLDivElement | null>, html: s
 }
 
 /** Tracks which heading is nearest the top of the viewport. */
-function useActiveHeading(entries: TocEntry[]) {
+export function useActiveHeading(entries: TocEntry[]) {
   const [active, setActive] = useState<string | null>(null);
 
   useEffect(() => {
@@ -57,67 +55,114 @@ function useActiveHeading(entries: TocEntry[]) {
   return active;
 }
 
-export function ReaderToc({ entries }: { entries: TocEntry[] }) {
-  const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
-  const active = useActiveHeading(open ? entries : []);
+function jumpTo(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function indentOf(entries: TocEntry[], entry: TocEntry, step: number, base: number) {
+  const minLevel = Math.min(...entries.map((e) => e.level));
+  return `${base + (entry.level - minLevel) * step}rem`;
+}
+
+/**
+ * Desktop, standard mode: an always-visible "On this page" list at the top of
+ * the marginalia column. No button, no popover — structure at a glance.
+ */
+export function ReaderTocAside({
+  entries,
+  active,
+  percent,
+}: {
+  entries: TocEntry[];
+  active: string | null;
+  percent: number;
+}) {
+  if (entries.length === 0) return null;
+  const activeIndex = entries.findIndex((e) => e.id === active);
+
+  return (
+    <nav aria-label="On this page" className="hidden lg:block">
+      <p className="mb-2 flex items-center justify-between font-sans text-[11px] tracking-[0.08em] uppercase opacity-60">
+        <span>On this page</span>
+        <span className="tabular-nums">{percent}%</span>
+      </p>
+      <ol className="border-l border-current/15">
+        {entries.map((entry, i) => (
+          <li key={entry.id}>
+            <button
+              type="button"
+              onClick={() => jumpTo(entry.id)}
+              aria-current={active === entry.id ? "location" : undefined}
+              style={{ paddingLeft: indentOf(entries, entry, 0.75, 0.75) }}
+              className={cn(
+                "-ml-px block w-full border-l-2 py-1.5 pr-2 text-left font-sans text-[13px] leading-snug transition-colors hover:opacity-100",
+                active === entry.id
+                  ? "border-current font-semibold opacity-100"
+                  : "border-transparent opacity-70",
+                i < activeIndex && "opacity-45",
+              )}
+            >
+              {entry.text}
+            </button>
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
+function isTyping(target: EventTarget | null) {
+  const el = target as HTMLElement | null;
+  return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName));
+}
+
+/**
+ * Desktop, focus mode: hairline ticks on the right edge, dimmed like the focus
+ * dock. Hover, keyboard focus or the T key expands them into the heading list.
+ */
+export function ReaderTocRail({ entries, active }: { entries: TocEntry[]; active: string | null }) {
+  const [pinned, setPinned] = useState(false);
+  const [hover, setHover] = useState(false);
+  const open = pinned || hover;
 
   useEffect(() => {
-    if (!open) return;
-    function onPointer(event: PointerEvent) {
-      if (wrapRef.current?.contains(event.target as Node)) return;
-      setOpen(false);
-    }
     function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.metaKey || event.ctrlKey || event.altKey || isTyping(event.target)) return;
+      if (event.key === "t" || event.key === "T") setPinned((v) => !v);
+      else if (event.key === "Escape") setPinned(false);
     }
-    document.addEventListener("pointerdown", onPointer);
     document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("pointerdown", onPointer);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open]);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
 
   if (entries.length === 0) return null;
 
-  const minLevel = Math.min(...entries.map((e) => e.level));
-
-  function jump(id: string) {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
-    setOpen(false);
-  }
-
   return (
-    <div className="relative" ref={wrapRef}>
-      <Button
-        variant="ghost"
-        size="icon"
-        aria-label="Table of contents"
-        aria-expanded={open}
-        aria-haspopup="dialog"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <ListTree className="size-4" aria-hidden="true" />
-      </Button>
+    <nav
+      aria-label="On this page"
+      className="fixed top-1/2 right-0 z-30 hidden -translate-y-1/2 md:block"
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onFocus={() => setHover(true)}
+      onBlur={() => setHover(false)}
+    >
       {open ? (
-        <div
-          role="dialog"
-          aria-label="Table of contents"
-          className="screen-scroll fixed inset-x-3 top-[calc(4rem+env(safe-area-inset-top))] z-40 max-h-[calc(100dvh-5rem-env(safe-area-inset-top))] overflow-y-auto rounded-xl border border-line bg-surface p-2 shadow-device sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-[70vh] sm:w-80"
-        >
-          <p className="px-2 pt-1 pb-1.5 text-[13px] font-medium text-ink-soft">Contents</p>
+        <div className="screen-scroll mr-3 max-h-[70vh] w-64 overflow-y-auto rounded-xl border border-line bg-surface/95 p-2 text-ink shadow-device backdrop-blur-xl">
+          <p className="flex items-center justify-between px-2 pt-1 pb-1.5 font-sans text-[11px] tracking-[0.08em] text-ink-muted uppercase">
+            <span>On this page</span>
+            <kbd className="font-sans">T</kbd>
+          </p>
           <ol>
             {entries.map((entry) => (
               <li key={entry.id}>
                 <button
                   type="button"
-                  onClick={() => jump(entry.id)}
+                  onClick={() => jumpTo(entry.id)}
                   aria-current={active === entry.id ? "location" : undefined}
-                  style={{ paddingLeft: `${0.5 + (entry.level - minLevel) * 0.875}rem` }}
+                  style={{ paddingLeft: indentOf(entries, entry, 0.75, 0.5) }}
                   className={cn(
-                    "block min-h-11 w-full rounded-lg py-2 pr-2 text-left font-sans text-sm leading-snug transition-colors hover:bg-paper-warm/60 sm:min-h-0 sm:py-1.5",
-                    active === entry.id ? "bg-paper-warm font-semibold text-hanko" : "text-ink",
+                    "block w-full rounded-lg py-1.5 pr-2 text-left font-sans text-[13px] leading-snug transition-colors hover:bg-paper-warm/60",
+                    active === entry.id ? "bg-paper-warm font-semibold text-ink" : "text-ink-soft",
                   )}
                 >
                   {entry.text}
@@ -126,7 +171,114 @@ export function ReaderToc({ entries }: { entries: TocEntry[] }) {
             ))}
           </ol>
         </div>
-      ) : null}
+      ) : (
+        <ol className="flex flex-col items-end gap-2.5 py-3 pr-4 pl-10 opacity-50">
+          {entries.map((entry) => (
+            <li key={entry.id} className="leading-none">
+              <button
+                type="button"
+                aria-label={entry.text}
+                onClick={() => jumpTo(entry.id)}
+                className="flex h-3 items-center"
+              >
+                <span
+                  className={cn(
+                    "block h-0.5 rounded-full bg-current",
+                    active === entry.id
+                      ? "w-5 opacity-100"
+                      : entry.level === Math.min(...entries.map((e) => e.level))
+                        ? "w-3 opacity-40"
+                        : "w-2 opacity-30",
+                  )}
+                />
+              </button>
+            </li>
+          ))}
+        </ol>
+      )}
+    </nav>
+  );
+}
+
+/**
+ * Phone: a bottom sheet opened from the dock, within thumb reach. The current
+ * section is marked and scrolled into view.
+ */
+export function ReaderTocSheet({
+  entries,
+  active,
+  percent,
+  open,
+  onClose,
+  className,
+}: {
+  entries: TocEntry[];
+  active: string | null;
+  percent: number;
+  open: boolean;
+  onClose: () => void;
+  className?: string;
+}) {
+  const activeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    activeRef.current?.scrollIntoView({ block: "center" });
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  if (!open || entries.length === 0) return null;
+
+  return (
+    <div className={cn("fixed inset-0 z-50", className)}>
+      <button
+        type="button"
+        aria-label="Close contents"
+        tabIndex={-1}
+        onClick={onClose}
+        className="absolute inset-0 bg-ink/30"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Contents"
+        className="absolute inset-x-0 bottom-0 max-h-[70dvh] overflow-y-auto overscroll-contain rounded-t-2xl bg-surface px-3 pt-2 pb-[max(1rem,env(safe-area-inset-bottom))] text-ink shadow-device"
+      >
+        <div className="mx-auto mb-2 h-1 w-9 rounded-full bg-line" aria-hidden="true" />
+        <p className="flex items-center justify-between px-2 pb-1.5 font-sans text-[13px] font-medium text-ink-soft">
+          <span>Contents</span>
+          <span className="tabular-nums">{percent}% read</span>
+        </p>
+        <ol>
+          {entries.map((entry) => (
+            <li key={entry.id}>
+              <button
+                type="button"
+                ref={active === entry.id ? activeRef : undefined}
+                onClick={() => {
+                  jumpTo(entry.id);
+                  onClose();
+                }}
+                aria-current={active === entry.id ? "location" : undefined}
+                style={{ paddingLeft: indentOf(entries, entry, 1, 0.75) }}
+                className={cn(
+                  "flex min-h-11 w-full items-center justify-between gap-3 rounded-xl py-2 pr-3 text-left font-sans text-[15px] leading-snug",
+                  active === entry.id ? "bg-paper-warm font-semibold" : "text-ink-soft",
+                )}
+              >
+                <span>{entry.text}</span>
+                {active === entry.id ? (
+                  <span className="shrink-0 text-[11px] font-medium text-ink-muted">Reading</span>
+                ) : null}
+              </button>
+            </li>
+          ))}
+        </ol>
+      </div>
     </div>
   );
 }
