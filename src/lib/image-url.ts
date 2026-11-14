@@ -14,6 +14,17 @@ export function preferReadableImage(url: string): string {
       if (key.startsWith("utm_")) u.searchParams.delete(key);
     }
 
+    if (
+      u.hostname === "books.google.com" ||
+      u.hostname.endsWith(".books.google.com") ||
+      u.hostname.endsWith("googleusercontent.com")
+    ) {
+      u.protocol = "https:";
+      const zoom = Number(u.searchParams.get("zoom"));
+      if (!Number.isFinite(zoom) || zoom < 2) u.searchParams.set("zoom", "2");
+      u.searchParams.delete("edge");
+    }
+
     if (u.hostname.endsWith("twimg.com")) {
       const name = u.searchParams.get("name");
       if (!name || name === "small" || name === "thumb" || name === "tiny") {

@@ -79,7 +79,7 @@ export function HomeCaptureTabs({
 }
 
 /**
- * Scoped quick-add: the same home input searches TMDB / Open Library (or
+ * Scoped quick-add: the same home input searches TMDB / Google Books (or
  * fetches a wishlist link) and saves straight to the enabled shelf.
  */
 export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
@@ -327,7 +327,7 @@ export function ShelfQuickCapture({ type }: { type: ShelfTab }) {
           {isWishlist
             ? "Link preview is fetched automatically."
             : isBook
-              ? "Powered by Open Library."
+              ? "Powered by Google Books."
               : "Powered by TMDB."}
         </p>
         <Link

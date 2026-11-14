@@ -4,7 +4,7 @@ import { getDb } from "@/lib/db.server";
 /**
  * Fixed-window, per-user rate limits backed by the `rate_limits` table
  * (migration 0003). Guards the endpoints that make outbound requests on the
- * user's behalf — article extraction, TMDB / Open Library / link-preview
+ * user's behalf — article extraction, TMDB / Google Books / link-preview
  * lookups and the image proxy — so one account can't turn the server into an
  * open fetcher or burn third-party API quotas.
  *
@@ -15,7 +15,7 @@ import { getDb } from "@/lib/db.server";
 export const RATE_LIMITS = {
   /** Page extraction (single save, manual import, bulk save — cost per URL). */
   extract: { limit: 120, windowSeconds: 600 },
-  /** Metadata lookups: TMDB search/providers/seasons, Open Library, link preview. */
+  /** Metadata lookups: TMDB search/providers/seasons, Google Books, link preview. */
   lookup: { limit: 240, windowSeconds: 60 },
   /** Authenticated image proxy (a shelf grid loads many covers at once). */
   image: { limit: 600, windowSeconds: 60 },

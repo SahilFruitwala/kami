@@ -53,7 +53,7 @@ export const shelvesApi = {
     setProgress: (id: string, progress: BookProgress) =>
       http.put<{ status: ItemStatus; percent: number }>(`${book(id)}/progress`, progress),
 
-    /** Fill a missing page count from Open Library. */
+    /** Fill a missing page count from Google Books (Open Library fallback). */
     fillPageCount: (id: string) =>
       http.post<{ pageCount: number | null }>(`${book(id)}/page-count`),
 

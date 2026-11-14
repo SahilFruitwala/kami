@@ -9,7 +9,7 @@ import { Redis } from "@upstash/redis";
  *   `UPSTASH_TOKEN` pair are set; otherwise every helper is a transparent
  *   no-op (local dev and CI keep working with zero cache config).
  * - All values are JSON. TTLs are short for user data (stale reads are
- *   bounded) and long for third-party lookups (TMDB / Open Library /
+ *   bounded) and long for third-party lookups (TMDB / Google Books /
  *   link previews barely change).
  * - Keys are namespaced (`quarto:v1:...`) and user-scoped where the data
  *   is per-account, so tenants can never read each other's entries.
@@ -181,7 +181,7 @@ export const CacheTTL = {
   tmdbSearch: 6 * 3600,
   /** TMDB watch providers — availability changes slowly. */
   watchProviders: 24 * 3600,
-  /** Open Library book search — catalog data, stable for hours. */
+  /** Google Books (and Open Library fallback) search — catalog data, stable for hours. */
   bookSearch: 6 * 3600,
   /** og:title/og:image previews — page metadata rarely changes. */
   linkPreview: 7 * 24 * 3600,

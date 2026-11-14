@@ -6,7 +6,7 @@ import { bookIdParams } from "@/server/services/shelves-write";
 export const Route = createFileRoute("/api/shelves/book/$id/page-count")({
   server: {
     handlers: {
-      // Fill a missing page count from Open Library (never overwrites one typed in).
+      // Fill a missing page count from Google Books (never overwrites one typed in).
       POST: apiHandler({ params: bookIdParams, rateLimit: "lookup" }, ({ userId, params }) =>
         fillBookPageCount(userId, params.id),
       ),

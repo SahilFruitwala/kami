@@ -46,7 +46,7 @@ type AddPage = "home" | ShelfTab;
 const ADD_PAGES: { id: ShelfTab; label: string; hint: string; icon: typeof Clapperboard }[] = [
   { id: "movie", label: "Movie", hint: "Search TMDB by title", icon: Clapperboard },
   { id: "tv", label: "TV series", hint: "Search TMDB by title", icon: Tv },
-  { id: "book", label: "Book", hint: "Search Open Library", icon: BookOpen },
+  { id: "book", label: "Book", hint: "Search Google Books", icon: BookOpen },
   { id: "wishlist", label: "Wishlist", hint: "Paste a product link", icon: Gift },
 ];
 
@@ -69,7 +69,7 @@ function normalizeUrl(raw: string): string {
 /**
  * Global ⌘K palette (mounted in AppShell, so it works on every pane):
  * - paste a link → save article, or add it to the wishlist
- * - jump to a shelf search → live TMDB / Open Library / link-preview results
+ * - jump to a shelf search → live TMDB / Google Books / link-preview results
  *   with one-key add, or a manual fallback
  * - jump between panes, or open a bound work.
  */
@@ -603,7 +603,7 @@ export function CommandPalette({ onOpenItem }: { onOpenItem: (item: LibraryItem)
             {page !== "wishlist" ? (
               <p className="px-3 py-2 text-center text-[11px] text-muted-foreground">
                 {page === "book"
-                  ? "Powered by Open Library."
+                  ? "Powered by Google Books."
                   : "This product uses the TMDB API but is not endorsed or certified by TMDB."}
               </p>
             ) : null}

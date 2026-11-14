@@ -47,7 +47,7 @@ flowchart TB
   subgraph External
     Clerk[Clerk]
     TMDB[TMDB]
-    OL[Open Library]
+    GB[Google Books]
     Jina[Jina Reader]
     FX[fxtwitter / X helpers]
   end
@@ -64,7 +64,7 @@ flowchart TB
   Z --> SFNs
   SFNs --> Clerk
   SFNs --> TMDB
-  SFNs --> OL
+  SFNs --> GB
   Img --> Clerk
 ```
 
@@ -165,7 +165,7 @@ flowchart TB
 
   subgraph ReactQuery
     Shelf[Shelf lists / counts / detail]
-    Lookup[TMDB / Open Library / link preview]
+    Lookup[TMDB / Google Books / link preview]
   end
 
   Lib <-->|library-remote outbox| SF1["/api/library, /api/articles"]

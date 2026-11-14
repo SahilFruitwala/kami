@@ -20,12 +20,12 @@ import { errorMessage } from "@/lib/errors";
 const ADD_TYPE_META: { id: ShelfTab; label: string; hint: string }[] = [
   { id: "movie", label: "Movie", hint: "Search TMDB by title" },
   { id: "tv", label: "TV series", hint: "Search TMDB by title" },
-  { id: "book", label: "Book", hint: "Search Open Library by title or author" },
+  { id: "book", label: "Book", hint: "Search Google Books by title or author" },
   { id: "wishlist", label: "Wishlist", hint: "Paste a product link to auto-fill" },
 ];
 
 /**
- * Add-to-shelf flow: pick a type → find it (TMDB / Open Library / link preview)
+ * Add-to-shelf flow: pick a type → find it (TMDB / Google Books / link preview)
  * → confirm details. Lookup metadata is stored by `addShelfItem`.
  */
 export function AddShelfDialog({

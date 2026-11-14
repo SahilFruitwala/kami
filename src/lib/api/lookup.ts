@@ -1,7 +1,7 @@
 import { http } from "./client";
 import type { CountryWatch, LookupResult } from "./types";
 
-/** Third-party metadata lookups (TMDB, Open Library, link previews) — cached server-side. */
+/** Third-party metadata lookups (TMDB, Google Books, link previews) — cached server-side. */
 export const lookupApi = {
   tmdb: (query: string, kind: "movie" | "tv") =>
     http.get<LookupResult[]>("/api/lookup/tmdb", { q: query, kind }),

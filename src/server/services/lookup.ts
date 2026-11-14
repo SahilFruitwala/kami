@@ -11,6 +11,12 @@ import {
 } from "@/lib/cache.server.ts";
 import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db.server";
+import {
+  googleVolumeIdFromLink,
+  isGoogleVolumeId,
+  mapGoogleBookVolume,
+  type GoogleBookVolume,
+} from "@/lib/google-books";
 import { books } from "@/lib/schema";
 import { findOwnedItem } from "@/lib/shelves-db.server.ts";
 import { notFound } from "@/server/http";
@@ -24,9 +30,10 @@ import { notFound } from "@/server/http";
  *   `LookupResult`: title, `w342` poster, themoviedb.org link, metadata
  *   `{ year, overview (≤300ch), genre (≤3 via static id map), tmdbId, tmdbKind }`.
  *   `tmdbId/tmdbKind` feed `fetchWatchProviders` for the where-to-watch strip.
- * - Books: `openlibrary.org/search.json` (limit 8, typed fields). Maps to
- *   `{ author, year, genre (≤3 filtered subjects), overview (first_sentence) }`,
- *   cover from `covers.openlibrary.org`, link to the work page. No key needed.
+ * - Books: Google Books `volumes` (limit 8). Maps to `{ author, year, genre,
+ *   overview, pages, isbn, googleVolumeId }`, HTTPS cover, link to the volume.
+ *   Optional `GOOGLE_BOOKS_API_KEY`. Open Library is the fallback when Google
+ *   is empty or unreachable.
  * - Wishlist/URL: fetch the pasted link (SSRF-guarded via `assertPublicFetchUrl`
  *   on every redirect hop, browser UA) and read `og:title/og:image/og:description`
  *   with an Amazon DOM fallback (`#productTitle` / `#landingImage`).
@@ -268,6 +275,9 @@ type OpenLibraryDoc = {
 const SKIP_BOOK_SUBJECTS =
   /^(accessible book|protected daisy|in library|overdrive|nyt[:.]|large type|open library|internet archive)/i;
 
+const GOOGLE_BOOK_FIELDS =
+  "items(id,volumeInfo(title,authors,publishedDate,description,pageCount,categories,imageLinks,canonicalVolumeLink,infoLink,industryIdentifiers))";
+
 function bookBlurb(value: OpenLibraryDoc["first_sentence"]): string | undefined {
   const raw = Array.isArray(value)
     ? value[0]
@@ -288,46 +298,92 @@ function bookGenres(subjects: string[] | undefined): string | undefined {
   return picked.length > 0 ? picked.join(", ") : undefined;
 }
 
+function googleBooksApiKey(): string | undefined {
+  const key = process.env.GOOGLE_BOOKS_API_KEY?.trim();
+  return key || undefined;
+}
+
+/** `undefined` when Google could not be reached (caller may fall back). */
+async function googleBooksGet(
+  path: string,
+  params: Record<string, string>,
+): Promise<unknown | undefined> {
+  const url = new URL(`https://www.googleapis.com/books/v1/${path}`);
+  for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
+  const apiKey = googleBooksApiKey();
+  if (apiKey) url.searchParams.set("key", apiKey);
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return undefined;
+    return await res.json();
+  } catch {
+    return undefined;
+  }
+}
+
+async function searchGoogleBooks(q: string): Promise<LookupResult[] | undefined> {
+  const json = (await googleBooksGet("volumes", {
+    q,
+    maxResults: "8",
+    printType: "books",
+    fields: GOOGLE_BOOK_FIELDS,
+  })) as { items?: GoogleBookVolume[] } | undefined;
+  if (!json) return undefined;
+  return (json.items ?? []).map(mapGoogleBookVolume).filter((row): row is LookupResult => row !== null);
+}
+
+function mapOpenLibraryDoc(d: OpenLibraryDoc): LookupResult {
+  const metadata: Record<string, string> = {};
+  if (d.author_name?.length) metadata.author = d.author_name[0]!;
+  if (d.first_publish_year) metadata.year = String(d.first_publish_year);
+  if (d.number_of_pages_median && d.number_of_pages_median > 0)
+    metadata.pages = String(d.number_of_pages_median);
+  const genre = bookGenres(d.subject);
+  if (genre) metadata.genre = genre;
+  const overview = bookBlurb(d.first_sentence);
+  if (overview) metadata.overview = overview;
+  return {
+    title: d.title,
+    imageUrl: d.cover_i ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg` : undefined,
+    link: `https://openlibrary.org${d.key}`,
+    metadata,
+  };
+}
+
+async function searchOpenLibrary(q: string): Promise<LookupResult[] | undefined> {
+  const url = new URL("https://openlibrary.org/search.json");
+  url.searchParams.set("q", q);
+  url.searchParams.set("limit", "8");
+  url.searchParams.set(
+    "fields",
+    "key,title,author_name,first_publish_year,cover_i,subject,first_sentence,number_of_pages_median",
+  );
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return undefined;
+    const json = (await res.json()) as { docs?: OpenLibraryDoc[] };
+    return (json.docs ?? []).map(mapOpenLibraryDoc);
+  } catch {
+    return undefined;
+  }
+}
+
 export async function searchBooks(data: z.output<typeof bookSearchQuery>): Promise<LookupResult[]> {
   const q = data.q.trim();
   if (q.length < 2) return [];
 
   // Catalog data — safe to share across users, stable for hours.
+  // `gbooks` in the key so Redis does not serve pre-switch Open Library hits.
+  // `k` vs `a` so adding GOOGLE_BOOKS_API_KEY is not stuck on anonymous misses.
   return cached(
-    cacheKey("lookup", "books", normalizeCacheQuery(q)),
+    cacheKey("lookup", "gbooks", googleBooksApiKey() ? "k" : "a", normalizeCacheQuery(q)),
     CacheTTL.bookSearch,
     async () => {
-      const url = new URL("https://openlibrary.org/search.json");
-      url.searchParams.set("q", q);
-      url.searchParams.set("limit", "8");
-      url.searchParams.set(
-        "fields",
-        "key,title,author_name,first_publish_year,cover_i,subject,first_sentence,number_of_pages_median",
-      );
-
-      const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-      if (!res.ok) return [];
-      const json = (await res.json()) as { docs?: OpenLibraryDoc[] };
-
-      return (json.docs ?? []).map((d) => {
-        const metadata: Record<string, string> = {};
-        if (d.author_name?.length) metadata.author = d.author_name[0];
-        if (d.first_publish_year) metadata.year = String(d.first_publish_year);
-        if (d.number_of_pages_median && d.number_of_pages_median > 0)
-          metadata.pages = String(d.number_of_pages_median);
-        const genre = bookGenres(d.subject);
-        if (genre) metadata.genre = genre;
-        const overview = bookBlurb(d.first_sentence);
-        if (overview) metadata.overview = overview;
-        return {
-          title: d.title,
-          imageUrl: d.cover_i
-            ? `https://covers.openlibrary.org/b/id/${d.cover_i}-M.jpg`
-            : undefined,
-          link: `https://openlibrary.org${d.key}`,
-          metadata,
-        };
-      });
+      const google = await searchGoogleBooks(q);
+      if (google?.length) return google;
+      const openLibrary = await searchOpenLibrary(q);
+      if (openLibrary?.length) return openLibrary;
+      return google ?? openLibrary ?? [];
     },
     { skipCache: (rows) => rows.length === 0 },
   );
@@ -514,6 +570,67 @@ export async function fetchLinkPreview(
 
 const OPEN_LIBRARY_WORK = /^https:\/\/openlibrary\.org(\/works\/OL\d+W)$/;
 
+function quoteGoogleTerm(value: string): string {
+  return `"${value.replace(/"/g, " ").trim()}"`;
+}
+
+function extraString(
+  extra: Record<string, string | undefined> | null | undefined,
+  key: string,
+): string | undefined {
+  const value = extra?.[key]?.trim();
+  return value || undefined;
+}
+
+/**
+ * Google Books page count — by volume id (from search or the stored link),
+ * then ISBN, then title + author. `undefined` when Google could not be reached.
+ */
+async function googleBooksPageCount(book: {
+  link: string | null;
+  title: string;
+  author: string | null;
+  extraMetadata: Record<string, string | undefined> | null;
+}): Promise<{ pages: number | null } | undefined> {
+  const volumeId =
+    extraString(book.extraMetadata, "googleVolumeId") ?? googleVolumeIdFromLink(book.link);
+  const isbn = extraString(book.extraMetadata, "isbn");
+  const lookup = volumeId
+    ? `id:${volumeId}`
+    : isbn
+      ? `isbn:${isbn}`
+      : `${book.title}|${book.author ?? ""}`;
+  return cached(
+    cacheKey("lookup", "gbooks-pages", hashKeyPart(normalizeCacheQuery(lookup))),
+    CacheTTL.bookSearch,
+    async () => {
+      if (volumeId && isGoogleVolumeId(volumeId)) {
+        const json = (await googleBooksGet(`volumes/${encodeURIComponent(volumeId)}`, {
+          fields: "volumeInfo/pageCount",
+        })) as { volumeInfo?: { pageCount?: number } } | undefined;
+        if (!json) return undefined;
+        const pages = json.volumeInfo?.pageCount;
+        return { pages: pages && pages > 0 ? pages : null };
+      }
+      const q = isbn
+        ? `isbn:${isbn}`
+        : book.author
+          ? `intitle:${quoteGoogleTerm(book.title)} inauthor:${quoteGoogleTerm(book.author)}`
+          : `intitle:${quoteGoogleTerm(book.title)}`;
+      const json = (await googleBooksGet("volumes", {
+        q,
+        maxResults: "1",
+        printType: "books",
+        fields: "items(volumeInfo/pageCount)",
+      })) as { items?: { volumeInfo?: { pageCount?: number } }[] } | undefined;
+      if (!json) return undefined;
+      const pages = json.items?.[0]?.volumeInfo?.pageCount;
+      return { pages: pages && pages > 0 ? pages : null };
+    },
+    { skipCache: (v) => v === undefined },
+  );
+}
+
 /**
  * Open Library's median page count for a work — by its exact work key when
  * the book was added from search, else the best title + author match.
@@ -555,8 +672,9 @@ async function openLibraryPageCount(book: {
 }
 
 /**
- * Fill a book's missing page count from Open Library. Never overwrites a
- * count the reader typed. Returns the stored count (or null if unknown).
+ * Fill a book's missing page count from Google Books (Open Library fallback).
+ * Never overwrites a count the reader typed. Returns the stored count (or
+ * null if unknown).
  */
 export async function fillBookPageCount(
   userId: string,
@@ -573,6 +691,7 @@ export async function fillBookPageCount(
       author: books.author,
       link: books.link,
       pageCount: books.pageCount,
+      extraMetadata: books.extraMetadata,
     })
     .from(books)
     .where(eq(books.id, data.id))
@@ -580,8 +699,9 @@ export async function fillBookPageCount(
   if (!book) throw notFound("Item not found");
   if (book.pageCount) return { pageCount: book.pageCount };
 
-  const found = await openLibraryPageCount(book);
-  const pages = found?.pages ?? null;
+  const google = await googleBooksPageCount(book);
+  const openLibrary = google?.pages ? undefined : await openLibraryPageCount(book);
+  const pages = google?.pages ?? openLibrary?.pages ?? null;
   if (pages == null) return { pageCount: null };
 
   // `isNull` guard: a count typed meanwhile wins over the lookup.

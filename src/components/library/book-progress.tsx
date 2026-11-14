@@ -200,7 +200,7 @@ export function BookProgress({
       </form>
       {mode === "pages" && pageCount == null && !total && !lookingUp && lookup.isFetched ? (
         <p className="mt-2 font-sans text-xs text-ink-muted">
-          Open Library doesn't list a page count for this book — enter it from your copy.
+          Google Books doesn't list a page count for this book — enter it from your copy.
         </p>
       ) : null}
       {error ? (

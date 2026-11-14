@@ -76,7 +76,7 @@ const COPY: Record<
     title: "Books",
     eyebrow: "Book shelf",
     unit: ["book", "books"],
-    empty: "Search Open Library or paste a link to shelve your first book.",
+    empty: "Search Google Books or paste a link to shelve your first book.",
   },
   wishlist: {
     title: "Wishlist",

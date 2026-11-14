@@ -56,7 +56,7 @@ pnpm dev              # http://0.0.0.0:8080
 | `/`         | Landing (signed out) or desk home with URL capture (signed in)                  |
 | `/library`  | Inbox / archive, folders, tags, search                                          |
 | `/read?id=` | Distraction-free reader — highlights, fonts, paper tone                         |
-| `/shelves`  | Movies, TV, books, wishlist (TMDB / Open Library lookups)                       |
+| `/shelves`  | Movies, TV, books, wishlist (TMDB / Google Books lookups)                       |
 | `/trips`    | Trip planner — details, a hotel shortlist, and a day-by-day itinerary           |
 | `/vault`    | All highlights in one place; edit or delete notes and highlights; export        |
 | `/settings` | Account, appearance, bookmarklet, import/export, wipe                           |

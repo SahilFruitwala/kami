@@ -210,7 +210,7 @@ export function useSetBookProgress() {
 }
 
 /**
- * One-time Open Library lookup for a book with no page count. A hit is saved
+ * One-time Google Books lookup for a book with no page count. A hit is saved
  * server-side, then shelves refetch so the progress form picks it up.
  */
 export function useBookPageCountLookup(id: string, enabled: boolean) {

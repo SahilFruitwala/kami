@@ -28,6 +28,13 @@ function refererFor(url: URL): string {
   if (host.endsWith("medium.com")) {
     return "https://medium.com/";
   }
+  if (
+    host === "books.google.com" ||
+    host.endsWith(".books.google.com") ||
+    host.endsWith("googleusercontent.com")
+  ) {
+    return "https://books.google.com/";
+  }
   return `${url.protocol}//${url.host}/`;
 }
 

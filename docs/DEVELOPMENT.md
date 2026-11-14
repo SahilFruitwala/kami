@@ -53,6 +53,7 @@ embedded fallback.
 | `VITE_CLERK_PUBLISHABLE_KEY`                          | when auth on         | Clerk publishable key                                                                                                    |
 | `CLERK_SECRET_KEY`                                    | when auth on         | Clerk secret (server only)                                                                                               |
 | `TMDB_API_TOKEN`                                      | for movie/TV search  | TMDB Bearer token; without it search returns empty                                                                       |
+| `GOOGLE_BOOKS_API_KEY`                                | recommended          | Google Books API key for /shelves book search; without it search still runs, then falls back to Open Library             |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_URL`              | optional             | Redis REST URL for read-through cache                                                                                    |
 | `UPSTASH_REDIS_REST_TOKEN` / `UPSTASH_TOKEN`          | optional             | Redis REST token                                                                                                         |
 | `DATABASE_POOL_MAX`                                   | optional             | pg pool size per instance (default `5`)                                                                                  |
@@ -116,6 +117,7 @@ scripts/           # migrate, env, import-shelves
 | ----------------------------------- | ------------------------------------------------------------------------ |
 | Auth loops / 401 on `/api/*`        | Clerk keys, clock skew, `VITE_AUTH_ENABLED`                              |
 | Empty movie/TV search               | `TMDB_API_TOKEN`                                                         |
+| Empty book search                   | `GOOGLE_BOOKS_API_KEY` (optional; Open Library is the fallback)          |
 | Stale shelf data with Redis         | Mutation path must call `invalidateUserCache`                            |
 | Migration “already applied” locally | Inspect `_migrations` or reset Docker volume (`db:down` + remove volume) |
 | `getDb` / ALS errors in browser     | You imported a `*.server.ts` or `db.ts` into client code                 |
