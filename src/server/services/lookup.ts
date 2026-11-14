@@ -329,7 +329,9 @@ async function searchGoogleBooks(q: string): Promise<LookupResult[] | undefined>
     fields: GOOGLE_BOOK_FIELDS,
   })) as { items?: GoogleBookVolume[] } | undefined;
   if (!json) return undefined;
-  return (json.items ?? []).map(mapGoogleBookVolume).filter((row): row is LookupResult => row !== null);
+  return (json.items ?? [])
+    .map(mapGoogleBookVolume)
+    .filter((row): row is LookupResult => row !== null);
 }
 
 function mapOpenLibraryDoc(d: OpenLibraryDoc): LookupResult {
