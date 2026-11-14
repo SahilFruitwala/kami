@@ -279,26 +279,26 @@ Players come from two places: any evidence whose `names` holds a product, and an
 
 All routes are `apiHandler` routes (Clerk session, same-site check), except the internal hand-off. Owner-scoped: a user only ever sees their own rows (404 otherwise).
 
-| Method and path                              | Does                                                                                                             |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `GET /api/research/status`                   | `{ enabled, balance, writerModel: boolean }`. `enabled` is false unless Firecrawl and an AI model are configured |
-| `GET /api/research/credits`                  | balance and the last 20 ledger entries                                                                           |
-| `GET /api/research/topics`                   | the user's topics with idea counts and last run                                                                  |
-| `POST /api/research/topics`                  | `{ name }`                                                                                                       |
-| `GET /api/research/topics/$id`               | topic plus its runs (latest 20)                                                                                  |
-| `PATCH /api/research/topics/$id`             | rename                                                                                                           |
-| `DELETE /api/research/topics/$id`            | deletes the topic and everything in it; sources stay in the cache                                                |
-| `GET /api/research/topics/$id/ideas?status=` | ideas with scores, sorted by total                                                                               |
-| `GET /api/research/ideas/$id`                | the idea, its sub-scores and its evidence with source title, site and URL                                        |
-| `PATCH /api/research/ideas/$id`              | `{ title?, summary?, status? }` (star, dismiss, reopen, rename)                                                  |
-| `POST /api/research/ideas/merge`             | `{ intoId, fromIds[] }`: moves evidence, marks the others `merged`, rescores                                     |
-| `GET /api/research/topics/$id/sources`       | sources the topic used, with evidence counts                                                                     |
-| `POST /api/research/topics/$id/links`        | paste a link (§4.11)                                                                                             |
-| `POST /api/research/runs`                    | draft: `{ topicId?, kind: "discover", input, depth }` → `{ run, plan, estimate, repeats }`                       |
-| `POST /api/research/runs/$id/start`          | `{ plan, depth }` → 202                                                                                          |
-| `POST /api/research/runs/$id/stop`           | 202                                                                                                              |
-| `GET /api/research/runs/$id`                 | state, step, progress, spend so far; restarts a stalled run (§4.2, step 7)                                       |
-| `POST /api/research/run`                     | internal hand-off, `x-research-secret`; not for browsers                                                         |
+| Method and path                              | Does                                                                                                                       |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/research/status`                   | `{ enabled, balance, writerModel: boolean }`. `enabled` is false unless Firecrawl, an AI model, and the caller's `ai` flag |
+| `GET /api/research/credits`                  | balance and the last 20 ledger entries                                                                                     |
+| `GET /api/research/topics`                   | the user's topics with idea counts and last run                                                                            |
+| `POST /api/research/topics`                  | `{ name }`                                                                                                                 |
+| `GET /api/research/topics/$id`               | topic plus its runs (latest 20)                                                                                            |
+| `PATCH /api/research/topics/$id`             | rename                                                                                                                     |
+| `DELETE /api/research/topics/$id`            | deletes the topic and everything in it; sources stay in the cache                                                          |
+| `GET /api/research/topics/$id/ideas?status=` | ideas with scores, sorted by total                                                                                         |
+| `GET /api/research/ideas/$id`                | the idea, its sub-scores and its evidence with source title, site and URL                                                  |
+| `PATCH /api/research/ideas/$id`              | `{ title?, summary?, status? }` (star, dismiss, reopen, rename)                                                            |
+| `POST /api/research/ideas/merge`             | `{ intoId, fromIds[] }`: moves evidence, marks the others `merged`, rescores                                               |
+| `GET /api/research/topics/$id/sources`       | sources the topic used, with evidence counts                                                                               |
+| `POST /api/research/topics/$id/links`        | paste a link (§4.11)                                                                                                       |
+| `POST /api/research/runs`                    | draft: `{ topicId?, kind: "discover", input, depth }` → `{ run, plan, estimate, repeats }`                                 |
+| `POST /api/research/runs/$id/start`          | `{ plan, depth }` → 202                                                                                                    |
+| `POST /api/research/runs/$id/stop`           | 202                                                                                                                        |
+| `GET /api/research/runs/$id`                 | state, step, progress, spend so far; restarts a stalled run (§4.2, step 7)                                                 |
+| `POST /api/research/run`                     | internal hand-off, `x-research-secret`; not for browsers                                                                   |
 
 Rate limiting: a new `research` bucket in `RATE_LIMITS`, `{ limit: 20, windowSeconds: 3600 }` (kept after ticket 09: no real use came near it), counted on draft and start, and added to `FAIL_CLOSED`. Credits are the real limit; the bucket stops scripted abuse.
 

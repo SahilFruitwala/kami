@@ -183,7 +183,7 @@ export async function draftDiscoverRun(
   userId: string,
   input: z.output<typeof draftInput>,
 ): Promise<RunView> {
-  requireResearch();
+  await requireResearch(userId);
   const { run } = await draftRun(
     userId,
     {
@@ -234,7 +234,7 @@ export async function startDiscoverRun(
   input: z.output<typeof startInput>,
   origin: string,
 ) {
-  requireResearch();
+  await requireResearch(userId);
   const run = await getRun(await getDb(), userId, runId);
   if (!run) throw notFound("Run not found");
   const plan = await validateEditedPlan(run, input.plan, input.depth);
@@ -248,14 +248,14 @@ export async function startDiscoverRun(
 }
 
 export async function stopResearchRun(userId: string, runId: string, origin: string) {
-  requireResearch();
+  await requireResearch(userId);
   await requestStop(userId, runId, origin);
   return { runId };
 }
 
 /** The run view's 2 s poll; restarts a stalled run. */
 export async function researchRun(userId: string, runId: string, origin: string): Promise<RunView> {
-  requireResearch();
+  await requireResearch(userId);
   return runView(await getRunStatus(userId, runId, origin), userId);
 }
 
@@ -276,7 +276,7 @@ export async function listTopicIdeas(
 }
 
 async function ownIdea(userId: string, ideaId: string): Promise<IdeaRow> {
-  requireResearch();
+  await requireResearch(userId);
   const idea = await getOwnIdea(await getDb(), userId, ideaId);
   if (!idea) throw notFound("Idea not found");
   return idea;
@@ -391,7 +391,7 @@ export async function listTopicReports(userId: string, topicId: string): Promise
 
 /** A report with the evidence its claims cite (each quote with its source). */
 export async function researchReport(userId: string, reportId: string): Promise<ReportView> {
-  requireResearch();
+  await requireResearch(userId);
   const db = await getDb();
   const report = await getOwnReport(db, userId, reportId);
   if (!report) throw notFound("Report not found");

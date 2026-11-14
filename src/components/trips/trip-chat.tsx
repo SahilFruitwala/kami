@@ -53,8 +53,8 @@ function errorText(err: Error): string {
 
 /**
  * The trip agent: a "Plan with agent" button on the board that opens the chat
- * as a drawer (a bottom sheet on a phone). Hidden unless an AI model is
- * configured. The chat mounts on first open and stays mounted, so closing the
+ * as a drawer (a bottom sheet on a phone). Hidden unless this user can use
+ * AI. The chat mounts on first open and stays mounted, so closing the
  * drawer never drops a reply that is still streaming.
  */
 export function TripAgent({ tripId }: { tripId: string }) {

@@ -21,14 +21,15 @@ pnpm dev              # http://0.0.0.0:8080
 
 `DATABASE_URL` is required (local Docker Postgres or hosted Postgres/Neon).
 
-| Script                                            | What it does                                                                 |
-| ------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `pnpm dev`                                        | Vite + TanStack Start on port **8080**                                       |
-| `pnpm build`                                      | Production build → Vercel Nitro output + migrate                             |
-| `pnpm typecheck`                                  | `tsc --noEmit`                                                               |
-| `pnpm test`                                       | Node tests under `tests/**/*.test.mjs`                                       |
-| `pnpm lint` / `pnpm format` / `pnpm format:check` | ESLint / Prettier (CI runs typecheck, lint, format:check, test)              |
-| `pnpm research:grant <email> <credits>`           | Grant research credits to a user (Research is metered; everyone starts at 0) |
+| Script                                            | What it does                                                                  |
+| ------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `pnpm dev`                                        | Vite + TanStack Start on port **8080**                                        |
+| `pnpm build`                                      | Production build → Vercel Nitro output + migrate                              |
+| `pnpm typecheck`                                  | `tsc --noEmit`                                                                |
+| `pnpm test`                                       | Node tests under `tests/**/*.test.mjs`                                        |
+| `pnpm lint` / `pnpm format` / `pnpm format:check` | ESLint / Prettier (CI runs typecheck, lint, format:check, test)               |
+| `pnpm ai:grant <email> on` / `off`                | Turn library AI, the trip agent, and Research on or off (everyone starts off) |
+| `pnpm research:grant <email> <credits>`           | Grant research credits to a user (Research is metered; everyone starts at 0)  |
 
 ---
 

@@ -100,6 +100,9 @@ describe("research product API", { skip: skipWithoutDb }, () => {
     ideas = await import("@/server/services/research/ideas.ts");
     owner = await testUser();
     stranger = await testUser();
+    const flags = await import("@/lib/feature-flags.server.ts");
+    await flags.setUserAiFlag(owner.id, true);
+    await flags.setUserAiFlag(stranger.id, true);
   });
 
   after(async () => {
@@ -128,6 +131,20 @@ describe("research product API", { skip: skipWithoutDb }, () => {
     const on = await topics.researchStatus(owner.id);
     assert.equal(on.enabled, true);
     assert.equal(on.balance, 0, "everyone starts with nothing");
+  });
+
+  it("stays off for a signed-in user without the ai feature flag", async () => {
+    const nobody = await testUser();
+    try {
+      assert.deepEqual(await topics.researchStatus(nobody.id), {
+        enabled: false,
+        balance: 0,
+        writerModel: false,
+      });
+      await assert.rejects(topics.researchTopics(nobody.id), (err) => err.status === 404);
+    } finally {
+      await nobody.cleanup();
+    }
   });
 
   it("keeps topics, ideas and runs to their owner", async () => {

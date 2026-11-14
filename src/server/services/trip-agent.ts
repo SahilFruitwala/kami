@@ -13,7 +13,7 @@ import { z } from "zod";
 import type { TripChat } from "@/lib/api/trips";
 import { getDb } from "@/lib/db.server";
 import { FirecrawlError, firecrawlApiKey, readPage, searchWeb } from "@/lib/firecrawl.server.ts";
-import { aiConfigured, aiLanguageModel } from "@/lib/llm.server.ts";
+import { aiLanguageModel } from "@/lib/llm.server.ts";
 import { enforceRateLimit, RateLimitError } from "@/lib/rate-limit.server.ts";
 import { assertPublicHttpUrl } from "@/lib/safe-url.ts";
 import { TRIP_SLOTS, tripMessages, trips } from "@/lib/schema";
@@ -24,6 +24,7 @@ import {
   readableUrlsIn,
   tripSnapshot,
 } from "@/lib/trip-agent-prompt.ts";
+import { userCanUseAi } from "@/server/ai";
 import { HttpError, notFound } from "@/server/http";
 import { hasTripSnapshot, saveTripSnapshot } from "@/server/services/trip-undo";
 import {
@@ -144,7 +145,7 @@ export async function getTripChat(userId: string, tripId: string): Promise<TripC
   await assertOwnTrip(userId, tripId);
   return {
     messages: await loadMessages(tripId),
-    enabled: aiConfigured(),
+    enabled: await userCanUseAi(userId),
     research: firecrawlApiKey() !== null,
     canUndo: await hasTripSnapshot(userId, tripId),
   };
@@ -504,7 +505,7 @@ export async function runTripChat(
   body: z.output<typeof chatInput>,
 ): Promise<Response> {
   const trip = await getTrip(userId, tripId);
-  const model = aiLanguageModel();
+  const model = (await userCanUseAi(userId)) ? aiLanguageModel() : null;
   if (!model) {
     throw new HttpError(503, "The trip agent isn't set up on this server yet.");
   }
