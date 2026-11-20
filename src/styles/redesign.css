@@ -1334,7 +1334,9 @@
   border-radius: 12px;
   overflow: hidden;
   color: #fff;
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.06), 0 18px 30px -16px rgb(0 0 0 / 0.55);
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.06),
+    0 18px 30px -16px rgb(0 0 0 / 0.55);
   transition:
     transform 220ms var(--ease),
     box-shadow 220ms var(--ease);
@@ -1432,7 +1434,9 @@
   }
   .rd-poster-frame:hover .rd-poster-open {
     transform: translateY(-4px);
-    box-shadow: 0 0 0 1px rgb(0 0 0 / 0.06), 0 26px 36px -18px rgb(0 0 0 / 0.6);
+    box-shadow:
+      0 0 0 1px rgb(0 0 0 / 0.06),
+      0 26px 36px -18px rgb(0 0 0 / 0.6);
   }
   .rd-act--main:hover {
     background: var(--color-persimmon);
