@@ -67,6 +67,17 @@ export type CompassRhythm = {
   retro: { quarter: QuarterKey; deadline: IsoDay; goals: CompassGoal[] } | null;
 };
 
+/** One year at a glance: each quarter's goals and every habit's history. */
+export type YearRecord = {
+  year: number;
+  today: IsoDay;
+  weekStart: WeekStart;
+  quarters: { quarter: QuarterKey; mode: "past" | "current" | "future"; goals: QuarterGoal[] }[];
+  /** Every habit that existed during the year, archived ones included. */
+  habits: (CompassHabit & { archivedOn: IsoDay | null })[];
+  logs: CompassLog[];
+};
+
 export type QuarterRecord = {
   quarter: QuarterKey;
   mode: "past" | "current" | "planning";
@@ -116,6 +127,7 @@ export const compassApi = {
 
   /** A past quarter (read-only) or the next one while planning is open. "2026-q3". */
   quarter: (id: string) => http.get<QuarterRecord>(`/api/compass/quarters/${seg(id)}`),
+  year: (year: number) => http.get<YearRecord>(`/api/compass/year/${seg(year)}`),
   saveReview: (input: ReviewInput) => http.put<void>("/api/compass/reviews", input),
   closeQuarter: (input: RetroInput) => http.post<void>("/api/compass/retro", input),
 };

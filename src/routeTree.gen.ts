@@ -20,6 +20,7 @@ import { Route as ShelvesRouteRouteImport } from './routes/shelves/route'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as ApiImgRouteImport } from './routes/api/img'
 import { Route as CompassIndexRouteImport } from './routes/compass/index'
+import { Route as CompassYearRouteImport } from './routes/compass/year'
 import { Route as LoginSplatRouteImport } from './routes/login.$'
 import { Route as ShelvesIndexRouteImport } from './routes/shelves/index'
 import { Route as ShelvesWishlistRouteImport } from './routes/shelves/wishlist'
@@ -62,6 +63,7 @@ import { Route as ApiCompassHabitsIndexRouteImport } from './routes/api/compass/
 import { Route as ApiCompassHabitsIdRouteImport } from './routes/api/compass/habits/$id'
 import { Route as ApiCompassMilestonesIdRouteImport } from './routes/api/compass/milestones/$id'
 import { Route as ApiCompassQuartersQuarterRouteImport } from './routes/api/compass/quarters/$quarter'
+import { Route as ApiCompassYearYearRouteImport } from './routes/api/compass/year/$year'
 import { Route as ApiLibraryFoldersIndexRouteImport } from './routes/api/library/folders/index'
 import { Route as ApiLibraryFoldersIdRouteImport } from './routes/api/library/folders/$id'
 import { Route as ApiLibraryItemsIndexRouteImport } from './routes/api/library/items/index'
@@ -137,6 +139,11 @@ const ApiImgRoute = ApiImgRouteImport.update({
 const CompassIndexRoute = CompassIndexRouteImport.update({
   id: '/compass/',
   path: '/compass/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CompassYearRoute = CompassYearRouteImport.update({
+  id: '/compass/year',
+  path: '/compass/year',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginSplatRoute = LoginSplatRouteImport.update({
@@ -350,6 +357,11 @@ const ApiCompassQuartersQuarterRoute =
     path: '/api/compass/quarters/$quarter',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiCompassYearYearRoute = ApiCompassYearYearRouteImport.update({
+  id: '/api/compass/year/$year',
+  path: '/api/compass/year/$year',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiLibraryFoldersIndexRoute = ApiLibraryFoldersIndexRouteImport.update({
   id: '/api/library/folders/',
   path: '/api/library/folders/',
@@ -474,6 +486,7 @@ export interface FileRoutesByFullPath {
   '/share': typeof ShareRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
+  '/compass/year': typeof CompassYearRoute
   '/login/$': typeof LoginSplatRoute
   '/shelves/wishlist': typeof ShelvesWishlistRoute
   '/sign-up/$': typeof SignUpSplatRoute
@@ -515,6 +528,7 @@ export interface FileRoutesByFullPath {
   '/api/compass/habits/$id': typeof ApiCompassHabitsIdRoute
   '/api/compass/milestones/$id': typeof ApiCompassMilestonesIdRoute
   '/api/compass/quarters/$quarter': typeof ApiCompassQuartersQuarterRoute
+  '/api/compass/year/$year': typeof ApiCompassYearYearRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
@@ -549,6 +563,7 @@ export interface FileRoutesByTo {
   '/share': typeof ShareRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
+  '/compass/year': typeof CompassYearRoute
   '/login/$': typeof LoginSplatRoute
   '/shelves/wishlist': typeof ShelvesWishlistRoute
   '/sign-up/$': typeof SignUpSplatRoute
@@ -590,6 +605,7 @@ export interface FileRoutesByTo {
   '/api/compass/habits/$id': typeof ApiCompassHabitsIdRoute
   '/api/compass/milestones/$id': typeof ApiCompassMilestonesIdRoute
   '/api/compass/quarters/$quarter': typeof ApiCompassQuartersQuarterRoute
+  '/api/compass/year/$year': typeof ApiCompassYearYearRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
@@ -626,6 +642,7 @@ export interface FileRoutesById {
   '/share': typeof ShareRoute
   '/vault': typeof VaultRoute
   '/api/img': typeof ApiImgRoute
+  '/compass/year': typeof CompassYearRoute
   '/login/$': typeof LoginSplatRoute
   '/shelves/wishlist': typeof ShelvesWishlistRoute
   '/sign-up/$': typeof SignUpSplatRoute
@@ -667,6 +684,7 @@ export interface FileRoutesById {
   '/api/compass/habits/$id': typeof ApiCompassHabitsIdRoute
   '/api/compass/milestones/$id': typeof ApiCompassMilestonesIdRoute
   '/api/compass/quarters/$quarter': typeof ApiCompassQuartersQuarterRoute
+  '/api/compass/year/$year': typeof ApiCompassYearYearRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
@@ -704,6 +722,7 @@ export interface FileRouteTypes {
     | '/share'
     | '/vault'
     | '/api/img'
+    | '/compass/year'
     | '/login/$'
     | '/shelves/wishlist'
     | '/sign-up/$'
@@ -745,6 +764,7 @@ export interface FileRouteTypes {
     | '/api/compass/habits/$id'
     | '/api/compass/milestones/$id'
     | '/api/compass/quarters/$quarter'
+    | '/api/compass/year/$year'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
@@ -779,6 +799,7 @@ export interface FileRouteTypes {
     | '/share'
     | '/vault'
     | '/api/img'
+    | '/compass/year'
     | '/login/$'
     | '/shelves/wishlist'
     | '/sign-up/$'
@@ -820,6 +841,7 @@ export interface FileRouteTypes {
     | '/api/compass/habits/$id'
     | '/api/compass/milestones/$id'
     | '/api/compass/quarters/$quarter'
+    | '/api/compass/year/$year'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
@@ -855,6 +877,7 @@ export interface FileRouteTypes {
     | '/share'
     | '/vault'
     | '/api/img'
+    | '/compass/year'
     | '/login/$'
     | '/shelves/wishlist'
     | '/sign-up/$'
@@ -896,6 +919,7 @@ export interface FileRouteTypes {
     | '/api/compass/habits/$id'
     | '/api/compass/milestones/$id'
     | '/api/compass/quarters/$quarter'
+    | '/api/compass/year/$year'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
@@ -932,6 +956,7 @@ export interface RootRouteChildren {
   ShareRoute: typeof ShareRoute
   VaultRoute: typeof VaultRoute
   ApiImgRoute: typeof ApiImgRoute
+  CompassYearRoute: typeof CompassYearRoute
   LoginSplatRoute: typeof LoginSplatRoute
   SignUpSplatRoute: typeof SignUpSplatRoute
   CompassIndexRoute: typeof CompassIndexRoute
@@ -965,6 +990,7 @@ export interface RootRouteChildren {
   ApiCompassHabitsIdRoute: typeof ApiCompassHabitsIdRoute
   ApiCompassMilestonesIdRoute: typeof ApiCompassMilestonesIdRoute
   ApiCompassQuartersQuarterRoute: typeof ApiCompassQuartersQuarterRoute
+  ApiCompassYearYearRoute: typeof ApiCompassYearYearRoute
   ApiLibraryFoldersIdRoute: typeof ApiLibraryFoldersIdRoute
   ApiLibraryItemsIdRoute: typeof ApiLibraryItemsIdRoute
   ApiShelvesTypeIdRoute: typeof ApiShelvesTypeIdRoute
@@ -1065,6 +1091,13 @@ declare module '@tanstack/react-router' {
       path: '/compass'
       fullPath: '/compass/'
       preLoaderRoute: typeof CompassIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/compass/year': {
+      id: '/compass/year'
+      path: '/compass/year'
+      fullPath: '/compass/year'
+      preLoaderRoute: typeof CompassYearRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login/$': {
@@ -1361,6 +1394,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiCompassQuartersQuarterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/compass/year/$year': {
+      id: '/api/compass/year/$year'
+      path: '/api/compass/year/$year'
+      fullPath: '/api/compass/year/$year'
+      preLoaderRoute: typeof ApiCompassYearYearRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/library/folders/': {
       id: '/api/library/folders/'
       path: '/api/library/folders'
@@ -1562,6 +1602,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShareRoute: ShareRoute,
   VaultRoute: VaultRoute,
   ApiImgRoute: ApiImgRoute,
+  CompassYearRoute: CompassYearRoute,
   LoginSplatRoute: LoginSplatRoute,
   SignUpSplatRoute: SignUpSplatRoute,
   CompassIndexRoute: CompassIndexRoute,
@@ -1595,6 +1636,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCompassHabitsIdRoute: ApiCompassHabitsIdRoute,
   ApiCompassMilestonesIdRoute: ApiCompassMilestonesIdRoute,
   ApiCompassQuartersQuarterRoute: ApiCompassQuartersQuarterRoute,
+  ApiCompassYearYearRoute: ApiCompassYearYearRoute,
   ApiLibraryFoldersIdRoute: ApiLibraryFoldersIdRoute,
   ApiLibraryItemsIdRoute: ApiLibraryItemsIdRoute,
   ApiShelvesTypeIdRoute: ApiShelvesTypeIdRoute,
