@@ -1094,3 +1094,25 @@ export type CompassGoalRow = typeof compassGoals.$inferSelect;
 export type CompassMilestoneRow = typeof compassMilestones.$inferSelect;
 export type CompassHabitRow = typeof compassHabits.$inferSelect;
 export type CompassScheduleRow = typeof compassHabitSchedules.$inferSelect;
+
+export const compassReviews = pgTable(
+  "compass_reviews",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    quarterId: text("quarter_id")
+      .notNull()
+      .references(() => compassQuarters.id, { onDelete: "cascade" }),
+    weekStart: date("week_start", { mode: "string" }).notNull(),
+    answers: jsonb("answers")
+      .$type<{ moved: string; blocked: string; change: string }>()
+      .notNull()
+      .default({ moved: "", blocked: "", change: "" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("compass_reviews_week_idx").on(t.quarterId, t.weekStart)],
+);
+
+export type CompassQuarterRow = typeof compassQuarters.$inferSelect;

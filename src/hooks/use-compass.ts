@@ -7,6 +7,8 @@ import {
   type GoalInput,
   type HabitInput,
   type HabitPatch,
+  type RetroInput,
+  type ReviewInput,
 } from "@/lib/api/compass";
 import type { IsoDay } from "@/lib/compass/dates";
 import { buildModel, withLog } from "@/lib/compass/model";
@@ -134,5 +136,43 @@ export function useSetWeekStart() {
     mutationFn: (weekStart: 0 | 1) => compassApi.settings({ weekStart }),
     onSuccess: () => client.invalidateQueries({ queryKey: KEY }),
     onError: (err) => toast.error(errorMessage(err, "Couldn't change the week start.")),
+  });
+}
+
+/** A past quarter (read-only) or the next one while planning is open. */
+export function useQuarter(id: string) {
+  return useQuery({
+    queryKey: [...KEY, "quarter", id],
+    queryFn: () => compassApi.quarter(id),
+    retry: false,
+  });
+}
+
+export function useSaveReview() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ReviewInput) => compassApi.saveReview(input),
+    onSuccess: (_r, input) =>
+      client.setQueryData<CompassSnapshot>(KEY, (prev) =>
+        prev
+          ? {
+              ...prev,
+              rhythm: {
+                ...prev.rhythm,
+                review: { moved: "", blocked: "", change: "", ...input.answers },
+              },
+            }
+          : prev,
+      ),
+    onError: (err) => toast.error(errorMessage(err, "Couldn't save the review.")),
+  });
+}
+
+export function useCloseQuarter() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (input: RetroInput) => compassApi.closeQuarter(input),
+    onSuccess: () => client.invalidateQueries({ queryKey: KEY }),
+    onError: (err) => toast.error(errorMessage(err, "Couldn't close the quarter.")),
   });
 }

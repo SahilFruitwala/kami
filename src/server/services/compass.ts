@@ -1,7 +1,13 @@
 import "@tanstack/react-start/server-only";
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
-import type { CompassGoal, CompassHabit, CompassSnapshot } from "@/lib/api/compass";
+import type {
+  CompassGoal,
+  CompassHabit,
+  CompassRhythm,
+  CompassSnapshot,
+  QuarterRecord,
+} from "@/lib/api/compass";
 import {
   goalInput,
   habitInput,
@@ -10,6 +16,9 @@ import {
   MAX_GOALS,
   MAX_HABITS,
   milestonePatch,
+  quarterParams,
+  retroInput,
+  reviewInput,
   settingsInput,
   type GoalColor,
 } from "@/lib/api/schemas/compass";
@@ -17,6 +26,8 @@ import {
   addDays,
   daysBetween,
   localDay,
+  parseQuarterId,
+  quarterId as quarterKeyId,
   quarterOf,
   weekStartOf,
   type IsoDay,
@@ -24,6 +35,14 @@ import {
   type WeekStart,
 } from "@/lib/compass/dates";
 import { canEditDay, type HabitSchedule, type ScheduleRule } from "@/lib/compass/engine";
+import {
+  nextQuarter,
+  planningOpen,
+  previousQuarter,
+  quarterMode,
+  retroDeadline,
+  reviewWeek,
+} from "@/lib/compass/rhythm";
 import { getDb, type AppDb } from "@/lib/db.server";
 import { uid } from "@/lib/id";
 import {
@@ -33,7 +52,9 @@ import {
   compassLogs,
   compassMilestones,
   compassQuarters,
+  compassReviews,
   compassSettings,
+  type CompassGoalRow,
   type CompassHabitRow,
   type CompassScheduleRow,
 } from "@/lib/schema";
@@ -49,7 +70,17 @@ import { badRequest, notFound } from "@/server/http";
 
 const id = z.string().min(1).max(200);
 export const compassIdParams = z.object({ id });
-export { goalInput, habitInput, habitPatch, logInput, milestonePatch, settingsInput };
+export {
+  goalInput,
+  habitInput,
+  habitPatch,
+  logInput,
+  milestonePatch,
+  quarterParams,
+  retroInput,
+  reviewInput,
+  settingsInput,
+};
 
 /** A habit can be deleted outright only this many days after it was made. */
 const DELETE_WINDOW_DAYS = 7;
@@ -86,6 +117,63 @@ async function quarterRowId(db: AppDb, userId: string, q: QuarterKey): Promise<s
     )
     .limit(1);
   return row!.id;
+}
+
+async function findQuarter(db: AppDb, userId: string, q: QuarterKey) {
+  const [row] = await db
+    .select()
+    .from(compassQuarters)
+    .where(
+      and(
+        eq(compassQuarters.userId, userId),
+        eq(compassQuarters.year, q.year),
+        eq(compassQuarters.quarter, q.quarter),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+async function withMilestones(db: AppDb, goalRows: CompassGoalRow[]): Promise<CompassGoal[]> {
+  const milestoneRows = goalRows.length
+    ? await db
+        .select()
+        .from(compassMilestones)
+        .where(
+          inArray(
+            compassMilestones.goalId,
+            goalRows.map((g) => g.id),
+          ),
+        )
+        .orderBy(asc(compassMilestones.sort))
+    : [];
+  return goalRows.map((g) => ({
+    id: g.id,
+    name: g.name,
+    why: g.why,
+    color: g.color as GoalColor,
+    milestones: milestoneRows
+      .filter((m) => m.goalId === g.id)
+      .map((m) => ({
+        id: m.id,
+        title: m.title,
+        dueOn: m.dueOn,
+        weight: m.weight,
+        done: !!m.doneAt,
+      })),
+  }));
+}
+
+async function goalsIn(db: AppDb, quarterId: string, live: boolean): Promise<CompassGoalRow[]> {
+  return db
+    .select()
+    .from(compassGoals)
+    .where(
+      live
+        ? and(eq(compassGoals.quarterId, quarterId), isNull(compassGoals.outcome))
+        : eq(compassGoals.quarterId, quarterId),
+    )
+    .orderBy(asc(compassGoals.sort), asc(compassGoals.createdAt));
 }
 
 const toSchedule = (row: CompassScheduleRow): HabitSchedule => {
@@ -127,37 +215,9 @@ export async function getCompass(userId: string): Promise<CompassSnapshot> {
   const db = await getDb();
   const clock = await clockFor(db, userId);
 
-  const [quarter] = await db
-    .select({ id: compassQuarters.id })
-    .from(compassQuarters)
-    .where(
-      and(
-        eq(compassQuarters.userId, userId),
-        eq(compassQuarters.year, clock.quarter.year),
-        eq(compassQuarters.quarter, clock.quarter.quarter),
-      ),
-    )
-    .limit(1);
-
-  const goalRows = quarter
-    ? await db
-        .select()
-        .from(compassGoals)
-        .where(and(eq(compassGoals.quarterId, quarter.id), isNull(compassGoals.outcome)))
-        .orderBy(asc(compassGoals.sort), asc(compassGoals.createdAt))
-    : [];
-  const milestoneRows = goalRows.length
-    ? await db
-        .select()
-        .from(compassMilestones)
-        .where(
-          inArray(
-            compassMilestones.goalId,
-            goalRows.map((g) => g.id),
-          ),
-        )
-        .orderBy(asc(compassMilestones.sort))
-    : [];
+  await autoCloseExpired(db, userId, clock);
+  const quarter = await findQuarter(db, userId, clock.quarter);
+  const goals = quarter ? await withMilestones(db, await goalsIn(db, quarter.id, true)) : [];
 
   const habitRows = await db
     .select()
@@ -179,22 +239,7 @@ export async function getCompass(userId: string): Promise<CompassSnapshot> {
         .where(inArray(compassLogs.habitId, habitIds))
     : [];
 
-  const liveGoals = new Set(goalRows.map((g) => g.id));
-  const goals: CompassGoal[] = goalRows.map((g) => ({
-    id: g.id,
-    name: g.name,
-    why: g.why,
-    color: g.color as GoalColor,
-    milestones: milestoneRows
-      .filter((m) => m.goalId === g.id)
-      .map((m) => ({
-        id: m.id,
-        title: m.title,
-        dueOn: m.dueOn,
-        weight: m.weight,
-        done: !!m.doneAt,
-      })),
-  }));
+  const liveGoals = new Set(goals.map((g) => g.id));
   const habits: CompassHabit[] = habitRows
     .map((h) => ({
       id: h.id,
@@ -219,6 +264,96 @@ export async function getCompass(userId: string): Promise<CompassSnapshot> {
     goals,
     habits,
     logs: logRows,
+    rhythm: await rhythmFor(db, userId, clock, quarter?.id ?? null),
+  };
+}
+
+async function rhythmFor(
+  db: AppDb,
+  userId: string,
+  clock: Clock,
+  currentQuarterId: string | null,
+): Promise<CompassRhythm> {
+  const week = reviewWeek(clock.today, clock.weekStart);
+  let review: CompassRhythm["review"] = null;
+  if (week && currentQuarterId) {
+    const [row] = await db
+      .select({ answers: compassReviews.answers })
+      .from(compassReviews)
+      .where(and(eq(compassReviews.userId, userId), eq(compassReviews.weekStart, week)))
+      .limit(1);
+    review = row?.answers ?? null;
+  }
+
+  const nextQ = nextQuarter(clock.today, clock.weekStart);
+  const nextRow = await findQuarter(db, userId, nextQ);
+  const nextCount = nextRow ? (await goalsIn(db, nextRow.id, true)).length : 0;
+
+  const prevQ = previousQuarter(clock.today, clock.weekStart);
+  const prevRow = await findQuarter(db, userId, prevQ);
+  const pending = prevRow ? await goalsIn(db, prevRow.id, true) : [];
+
+  return {
+    reviewWeek: week,
+    review,
+    planningOpen: planningOpen(clock.today, clock.weekStart),
+    next: { quarter: nextQ, goalCount: nextCount },
+    retro: pending.length
+      ? {
+          quarter: prevQ,
+          deadline: retroDeadline(prevQ, clock.weekStart),
+          goals: await withMilestones(db, pending),
+        }
+      : null,
+  };
+}
+
+/** Goals left unsorted two weeks after their quarter ended are dropped, and their habits archived. */
+async function autoCloseExpired(db: AppDb, userId: string, clock: Clock): Promise<void> {
+  const prevQ = previousQuarter(clock.today, clock.weekStart);
+  if (clock.today <= retroDeadline(prevQ, clock.weekStart)) return;
+  const prevRow = await findQuarter(db, userId, prevQ);
+  if (!prevRow || prevRow.status === "closed") return;
+  const pending = await goalsIn(db, prevRow.id, true);
+  if (pending.length) {
+    const ids = pending.map((g) => g.id);
+    const now = new Date();
+    await db
+      .update(compassGoals)
+      .set({ outcome: "dropped", updatedAt: now })
+      .where(inArray(compassGoals.id, ids));
+    await db
+      .update(compassHabits)
+      .set({ archivedAt: now })
+      .where(and(inArray(compassHabits.goalId, ids), isNull(compassHabits.archivedAt)));
+  }
+  await db
+    .update(compassQuarters)
+    .set({ status: "closed" })
+    .where(eq(compassQuarters.id, prevRow.id));
+}
+
+/** A past quarter (read-only) or the next one while planning is open. */
+export async function getQuarter(userId: string, id: string): Promise<QuarterRecord> {
+  const db = await getDb();
+  const clock = await clockFor(db, userId);
+  const q = parseQuarterId(id);
+  if (!q) throw badRequest("Use a quarter like 2026-q4.");
+  const mode = quarterMode(q, clock.today, clock.weekStart);
+  if (!mode) throw notFound("That quarter can't be planned yet.");
+  const row = await findQuarter(db, userId, q);
+  if (!row) return { quarter: q, mode, goals: [], retro: null };
+  const rows = await goalsIn(db, row.id, mode !== "past" ? true : false);
+  const goals = await withMilestones(db, rows);
+  return {
+    quarter: q,
+    mode,
+    retro: row.retro,
+    goals: goals.map((g, i) => ({
+      ...g,
+      outcome: rows[i]!.outcome,
+      carriedFromGoalId: rows[i]!.carriedFromGoalId,
+    })),
   };
 }
 
@@ -273,7 +408,12 @@ export async function createGoal(
 ): Promise<{ id: string }> {
   const db = await getDb();
   const clock = await clockFor(db, userId);
-  const quarterId = await quarterRowId(db, userId, clock.quarter);
+  if (input.quarter === "next" && !planningOpen(clock.today, clock.weekStart)) {
+    throw badRequest("Planning for the next quarter opens two weeks before this one ends.");
+  }
+  const target =
+    input.quarter === "next" ? nextQuarter(clock.today, clock.weekStart) : clock.quarter;
+  const quarterId = await quarterRowId(db, userId, target);
   const [count] = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(compassGoals)
@@ -473,4 +613,115 @@ export async function putLog(userId: string, input: z.output<typeof logInput>): 
       target: [compassLogs.habitId, compassLogs.day],
       set: { value, updatedAt: new Date() },
     });
+}
+
+// ---------- Weekly review ----------
+
+export async function saveReview(
+  userId: string,
+  input: z.output<typeof reviewInput>,
+): Promise<void> {
+  const db = await getDb();
+  const clock = await clockFor(db, userId);
+  const week = reviewWeek(clock.today, clock.weekStart);
+  if (!week || week !== input.weekStart) {
+    throw badRequest("The weekly review is open from Friday to the following Tuesday.");
+  }
+  const quarterId = await quarterRowId(db, userId, quarterOf(week, clock.weekStart));
+  await db
+    .insert(compassReviews)
+    .values({ id: uid(), userId, quarterId, weekStart: week, answers: input.answers })
+    .onConflictDoUpdate({
+      target: [compassReviews.quarterId, compassReviews.weekStart],
+      set: { answers: input.answers, updatedAt: new Date() },
+    });
+}
+
+// ---------- Quarter retro ----------
+
+/**
+ * Close the previous quarter: each goal is done, carried over or dropped.
+ * - Done: the goal keeps its ✓; its habits become ongoing so streaks survive.
+ * - Carried: a new goal in this quarter takes its unfinished milestones and habits.
+ * - Dropped: the goal ends unfinished and its habits are archived.
+ */
+export async function closeQuarter(
+  userId: string,
+  input: z.output<typeof retroInput>,
+): Promise<void> {
+  const db = await getDb();
+  const clock = await clockFor(db, userId);
+  const q = parseQuarterId(input.quarter);
+  if (!q || quarterKeyId(q) !== quarterKeyId(previousQuarter(clock.today, clock.weekStart))) {
+    throw badRequest("Only last quarter can be closed.");
+  }
+  const prevRow = await findQuarter(db, userId, q);
+  if (!prevRow) throw notFound("Nothing to close for that quarter.");
+  const pending = new Map((await goalsIn(db, prevRow.id, true)).map((g) => [g.id, g]));
+  const currentId = await quarterRowId(db, userId, clock.quarter);
+  const now = new Date();
+  let sort = (await goalsIn(db, currentId, true)).length;
+
+  for (const d of input.decisions) {
+    const goal = pending.get(d.goalId);
+    if (!goal) continue;
+    await db
+      .update(compassGoals)
+      .set({ outcome: d.outcome, updatedAt: now })
+      .where(eq(compassGoals.id, goal.id));
+
+    if (d.outcome === "dropped") {
+      await db
+        .update(compassHabits)
+        .set({ archivedAt: now })
+        .where(and(eq(compassHabits.goalId, goal.id), isNull(compassHabits.archivedAt)));
+    } else if (d.outcome === "done") {
+      await db
+        .update(compassHabits)
+        .set({ goalId: null })
+        .where(and(eq(compassHabits.goalId, goal.id), isNull(compassHabits.archivedAt)));
+    } else {
+      const nextId = uid();
+      await db.insert(compassGoals).values({
+        id: nextId,
+        userId,
+        quarterId: currentId,
+        name: goal.name,
+        why: goal.why,
+        color: goal.color,
+        sort: sort++,
+        carriedFromGoalId: goal.id,
+      });
+      const open = await db
+        .select()
+        .from(compassMilestones)
+        .where(and(eq(compassMilestones.goalId, goal.id), isNull(compassMilestones.doneAt)))
+        .orderBy(asc(compassMilestones.sort));
+      for (const [i, m] of open.entries()) {
+        await db.insert(compassMilestones).values({
+          id: uid(),
+          userId,
+          goalId: nextId,
+          title: m.title,
+          // Old dates are in the past; set new ones in the new quarter.
+          dueOn: null,
+          weight: m.weight,
+          sort: i,
+        });
+      }
+      await db
+        .update(compassHabits)
+        .set({ goalId: nextId })
+        .where(and(eq(compassHabits.goalId, goal.id), isNull(compassHabits.archivedAt)));
+    }
+    pending.delete(goal.id);
+  }
+
+  await db
+    .update(compassQuarters)
+    .set({
+      ...(input.note !== undefined ? { retro: input.note || null } : {}),
+      ...(pending.size === 0 ? { status: "closed" as const } : {}),
+    })
+    .where(eq(compassQuarters.id, prevRow.id));
 }

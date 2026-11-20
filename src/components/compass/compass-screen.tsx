@@ -16,10 +16,20 @@ import {
   useLogHabit,
   useSetWeekStart,
 } from "@/hooks/use-compass.ts";
-import { addDays, quarterRange, shortDay, type IsoDay } from "@/lib/compass/dates";
+import {
+  addDays,
+  quarterId,
+  quarterRange,
+  quarterWeeks,
+  shiftQuarter,
+  shortDay,
+  type IsoDay,
+} from "@/lib/compass/dates";
 import type { CompassModel, GoalView, HabitView } from "@/lib/compass/model";
+import type { CompassRhythm } from "@/lib/api/compass";
 import type { LibraryItem } from "@/lib/library-item.ts";
 import { cn } from "@/lib/utils.ts";
+import { QuarterPage, RetroPanel, ReviewCard, RhythmBanners } from "./compass-rhythm.tsx";
 import { GoalSheet, HabitSheet, type SheetState } from "./compass-sheets.tsx";
 import {
   DAY_LETTERS,
@@ -35,7 +45,8 @@ import {
 } from "./compass-ui.tsx";
 
 /** `goalId` "ongoing" shows the habits that aren't tied to a goal. */
-export type CompassView = { page: "overview" } | { page: "goal"; goalId: string };
+export type CompassView =
+  { page: "overview" } | { page: "goal"; goalId: string } | { page: "quarter"; id: string };
 
 export function CompassScreen({ view }: { view: CompassView }) {
   const navigate = useNavigate();
@@ -68,8 +79,13 @@ function CompassBody({ view }: { view: CompassView }) {
   }
 
   const q = snap.quarter;
-  const bounds = { min: model.weeks[0]!, max: addDays(model.weeks.at(-1)!, 6) };
-  const route = view.page === "overview" ? "overview" : view.goalId;
+  const sheetWeeks =
+    sheet?.kind === "goal" && sheet.next
+      ? quarterWeeks(snap.rhythm.next.quarter, snap.weekStart)
+      : model.weeks;
+  const bounds = { min: sheetWeeks[0]!, max: addDays(sheetWeeks.at(-1)!, 6) };
+  const route =
+    view.page === "overview" ? "overview" : view.page === "quarter" ? `q:${view.id}` : view.goalId;
   const goalView =
     view.page === "goal" ? model.goals.find((g) => g.goal.id === view.goalId) : undefined;
 
@@ -79,13 +95,22 @@ function CompassBody({ view }: { view: CompassView }) {
         model={model}
         quarterLabel={`Q${q.quarter} ${q.year}`}
         range={quarterRange(q)}
+        prevId={quarterId(shiftQuarter(q, -1))}
+        nextId={snap.rhythm.planningOpen ? quarterId(snap.rhythm.next.quarter) : null}
         route={route}
         onNew={setSheet}
       />
 
       <main className="cp-page" key={route}>
         {view.page === "overview" ? (
-          <Overview model={model} weekStart={snap.weekStart} onNew={setSheet} />
+          <Overview
+            model={model}
+            weekStart={snap.weekStart}
+            onNew={setSheet}
+            rhythm={snap.rhythm}
+          />
+        ) : view.page === "quarter" ? (
+          <QuarterPage id={view.id} onSheet={setSheet} />
         ) : view.goalId === "ongoing" ? (
           <HabitsPage model={model} goal={null} onSheet={setSheet} />
         ) : goalView ? (
@@ -111,7 +136,11 @@ function CompassBody({ view }: { view: CompassView }) {
         state={sheet?.kind === "goal" ? sheet : null}
         quarterBounds={bounds}
         onClose={() => setSheet(null)}
-        onCreated={(id) => void navigate({ to: "/compass/goal/$id", params: { id } })}
+        onCreated={(id) =>
+          sheet?.kind === "goal" && sheet.next
+            ? undefined
+            : void navigate({ to: "/compass/goal/$id", params: { id } })
+        }
         onDropped={() => void navigate({ to: "/compass" })}
       />
     </div>
@@ -124,12 +153,16 @@ function Side({
   model,
   quarterLabel,
   range,
+  prevId,
+  nextId,
   route,
   onNew,
 }: {
   model: CompassModel;
   quarterLabel: string;
   range: string;
+  prevId: string;
+  nextId: string | null;
   route: string;
   onNew: (s: SheetState) => void;
 }) {
@@ -156,9 +189,31 @@ function Side({
   return (
     <aside className="cp-side" aria-label="Compass">
       <div className="cp-qhead">
-        <h1>{quarterLabel}</h1>
-        <span className="cp-note">{range}</span>
+        <h1>
+          <Link to="/compass">{quarterLabel}</Link>
+        </h1>
+        <span className="cp-qswitch">
+          <Link to="/compass/q/$quarter" params={{ quarter: prevId }} aria-label="Previous quarter">
+            ‹
+          </Link>
+          {nextId ? (
+            <Link
+              to="/compass/q/$quarter"
+              params={{ quarter: nextId }}
+              aria-label="Plan next quarter"
+            >
+              ›
+            </Link>
+          ) : (
+            <span aria-disabled="true" title="Planning opens two weeks before the quarter ends">
+              ›
+            </span>
+          )}
+        </span>
       </div>
+      <span className="cp-note" style={{ marginTop: -12 }}>
+        {range}
+      </span>
       <div className="cp-time">
         <span className="cp-time-track">
           <i style={{ transform: `scaleX(${model.elapsed})` }} />
@@ -244,11 +299,20 @@ function Overview({
   model,
   weekStart,
   onNew,
+  rhythm,
 }: {
   model: CompassModel;
   weekStart: 0 | 1;
   onNew: (s: SheetState) => void;
+  rhythm: CompassRhythm;
 }) {
+  const [retroOpen, setRetroOpen] = useState(false);
+  const rhythmBits = (
+    <>
+      <RhythmBanners rhythm={rhythm} onRetro={() => setRetroOpen(true)} />
+      <RetroPanel rhythm={rhythm} open={retroOpen} onClose={() => setRetroOpen(false)} />
+    </>
+  );
   const current = model.weekNumber - 1;
   const combined = model.weeks.map((_, i) => {
     const xs = model.habits.map((h) => h.weeks[i]).filter((x): x is number => x != null);
@@ -263,6 +327,7 @@ function Overview({
   if (empty) {
     return (
       <>
+        {rhythmBits}
         <div className="cp-ph cp-enter">
           <span className="cp-crumb">Overview</span>
           <h2>Plan the quarter</h2>
@@ -306,6 +371,7 @@ function Overview({
         <p>Each bar is milestones done. The black tick is how much of the quarter has passed.</p>
       </div>
 
+      {rhythmBits}
       <PassNotes model={model} />
 
       {model.goals.length || model.ongoing.length ? (
@@ -410,6 +476,8 @@ function Overview({
           </div>
         </section>
       ) : null}
+
+      <ReviewCard key={rhythm.reviewWeek ?? "closed"} rhythm={rhythm} />
 
       <WeekStartSetting weekStart={weekStart} />
     </>
