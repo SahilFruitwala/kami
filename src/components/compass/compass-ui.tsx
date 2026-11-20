@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import type { CompassHabit } from "@/lib/api/compass";
 import type { GoalColor } from "@/lib/api/schemas/compass";
 import type { ScheduleRule } from "@/lib/compass/engine";
@@ -184,7 +184,8 @@ export function CheckRow({
         <span style={{ minWidth: 0 }}>
           <span className="cp-name">{habit.name}</span>
           <small className="cp-num">
-            {amount(view.value, null)} of {amount(target, habit.unit)}
+            <CountUp value={view.value} format={(v) => amount(v, null)} /> of{" "}
+            {amount(target, habit.unit)}
           </small>
         </span>
         <span className="cp-trail">
@@ -238,4 +239,33 @@ export function todaySub(view: HabitView): string {
   const rule = currentRule(view.habit);
   if (rule.rule === "per_week") return `${view.thisWeek.done} of ${view.thisWeek.target} this week`;
   return view.goal?.name ?? "Ongoing";
+}
+
+/**
+ * A number that counts to its new value in about 250ms when it changes, so
+ * logging an amount reads as progress. Snaps instantly under reduced motion.
+ */
+function CountUp({ value, format }: { value: number; format: (v: number) => string }) {
+  const [shown, setShown] = useState(value);
+  const from = useRef(value);
+  useEffect(() => {
+    const start = from.current;
+    from.current = value;
+    if (start === value) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setShown(value);
+      return;
+    }
+    const t0 = performance.now();
+    let raf = 0;
+    const tick = (t: number) => {
+      const k = Math.min(1, (t - t0) / 250);
+      const eased = 1 - Math.pow(1 - k, 3);
+      setShown(Math.round(start + (value - start) * eased));
+      if (k < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <span aria-live="polite">{format(shown)}</span>;
 }

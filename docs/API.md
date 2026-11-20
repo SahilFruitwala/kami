@@ -163,6 +163,7 @@ Quarterly goals, habits and check-ins. `GET` returns raw rows; weekly totals, st
 | `GET`    | `/api/compass/quarters/:quarter` | `src/routes/api/compass/quarters/$quarter.ts` |
 | `PUT`    | `/api/compass/reviews`           | `src/routes/api/compass/reviews.ts`           |
 | `POST`   | `/api/compass/retro`             | `src/routes/api/compass/retro.ts`             |
+| `GET`    | `/api/compass/year/:year`        | `src/routes/api/compass/year/$year.ts`        |
 
 ### trips
 

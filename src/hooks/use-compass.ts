@@ -176,3 +176,11 @@ export function useCloseQuarter() {
     onError: (err) => toast.error(errorMessage(err, "Couldn't close the quarter.")),
   });
 }
+
+export function useYear(year: number) {
+  return useQuery({
+    queryKey: [...KEY, "year", year],
+    queryFn: () => compassApi.year(year),
+    retry: false,
+  });
+}

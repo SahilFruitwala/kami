@@ -1,5 +1,5 @@
 import "@tanstack/react-start/server-only";
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import type {
   CompassGoal,
@@ -7,6 +7,7 @@ import type {
   CompassRhythm,
   CompassSnapshot,
   QuarterRecord,
+  YearRecord,
 } from "@/lib/api/compass";
 import {
   goalInput,
@@ -724,4 +725,83 @@ export async function closeQuarter(
       ...(pending.size === 0 ? { status: "closed" as const } : {}),
     })
     .where(eq(compassQuarters.id, prevRow.id));
+}
+
+// ---------- Year ----------
+
+export const yearParams = z.object({ year: z.coerce.number().int().min(2000).max(2100) });
+
+/** Each quarter's goals (with how they ended) and every habit's history for one year. */
+export async function getYear(userId: string, year: number): Promise<YearRecord> {
+  const db = await getDb();
+  const clock = await clockFor(db, userId);
+  const cur = clock.quarter.year * 4 + clock.quarter.quarter;
+
+  const quarterRows = await db
+    .select()
+    .from(compassQuarters)
+    .where(and(eq(compassQuarters.userId, userId), eq(compassQuarters.year, year)));
+  const quarters: YearRecord["quarters"] = [];
+  for (const n of [1, 2, 3, 4] as const) {
+    const q = { year, quarter: n };
+    const row = quarterRows.find((r) => r.quarter === n);
+    const i = year * 4 + n;
+    const rows = row ? await goalsIn(db, row.id, false) : [];
+    const goals = await withMilestones(db, rows);
+    quarters.push({
+      quarter: q,
+      mode: i < cur ? "past" : i === cur ? "current" : "future",
+      goals: goals.map((g, k) => ({
+        ...g,
+        outcome: rows[k]!.outcome,
+        carriedFromGoalId: rows[k]!.carriedFromGoalId,
+      })),
+    });
+  }
+
+  const from = `${year - 1}-12-25`;
+  const to = `${year + 1}-01-07`;
+  const habitRows = await db
+    .select()
+    .from(compassHabits)
+    .where(and(eq(compassHabits.userId, userId), lte(compassHabits.createdOn, to)))
+    .orderBy(asc(compassHabits.sort), asc(compassHabits.createdAt));
+  const ids = habitRows.map((h) => h.id);
+  const scheduleRows = ids.length
+    ? await db
+        .select()
+        .from(compassHabitSchedules)
+        .where(inArray(compassHabitSchedules.habitId, ids))
+        .orderBy(asc(compassHabitSchedules.startsOn))
+    : [];
+  const logs = ids.length
+    ? await db
+        .select({ habitId: compassLogs.habitId, day: compassLogs.day, value: compassLogs.value })
+        .from(compassLogs)
+        .where(
+          and(
+            inArray(compassLogs.habitId, ids),
+            gte(compassLogs.day, from),
+            lte(compassLogs.day, to),
+          ),
+        )
+    : [];
+
+  const habits = habitRows
+    .map((h) => ({
+      id: h.id,
+      goalId: h.goalId,
+      name: h.name,
+      kind: h.kind,
+      target: h.target,
+      unit: h.unit,
+      createdOn: h.createdOn,
+      pausedOn: h.pausedOn,
+      pauses: h.pauses,
+      archivedOn: h.archivedAt ? localDay(clock.timezone, h.archivedAt) : null,
+      schedules: scheduleRows.filter((s) => s.habitId === h.id).map(toSchedule),
+    }))
+    .filter((h) => h.schedules.length > 0 && (!h.archivedOn || h.archivedOn >= `${year}-01-01`));
+
+  return { year, today: clock.today, weekStart: clock.weekStart, quarters, habits, logs };
 }

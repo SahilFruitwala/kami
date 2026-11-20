@@ -31,6 +31,7 @@ import type { LibraryItem } from "@/lib/library-item.ts";
 import { cn } from "@/lib/utils.ts";
 import { QuarterPage, RetroPanel, ReviewCard, RhythmBanners } from "./compass-rhythm.tsx";
 import { GoalSheet, HabitSheet, type SheetState } from "./compass-sheets.tsx";
+import { YearPage } from "./compass-year.tsx";
 import {
   DAY_LETTERS,
   GoalStatus,
@@ -46,7 +47,10 @@ import {
 
 /** `goalId` "ongoing" shows the habits that aren't tied to a goal. */
 export type CompassView =
-  { page: "overview" } | { page: "goal"; goalId: string } | { page: "quarter"; id: string };
+  | { page: "overview" }
+  | { page: "goal"; goalId: string }
+  | { page: "quarter"; id: string }
+  | { page: "year"; year: number };
 
 export function CompassScreen({ view }: { view: CompassView }) {
   const navigate = useNavigate();
@@ -67,6 +71,13 @@ function CompassBody({ view }: { view: CompassView }) {
   const { model, data: snap, isLoading, error } = useCompass();
   const [sheet, setSheet] = useState<SheetState>(null);
   const navigate = useNavigate();
+  const slide = useQuarterSlide(
+    view.page === "quarter"
+      ? view.id
+      : view.page === "year" || !snap
+        ? null
+        : quarterId(snap.quarter),
+  );
 
   if (isLoading || !model || !snap) {
     return (
@@ -85,7 +96,13 @@ function CompassBody({ view }: { view: CompassView }) {
       : model.weeks;
   const bounds = { min: sheetWeeks[0]!, max: addDays(sheetWeeks.at(-1)!, 6) };
   const route =
-    view.page === "overview" ? "overview" : view.page === "quarter" ? `q:${view.id}` : view.goalId;
+    view.page === "overview"
+      ? "overview"
+      : view.page === "quarter"
+        ? `q:${view.id}`
+        : view.page === "year"
+          ? "year"
+          : view.goalId;
   const goalView =
     view.page === "goal" ? model.goals.find((g) => g.goal.id === view.goalId) : undefined;
 
@@ -101,7 +118,7 @@ function CompassBody({ view }: { view: CompassView }) {
         onNew={setSheet}
       />
 
-      <main className="cp-page" key={route}>
+      <main className={cn("cp-page", slide)} key={route}>
         {view.page === "overview" ? (
           <Overview
             model={model}
@@ -111,6 +128,8 @@ function CompassBody({ view }: { view: CompassView }) {
           />
         ) : view.page === "quarter" ? (
           <QuarterPage id={view.id} onSheet={setSheet} />
+        ) : view.page === "year" ? (
+          <YearPage year={view.year} />
         ) : view.goalId === "ongoing" ? (
           <HabitsPage model={model} goal={null} onSheet={setSheet} />
         ) : goalView ? (
@@ -145,6 +164,25 @@ function CompassBody({ view }: { view: CompassView }) {
       />
     </div>
   );
+}
+
+/**
+ * Moving to another quarter slides the page in from the side time moves
+ * toward: later quarters from the right, earlier ones from the left.
+ */
+function useQuarterSlide(current: string | null): string | undefined {
+  const prev = useRef(current);
+  const dir = useRef<string | undefined>(undefined);
+  if (prev.current !== current) {
+    dir.current =
+      prev.current && current
+        ? current > prev.current
+          ? "cp-slide-next"
+          : "cp-slide-prev"
+        : undefined;
+    prev.current = current;
+  }
+  return dir.current;
 }
 
 // ---------- Side navigation ----------
@@ -300,6 +338,10 @@ function Side({
             </Link>
           </>
         ) : null}
+        <small>Zoom out</small>
+        <Link to="/compass/year" aria-current={route === "year" ? "page" : undefined}>
+          Year {model.today.slice(0, 4)}
+        </Link>
       </nav>
     </aside>
   );
