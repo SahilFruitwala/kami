@@ -144,6 +144,23 @@ Research (`/research`, spec in `docs/wayfinder/research/spec.md`). Every route b
 | `GET`    | `/api/shelves/tv/:id/seasons`         | `src/routes/api/shelves/tv/$id/seasons/index.ts`   |
 | `PUT`    | `/api/shelves/tv/:id/watched`         | `src/routes/api/shelves/tv/$id/watched.ts`         |
 
+### compass
+
+Quarterly goals, habits and check-ins. `GET` returns raw rows; weekly totals, streaks and pace are derived in the browser (`src/lib/compass/engine.ts`).
+
+| Method   | Path                          | Source                                     |
+| -------- | ----------------------------- | ------------------------------------------ |
+| `GET`    | `/api/compass`                | `src/routes/api/compass/index.ts`          |
+| `PATCH`  | `/api/compass/settings`       | `src/routes/api/compass/settings.ts`       |
+| `PUT`    | `/api/compass/logs`           | `src/routes/api/compass/logs.ts`           |
+| `POST`   | `/api/compass/goals`          | `src/routes/api/compass/goals/index.ts`    |
+| `PATCH`  | `/api/compass/goals/:id`      | `src/routes/api/compass/goals/$id.ts`      |
+| `DELETE` | `/api/compass/goals/:id`      | `src/routes/api/compass/goals/$id.ts`      |
+| `PATCH`  | `/api/compass/milestones/:id` | `src/routes/api/compass/milestones/$id.ts` |
+| `POST`   | `/api/compass/habits`         | `src/routes/api/compass/habits/index.ts`   |
+| `PATCH`  | `/api/compass/habits/:id`     | `src/routes/api/compass/habits/$id.ts`     |
+| `DELETE` | `/api/compass/habits/:id`     | `src/routes/api/compass/habits/$id.ts`     |
+
 ### trips
 
 | Method   | Path                                | Source                                           |
