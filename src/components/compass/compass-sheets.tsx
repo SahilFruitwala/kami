@@ -4,8 +4,13 @@ import { useState, type ReactNode } from "react";
 import { useCompassActions } from "@/hooks/use-compass.ts";
 import type { CompassGoal, CompassHabit } from "@/lib/api/compass";
 import { GOAL_COLORS, type GoalColor } from "@/lib/compass/colors";
-import { daysBetween, type IsoDay } from "@/lib/compass/dates";
-import type { ScheduleRule, Weight } from "@/lib/compass/engine";
+import { addDays, daysBetween, type IsoDay } from "@/lib/compass/dates";
+import {
+  BACKDATE_MAX_DAYS,
+  EDIT_WINDOW_DAYS,
+  type ScheduleRule,
+  type Weight,
+} from "@/lib/compass/engine";
 import { confirmAction } from "@/lib/confirm.ts";
 import { cn } from "@/lib/utils.ts";
 import { DAY_LETTERS, DAY_NAMES, colorClass, currentRule, scheduleLabel } from "./compass-ui.tsx";
@@ -126,7 +131,11 @@ function HabitForm({
   const [ruleKind, setRuleKind] = useState<RuleKind>(rule0?.rule ?? "daily");
   const [days, setDays] = useState<number[]>(rule0?.rule === "days" ? rule0.days : [0, 2, 4]);
   const [perWeek, setPerWeek] = useState(rule0?.rule === "per_week" ? rule0.perWeek : 3);
+  const [startedOn, setStartedOn] = useState<IsoDay>(h?.createdOn ?? today);
   const [error, setError] = useState("");
+  // The start can be set when adding, and changed during the habit's first week.
+  const canSetStart = !h || daysBetween(h.addedOn, today) < EDIT_WINDOW_DAYS;
+  const minStart = addDays(today, -BACKDATE_MAX_DAYS);
 
   const schedule: ScheduleRule =
     ruleKind === "daily"
@@ -135,13 +144,24 @@ function HabitForm({
         ? { rule: "days", days: [...days].sort() }
         : { rule: "per_week", perWeek };
   const busy = actions.createHabit.isPending || actions.updateHabit.isPending;
-  const canDelete = h ? daysBetween(h.createdOn, today) < 7 : false;
+  const canDelete = h ? daysBetween(h.addedOn, today) < 7 : false;
 
   async function save() {
     if (!name.trim()) return setError("Give the habit a name.");
     if (ruleKind === "days" && !days.length) return setError("Pick at least one day.");
     const amount = Number(target);
     if (kind === "count" && !(amount > 0)) return setError("Set a daily target above zero.");
+    if (canSetStart && (!startedOn || startedOn > today || startedOn < minStart))
+      return setError(`Pick a start between today and ${BACKDATE_MAX_DAYS / 7} weeks ago.`);
+    if (h && startedOn > h.createdOn) {
+      const ok = await confirmAction({
+        title: "Move the start later?",
+        description: "Check-ins before the new start date will be removed.",
+        confirmLabel: "Move start",
+        destructive: true,
+      });
+      if (!ok) return;
+    }
     const body = {
       name: name.trim(),
       goalId: goalId || null,
@@ -149,6 +169,7 @@ function HabitForm({
       target: kind === "count" ? amount : null,
       unit: kind === "count" ? unit.trim() || null : null,
       schedule,
+      ...(canSetStart && startedOn !== (h?.createdOn ?? today) ? { startedOn } : {}),
     };
     try {
       if (h) {
@@ -336,6 +357,26 @@ function HabitForm({
           </div>
         ) : null}
       </div>
+
+      {canSetStart ? (
+        <label className="cp-field">
+          <span>Started on</span>
+          <input
+            id="cp-habit-start"
+            className="cp-input"
+            style={{ width: 180 }}
+            type="date"
+            min={minStart}
+            max={today}
+            value={startedOn}
+            onChange={(e) => (setStartedOn(e.target.value), setError(""))}
+          />
+          <small>
+            Already doing it? Pick when you began, then tick off those days on the habit's card.
+            {h ? " You can change this during the habit's first week." : ""}
+          </small>
+        </label>
+      ) : null}
 
       <div className="cp-preview">{preview}</div>
       {h ? (

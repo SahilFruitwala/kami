@@ -10,6 +10,7 @@ import {
   weekday,
 } from "../src/lib/compass/dates.ts";
 import {
+  canLogDay,
   canEditDay,
   consistency,
   dueToday,
@@ -221,5 +222,20 @@ describe("streaks", () => {
     );
     assert.equal(s.current, 2); // two full weeks; this week still open
     assert.equal(s.passesTotal, 3);
+  });
+});
+
+describe("canLogDay (backfilling history)", () => {
+  const today = "2026-11-20";
+  it("opens every day since the start during the habit's first week", () => {
+    const h = { createdOn: "2026-10-26", addedOn: "2026-11-17" };
+    assert.equal(canLogDay(h, "2026-10-26", today), true);
+    assert.equal(canLogDay(h, "2026-10-25", today), false);
+    assert.equal(canLogDay(h, "2026-11-21", today), false);
+  });
+  it("falls back to the 7-day window after that", () => {
+    const h = { createdOn: "2026-10-26", addedOn: "2026-11-10" };
+    assert.equal(canLogDay(h, "2026-11-01", today), false);
+    assert.equal(canLogDay(h, "2026-11-14", today), true);
   });
 });

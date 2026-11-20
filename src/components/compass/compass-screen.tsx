@@ -25,7 +25,7 @@ import {
   shortDay,
   type IsoDay,
 } from "@/lib/compass/dates";
-import type { CompassModel, GoalView, HabitView } from "@/lib/compass/model";
+import type { CompassModel, DayCell, GoalView, HabitView } from "@/lib/compass/model";
 import type { CompassRhythm } from "@/lib/api/compass";
 import type { LibraryItem } from "@/lib/library-item.ts";
 import { cn } from "@/lib/utils.ts";
@@ -710,6 +710,42 @@ function HabitsPage({
   );
 }
 
+function DayButtons({
+  name,
+  days,
+  onToggle,
+}: {
+  name: string;
+  days: DayCell[];
+  onToggle: (day: IsoDay, met: boolean) => void;
+}) {
+  return (
+    <>
+      {days.map((d, i) => (
+        <button
+          key={d.day}
+          type="button"
+          className={cn(
+            "cp-day",
+            d.met && "is-met",
+            !d.met && !d.scheduled && "is-off",
+            d.isToday && "is-today",
+            d.future && "is-future",
+            !d.active && !d.future && "is-inactive",
+          )}
+          disabled={!d.editable || !d.active}
+          aria-pressed={d.met}
+          aria-label={`${name}, ${shortDay(d.day)}${d.met ? ", done" : ""}`}
+          onClick={() => onToggle(d.day, d.met)}
+        >
+          {DAY_LETTERS[(Number(new Date(`${d.day}T00:00:00Z`).getUTCDay()) + 6) % 7] ??
+            DAY_LETTERS[i]}
+        </button>
+      ))}
+    </>
+  );
+}
+
 function HabitDetail({
   view,
   current,
@@ -749,28 +785,21 @@ function HabitDetail({
         </span>
       </div>
       <WeekStrip thin weeks={view.weeks} current={current} label={`${habit.name}, week by week`} />
+      {view.history.length ? (
+        <div className="cp-history">
+          <p className="cp-note">Fill in earlier days</p>
+          {view.history.map((w) => (
+            <div key={w.week} className="cp-days">
+              <DayButtons name={habit.name} days={w.days} onToggle={toggle} />
+              <span className="cp-note cp-num" style={{ marginLeft: 4 }}>
+                {shortDay(w.week)}
+              </span>
+            </div>
+          ))}
+        </div>
+      ) : null}
       <div className="cp-days">
-        {view.days.map((d, i) => (
-          <button
-            key={d.day}
-            type="button"
-            className={cn(
-              "cp-day",
-              d.met && "is-met",
-              !d.met && !d.scheduled && "is-off",
-              d.isToday && "is-today",
-              d.future && "is-future",
-              !d.active && !d.future && "is-inactive",
-            )}
-            disabled={!d.editable || !d.active}
-            aria-pressed={d.met}
-            aria-label={`${habit.name}, ${shortDay(d.day)}${d.met ? ", done" : ""}`}
-            onClick={() => toggle(d.day, d.met)}
-          >
-            {DAY_LETTERS[(Number(new Date(`${d.day}T00:00:00Z`).getUTCDay()) + 6) % 7] ??
-              DAY_LETTERS[i]}
-          </button>
-        ))}
+        <DayButtons name={habit.name} days={view.days} onToggle={toggle} />
         <span className="cp-note cp-num" style={{ marginLeft: 4 }}>
           {view.thisWeek.done}/{view.thisWeek.target}
         </span>

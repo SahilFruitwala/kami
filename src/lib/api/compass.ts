@@ -37,7 +37,10 @@ export type CompassHabit = {
   kind: HabitKind;
   target: number | null;
   unit: string | null;
+  /** First day that counts; can be earlier than `addedOn` when history was filled in. */
   createdOn: IsoDay;
+  /** The user's local day the habit was actually added. */
+  addedOn: IsoDay;
   pausedOn: IsoDay | null;
   pauses: { from: IsoDay; to: IsoDay }[];
   schedules: HabitSchedule[];

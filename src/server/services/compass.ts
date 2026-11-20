@@ -1,5 +1,5 @@
 import "@tanstack/react-start/server-only";
-import { and, asc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lt, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import type {
   CompassGoal,
@@ -35,7 +35,13 @@ import {
   type QuarterKey,
   type WeekStart,
 } from "@/lib/compass/dates";
-import { canEditDay, type HabitSchedule, type ScheduleRule } from "@/lib/compass/engine";
+import {
+  BACKDATE_MAX_DAYS,
+  EDIT_WINDOW_DAYS,
+  canLogDay,
+  type HabitSchedule,
+  type ScheduleRule,
+} from "@/lib/compass/engine";
 import {
   nextQuarter,
   planningOpen,
@@ -251,6 +257,7 @@ export async function getCompass(userId: string): Promise<CompassSnapshot> {
       target: h.target,
       unit: h.unit,
       createdOn: h.createdOn,
+      addedOn: addedOnOf(h, clock),
       pausedOn: h.pausedOn,
       pauses: h.pauses,
       schedules: scheduleRows.filter((s) => s.habitId === h.id).map(toSchedule),
@@ -495,6 +502,16 @@ function habitFields(input: {
   };
 }
 
+/** The user's local day a habit row was actually added. */
+const addedOnOf = (h: { createdAt: Date }, clock: Clock) => localDay(clock.timezone, h.createdAt);
+
+function checkStart(startedOn: IsoDay, clock: Clock): IsoDay {
+  if (startedOn > clock.today) throw badRequest("A habit can't start in the future.");
+  if (daysBetween(startedOn, clock.today) > BACKDATE_MAX_DAYS)
+    throw badRequest(`A habit can start at most ${BACKDATE_MAX_DAYS / 7} weeks back.`);
+  return startedOn;
+}
+
 export async function createHabit(
   userId: string,
   input: z.output<typeof habitInput>,
@@ -510,6 +527,7 @@ export async function createHabit(
   if (n >= MAX_HABITS)
     throw badRequest(`You can keep up to ${MAX_HABITS} habits. Archive one first.`);
 
+  const startedOn = input.startedOn ? checkStart(input.startedOn, clock) : clock.today;
   const habitId = uid();
   await db.insert(compassHabits).values({
     id: habitId,
@@ -518,12 +536,12 @@ export async function createHabit(
     name: input.name,
     ...habitFields(input),
     sort: n,
-    createdOn: clock.today,
+    createdOn: startedOn,
   });
   await db.insert(compassHabitSchedules).values({
     id: uid(),
     habitId,
-    startsOn: weekStartOf(clock.today, clock.weekStart),
+    startsOn: weekStartOf(startedOn, clock.weekStart),
     ...scheduleValues(input.schedule),
   });
   return { id: habitId };
@@ -556,6 +574,11 @@ export async function updateHabit(
     ...(patch.goalId !== undefined ? { goalId: patch.goalId } : {}),
     ...habitFields(patch),
   };
+  if (patch.startedOn && patch.startedOn !== habit.createdOn) {
+    if (daysBetween(addedOnOf(habit, clock), clock.today) >= EDIT_WINDOW_DAYS)
+      throw badRequest("The start date can only be changed in a habit's first week.");
+    set.createdOn = checkStart(patch.startedOn, clock);
+  }
   if (patch.paused === true && !habit.pausedOn) set.pausedOn = clock.today;
   if (patch.paused === false && habit.pausedOn) {
     const to = addDays(clock.today, -1);
@@ -564,6 +587,27 @@ export async function updateHabit(
   }
   if (Object.keys(set).length)
     await db.update(compassHabits).set(set).where(eq(compassHabits.id, habitId));
+
+  if (set.createdOn) {
+    const start = set.createdOn;
+    // Check-ins before the new start no longer count.
+    await db
+      .delete(compassLogs)
+      .where(and(eq(compassLogs.habitId, habitId), lt(compassLogs.day, start)));
+    // The first schedule has to cover the new start's week.
+    const [first] = await db
+      .select()
+      .from(compassHabitSchedules)
+      .where(eq(compassHabitSchedules.habitId, habitId))
+      .orderBy(asc(compassHabitSchedules.startsOn))
+      .limit(1);
+    const week = weekStartOf(start, clock.weekStart);
+    if (first && week < first.startsOn)
+      await db
+        .update(compassHabitSchedules)
+        .set({ startsOn: week })
+        .where(eq(compassHabitSchedules.id, first.id));
+  }
 
   if (patch.schedule) {
     // Applies from this week; earlier weeks keep the target they had.
@@ -583,7 +627,7 @@ export async function deleteHabit(userId: string, habitId: string): Promise<void
   const db = await getDb();
   const clock = await clockFor(db, userId);
   const habit = await ownedHabit(db, userId, habitId);
-  if (daysBetween(habit.createdOn, clock.today) >= DELETE_WINDOW_DAYS) {
+  if (daysBetween(addedOnOf(habit, clock), clock.today) >= DELETE_WINDOW_DAYS) {
     throw badRequest("This habit has history now. Archive it instead so its weeks stay intact.");
   }
   await db.delete(compassHabits).where(eq(compassHabits.id, habitId));
@@ -595,10 +639,16 @@ export async function putLog(userId: string, input: z.output<typeof logInput>): 
   const db = await getDb();
   const clock = await clockFor(db, userId);
   const habit = await ownedHabit(db, userId, input.habitId);
-  if (!canEditDay(input.day, clock.today)) {
+  if (input.day < habit.createdOn) throw badRequest("That day is before the habit started.");
+  if (
+    !canLogDay(
+      { createdOn: habit.createdOn, addedOn: addedOnOf(habit, clock) },
+      input.day,
+      clock.today,
+    )
+  ) {
     throw badRequest("Check-ins can be changed for today and the 6 days before only.");
   }
-  if (input.day < habit.createdOn) throw badRequest("That day is before the habit started.");
 
   if (input.value === 0) {
     await db
@@ -796,6 +846,7 @@ export async function getYear(userId: string, year: number): Promise<YearRecord>
       target: h.target,
       unit: h.unit,
       createdOn: h.createdOn,
+      addedOn: addedOnOf(h, clock),
       pausedOn: h.pausedOn,
       pauses: h.pauses,
       archivedOn: h.archivedAt ? localDay(clock.timezone, h.archivedAt) : null,
