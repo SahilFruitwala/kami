@@ -438,7 +438,7 @@ behaviour) when AI is off, over budget, or the page isn't an article.
 | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `src/lib/model-fallback.ts`                                                     | Fallback model chain, prompt clipping (pure, tested in `tests/ai.test.mjs`)                    |
 | `src/lib/ai-models.ts`, `src/lib/llm.server.ts`                                 | `AI_MODELS` parsing (pure, tested) and provider wiring for the chain                           |
-| `src/lib/feature-flags.server.ts`, `migrations/0029_ai_feature_flag.sql`        | Per-user `ai` flag; `pnpm ai:grant`                                                            |
+| `src/lib/feature-flags.server.ts`, `migrations/0030_ai_feature_flag.sql`        | Per-user `ai` flag; `pnpm ai:grant`                                                            |
 | `src/server/ai.ts`                                                              | Shared generation helpers and error mapping                                                    |
 | `src/server/services/ai-articles.ts`                                            | Summaries, tag vocabulary, article-to-prompt helpers                                           |
 | `src/routes/api/ai/**`                                                          | HTTP routes                                                                                    |
