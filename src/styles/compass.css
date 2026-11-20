@@ -106,6 +106,7 @@
   transform-origin: left;
 }
 .cp-nav {
+  position: relative;
   display: grid;
   gap: 2px;
 }
