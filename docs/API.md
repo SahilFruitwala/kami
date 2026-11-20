@@ -170,6 +170,8 @@ Quarterly goals, habits and check-ins. `GET` returns raw rows; weekly totals, st
 | `POST`   | `/api/compass/retro`             | `src/routes/api/compass/retro.ts`             |
 | `GET`    | `/api/compass/year/:year`        | `src/routes/api/compass/year/$year.ts`        |
 
+Habit create/patch bodies take an optional `startedOn` (up to 8 weeks back) to backdate a habit. For a habit's first week, `PUT /api/compass/logs` accepts any day since that start; after that only today and the 6 days before.
+
 ### trips
 
 | Method   | Path                                | Source                                           |

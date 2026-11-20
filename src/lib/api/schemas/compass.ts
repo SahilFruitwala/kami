@@ -62,6 +62,8 @@ export const habitInput = z
     target: z.number().positive().max(1_000_000).nullable().optional(),
     unit: z.string().trim().max(24).nullable().optional(),
     schedule: scheduleInput,
+    /** Backdate the start to fill in earlier days. Defaults to today. */
+    startedOn: isoDay.optional(),
   })
   .refine((h) => h.kind === "check" || (h.target ?? 0) > 0, {
     message: "Set a daily target for an amount.",
@@ -75,6 +77,8 @@ export const habitPatch = z.object({
   target: z.number().positive().max(1_000_000).nullable().optional(),
   unit: z.string().trim().max(24).nullable().optional(),
   schedule: scheduleInput.optional(),
+  /** Move the start, only in the habit's first week. */
+  startedOn: isoDay.optional(),
   paused: z.boolean().optional(),
   archived: z.literal(true).optional(),
 });

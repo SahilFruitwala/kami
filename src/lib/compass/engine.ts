@@ -49,6 +49,25 @@ export const canEditDay = (day: IsoDay, today: IsoDay) => {
   return back >= 0 && back < EDIT_WINDOW_DAYS;
 };
 
+/** How far back a new habit's start can be set, to log the days before it was added. */
+export const BACKDATE_MAX_DAYS = 56;
+
+/**
+ * Whether a habit's check-in for `day` can be changed. Normally that's the
+ * edit window; for the first week after a habit is added (`addedOn`), every
+ * day since its start is open too, so history from before it was added can
+ * be filled in.
+ */
+export const canLogDay = (
+  habit: { createdOn: IsoDay; addedOn?: IsoDay },
+  day: IsoDay,
+  today: IsoDay,
+) => {
+  if (day < habit.createdOn || day > today) return false;
+  if (canEditDay(day, today)) return true;
+  return !!habit.addedOn && daysBetween(habit.addedOn, today) < EDIT_WINDOW_DAYS;
+};
+
 // ---------- Schedules ----------
 
 export function scheduleOn(habit: EngineHabit, day: IsoDay): HabitSchedule {

@@ -10,9 +10,10 @@ import {
   weekStartOf,
   weekDays,
   type IsoDay,
+  type WeekStart,
 } from "./dates.ts";
 import {
-  canEditDay,
+  canLogDay,
   consistency,
   dueToday,
   goalProgress,
@@ -51,6 +52,8 @@ export type HabitView = {
   /** One ratio per quarter week (null = no target that week or not reached yet). */
   weeks: (number | null)[];
   days: DayCell[];
+  /** Earlier weeks that can still be filled in, oldest first (empty once that window closes). */
+  history: { week: IsoDay; days: DayCell[] }[];
   consistency: number | null;
   streak: Streak;
   paused: boolean;
@@ -97,6 +100,21 @@ const average = (xs: (number | null)[]) => {
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
 };
 
+/** Weeks before this one whose days can still be filled in for a habit. */
+function earlierWeeks(
+  habit: CompassHabit,
+  thisWeek: IsoDay,
+  today: IsoDay,
+  weekStart: WeekStart,
+): IsoDay[] {
+  const out: IsoDay[] = [];
+  for (let w = weekStartOf(habit.createdOn, weekStart); w < thisWeek; w = addDays(w, 7)) {
+    // Only weeks with a day the edit rules still open.
+    if (weekDays(w).some((d) => canLogDay(habit, d, today))) out.push(w);
+  }
+  return out;
+}
+
 export function buildModel(snap: CompassSnapshot): CompassModel {
   const { today, weekStart } = snap;
   const logs = toLogMap(snap.logs);
@@ -104,27 +122,34 @@ export function buildModel(snap: CompassSnapshot): CompassModel {
   const thisWeek = weekStartOf(today, weekStart);
   const goalsById = new Map(snap.goals.map((g) => [g.id, g]));
 
-  const habits: HabitView[] = snap.habits.map((habit) => ({
-    habit,
-    goal: habit.goalId ? (goalsById.get(habit.goalId) ?? null) : null,
-    value: logOf(logs, habit.id, today) ?? 0,
-    metToday: metOn(habit, logs, today),
-    dueToday: dueToday(habit, logs, today, weekStart),
-    thisWeek: weekStat(habit, logs, thisWeek),
-    weeks: weeks.map((w) => (w > today ? null : weekRatio(weekStat(habit, logs, w)))),
-    days: weekDays(thisWeek).map((day) => ({
+  const habits: HabitView[] = snap.habits.map((habit) => {
+    const cell = (day: IsoDay): DayCell => ({
       day,
       met: metOn(habit, logs, day),
       scheduled: scheduledOn(scheduleOn(habit, day), day),
-      editable: canEditDay(day, today) && day >= habit.createdOn,
+      editable: canLogDay(habit, day, today),
       isToday: day === today,
       future: day > today,
       active: isActive(habit, day),
-    })),
-    consistency: consistency(habit, logs, weeks, today),
-    streak: streak(habit, logs, today, weekStart),
-    paused: !!habit.pausedOn && habit.pausedOn <= today,
-  }));
+    });
+    return {
+      habit,
+      goal: habit.goalId ? (goalsById.get(habit.goalId) ?? null) : null,
+      value: logOf(logs, habit.id, today) ?? 0,
+      metToday: metOn(habit, logs, today),
+      dueToday: dueToday(habit, logs, today, weekStart),
+      thisWeek: weekStat(habit, logs, thisWeek),
+      weeks: weeks.map((w) => (w > today ? null : weekRatio(weekStat(habit, logs, w)))),
+      days: weekDays(thisWeek).map(cell),
+      history: earlierWeeks(habit, thisWeek, today, weekStart).map((week) => ({
+        week,
+        days: weekDays(week).map(cell),
+      })),
+      consistency: consistency(habit, logs, weeks, today),
+      streak: streak(habit, logs, today, weekStart),
+      paused: !!habit.pausedOn && habit.pausedOn <= today,
+    };
+  });
 
   const elapsed = quarterElapsed(snap.quarter, today, weekStart);
   const goals: GoalView[] = snap.goals.map((goal) => {
