@@ -29,6 +29,9 @@ export function getAppQueryClient() {
 }
 
 export const queryKeys = {
+  compass: {
+    all: ["compass"] as const,
+  },
   narration: {
     all: ["narration"] as const,
     allowance: () => [...queryKeys.narration.all, "allowance"] as const,

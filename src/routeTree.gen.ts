@@ -19,6 +19,7 @@ import { Route as ShareRouteImport } from './routes/share'
 import { Route as ShelvesRouteRouteImport } from './routes/shelves/route'
 import { Route as VaultRouteImport } from './routes/vault'
 import { Route as ApiImgRouteImport } from './routes/api/img'
+import { Route as CompassIndexRouteImport } from './routes/compass/index'
 import { Route as LoginSplatRouteImport } from './routes/login.$'
 import { Route as ShelvesIndexRouteImport } from './routes/shelves/index'
 import { Route as ShelvesWishlistRouteImport } from './routes/shelves/wishlist'
@@ -29,6 +30,9 @@ import { Route as ApiAllowanceIndexRouteImport } from './routes/api/allowance/in
 import { Route as ApiArticlesExtractRouteImport } from './routes/api/articles/extract'
 import { Route as ApiArticlesImportRouteImport } from './routes/api/articles/import'
 import { Route as ApiArticlesLinkRouteImport } from './routes/api/articles/link'
+import { Route as ApiCompassIndexRouteImport } from './routes/api/compass/index'
+import { Route as ApiCompassLogsRouteImport } from './routes/api/compass/logs'
+import { Route as ApiCompassSettingsRouteImport } from './routes/api/compass/settings'
 import { Route as ApiLibraryIndexRouteImport } from './routes/api/library/index'
 import { Route as ApiLibraryBulkRouteImport } from './routes/api/library/bulk'
 import { Route as ApiLibraryExportRouteImport } from './routes/api/library/export'
@@ -42,12 +46,18 @@ import { Route as ApiLookupWatchProvidersRouteImport } from './routes/api/lookup
 import { Route as ApiNarrationsIdRouteImport } from './routes/api/narrations/$id'
 import { Route as ApiNarrationsRunRouteImport } from './routes/api/narrations/run'
 import { Route as ApiShelvesCountsRouteImport } from './routes/api/shelves/counts'
+import { Route as CompassGoalIdRouteImport } from './routes/compass/goal.$id'
 import { Route as ShelvesBooksIndexRouteImport } from './routes/shelves/books/index'
 import { Route as ShelvesBooksIdRouteImport } from './routes/shelves/books/$id'
 import { Route as ShelvesMoviesIndexRouteImport } from './routes/shelves/movies/index'
 import { Route as ShelvesMoviesIdRouteImport } from './routes/shelves/movies/$id'
 import { Route as ShelvesSeriesIndexRouteImport } from './routes/shelves/series/index'
 import { Route as ShelvesSeriesIdRouteImport } from './routes/shelves/series/$id'
+import { Route as ApiCompassGoalsIndexRouteImport } from './routes/api/compass/goals/index'
+import { Route as ApiCompassGoalsIdRouteImport } from './routes/api/compass/goals/$id'
+import { Route as ApiCompassHabitsIndexRouteImport } from './routes/api/compass/habits/index'
+import { Route as ApiCompassHabitsIdRouteImport } from './routes/api/compass/habits/$id'
+import { Route as ApiCompassMilestonesIdRouteImport } from './routes/api/compass/milestones/$id'
 import { Route as ApiLibraryFoldersIndexRouteImport } from './routes/api/library/folders/index'
 import { Route as ApiLibraryFoldersIdRouteImport } from './routes/api/library/folders/$id'
 import { Route as ApiLibraryItemsIndexRouteImport } from './routes/api/library/items/index'
@@ -120,6 +130,11 @@ const ApiImgRoute = ApiImgRouteImport.update({
   path: '/api/img',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompassIndexRoute = CompassIndexRouteImport.update({
+  id: '/compass/',
+  path: '/compass/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginSplatRoute = LoginSplatRouteImport.update({
   id: '/login/$',
   path: '/login/$',
@@ -168,6 +183,21 @@ const ApiArticlesImportRoute = ApiArticlesImportRouteImport.update({
 const ApiArticlesLinkRoute = ApiArticlesLinkRouteImport.update({
   id: '/api/articles/link',
   path: '/api/articles/link',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCompassIndexRoute = ApiCompassIndexRouteImport.update({
+  id: '/api/compass/',
+  path: '/api/compass/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCompassLogsRoute = ApiCompassLogsRouteImport.update({
+  id: '/api/compass/logs',
+  path: '/api/compass/logs',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCompassSettingsRoute = ApiCompassSettingsRouteImport.update({
+  id: '/api/compass/settings',
+  path: '/api/compass/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiLibraryIndexRoute = ApiLibraryIndexRouteImport.update({
@@ -235,6 +265,11 @@ const ApiShelvesCountsRoute = ApiShelvesCountsRouteImport.update({
   path: '/api/shelves/counts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompassGoalIdRoute = CompassGoalIdRouteImport.update({
+  id: '/compass/goal/$id',
+  path: '/compass/goal/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ShelvesBooksIndexRoute = ShelvesBooksIndexRouteImport.update({
   id: '/books/',
   path: '/books/',
@@ -264,6 +299,31 @@ const ShelvesSeriesIdRoute = ShelvesSeriesIdRouteImport.update({
   id: '/series/$id',
   path: '/series/$id',
   getParentRoute: () => ShelvesRouteRoute,
+} as any)
+const ApiCompassGoalsIndexRoute = ApiCompassGoalsIndexRouteImport.update({
+  id: '/api/compass/goals/',
+  path: '/api/compass/goals/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCompassGoalsIdRoute = ApiCompassGoalsIdRouteImport.update({
+  id: '/api/compass/goals/$id',
+  path: '/api/compass/goals/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCompassHabitsIndexRoute = ApiCompassHabitsIndexRouteImport.update({
+  id: '/api/compass/habits/',
+  path: '/api/compass/habits/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCompassHabitsIdRoute = ApiCompassHabitsIdRouteImport.update({
+  id: '/api/compass/habits/$id',
+  path: '/api/compass/habits/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCompassMilestonesIdRoute = ApiCompassMilestonesIdRouteImport.update({
+  id: '/api/compass/milestones/$id',
+  path: '/api/compass/milestones/$id',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiLibraryFoldersIndexRoute = ApiLibraryFoldersIndexRouteImport.update({
   id: '/api/library/folders/',
@@ -392,12 +452,15 @@ export interface FileRoutesByFullPath {
   '/login/$': typeof LoginSplatRoute
   '/shelves/wishlist': typeof ShelvesWishlistRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/compass/': typeof CompassIndexRoute
   '/shelves/': typeof ShelvesIndexRoute
   '/api/ai/organize': typeof ApiAiOrganizeRoute
   '/api/ai/status': typeof ApiAiStatusRoute
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
   '/api/articles/link': typeof ApiArticlesLinkRoute
+  '/api/compass/logs': typeof ApiCompassLogsRoute
+  '/api/compass/settings': typeof ApiCompassSettingsRoute
   '/api/library/bulk': typeof ApiLibraryBulkRoute
   '/api/library/export': typeof ApiLibraryExportRoute
   '/api/library/import': typeof ApiLibraryImportRoute
@@ -410,14 +473,19 @@ export interface FileRoutesByFullPath {
   '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
   '/api/narrations/run': typeof ApiNarrationsRunRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
+  '/compass/goal/$id': typeof CompassGoalIdRoute
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
   '/api/allowance/': typeof ApiAllowanceIndexRoute
+  '/api/compass/': typeof ApiCompassIndexRoute
   '/api/library/': typeof ApiLibraryIndexRoute
   '/shelves/books/': typeof ShelvesBooksIndexRoute
   '/shelves/movies/': typeof ShelvesMoviesIndexRoute
   '/shelves/series/': typeof ShelvesSeriesIndexRoute
+  '/api/compass/goals/$id': typeof ApiCompassGoalsIdRoute
+  '/api/compass/habits/$id': typeof ApiCompassHabitsIdRoute
+  '/api/compass/milestones/$id': typeof ApiCompassMilestonesIdRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
@@ -425,6 +493,8 @@ export interface FileRoutesByFullPath {
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
+  '/api/compass/goals/': typeof ApiCompassGoalsIndexRoute
+  '/api/compass/habits/': typeof ApiCompassHabitsIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
   '/api/shelves/$type/': typeof ApiShelvesTypeIndexRoute
@@ -453,12 +523,15 @@ export interface FileRoutesByTo {
   '/login/$': typeof LoginSplatRoute
   '/shelves/wishlist': typeof ShelvesWishlistRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/compass': typeof CompassIndexRoute
   '/shelves': typeof ShelvesIndexRoute
   '/api/ai/organize': typeof ApiAiOrganizeRoute
   '/api/ai/status': typeof ApiAiStatusRoute
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
   '/api/articles/link': typeof ApiArticlesLinkRoute
+  '/api/compass/logs': typeof ApiCompassLogsRoute
+  '/api/compass/settings': typeof ApiCompassSettingsRoute
   '/api/library/bulk': typeof ApiLibraryBulkRoute
   '/api/library/export': typeof ApiLibraryExportRoute
   '/api/library/import': typeof ApiLibraryImportRoute
@@ -471,14 +544,19 @@ export interface FileRoutesByTo {
   '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
   '/api/narrations/run': typeof ApiNarrationsRunRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
+  '/compass/goal/$id': typeof CompassGoalIdRoute
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
   '/api/allowance': typeof ApiAllowanceIndexRoute
+  '/api/compass': typeof ApiCompassIndexRoute
   '/api/library': typeof ApiLibraryIndexRoute
   '/shelves/books': typeof ShelvesBooksIndexRoute
   '/shelves/movies': typeof ShelvesMoviesIndexRoute
   '/shelves/series': typeof ShelvesSeriesIndexRoute
+  '/api/compass/goals/$id': typeof ApiCompassGoalsIdRoute
+  '/api/compass/habits/$id': typeof ApiCompassHabitsIdRoute
+  '/api/compass/milestones/$id': typeof ApiCompassMilestonesIdRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
@@ -486,6 +564,8 @@ export interface FileRoutesByTo {
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
+  '/api/compass/goals': typeof ApiCompassGoalsIndexRoute
+  '/api/compass/habits': typeof ApiCompassHabitsIndexRoute
   '/api/library/folders': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items': typeof ApiLibraryItemsIndexRoute
   '/api/shelves/$type': typeof ApiShelvesTypeIndexRoute
@@ -516,12 +596,15 @@ export interface FileRoutesById {
   '/login/$': typeof LoginSplatRoute
   '/shelves/wishlist': typeof ShelvesWishlistRoute
   '/sign-up/$': typeof SignUpSplatRoute
+  '/compass/': typeof CompassIndexRoute
   '/shelves/': typeof ShelvesIndexRoute
   '/api/ai/organize': typeof ApiAiOrganizeRoute
   '/api/ai/status': typeof ApiAiStatusRoute
   '/api/articles/extract': typeof ApiArticlesExtractRoute
   '/api/articles/import': typeof ApiArticlesImportRoute
   '/api/articles/link': typeof ApiArticlesLinkRoute
+  '/api/compass/logs': typeof ApiCompassLogsRoute
+  '/api/compass/settings': typeof ApiCompassSettingsRoute
   '/api/library/bulk': typeof ApiLibraryBulkRoute
   '/api/library/export': typeof ApiLibraryExportRoute
   '/api/library/import': typeof ApiLibraryImportRoute
@@ -534,14 +617,19 @@ export interface FileRoutesById {
   '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
   '/api/narrations/run': typeof ApiNarrationsRunRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
+  '/compass/goal/$id': typeof CompassGoalIdRoute
   '/shelves/books/$id': typeof ShelvesBooksIdRoute
   '/shelves/movies/$id': typeof ShelvesMoviesIdRoute
   '/shelves/series/$id': typeof ShelvesSeriesIdRoute
   '/api/allowance/': typeof ApiAllowanceIndexRoute
+  '/api/compass/': typeof ApiCompassIndexRoute
   '/api/library/': typeof ApiLibraryIndexRoute
   '/shelves/books/': typeof ShelvesBooksIndexRoute
   '/shelves/movies/': typeof ShelvesMoviesIndexRoute
   '/shelves/series/': typeof ShelvesSeriesIndexRoute
+  '/api/compass/goals/$id': typeof ApiCompassGoalsIdRoute
+  '/api/compass/habits/$id': typeof ApiCompassHabitsIdRoute
+  '/api/compass/milestones/$id': typeof ApiCompassMilestonesIdRoute
   '/api/library/folders/$id': typeof ApiLibraryFoldersIdRoute
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
@@ -549,6 +637,8 @@ export interface FileRoutesById {
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
+  '/api/compass/goals/': typeof ApiCompassGoalsIndexRoute
+  '/api/compass/habits/': typeof ApiCompassHabitsIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
   '/api/shelves/$type/': typeof ApiShelvesTypeIndexRoute
@@ -580,12 +670,15 @@ export interface FileRouteTypes {
     | '/login/$'
     | '/shelves/wishlist'
     | '/sign-up/$'
+    | '/compass/'
     | '/shelves/'
     | '/api/ai/organize'
     | '/api/ai/status'
     | '/api/articles/extract'
     | '/api/articles/import'
     | '/api/articles/link'
+    | '/api/compass/logs'
+    | '/api/compass/settings'
     | '/api/library/bulk'
     | '/api/library/export'
     | '/api/library/import'
@@ -598,14 +691,19 @@ export interface FileRouteTypes {
     | '/api/narrations/$id'
     | '/api/narrations/run'
     | '/api/shelves/counts'
+    | '/compass/goal/$id'
     | '/shelves/books/$id'
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
     | '/api/allowance/'
+    | '/api/compass/'
     | '/api/library/'
     | '/shelves/books/'
     | '/shelves/movies/'
     | '/shelves/series/'
+    | '/api/compass/goals/$id'
+    | '/api/compass/habits/$id'
+    | '/api/compass/milestones/$id'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
@@ -613,6 +711,8 @@ export interface FileRouteTypes {
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
+    | '/api/compass/goals/'
+    | '/api/compass/habits/'
     | '/api/library/folders/'
     | '/api/library/items/'
     | '/api/shelves/$type/'
@@ -641,12 +741,15 @@ export interface FileRouteTypes {
     | '/login/$'
     | '/shelves/wishlist'
     | '/sign-up/$'
+    | '/compass'
     | '/shelves'
     | '/api/ai/organize'
     | '/api/ai/status'
     | '/api/articles/extract'
     | '/api/articles/import'
     | '/api/articles/link'
+    | '/api/compass/logs'
+    | '/api/compass/settings'
     | '/api/library/bulk'
     | '/api/library/export'
     | '/api/library/import'
@@ -659,14 +762,19 @@ export interface FileRouteTypes {
     | '/api/narrations/$id'
     | '/api/narrations/run'
     | '/api/shelves/counts'
+    | '/compass/goal/$id'
     | '/shelves/books/$id'
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
     | '/api/allowance'
+    | '/api/compass'
     | '/api/library'
     | '/shelves/books'
     | '/shelves/movies'
     | '/shelves/series'
+    | '/api/compass/goals/$id'
+    | '/api/compass/habits/$id'
+    | '/api/compass/milestones/$id'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
@@ -674,6 +782,8 @@ export interface FileRouteTypes {
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
+    | '/api/compass/goals'
+    | '/api/compass/habits'
     | '/api/library/folders'
     | '/api/library/items'
     | '/api/shelves/$type'
@@ -703,12 +813,15 @@ export interface FileRouteTypes {
     | '/login/$'
     | '/shelves/wishlist'
     | '/sign-up/$'
+    | '/compass/'
     | '/shelves/'
     | '/api/ai/organize'
     | '/api/ai/status'
     | '/api/articles/extract'
     | '/api/articles/import'
     | '/api/articles/link'
+    | '/api/compass/logs'
+    | '/api/compass/settings'
     | '/api/library/bulk'
     | '/api/library/export'
     | '/api/library/import'
@@ -721,14 +834,19 @@ export interface FileRouteTypes {
     | '/api/narrations/$id'
     | '/api/narrations/run'
     | '/api/shelves/counts'
+    | '/compass/goal/$id'
     | '/shelves/books/$id'
     | '/shelves/movies/$id'
     | '/shelves/series/$id'
     | '/api/allowance/'
+    | '/api/compass/'
     | '/api/library/'
     | '/shelves/books/'
     | '/shelves/movies/'
     | '/shelves/series/'
+    | '/api/compass/goals/$id'
+    | '/api/compass/habits/$id'
+    | '/api/compass/milestones/$id'
     | '/api/library/folders/$id'
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
@@ -736,6 +854,8 @@ export interface FileRouteTypes {
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
+    | '/api/compass/goals/'
+    | '/api/compass/habits/'
     | '/api/library/folders/'
     | '/api/library/items/'
     | '/api/shelves/$type/'
@@ -765,11 +885,14 @@ export interface RootRouteChildren {
   ApiImgRoute: typeof ApiImgRoute
   LoginSplatRoute: typeof LoginSplatRoute
   SignUpSplatRoute: typeof SignUpSplatRoute
+  CompassIndexRoute: typeof CompassIndexRoute
   ApiAiOrganizeRoute: typeof ApiAiOrganizeRoute
   ApiAiStatusRoute: typeof ApiAiStatusRoute
   ApiArticlesExtractRoute: typeof ApiArticlesExtractRoute
   ApiArticlesImportRoute: typeof ApiArticlesImportRoute
   ApiArticlesLinkRoute: typeof ApiArticlesLinkRoute
+  ApiCompassLogsRoute: typeof ApiCompassLogsRoute
+  ApiCompassSettingsRoute: typeof ApiCompassSettingsRoute
   ApiLibraryBulkRoute: typeof ApiLibraryBulkRoute
   ApiLibraryExportRoute: typeof ApiLibraryExportRoute
   ApiLibraryImportRoute: typeof ApiLibraryImportRoute
@@ -782,13 +905,20 @@ export interface RootRouteChildren {
   ApiNarrationsIdRoute: typeof ApiNarrationsIdRouteWithChildren
   ApiNarrationsRunRoute: typeof ApiNarrationsRunRoute
   ApiShelvesCountsRoute: typeof ApiShelvesCountsRoute
+  CompassGoalIdRoute: typeof CompassGoalIdRoute
   ApiAllowanceIndexRoute: typeof ApiAllowanceIndexRoute
+  ApiCompassIndexRoute: typeof ApiCompassIndexRoute
   ApiLibraryIndexRoute: typeof ApiLibraryIndexRoute
+  ApiCompassGoalsIdRoute: typeof ApiCompassGoalsIdRoute
+  ApiCompassHabitsIdRoute: typeof ApiCompassHabitsIdRoute
+  ApiCompassMilestonesIdRoute: typeof ApiCompassMilestonesIdRoute
   ApiLibraryFoldersIdRoute: typeof ApiLibraryFoldersIdRoute
   ApiLibraryItemsIdRoute: typeof ApiLibraryItemsIdRoute
   ApiShelvesTypeIdRoute: typeof ApiShelvesTypeIdRoute
   ApiShelvesTypeDuplicatesRoute: typeof ApiShelvesTypeDuplicatesRoute
   ApiShelvesBookImportRoute: typeof ApiShelvesBookImportRoute
+  ApiCompassGoalsIndexRoute: typeof ApiCompassGoalsIndexRoute
+  ApiCompassHabitsIndexRoute: typeof ApiCompassHabitsIndexRoute
   ApiLibraryFoldersIndexRoute: typeof ApiLibraryFoldersIndexRoute
   ApiLibraryItemsIndexRoute: typeof ApiLibraryItemsIndexRoute
   ApiShelvesTypeIndexRoute: typeof ApiShelvesTypeIndexRoute
@@ -877,6 +1007,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiImgRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/compass/': {
+      id: '/compass/'
+      path: '/compass'
+      fullPath: '/compass/'
+      preLoaderRoute: typeof CompassIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login/$': {
       id: '/login/$'
       path: '/login/$'
@@ -945,6 +1082,27 @@ declare module '@tanstack/react-router' {
       path: '/api/articles/link'
       fullPath: '/api/articles/link'
       preLoaderRoute: typeof ApiArticlesLinkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/compass/': {
+      id: '/api/compass/'
+      path: '/api/compass'
+      fullPath: '/api/compass/'
+      preLoaderRoute: typeof ApiCompassIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/compass/logs': {
+      id: '/api/compass/logs'
+      path: '/api/compass/logs'
+      fullPath: '/api/compass/logs'
+      preLoaderRoute: typeof ApiCompassLogsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/compass/settings': {
+      id: '/api/compass/settings'
+      path: '/api/compass/settings'
+      fullPath: '/api/compass/settings'
+      preLoaderRoute: typeof ApiCompassSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/library/': {
@@ -1038,6 +1196,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiShelvesCountsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/compass/goal/$id': {
+      id: '/compass/goal/$id'
+      path: '/compass/goal/$id'
+      fullPath: '/compass/goal/$id'
+      preLoaderRoute: typeof CompassGoalIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/shelves/books/': {
       id: '/shelves/books/'
       path: '/books'
@@ -1079,6 +1244,41 @@ declare module '@tanstack/react-router' {
       fullPath: '/shelves/series/$id'
       preLoaderRoute: typeof ShelvesSeriesIdRouteImport
       parentRoute: typeof ShelvesRouteRoute
+    }
+    '/api/compass/goals/': {
+      id: '/api/compass/goals/'
+      path: '/api/compass/goals'
+      fullPath: '/api/compass/goals/'
+      preLoaderRoute: typeof ApiCompassGoalsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/compass/goals/$id': {
+      id: '/api/compass/goals/$id'
+      path: '/api/compass/goals/$id'
+      fullPath: '/api/compass/goals/$id'
+      preLoaderRoute: typeof ApiCompassGoalsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/compass/habits/': {
+      id: '/api/compass/habits/'
+      path: '/api/compass/habits'
+      fullPath: '/api/compass/habits/'
+      preLoaderRoute: typeof ApiCompassHabitsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/compass/habits/$id': {
+      id: '/api/compass/habits/$id'
+      path: '/api/compass/habits/$id'
+      fullPath: '/api/compass/habits/$id'
+      preLoaderRoute: typeof ApiCompassHabitsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/compass/milestones/$id': {
+      id: '/api/compass/milestones/$id'
+      path: '/api/compass/milestones/$id'
+      fullPath: '/api/compass/milestones/$id'
+      preLoaderRoute: typeof ApiCompassMilestonesIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/library/folders/': {
       id: '/api/library/folders/'
@@ -1283,11 +1483,14 @@ const rootRouteChildren: RootRouteChildren = {
   ApiImgRoute: ApiImgRoute,
   LoginSplatRoute: LoginSplatRoute,
   SignUpSplatRoute: SignUpSplatRoute,
+  CompassIndexRoute: CompassIndexRoute,
   ApiAiOrganizeRoute: ApiAiOrganizeRoute,
   ApiAiStatusRoute: ApiAiStatusRoute,
   ApiArticlesExtractRoute: ApiArticlesExtractRoute,
   ApiArticlesImportRoute: ApiArticlesImportRoute,
   ApiArticlesLinkRoute: ApiArticlesLinkRoute,
+  ApiCompassLogsRoute: ApiCompassLogsRoute,
+  ApiCompassSettingsRoute: ApiCompassSettingsRoute,
   ApiLibraryBulkRoute: ApiLibraryBulkRoute,
   ApiLibraryExportRoute: ApiLibraryExportRoute,
   ApiLibraryImportRoute: ApiLibraryImportRoute,
@@ -1300,13 +1503,20 @@ const rootRouteChildren: RootRouteChildren = {
   ApiNarrationsIdRoute: ApiNarrationsIdRouteWithChildren,
   ApiNarrationsRunRoute: ApiNarrationsRunRoute,
   ApiShelvesCountsRoute: ApiShelvesCountsRoute,
+  CompassGoalIdRoute: CompassGoalIdRoute,
   ApiAllowanceIndexRoute: ApiAllowanceIndexRoute,
+  ApiCompassIndexRoute: ApiCompassIndexRoute,
   ApiLibraryIndexRoute: ApiLibraryIndexRoute,
+  ApiCompassGoalsIdRoute: ApiCompassGoalsIdRoute,
+  ApiCompassHabitsIdRoute: ApiCompassHabitsIdRoute,
+  ApiCompassMilestonesIdRoute: ApiCompassMilestonesIdRoute,
   ApiLibraryFoldersIdRoute: ApiLibraryFoldersIdRoute,
   ApiLibraryItemsIdRoute: ApiLibraryItemsIdRoute,
   ApiShelvesTypeIdRoute: ApiShelvesTypeIdRoute,
   ApiShelvesTypeDuplicatesRoute: ApiShelvesTypeDuplicatesRoute,
   ApiShelvesBookImportRoute: ApiShelvesBookImportRoute,
+  ApiCompassGoalsIndexRoute: ApiCompassGoalsIndexRoute,
+  ApiCompassHabitsIndexRoute: ApiCompassHabitsIndexRoute,
   ApiLibraryFoldersIndexRoute: ApiLibraryFoldersIndexRoute,
   ApiLibraryItemsIndexRoute: ApiLibraryItemsIndexRoute,
   ApiShelvesTypeIndexRoute: ApiShelvesTypeIndexRoute,

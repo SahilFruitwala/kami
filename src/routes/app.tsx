@@ -9,6 +9,7 @@ import {
   type HomeCaptureType,
 } from "@/components/library/home-shelves.tsx";
 import { BulkSaveDialog, PasteDialog } from "@/components/library/library-dialogs.tsx";
+import { TodayHabits } from "@/components/compass/today-habits.tsx";
 import { TodayDate, TodayDesk, enter } from "@/components/home/today-desk.tsx";
 import { useDeskStats } from "@/hooks/use-desk-stats.ts";
 import { useCurrentUser } from "@/lib/auth/use-current-user.ts";
@@ -246,6 +247,9 @@ function Home() {
             {capturing ? "Importing captured page…" : "Saving a clean copy…"}
           </p>
         ) : null}
+        <div style={{ marginTop: 32 }}>
+          <TodayHabits />
+        </div>
         <TodayDesk />
       </div>
 

@@ -8,6 +8,7 @@ import {
   House,
   LibraryBig,
   ChevronDown,
+  Compass,
   Search,
   Plus,
   // Rss,
@@ -23,6 +24,7 @@ import { cn } from "@/lib/utils.ts";
 
 export type SitePane =
   | "home"
+  | "compass"
   | "library"
   | "trips"
   | "research"
@@ -37,6 +39,7 @@ type Pane = {
   id: Exclude<SitePane, "settings">;
   to:
     | "/app"
+    | "/compass"
     | "/library"
     | "/vault"
     | "/shelves/movies"
@@ -52,6 +55,7 @@ const SANCTUARY_PANES: Pane[] = [
   { id: "home", to: "/app", label: "Home", icon: House },
   { id: "library", to: "/library", label: "Library", icon: LibraryBig },
   { id: "vault", to: "/vault", label: "Vault", icon: Bookmark },
+  { id: "compass", to: "/compass", label: "Compass", icon: Compass },
 ];
 
 /** Each shelf type is its own first-class page (not nested under Shelf Ledger). */

@@ -3,6 +3,7 @@
 @import "./styles/gloss.css";
 @import "./styles/direction.css";
 @import "./styles/redesign.css";
+@import "./styles/compass.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
