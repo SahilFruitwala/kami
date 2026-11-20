@@ -3,8 +3,8 @@ import { addTransitionType, startTransition } from "react";
 import { ArrowLeft, CircleAlert } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { QuoteList } from "@/components/research/idea-detail.tsx";
-import { EmptyNote } from "@/components/research/research-ui.tsx";
-import { useReport } from "@/hooks/use-research.ts";
+import { EmptyNote, ResearchUnavailable } from "@/components/research/research-ui.tsx";
+import { useResearchStatus, useReport } from "@/hooks/use-research.ts";
 import type { ReportView } from "@/lib/api/research.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
 import { cn } from "@/lib/utils.ts";
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/research/reports/$reportId")({
 function ReportPage() {
   const { reportId } = Route.useParams();
   const navigate = Route.useNavigate();
+  const status = useResearchStatus();
   const query = useReport(reportId);
 
   function openItem(item: LibraryItem) {
@@ -31,6 +32,13 @@ function ReportPage() {
   }
 
   const view = query.data;
+  if (status.data && !status.data.enabled) {
+    return (
+      <AppShell active="research" onOpenItem={openItem}>
+        <ResearchUnavailable />
+      </AppShell>
+    );
+  }
   return (
     <AppShell active="research" onOpenItem={openItem}>
       <div className="mx-auto flex w-full max-w-[800px] flex-col gap-6 px-4 pt-8 pb-10 sm:px-8">

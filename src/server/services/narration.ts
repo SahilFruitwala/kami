@@ -40,6 +40,7 @@ import {
 } from "@/lib/narration-voices.ts";
 import { SpeechError, deepgramSpeechModel, speakPart } from "@/lib/speech.server.ts";
 import { asTidyState } from "@/lib/tidy-state.ts";
+import { userCanUseAi } from "@/server/ai";
 import { runInBackground } from "@/server/background";
 import { HttpError, notFound } from "@/server/http";
 
@@ -496,6 +497,12 @@ async function runNarration(narrationId: string, origin: string): Promise<void> 
     }
 
     if (action.type === "tidy") {
+      // No AI for this user: narrate as saved, without a "Cleaning up…" step.
+      if (!(await userCanUseAi(row.userId))) {
+        n = applyEvent(n, { type: "tidied", parts: null });
+        if (!(await persist())) return;
+        continue;
+      }
       n = applyEvent(n, { type: "tidying" });
       if (!(await persist())) return;
       let parts: string[] | null = null;
