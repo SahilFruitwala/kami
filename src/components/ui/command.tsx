@@ -48,7 +48,11 @@ function CommandDialog({
         <DialogDescription>{description}</DialogDescription>
       </DialogHeader>
       <DialogContent
-        className={cn("top-1/3 translate-y-0 overflow-hidden rounded-[20px]! p-0", className)}
+        // Opened from the keyboard many times a day: no open/close motion.
+        className={cn(
+          "top-1/3 translate-y-0 overflow-hidden rounded-[20px]! p-0 data-open:animate-none data-closed:animate-none",
+          className,
+        )}
         showCloseButton={showCloseButton}
       >
         <Command

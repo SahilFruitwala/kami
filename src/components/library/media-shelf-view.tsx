@@ -12,7 +12,9 @@ import {
   Plus,
   SlidersHorizontal,
   Tv,
+  Package,
 } from "lucide-react";
+import { PosterGrid } from "@/components/library/poster-grid.tsx";
 import { AppShell } from "@/components/app-shell.tsx";
 import {
   GlossChip,
@@ -47,7 +49,7 @@ import { usePersistedPref } from "@/lib/local-pref.ts";
 import { useShelfFilters } from "@/hooks/use-shelf-filters.ts";
 
 type MediaTab = "movie" | "tv" | "book" | "wishlist";
-const VIEWS = ["shelf", "covers"] as const;
+const VIEWS = ["posters", "shelf", "covers"] as const;
 const ARRANGES = ["status", "title", "year", "added"] as const;
 type View = (typeof VIEWS)[number];
 type Arrange = (typeof ARRANGES)[number];
@@ -106,7 +108,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
   const kind: MediaKind = KIND[tab];
   const copy = COPY[tab];
   const labels = statusLabels(tab);
-  const [view, setView] = usePersistedPref<View>(`kami-${tab}-view`, VIEWS, "shelf");
+  const [view, setView] = usePersistedPref<View>(`kami-${tab}-view-v2`, VIEWS, "posters");
   const [arrange, setArrange] = usePersistedPref<Arrange>(
     `kami-${tab}-arrange`,
     ARRANGES,
@@ -253,6 +255,11 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
               onChange={setView}
               options={[
                 {
+                  id: "posters",
+                  label: tab === "wishlist" ? "Cards" : "Posters",
+                  icon: <LayoutGrid className="size-4" aria-hidden="true" />,
+                },
+                {
                   id: "shelf",
                   label: "Shelf",
                   icon: <Layers className="size-4" aria-hidden="true" />,
@@ -267,7 +274,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                         : kind === "gift"
                           ? "Boxes"
                           : "Covers",
-                  icon: <LayoutGrid className="size-4" aria-hidden="true" />,
+                  icon: <Package className="size-4" aria-hidden="true" />,
                 },
               ]}
             />
@@ -443,6 +450,8 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 </button>
               )}
             </div>
+          ) : view === "posters" ? (
+            <PosterGrid items={sorted} tab={tab} filtered={status !== "all"} onOpen={openItem} />
           ) : view === "shelf" ? (
             <>
               <Shelf<ShelfCard>

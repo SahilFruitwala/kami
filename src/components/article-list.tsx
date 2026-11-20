@@ -207,7 +207,7 @@ function ArticleCard({
   return (
     <li
       className={cn(
-        "group kami-sheet relative flex min-h-full flex-col justify-between overflow-hidden p-4 transition-[transform,box-shadow] duration-500 ease-[var(--ease-out)] hover:-translate-y-1 hover:shadow-[var(--shadow-raised)] sm:p-6",
+        "group kami-sheet relative flex min-h-full flex-col justify-between overflow-hidden p-4 transition-[transform,box-shadow] duration-200 ease-[var(--ease-out)] hover:-translate-y-1 hover:shadow-[var(--shadow-raised)] sm:p-6",
         selected && "ring-2 ring-hanko/50",
       )}
     >
@@ -283,7 +283,7 @@ function ArticleCard({
                 height="450"
                 loading="lazy"
                 decoding="async"
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                className="h-full w-full object-cover transition-transform duration-300 ease-[var(--ease-out)] group-hover:scale-105"
               />
             </ViewTransition>
           </span>

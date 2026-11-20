@@ -1,6 +1,8 @@
 @import "tailwindcss";
 @import "shadcn/tailwind.css";
 @import "./styles/gloss.css";
+@import "./styles/direction.css";
+@import "./styles/redesign.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -214,7 +216,7 @@
 ::view-transition-old(.slide-down),
 ::view-transition-old(.nav-forward),
 ::view-transition-old(.nav-back) {
-  animation: var(--duration-exit) cubic-bezier(0.55, 0, 1, 0.45) both fade reverse;
+  animation: var(--duration-exit) var(--ease-out) both fade reverse;
 }
 ::view-transition-new(.fade-in) {
   animation: var(--duration-enter) cubic-bezier(0.22, 1, 0.36, 1) both fade;
@@ -272,16 +274,30 @@
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
+    /* Gentler, not gone: keep fades and colour changes, drop movement. */
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    transition-property: opacity, color, background-color, border-color, box-shadow !important;
+    transition-duration: 150ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* Keyframe motion (rise, slide-in, stamp) becomes a plain fade. */
+  [class*="g-"][class*="--enter"],
+  .g-reader-in,
+  .g-fade-late {
+    animation: fade 150ms var(--ease-out) both !important;
   }
 
-  ::view-transition-old(*),
-  ::view-transition-new(*),
   ::view-transition-group(*) {
     animation-duration: 0s !important;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: 150ms var(--ease-out) both fade !important;
     animation-delay: 0s !important;
+  }
+  ::view-transition-old(*) {
+    animation-direction: reverse !important;
   }
 }
 
@@ -965,9 +981,9 @@
   border-radius: 18px;
   cursor: pointer;
   transition:
-    background-color 300ms var(--ease-out),
-    box-shadow 300ms var(--ease-out),
-    transform 400ms var(--ease-out);
+    background-color 150ms var(--ease-out),
+    box-shadow 200ms var(--ease-out),
+    transform 200ms var(--ease-out);
 }
 .kami-row::after {
   content: "";
@@ -977,13 +993,15 @@
   background: var(--color-line);
   transition: opacity 200ms;
 }
-.kami-row:hover {
-  background: var(--color-surface);
-  box-shadow: var(--shadow-card);
-  transform: translateY(-2px);
-}
-.kami-row:hover::after {
-  opacity: 0;
+@media (hover: hover) and (pointer: fine) {
+  .kami-row:hover {
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+    transform: translateY(-2px);
+  }
+  .kami-row:hover::after {
+    opacity: 0;
+  }
 }
 
 /* A scrollbar that stays out of the way: thin, tinted from the text colour,

@@ -12,6 +12,8 @@
    face once a page actually renders text in it. */
 @import "@fontsource-variable/newsreader/opsz.css";
 @import "@fontsource-variable/newsreader/opsz-italic.css";
+@import "@fontsource-variable/fraunces/opsz.css";
+@import "@fontsource-variable/fraunces/opsz-italic.css";
 @import "@fontsource-variable/inter/index.css";
 /* Reader font choices (READER_FONTS in src/lib/store.ts). */
 @import "@fontsource-variable/literata/opsz.css";
@@ -461,13 +463,14 @@
   padding-bottom: var(--plank);
 }
 .g-slot--enter {
-  animation: g-slide-in 420ms var(--g-ease-out) both;
-  animation-delay: calc(var(--i, 0) * 15ms);
+  animation: g-slide-in 300ms var(--g-ease-out) both;
+  /* Front-loaded stagger: early items cascade, later ones bunch up. */
+  animation-delay: calc(sqrt(min(var(--i, 0), 8)) * 45ms);
 }
 @keyframes g-slide-in {
   from {
     opacity: 0;
-    transform: translateX(60vw);
+    transform: translateX(24px);
   }
   to {
     opacity: 1;
@@ -1007,7 +1010,7 @@
 }
 .g-reveal[data-on="out"] > * {
   opacity: 0;
-  transition: opacity 100ms var(--g-ease-in);
+  transition: opacity 100ms var(--g-ease-out);
 }
 .g-ornament {
   display: flex;

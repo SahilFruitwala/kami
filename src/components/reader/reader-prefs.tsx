@@ -182,10 +182,10 @@ export function ReaderPrefsPanel({
             aria-label={color.label}
             title={color.label}
             className={cn(
-              "size-11 rounded-full border-2 transition-transform sm:size-8",
+              "size-11 rounded-full border-2 transition-transform sm:size-8 duration-150 ease-[var(--ease-out)]",
               highlightColor === color.id
                 ? "scale-110 border-ink ring-2 ring-ink/30"
-                : "border-transparent hover:scale-105",
+                : "border-transparent hover:scale-105 active:scale-95",
             )}
             style={{ background: color.swatch }}
             onClick={() => onHighlightColor(color.id)}

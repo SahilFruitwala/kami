@@ -36,7 +36,7 @@ export function CaptureForm({
         <label htmlFor="source-url" className="sr-only">
           Article URL
         </label>
-        <div className="kami-sheet flex flex-col gap-2 p-2 transition-colors focus-within:border-ink sm:flex-row sm:items-center sm:px-3">
+        <div className="kami-sheet kami-capture flex flex-col gap-2 p-2 sm:flex-row sm:items-center sm:px-3">
           <div className="flex min-w-0 w-full items-center gap-2">
             <Search className="size-[18px] shrink-0 text-ink-muted" aria-hidden="true" />
             <Input
@@ -62,7 +62,7 @@ export function CaptureForm({
           </div>
           <Button
             type="submit"
-            className="h-11 w-full shrink-0 bg-hanko text-paper hover:bg-shu sm:w-auto"
+            className="h-11 w-full shrink-0 bg-persimmon text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.2)] hover:bg-persimmon/90 hover:text-white sm:w-auto"
             disabled={busy}
           >
             {busy ? (

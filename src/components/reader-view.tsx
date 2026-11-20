@@ -466,7 +466,7 @@ export function ReaderView({
       <div
         className={cn(
           "g-reader-in mx-auto w-full px-4 pb-32 sm:px-6",
-          zen ? "pt-14 sm:pt-20 transition-[max-width] duration-300" : "max-w-6xl pt-6",
+          zen ? "pt-14 sm:pt-20" : "max-w-6xl pt-6",
         )}
         style={zen ? { maxWidth: `${columnRem}rem` } : undefined}
       >

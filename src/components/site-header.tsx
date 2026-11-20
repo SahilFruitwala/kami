@@ -9,8 +9,6 @@ import {
   LibraryBig,
   ChevronDown,
   Search,
-  Plane,
-  Lightbulb,
   Plus,
   // Rss,
   // ScanSearch,
@@ -20,7 +18,6 @@ import {
 import { KAMI_GLYPH } from "@/components/kami.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
 import { Show, SignInButton, SignUpButton, UserButton } from "@/lib/auth/gates";
-import { useResearchStatus } from "@/hooks/use-research.ts";
 import { useSlidePill } from "@/hooks/use-slide-pill.ts";
 import { cn } from "@/lib/utils.ts";
 
@@ -41,8 +38,6 @@ type Pane = {
   to:
     | "/app"
     | "/library"
-    | "/trips"
-    | "/research"
     | "/vault"
     | "/shelves/movies"
     | "/shelves/series"
@@ -56,7 +51,6 @@ type Pane = {
 const SANCTUARY_PANES: Pane[] = [
   { id: "home", to: "/app", label: "Home", icon: House },
   { id: "library", to: "/library", label: "Library", icon: LibraryBig },
-  { id: "trips", to: "/trips", label: "Trips", icon: Plane },
   { id: "vault", to: "/vault", label: "Vault", icon: Bookmark },
 ];
 
@@ -67,9 +61,6 @@ const SHELF_PANES: Pane[] = [
   { id: "books", to: "/shelves/books", label: "Books", icon: BookOpen },
   { id: "wishlist", to: "/shelves/wishlist", label: "Wishlist", icon: Gift },
 ];
-
-/** Research: shown only when this server has it set up (after Trips; last on phones). */
-const RESEARCH_PANE: Pane = { id: "research", to: "/research", label: "Research", icon: Lightbulb };
 
 const PANES: Pane[] = [...SANCTUARY_PANES, ...SHELF_PANES];
 
@@ -86,16 +77,16 @@ const NAV_LINK =
 export function SiteHeader({
   active,
   onOpenTools,
+  desktop = true,
 }: {
   active: SitePane;
   onOpenTools?: () => void;
+  /** False when the desktop sidebar (SideRail) replaces the top bar. */
+  desktop?: boolean;
 }) {
-  const research = useResearchStatus().data?.enabled === true;
-  const { ref, pill } = useSlidePill<HTMLDivElement>([active, research]);
-  const trailing = SANCTUARY_PANES.slice(2).flatMap((pane) =>
-    pane.id === "trips" && research ? [pane, RESEARCH_PANE] : [pane],
-  );
-  const phonePanes = research ? [...PANES, RESEARCH_PANE] : PANES;
+  const { ref, pill } = useSlidePill<HTMLDivElement>([active]);
+  const trailing = SANCTUARY_PANES.slice(2).flatMap((pane) => [pane]);
+  const phonePanes = PANES;
   const onShelf = SHELF_IDS.has(active);
   const [shelvesOpen, setShelvesOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -124,7 +115,7 @@ export function SiteHeader({
     tabBar.current
       ?.querySelector('[aria-current="page"]')
       ?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [active, research]);
+  }, [active]);
 
   const linkClass = (isActive: boolean) =>
     cn(NAV_LINK, isActive ? "text-ink" : "text-ink-soft hover:text-ink");
@@ -132,129 +123,131 @@ export function SiteHeader({
   return (
     <>
       {/* Top bar (desktop) */}
-      <div className="sticky top-0 z-40 hidden bg-paper/85 backdrop-blur-xl lg:block">
-        <div className="mx-auto flex h-[68px] w-full max-w-[1200px] items-center gap-6 px-8">
-          <Wordmark />
-          <nav
-            ref={ref}
-            aria-label="Pages"
-            data-slide=""
-            className="g-seg relative mx-auto !h-auto gap-0.5 p-1"
-          >
-            <span ref={pill} className="g-seg-pill" aria-hidden="true" />
-            {SANCTUARY_PANES.slice(0, 2).map((pane) => (
-              <Link
-                key={pane.id}
-                to={pane.to}
-                aria-current={active === pane.id ? "page" : undefined}
-                className={linkClass(active === pane.id)}
-              >
-                {pane.label}
-              </Link>
-            ))}
-            <div ref={menuRef} className="relative">
-              <button
-                type="button"
-                aria-haspopup="menu"
-                aria-expanded={shelvesOpen}
-                aria-current={onShelf ? "page" : undefined}
-                onClick={() => setShelvesOpen((v) => !v)}
-                className={linkClass(onShelf)}
-              >
-                Shelves
-                <ChevronDown
-                  className={cn(
-                    "size-3.5 transition-transform duration-300 ease-[var(--ease-spring)]",
-                    shelvesOpen && "rotate-180",
-                  )}
-                  aria-hidden="true"
-                />
-              </button>
-              <div
-                role="menu"
-                aria-label="Shelves"
-                data-open={shelvesOpen}
-                className="kami-menu absolute top-[calc(100%+10px)] left-1/2 z-50 grid min-w-44 -translate-x-1/2 gap-0.5 rounded-2xl bg-surface p-1.5 shadow-[var(--shadow-raised)]"
-              >
-                {SHELF_PANES.map((pane) => (
-                  <Link
-                    key={pane.id}
-                    to={pane.to}
-                    role="menuitem"
-                    aria-current={active === pane.id ? "page" : undefined}
-                    tabIndex={shelvesOpen ? 0 : -1}
-                    className="flex items-center gap-2.5 rounded-xl px-3 py-2 font-sans text-sm font-medium text-ink-soft transition-colors hover:bg-paper-warm hover:text-ink aria-[current=page]:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
-                  >
-                    <pane.icon className="size-4 shrink-0 text-ink-muted" aria-hidden="true" />
-                    {pane.label}
-                  </Link>
-                ))}
-              </div>
-            </div>
-            {trailing.map((pane) => (
-              <Link
-                key={pane.id}
-                to={pane.to}
-                aria-current={active === pane.id ? "page" : undefined}
-                className={linkClass(active === pane.id)}
-              >
-                {pane.label}
-              </Link>
-            ))}
-          </nav>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new Event("kami:open-palette"))}
-              aria-label="Search"
-              title="Search (⌘K)"
-              className={ICON_BTN}
+      {desktop ? (
+        <div className="kami-masthead sticky top-0 z-40 hidden backdrop-blur-xl lg:block">
+          <div className="mx-auto flex h-[68px] w-full max-w-[1200px] items-center gap-6 px-8">
+            <Wordmark />
+            <nav
+              ref={ref}
+              aria-label="Pages"
+              data-slide=""
+              className="g-seg relative mx-auto !h-auto gap-0.5 p-1"
             >
-              <Search className="size-[18px]" aria-hidden="true" />
-            </button>
-            {onOpenTools ? (
+              <span ref={pill} className="g-seg-pill" aria-hidden="true" />
+              {SANCTUARY_PANES.slice(0, 2).map((pane) => (
+                <Link
+                  key={pane.id}
+                  to={pane.to}
+                  aria-current={active === pane.id ? "page" : undefined}
+                  className={linkClass(active === pane.id)}
+                >
+                  {pane.label}
+                </Link>
+              ))}
+              <div ref={menuRef} className="relative">
+                <button
+                  type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={shelvesOpen}
+                  aria-current={onShelf ? "page" : undefined}
+                  onClick={() => setShelvesOpen((v) => !v)}
+                  className={linkClass(onShelf)}
+                >
+                  Shelves
+                  <ChevronDown
+                    className={cn(
+                      "size-3.5 transition-transform duration-200 ease-[var(--ease-out)]",
+                      shelvesOpen && "rotate-180",
+                    )}
+                    aria-hidden="true"
+                  />
+                </button>
+                <div
+                  role="menu"
+                  aria-label="Shelves"
+                  data-open={shelvesOpen}
+                  className="kami-menu absolute top-[calc(100%+10px)] left-1/2 z-50 grid min-w-44 -translate-x-1/2 gap-0.5 rounded-2xl bg-surface p-1.5 shadow-[var(--shadow-raised)]"
+                >
+                  {SHELF_PANES.map((pane) => (
+                    <Link
+                      key={pane.id}
+                      to={pane.to}
+                      role="menuitem"
+                      aria-current={active === pane.id ? "page" : undefined}
+                      tabIndex={shelvesOpen ? 0 : -1}
+                      className="flex items-center gap-2.5 rounded-xl px-3 py-2 font-sans text-sm font-medium text-ink-soft transition-colors hover:bg-paper-warm hover:text-ink aria-[current=page]:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
+                    >
+                      <pane.icon className="size-4 shrink-0 text-ink-muted" aria-hidden="true" />
+                      {pane.label}
+                    </Link>
+                  ))}
+                </div>
+              </div>
+              {trailing.map((pane) => (
+                <Link
+                  key={pane.id}
+                  to={pane.to}
+                  aria-current={active === pane.id ? "page" : undefined}
+                  className={linkClass(active === pane.id)}
+                >
+                  {pane.label}
+                </Link>
+              ))}
+            </nav>
+            <div className="flex items-center gap-1">
               <button
                 type="button"
-                onClick={onOpenTools}
-                aria-label="Capture tools"
-                title="Capture tools"
+                onClick={() => window.dispatchEvent(new Event("kami:open-palette"))}
+                aria-label="Search"
+                title="Search (⌘K)"
                 className={ICON_BTN}
               >
-                <Plus className="size-[18px]" aria-hidden="true" />
+                <Search className="size-[18px]" aria-hidden="true" />
               </button>
-            ) : null}
-            <Link
-              to="/settings"
-              aria-label="Settings"
-              aria-current={active === "settings" ? "page" : undefined}
-              className={cn(ICON_BTN, active === "settings" && "bg-paper-warm text-ink")}
-            >
-              <SettingsIcon className="size-4" aria-hidden="true" />
-            </Link>
-            <ThemeToggle className="rounded-full text-ink-muted hover:text-ink" />
-            <Show when="signed-in">
-              <div className="ml-1.5 flex items-center gap-2">
-                <UserButton />
-              </div>
-            </Show>
-            <Show when="signed-out">
-              <SignInButton mode="modal">
-                <button type="button" className="g-btn g-btn--ghost ml-1 h-9">
-                  Sign in
+              {onOpenTools ? (
+                <button
+                  type="button"
+                  onClick={onOpenTools}
+                  aria-label="Capture tools"
+                  title="Capture tools"
+                  className={ICON_BTN}
+                >
+                  <Plus className="size-[18px]" aria-hidden="true" />
                 </button>
-              </SignInButton>
-              <SignUpButton mode="modal">
-                <button type="button" className="g-btn g-btn--ink h-9">
-                  Sign up
-                </button>
-              </SignUpButton>
-            </Show>
+              ) : null}
+              <Link
+                to="/settings"
+                aria-label="Settings"
+                aria-current={active === "settings" ? "page" : undefined}
+                className={cn(ICON_BTN, active === "settings" && "bg-paper-warm text-ink")}
+              >
+                <SettingsIcon className="size-4" aria-hidden="true" />
+              </Link>
+              <ThemeToggle className="rounded-full text-ink-muted hover:text-ink" />
+              <Show when="signed-in">
+                <div className="ml-1.5 flex items-center gap-2">
+                  <UserButton />
+                </div>
+              </Show>
+              <Show when="signed-out">
+                <SignInButton mode="modal">
+                  <button type="button" className="g-btn g-btn--ghost ml-1 h-9">
+                    Sign in
+                  </button>
+                </SignInButton>
+                <SignUpButton mode="modal">
+                  <button type="button" className="g-btn g-btn--ink h-9">
+                    Sign up
+                  </button>
+                </SignUpButton>
+              </Show>
+            </div>
           </div>
         </div>
-      </div>
+      ) : null}
 
       {/* Mobile top row */}
-      <div className="sticky top-0 z-40 bg-paper/90 pt-[env(safe-area-inset-top)] backdrop-blur-xl lg:hidden">
+      <div className="kami-masthead sticky top-0 z-40 pt-[env(safe-area-inset-top)] backdrop-blur-xl lg:hidden">
         <div className="flex h-14 items-center justify-between gap-3 px-[max(1rem,env(safe-area-inset-left))]">
           <Wordmark />
           <div className="flex items-center gap-1">
@@ -319,7 +312,7 @@ export function SiteHeader({
 }
 
 const ICON_BTN =
-  "flex size-9 shrink-0 items-center justify-center rounded-full text-ink-muted transition-[background-color,color,transform] duration-300 ease-[var(--ease-spring)] hover:bg-paper-warm hover:text-ink hover:rotate-[14deg] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40";
+  "flex size-9 shrink-0 items-center justify-center rounded-full text-ink-muted transition-[background-color,color,transform] duration-150 ease-[var(--ease-out)] hover:bg-paper-warm hover:text-ink active:scale-[0.94] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40";
 
 /** Serif wordmark: the 紙 seal and "Kami". */
 function Wordmark() {

@@ -18,10 +18,10 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
     >
       <span
         className={cn(
-          "block h-full rounded-full transition-[width] duration-300",
+          "block h-full rounded-full w-full origin-left transition-transform duration-300 ease-[var(--ease-out)]",
           done >= total && total > 0 ? "bg-hanko" : "bg-bamboo",
         )}
-        style={{ width: `${pct}%` }}
+        style={{ transform: `scaleX(${pct / 100})` }}
       />
     </span>
   );

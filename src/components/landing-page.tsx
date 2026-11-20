@@ -256,7 +256,7 @@ export function LandingPage() {
             {SHELF_ROWS.map((row) => (
               <li
                 key={row.title}
-                className="group flex items-center gap-[18px] border-b border-line py-4 transition-transform duration-500 ease-[var(--ease-out)] last:border-b-0 hover:translate-x-1"
+                className="group flex items-center gap-[18px] border-b border-line py-4 transition-transform duration-200 ease-[var(--ease-out)] last:border-b-0 hover:translate-x-1"
               >
                 <span
                   aria-hidden="true"
@@ -321,7 +321,7 @@ export function LandingPage() {
                   {f.q}
                   <span
                     aria-hidden="true"
-                    className="font-sans text-[22px] leading-none text-persimmon transition-transform duration-500 ease-[var(--ease-spring)] group-open:rotate-45"
+                    className="font-sans text-[22px] leading-none text-persimmon transition-transform duration-200 ease-[var(--ease-out)] group-open:rotate-45"
                   >
                     +
                   </span>
