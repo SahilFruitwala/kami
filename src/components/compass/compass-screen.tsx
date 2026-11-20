@@ -168,6 +168,14 @@ function Side({
 }) {
   const [menu, setMenu] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  // On phones the page list is a sideways-scrolling row: keep the current page in view.
+  useEffect(() => {
+    const nav = navRef.current;
+    const active = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!nav || !active || nav.scrollWidth <= nav.clientWidth) return;
+    nav.scrollLeft = active.offsetLeft - nav.clientWidth / 2 + active.offsetWidth / 2;
+  }, [route]);
   useEffect(() => {
     if (!menu) return;
     const down = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setMenu(false);
@@ -255,8 +263,12 @@ function Side({
           </div>
         ) : null}
       </div>
-      <nav className="cp-nav" aria-label="Compass pages">
-        <Link to="/compass" aria-current={route === "overview" ? "page" : undefined}>
+      <nav ref={navRef} className="cp-nav" aria-label="Compass pages">
+        <Link
+          to="/compass"
+          activeOptions={{ exact: true }}
+          aria-current={route === "overview" ? "page" : undefined}
+        >
           Overview
         </Link>
         {model.goals.length ? <small>Goals</small> : null}
