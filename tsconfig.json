@@ -15,5 +15,15 @@
     },
     "allowImportingTsExtensions": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Trips and Research are parked (see vite.config.ts): their routes are out
+  // of the route tree, so their files no longer type-check against it.
+  "exclude": [
+    "src/routes/trips",
+    "src/routes/research",
+    "src/routes/api/trips",
+    "src/routes/api/research",
+    "src/components/trips",
+    "src/components/research"
+  ]
 }

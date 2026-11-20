@@ -18,6 +18,7 @@ import {
   Printer,
   Share2,
   UnfoldHorizontal,
+  ListTree,
 } from "lucide-react";
 import { toast } from "sonner";
 import { stampToast } from "@/components/gloss/stamp-toast.tsx";
@@ -51,6 +52,13 @@ import { TONES } from "@/lib/paper-tones.ts";
 import { cn } from "@/lib/utils.ts";
 import { MarginaliaHighlights } from "@/components/reader/marginalia-highlights.tsx";
 import { ReaderAi } from "@/components/reader/reader-ai.tsx";
+import {
+  ReaderTocAside,
+  ReaderTocRail,
+  ReaderTocSheet,
+  useActiveHeading,
+  useArticleToc,
+} from "@/components/reader/reader-toc.tsx";
 import { nextInQueue } from "@/lib/filter-library.ts";
 
 export function ReaderView({
@@ -107,6 +115,10 @@ export function ReaderView({
     () => applyHighlights(rewriteHtmlImages(article.contentHtml), item.highlights),
     [article.contentHtml, item.highlights],
   );
+
+  const tocEntries = useArticleToc(bodyRef, html);
+  const activeHeading = useActiveHeading(tocEntries);
+  const [tocOpen, setTocOpen] = useState(false);
 
   const progress = useReaderProgress(article.canonicalUrl, item.id);
   const {
@@ -335,8 +347,34 @@ export function ReaderView({
     ...sheet.vars,
   } as CSSProperties;
 
+  // Focus paints the page with the article's paper. The sheet already uses
+  // that colour, so the card edge around the text goes away.
+  useEffect(() => {
+    if (!zen) return;
+    const root = document.documentElement;
+    const body = document.body;
+    const previous = {
+      rootBg: root.style.backgroundColor,
+      bodyBg: body.style.backgroundColor,
+      scheme: root.style.colorScheme,
+    };
+    root.style.backgroundColor = sheet.bg;
+    body.style.backgroundColor = sheet.bg;
+    root.style.colorScheme = sheet.scheme;
+    return () => {
+      root.style.backgroundColor = previous.rootBg;
+      body.style.backgroundColor = previous.bodyBg;
+      root.style.colorScheme = previous.scheme;
+    };
+  }, [zen, sheet.bg, sheet.scheme]);
+
   return (
-    <div className="kami-desk relative min-h-dvh [touch-action:manipulation]">
+    <div
+      className="kami-desk relative min-h-dvh transition-colors duration-300 [touch-action:manipulation]"
+      style={
+        zen ? { backgroundColor: sheet.bg, color: sheet.fg, colorScheme: sheet.scheme } : undefined
+      }
+    >
       {/* Reading progress — hidden in zen so only text remains */}
       {!zen ? (
         <div
@@ -428,11 +466,11 @@ export function ReaderView({
       <div
         className={cn(
           "g-reader-in mx-auto w-full px-4 pb-32 sm:px-6",
-          zen ? "pt-14 sm:pt-20 transition-[max-width] duration-300" : "max-w-6xl pt-6",
+          zen ? "pt-14 sm:pt-20" : "max-w-6xl pt-6",
         )}
         style={zen ? { maxWidth: `${columnRem}rem` } : undefined}
       >
-        {/* Reading sheet — in zen the card chrome falls away, leaving just text */}
+        {/* Reading sheet — in focus the page uses this same paper, so the card edge is gone */}
         <div
           className={cn(
             "relative rounded-xl p-6 transition-colors duration-300 sm:p-8 lg:p-12",
@@ -564,6 +602,7 @@ export function ReaderView({
                 className="flex min-w-0 flex-col gap-6 lg:col-span-4 lg:sticky lg:top-24 lg:-mx-1 lg:max-h-[calc(100dvh-7rem)] lg:overflow-y-auto lg:overscroll-contain lg:px-1 lg:pb-6 kami-quiet-scroll"
                 aria-label="Marginalia and reflection notes"
               >
+                <ReaderTocAside entries={tocEntries} active={activeHeading} percent={percent} />
                 <div className="flex items-center justify-between gap-2">
                   <p className="flex items-center gap-2 font-sans text-[13px] font-medium opacity-60">
                     <PenLine className="size-[18px] shrink-0" aria-hidden="true" />
@@ -636,6 +675,16 @@ export function ReaderView({
       <NarrationPlayer item={item} narration={narration} />
       <NarrationRefusalDialog narration={narration} />
 
+      {zen ? <ReaderTocRail entries={tocEntries} active={activeHeading} /> : null}
+      <ReaderTocSheet
+        entries={tocEntries}
+        active={activeHeading}
+        percent={percent}
+        open={tocOpen}
+        onClose={() => setTocOpen(false)}
+        className={zen ? "md:hidden" : "lg:hidden"}
+      />
+
       {zen ? (
         /* Zen: quiet on desktop, fully discoverable on touch screens. */
         <div className="fixed bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 z-40 -translate-x-1/2 opacity-100 transition-opacity duration-300 md:opacity-40 md:hover:opacity-100 md:focus-within:opacity-100">
@@ -655,6 +704,17 @@ export function ReaderView({
             >
               {percent}%
             </span>
+            {tocEntries.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setTocOpen(true)}
+                aria-label="Contents"
+                title="Contents"
+                className="flex size-11 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-paper-warm hover:text-ink md:hidden"
+              >
+                <ListTree className="size-4" aria-hidden="true" />
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => bumpReaderWidth(-1)}
@@ -718,6 +778,16 @@ export function ReaderView({
             ) : null}
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {tocEntries.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setTocOpen(true)}
+                aria-label="Contents"
+                className="flex size-11 items-center justify-center rounded-full bg-paper-warm text-ink-soft transition-colors hover:text-ink lg:hidden"
+              >
+                <ListTree className="size-[18px]" aria-hidden="true" />
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={() => setZen((v) => !v)}

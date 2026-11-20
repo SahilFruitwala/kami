@@ -5,6 +5,7 @@ import { DirectionalTransition } from "@/components/directional-transition.tsx";
 import { ToolsDialog } from "@/components/library/library-dialogs.tsx";
 import { SiteFooter } from "@/components/library/site-footer.tsx";
 import { NameOnboarding } from "@/components/name-onboarding.tsx";
+import { SideRail } from "@/components/side-rail.tsx";
 import { SiteHeader, type SitePane } from "@/components/site-header.tsx";
 import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
 import { flushAllSyncQueues, pendingSyncCount, subscribeSyncQueues } from "@/lib/sync-queue.ts";
@@ -46,34 +47,45 @@ export function AppShell({
   return (
     <AppGate>
       <DirectionalTransition>
-        <main
-          id="main"
-          className="kami-desk relative flex min-h-dvh flex-col overflow-x-hidden [touch-action:manipulation]"
-        >
-          <a
-            href="#main"
-            className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-ink focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper"
+        <div className="rd-ui rd-shell">
+          <div className="rd-shell-rail">
+            <SideRail active={active} onOpenTools={() => tools.setToolsOpen(true)} />
+          </div>
+          <main
+            id="main"
+            className="kami-desk relative flex min-h-dvh min-w-0 flex-col overflow-x-hidden [touch-action:manipulation]"
           >
-            Skip to content
-          </a>
-          <SiteHeader active={active} onOpenTools={() => tools.setToolsOpen(true)} />
-          <div className="flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0">
-            {requireLibrary ? <LibraryGate>{children}</LibraryGate> : children}
-          </div>
-          <div className="pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0">
-            <SiteFooter />
-          </div>
-          <ToolsDialog
-            open={tools.toolsOpen}
-            onOpenChange={tools.setToolsOpen}
-            bookmarklet={tools.bookmarklet}
-          />
-          <Suspense fallback={null}>
-            <CommandPalette onOpenItem={onOpenItem} />
-          </Suspense>
-          <NameOnboarding />
-          <OfflineBanner />
-        </main>
+            <a
+              href="#main"
+              className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-2 focus-visible:left-2 focus-visible:z-50 focus-visible:rounded-md focus-visible:bg-ink focus-visible:px-4 focus-visible:py-2 focus-visible:text-sm focus-visible:text-paper"
+            >
+              Skip to content
+            </a>
+            <SiteHeader
+              active={active}
+              onOpenTools={() => tools.setToolsOpen(true)}
+              desktop={false}
+            />
+            <div className="flex-1 pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0">
+              <div className={active === "home" ? undefined : "rd-page-enter"}>
+                {requireLibrary ? <LibraryGate>{children}</LibraryGate> : children}
+              </div>
+            </div>
+            <div className="pb-[calc(3rem+env(safe-area-inset-bottom))] lg:pb-0">
+              <SiteFooter />
+            </div>
+            <ToolsDialog
+              open={tools.toolsOpen}
+              onOpenChange={tools.setToolsOpen}
+              bookmarklet={tools.bookmarklet}
+            />
+            <Suspense fallback={null}>
+              <CommandPalette onOpenItem={onOpenItem} />
+            </Suspense>
+            <NameOnboarding />
+            <OfflineBanner />
+          </main>
+        </div>
       </DirectionalTransition>
     </AppGate>
   );

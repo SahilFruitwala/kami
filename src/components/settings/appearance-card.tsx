@@ -204,10 +204,10 @@ export function AppearanceCard() {
                 onClick={() => setHighlightColor(c.id)}
                 style={{ background: c.swatch }}
                 className={cn(
-                  "size-8 rounded-full border-2 transition-transform",
+                  "size-8 rounded-full border-2 transition-transform duration-150 ease-[var(--ease-out)]",
                   highlightColor === c.id
                     ? "scale-110 border-ink ring-2 ring-ink/30"
-                    : "border-transparent hover:scale-105",
+                    : "border-transparent hover:scale-105 active:scale-95",
                 )}
               />
             ))}

@@ -1,5 +1,14 @@
 import { useDeferredValue, useEffect, useMemo, useState, type ReactNode } from "react";
-import { CheckSquare, Layers, LayoutGrid, LibraryBig, List, SlidersHorizontal } from "lucide-react";
+import {
+  CheckSquare,
+  Layers,
+  LayoutGrid,
+  LibraryBig,
+  List,
+  SlidersHorizontal,
+  Tags,
+} from "lucide-react";
+import { CoverGrid } from "@/components/library/cover-grid.tsx";
 import { toast } from "sonner";
 import { ArticleList } from "@/components/article-list.tsx";
 import { LibraryFilters } from "@/components/library-filters.tsx";
@@ -37,13 +46,7 @@ import {
   type LibrarySort,
   type LibraryTab,
 } from "@/lib/filter-library.ts";
-import {
-  bookSpineLook,
-  topicFamily,
-  topicLabel,
-  topicOf,
-  type TopicId,
-} from "@/lib/gloss/palette.ts";
+import { topicFamily, topicLabel, topicOf, type TopicId } from "@/lib/gloss/palette.ts";
 import { loadMoreLibrary } from "@/lib/library-remote.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
 import { useLibraryStore } from "@/lib/store.ts";
@@ -66,7 +69,7 @@ const SORT_LABELS: { id: LibrarySort; label: string }[] = [
   { id: "title", label: "Title A–Z" },
 ];
 
-const VIEWS = ["shelf", "topics", "list"] as const;
+const VIEWS = ["covers", "shelf", "topics", "list"] as const;
 const ARRANGES = ["topic", "colour", "recent", "length"] as const satisfies readonly ShelfArrange[];
 type View = (typeof VIEWS)[number];
 type Arrange = (typeof ARRANGES)[number];
@@ -125,7 +128,7 @@ export function LibraryHome({
   const [moreOpen, setMoreOpen] = useState(
     () => filters.folderFilter !== "all" || filters.tagFilter != null || filters.favoritesOnly,
   );
-  const [view, setViewState] = usePersistedPref<View>("kami-library-view", VIEWS, "shelf");
+  const [view, setViewState] = usePersistedPref<View>("kami-library-view-v2", VIEWS, "covers");
   const [arrange, setArrange] = usePersistedPref<Arrange>(
     "kami-library-arrange",
     ARRANGES,
@@ -190,6 +193,15 @@ export function LibraryHome({
     return [{ id: String(topic), items: sorted }];
   }, [baseVisible, buckets, topic, arrange, topicById]);
 
+  const coverItems = useMemo(
+    () =>
+      sortLibraryItems(
+        topic === "all" ? baseVisible : baseVisible.filter((it) => topicById.get(it.id) === topic),
+        filters.sort,
+      ),
+    [baseVisible, topic, topicById, filters.sort],
+  );
+
   const listVisible = useMemo(
     () => sortLibraryItems(baseVisible, filters.sort),
     [baseVisible, filters.sort],
@@ -243,6 +255,11 @@ export function LibraryHome({
             onChange={setView}
             options={[
               {
+                id: "covers",
+                label: "Covers",
+                icon: <LayoutGrid className="size-4" aria-hidden="true" />,
+              },
+              {
                 id: "shelf",
                 label: "Shelf",
                 icon: <Layers className="size-4" aria-hidden="true" />,
@@ -250,7 +267,7 @@ export function LibraryHome({
               {
                 id: "topics",
                 label: "Tags",
-                icon: <LayoutGrid className="size-4" aria-hidden="true" />,
+                icon: <Tags className="size-4" aria-hidden="true" />,
               },
               { id: "list", label: "List", icon: <List className="size-4" aria-hidden="true" /> },
             ]}
@@ -309,7 +326,7 @@ export function LibraryHome({
                     ]}
                   />
                 </div>
-              ) : view === "list" ? (
+              ) : view === "list" || view === "covers" ? (
                 <div className="grid gap-2">
                   <label className="font-sans text-sm text-ink-muted" htmlFor="library-sort">
                     Sort by
@@ -373,7 +390,7 @@ export function LibraryHome({
         ) : null}
 
         {/* Topic chips (shelf view) */}
-        {view === "shelf" && buckets.length > 0 ? (
+        {(view === "shelf" || view === "covers") && buckets.length > 0 ? (
           <div className="mt-5 flex flex-wrap gap-2" aria-label="Tags">
             <GlossChip active={topic === "all"} onClick={() => setTopic("all")} count={totalShown}>
               All
@@ -395,7 +412,13 @@ export function LibraryHome({
       </GlossColumn>
 
       <GlossColumn className="pt-6 pb-16">
-        {view === "shelf" ? (
+        {view === "covers" ? (
+          coverItems.length === 0 ? (
+            <EmptyShelf copy={emptyCopy} />
+          ) : (
+            <CoverGrid items={coverItems} onOpen={onOpenItem} />
+          )
+        ) : view === "shelf" ? (
           totalShown === 0 ? (
             <EmptyShelf copy={emptyCopy} />
           ) : (
@@ -415,11 +438,11 @@ export function LibraryHome({
                     .join(", "),
                   label: `${it.title}${it.author ? ` by ${it.author}` : ""}, ${minutesLabel(it.readingMinutes)}`,
                 })}
-                onPick={(it) => setPicked({ id: it.id, kind: "spine" })}
+                onPick={onOpenItem}
                 decoration={topic !== "all" ? <LyingBooks topic={topic} seed={topic} /> : undefined}
               />
               <p className="mt-6 font-sans text-[13px] text-ink-muted">
-                Click a spine to take it down. Arrow keys walk the shelf.
+                Hover a book to face it, click to read it. Arrow keys walk the shelf.
               </p>
             </>
           )
@@ -474,14 +497,7 @@ export function LibraryHome({
           source={picked}
           label={pickedItem.title}
           coverSize={{ w: 430, h: 620 }}
-          depthRatio={
-            picked.kind === "spine"
-              ? (() => {
-                  const l = bookSpineLook(pickedItem, pickedTopic);
-                  return l.width / l.height;
-                })()
-              : 0.06
-          }
+          depthRatio={0.06}
           spineFace={<BookSpineFace item={pickedItem} topic={pickedTopic} />}
           cover={<BookCover item={pickedItem} topic={pickedTopic} />}
           inside={

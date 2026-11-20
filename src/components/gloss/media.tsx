@@ -714,8 +714,8 @@ export function MediaPage({
                 </div>
                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-paper-warm">
                   <div
-                    className="h-full rounded-full bg-ink transition-[width] duration-300"
-                    style={{ width: `${pct}%` }}
+                    className="h-full w-full origin-left rounded-full bg-ink transition-transform duration-300 ease-[var(--ease-out)]"
+                    style={{ transform: `scaleX(${pct / 100})` }}
                   />
                 </div>
               </div>
@@ -737,8 +737,8 @@ export function MediaPage({
                 </div>
                 <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-paper-warm">
                   <div
-                    className="h-full rounded-full bg-ink transition-[width] duration-300"
-                    style={{ width: `${Math.min(100, (watched / eps) * 100)}%` }}
+                    className="h-full w-full origin-left rounded-full bg-ink transition-transform duration-300 ease-[var(--ease-out)]"
+                    style={{ transform: `scaleX(${Math.min(1, watched / eps)})` }}
                   />
                 </div>
               </div>

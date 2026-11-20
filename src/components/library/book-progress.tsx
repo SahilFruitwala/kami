@@ -119,10 +119,10 @@ export function BookProgress({
       >
         <span
           className={cn(
-            "block h-full rounded-full transition-[width] duration-300 motion-reduce:transition-none",
+            "block h-full rounded-full w-full origin-left transition-transform duration-300 ease-[var(--ease-out)] motion-reduce:transition-none",
             previewPercent >= 100 ? "bg-hanko" : "bg-bamboo",
           )}
-          style={{ width: `${previewPercent}%` }}
+          style={{ transform: `scaleX(${previewPercent / 100})` }}
         />
       </span>
 

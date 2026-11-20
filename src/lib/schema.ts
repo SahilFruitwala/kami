@@ -965,3 +965,156 @@ export const researchModelCache = pgTable(
   },
   (t) => [index("research_model_cache_created_idx").on(t.createdAt)],
 );
+
+/** Compass — `migrations/0029_compass.sql`. */
+export const compassSettings = pgTable("compass_settings", {
+  userId: text("user_id")
+    .primaryKey()
+    .references(() => user.id, { onDelete: "cascade" }),
+  timezone: text("timezone").notNull().default("UTC"),
+  /** 1 = Monday, 0 = Sunday. */
+  weekStart: smallint("week_start").notNull().default(1),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const compassQuarters = pgTable(
+  "compass_quarters",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    year: integer("year").notNull(),
+    quarter: smallint("quarter").notNull(),
+    status: text("status").$type<"planning" | "active" | "closed">().notNull().default("active"),
+    retro: text("retro"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("compass_quarters_user_idx").on(t.userId, t.year, t.quarter)],
+);
+
+export const compassGoals = pgTable(
+  "compass_goals",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    quarterId: text("quarter_id")
+      .notNull()
+      .references(() => compassQuarters.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    why: text("why"),
+    color: text("color").notNull().default("persimmon"),
+    sort: integer("sort").notNull().default(0),
+    outcome: text("outcome").$type<"done" | "carried" | "dropped">(),
+    carriedFromGoalId: text("carried_from_goal_id").references((): AnyPgColumn => compassGoals.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("compass_goals_quarter_idx").on(t.quarterId, t.sort)],
+);
+
+export const compassMilestones = pgTable(
+  "compass_milestones",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    goalId: text("goal_id")
+      .notNull()
+      .references(() => compassGoals.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    dueOn: date("due_on", { mode: "string" }),
+    weight: text("weight").$type<"S" | "M" | "L">().notNull().default("M"),
+    doneAt: timestamp("done_at", { withTimezone: true }),
+    sort: integer("sort").notNull().default(0),
+  },
+  (t) => [index("compass_milestones_goal_idx").on(t.goalId, t.sort)],
+);
+
+export const compassHabits = pgTable(
+  "compass_habits",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    goalId: text("goal_id").references(() => compassGoals.id, { onDelete: "set null" }),
+    name: text("name").notNull(),
+    kind: text("kind").$type<"check" | "count">().notNull().default("check"),
+    target: real("target"),
+    unit: text("unit"),
+    sort: integer("sort").notNull().default(0),
+    createdOn: date("created_on", { mode: "string" }).notNull(),
+    pausedOn: date("paused_on", { mode: "string" }),
+    pauses: jsonb("pauses").$type<{ from: string; to: string }[]>().notNull().default([]),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("compass_habits_user_idx").on(t.userId, t.sort)],
+);
+
+export const compassHabitSchedules = pgTable(
+  "compass_habit_schedules",
+  {
+    id: text("id").primaryKey(),
+    habitId: text("habit_id")
+      .notNull()
+      .references(() => compassHabits.id, { onDelete: "cascade" }),
+    startsOn: date("starts_on", { mode: "string" }).notNull(),
+    rule: text("rule").$type<"daily" | "days" | "per_week">().notNull(),
+    days: jsonb("days").$type<number[]>().notNull().default([]),
+    perWeek: smallint("per_week"),
+  },
+  (t) => [uniqueIndex("compass_habit_schedules_start_idx").on(t.habitId, t.startsOn)],
+);
+
+export const compassLogs = pgTable(
+  "compass_logs",
+  {
+    habitId: text("habit_id")
+      .notNull()
+      .references(() => compassHabits.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    day: date("day", { mode: "string" }).notNull(),
+    value: real("value").notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.habitId, t.day] }),
+    index("compass_logs_user_idx").on(t.userId, t.day),
+  ],
+);
+
+export type CompassGoalRow = typeof compassGoals.$inferSelect;
+export type CompassMilestoneRow = typeof compassMilestones.$inferSelect;
+export type CompassHabitRow = typeof compassHabits.$inferSelect;
+export type CompassScheduleRow = typeof compassHabitSchedules.$inferSelect;
+
+export const compassReviews = pgTable(
+  "compass_reviews",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    quarterId: text("quarter_id")
+      .notNull()
+      .references(() => compassQuarters.id, { onDelete: "cascade" }),
+    weekStart: date("week_start", { mode: "string" }).notNull(),
+    answers: jsonb("answers")
+      .$type<{ moved: string; blocked: string; change: string }>()
+      .notNull()
+      .default({ moved: "", blocked: "", change: "" }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("compass_reviews_week_idx").on(t.quarterId, t.weekStart)],
+);
+
+export type CompassQuarterRow = typeof compassQuarters.$inferSelect;

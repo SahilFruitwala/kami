@@ -20,7 +20,7 @@ export function GlossColumn({ children, className }: { children: ReactNode; clas
 
 export function GlossEyebrow({ icon, children }: { icon?: ReactNode; children: ReactNode }) {
   return (
-    <p className="flex items-center gap-2 font-sans text-sm text-ink-muted">
+    <p className="g-eyebrow flex items-center gap-2 font-sans text-xs font-medium tracking-[0.1em] text-ink-muted uppercase [&_svg]:size-3.5">
       {icon}
       {children}
     </p>
@@ -75,10 +75,11 @@ export function GlossHeader({
 /** "101 essays, 10 topics, 35 hours" — numbers in ink, labels muted. */
 export function GlossStats({ parts }: { parts: { value: ReactNode; label: string }[] }) {
   return (
-    <p className="flex flex-wrap items-baseline gap-x-5 gap-y-1 font-sans text-[15px] leading-snug text-ink-muted">
+    <p className="g-stats flex flex-wrap items-center gap-2 font-sans text-[13.5px] leading-snug text-ink-muted">
       {parts.map((p) => (
-        <span key={p.label}>
-          <span className="font-medium text-ink tabular-nums">{p.value}</span> {p.label}
+        <span key={p.label} className="g-stat">
+          <span className="font-serif-display text-[17px] text-ink tabular-nums">{p.value}</span>{" "}
+          {p.label}
         </span>
       ))}
     </p>

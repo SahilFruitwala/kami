@@ -26,7 +26,14 @@ export default defineConfig(({ command, isPreview }) => ({
   resolve: { tsconfigPaths: true },
   plugins: [
     tailwindcss(),
-    tanstackStart(),
+    tanstackStart({
+      router: {
+        // Trips and Research are parked: their page and API route folders are
+        // left out of the route tree, so nothing from them is built, served
+        // or shipped to the browser. The code stays on disk for later.
+        routeFileIgnorePattern: "^(trips|research)$",
+      },
+    }),
     ...(command === "build" || isPreview
       ? [
           nitro({
