@@ -13,10 +13,14 @@ import { DAY_LETTERS, DAY_NAMES, colorClass, currentRule, scheduleLabel } from "
 /** What the add/edit panel is showing, if anything. */
 export type SheetState =
   | { kind: "habit"; habit?: CompassHabit; goalId?: string | null }
-  | { kind: "goal"; goal?: CompassGoal }
+  | {
+      kind: "goal";
+      goal?: CompassGoal;
+      /** Create it in the next quarter (planning). */ next?: boolean;
+    }
   | null;
 
-function Sheet({
+export function Sheet({
   open,
   onClose,
   title,
@@ -422,6 +426,7 @@ export function GoalSheet({
         <GoalForm
           key={state.goal?.id ?? "new"}
           goal={state.goal}
+          next={!!state.next}
           bounds={quarterBounds}
           onClose={onClose}
           onCreated={onCreated}
@@ -434,12 +439,14 @@ export function GoalSheet({
 
 function GoalForm({
   goal,
+  next,
   bounds,
   onClose,
   onCreated,
   onDropped,
 }: {
   goal?: CompassGoal;
+  next: boolean;
   bounds: { min: IsoDay; max: IsoDay };
   onClose: () => void;
   onCreated: (id: string) => void;
@@ -483,7 +490,10 @@ function GoalForm({
         await actions.updateGoal.mutateAsync({ id: goal.id, input });
         onClose();
       } else {
-        const { id } = await actions.createGoal.mutateAsync(input);
+        const { id } = await actions.createGoal.mutateAsync({
+          ...input,
+          ...(next ? { quarter: "next" as const } : {}),
+        });
         onClose();
         onCreated(id);
       }
@@ -609,7 +619,11 @@ function GoalForm({
         </button>
       </div>
       {!goal ? (
-        <p className="cp-hint">You'll add habits on the goal's page after creating it.</p>
+        <p className="cp-hint">
+          {next
+            ? "Habits are added once the quarter starts."
+            : "You'll add habits on the goal's page after creating it."}
+        </p>
       ) : null}
       {error ? (
         <p role="alert" className="cp-status cp-status--behind">

@@ -6,6 +6,8 @@ import type {
   GoalColor,
   goalInput,
   habitInput,
+  retroInput,
+  reviewInput,
   habitPatch,
   logInput,
   settingsInput,
@@ -43,6 +45,35 @@ export type CompassHabit = {
 
 export type CompassLog = { habitId: string; day: IsoDay; value: number };
 
+export type ReviewAnswers = { moved: string; blocked: string; change: string };
+
+export type GoalOutcome = "done" | "carried" | "dropped";
+
+/** A goal as it stands in any quarter, including how it ended. */
+export type QuarterGoal = CompassGoal & {
+  outcome: GoalOutcome | null;
+  /** The goal in the previous quarter this one carried on from. */
+  carriedFromGoalId: string | null;
+};
+
+/** The quarter rhythm around today: review, planning and the retro. */
+export type CompassRhythm = {
+  /** Week whose review is open today (Friday → Tuesday), or null. */
+  reviewWeek: IsoDay | null;
+  review: ReviewAnswers | null;
+  planningOpen: boolean;
+  next: { quarter: QuarterKey; goalCount: number };
+  /** The previous quarter's goals still waiting for a decision, if any. */
+  retro: { quarter: QuarterKey; deadline: IsoDay; goals: CompassGoal[] } | null;
+};
+
+export type QuarterRecord = {
+  quarter: QuarterKey;
+  mode: "past" | "current" | "planning";
+  goals: QuarterGoal[];
+  retro: string | null;
+};
+
 /** Everything Compass shows, as raw rows; the numbers are derived in the browser. */
 export type CompassSnapshot = {
   today: IsoDay;
@@ -52,6 +83,7 @@ export type CompassSnapshot = {
   goals: CompassGoal[];
   habits: CompassHabit[];
   logs: CompassLog[];
+  rhythm: CompassRhythm;
 };
 
 export type GoalInput = z.input<typeof goalInput>;
@@ -59,6 +91,8 @@ export type HabitInput = z.input<typeof habitInput>;
 export type HabitPatch = z.input<typeof habitPatch>;
 export type LogInput = z.input<typeof logInput>;
 export type SettingsInput = z.input<typeof settingsInput>;
+export type ReviewInput = z.input<typeof reviewInput>;
+export type RetroInput = z.input<typeof retroInput>;
 
 export const compassApi = {
   get: () => http.get<CompassSnapshot>("/api/compass"),
@@ -79,4 +113,9 @@ export const compassApi = {
   deleteHabit: (id: string) => http.delete<void>(`/api/compass/habits/${seg(id)}`),
 
   log: (input: LogInput) => http.put<void>("/api/compass/logs", input),
+
+  /** A past quarter (read-only) or the next one while planning is open. "2026-q3". */
+  quarter: (id: string) => http.get<QuarterRecord>(`/api/compass/quarters/${seg(id)}`),
+  saveReview: (input: ReviewInput) => http.put<void>("/api/compass/reviews", input),
+  closeQuarter: (input: RetroInput) => http.post<void>("/api/compass/retro", input),
 };

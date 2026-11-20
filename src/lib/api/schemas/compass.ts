@@ -47,6 +47,8 @@ export const goalInput = z.object({
   why: z.string().trim().max(400).nullable().optional(),
   color: z.enum(GOAL_COLORS).default("persimmon"),
   milestones: z.array(milestoneInput).max(MAX_MILESTONES).default([]),
+  /** Create in the next quarter (only while planning is open). Ignored on update. */
+  quarter: z.literal("next").optional(),
 });
 
 export const milestonePatch = z.object({ done: z.boolean() });
@@ -82,4 +84,25 @@ export const logInput = z.object({
   day: isoDay,
   /** 0 clears the day. 1 = done for a done/not-done habit; the amount for a counted one. */
   value: z.number().min(0).max(1_000_000),
+});
+
+export const quarterParams = z.object({
+  quarter: z.string().regex(/^\d{4}-q[1-4]$/, "Use a quarter like 2026-q4."),
+});
+
+export const reviewInput = z.object({
+  weekStart: isoDay,
+  answers: z.object({
+    moved: z.string().trim().max(1000).default(""),
+    blocked: z.string().trim().max(1000).default(""),
+    change: z.string().trim().max(1000).default(""),
+  }),
+});
+
+export const RETRO_OUTCOMES = ["done", "carried", "dropped"] as const;
+
+export const retroInput = z.object({
+  quarter: z.string().regex(/^\d{4}-q[1-4]$/),
+  decisions: z.array(z.object({ goalId: id, outcome: z.enum(RETRO_OUTCOMES) })).max(MAX_GOALS),
+  note: z.string().trim().max(2000).nullable().optional(),
 });

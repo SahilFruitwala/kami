@@ -1065,3 +1065,118 @@ textarea.cp-input {
     animation: none !important;
   }
 }
+
+/* ——— Quarter rhythm ——— */
+.cp-qswitch {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.cp-qswitch a,
+.cp-qswitch span[aria-disabled] {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: var(--ink-3);
+  transition:
+    background-color 150ms var(--ease),
+    color 150ms var(--ease);
+}
+.cp-qswitch a:hover {
+  background: var(--bg-2);
+  color: var(--ink);
+}
+.cp-qswitch span[aria-disabled] {
+  opacity: 0.35;
+  cursor: default;
+}
+.cp-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  flex-wrap: wrap;
+}
+.cp-banner b {
+  display: block;
+  font-weight: 600;
+}
+.cp-banner small {
+  display: block;
+  color: var(--ink-3);
+  font-size: 13px;
+}
+a.cp-banner {
+  transition: transform 160ms var(--ease);
+}
+a.cp-banner:active {
+  transform: scale(0.99);
+}
+.cp-review {
+  padding: 16px 18px;
+  display: grid;
+  gap: 14px;
+}
+.cp-retro-card {
+  padding: 18px;
+  display: grid;
+  gap: 8px;
+  transition:
+    transform 200ms var(--ease),
+    opacity 200ms var(--ease);
+}
+@starting-style {
+  .cp-retro-card {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.cp-retro-card.is-leaving-up {
+  transform: translateY(-24px);
+  opacity: 0;
+}
+.cp-retro-card.is-leaving-right {
+  transform: translateX(32px);
+  opacity: 0;
+}
+.cp-retro-card.is-leaving-fade {
+  opacity: 0;
+}
+.cp-retro-card p {
+  margin: 0;
+}
+.cp-retro-ms {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 2px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.cp-retro-ms li.is-done {
+  color: var(--ink-3);
+  text-decoration: line-through;
+}
+.cp-retro-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cp-retro-summary {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+}
+.cp-retro-summary li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.cp-retro-summary .cp-note {
+  margin-left: auto;
+}
