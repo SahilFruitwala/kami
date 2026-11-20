@@ -74,4 +74,13 @@ describe("year view", () => {
     assert.equal(row.weeks[i - 1], null); // before it existed
     assert.equal(row.weeks[i + 2], null); // still ahead
   });
+
+  it("rolls weeks up into months", () => {
+    const y = buildYear(rec());
+    const row = y.rows[0];
+    assert.equal(row.months.length, 12);
+    assert.equal(row.months[9], null); // October, before it started
+    assert.ok(row.months[10] > 0 && row.months[10] <= 1); // November
+    assert.equal(y.currentMonth, 10);
+  });
 });

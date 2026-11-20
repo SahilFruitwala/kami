@@ -24,6 +24,8 @@ export type YearHabitRow = {
   archived: boolean;
   /** One ratio per week of the year; null = no target, not started, or still ahead. */
   weeks: (number | null)[];
+  /** The same, rolled up to 12 months (average of the weeks ending in each month). */
+  months: (number | null)[];
 };
 
 export type YearModel = {
@@ -38,6 +40,8 @@ export type YearModel = {
   quarterStarts: number[];
   /** Index of today's week, or -1 when the year is not this one. */
   currentWeek: number;
+  /** 0–11 for this year's current month, or -1. */
+  currentMonth: number;
   rows: YearHabitRow[];
 };
 
@@ -73,18 +77,31 @@ export function buildYear(rec: YearRecord): YearModel {
   for (const q of rec.quarters) for (const g of q.goals) colors.set(g.id, g.color);
   const logs = toLogMap(rec.logs);
 
-  const rows: YearHabitRow[] = rec.habits.map((h) => ({
-    id: h.id,
-    name: h.name,
-    color: h.goalId ? (colors.get(h.goalId) ?? null) : null,
-    archived: !!h.archivedOn,
-    weeks: weeks.map((w) => {
+  // Each week counts toward the month it ends in.
+  const monthOfWeek = weeks.map((w) => Number(addDays(w, 6).slice(5, 7)) - 1);
+
+  const rows: YearHabitRow[] = rec.habits.map((h) => {
+    const byWeek = weeks.map((w) => {
       if (w > rec.today) return null;
       if (addDays(w, 6) < h.createdOn) return null;
       if (h.archivedOn && w > h.archivedOn) return null;
       return weekRatio(weekStat(h, logs, w));
-    }),
-  }));
+    });
+    const months = Array.from({ length: 12 }, (_, m) => {
+      const xs = byWeek.filter((r, i): r is number => r !== null && monthOfWeek[i] === m);
+      return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+    });
+    return {
+      id: h.id,
+      name: h.name,
+      color: h.goalId ? (colors.get(h.goalId) ?? null) : null,
+      archived: !!h.archivedOn,
+      weeks: byWeek,
+      months,
+    };
+  });
 
-  return { year: rec.year, quarters, weeks, quarterStarts, currentWeek, rows };
+  const currentMonth =
+    Number(rec.today.slice(0, 4)) === rec.year ? Number(rec.today.slice(5, 7)) - 1 : -1;
+  return { year: rec.year, quarters, weeks, quarterStarts, currentWeek, currentMonth, rows };
 }
