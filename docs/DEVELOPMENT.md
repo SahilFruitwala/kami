@@ -46,20 +46,20 @@ embedded fallback.
 
 ## Environment variables
 
-| Variable                                              | Required             | Purpose                                                                                                                  |
-| ----------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `DATABASE_URL`                                        | Prod: yes            | Postgres connection string (required)                                                                                    |
-| `VITE_AUTH_ENABLED`                                   | no                   | `"false"` disables Clerk (fail-closed — every request is rejected)                                                       |
-| `VITE_CLERK_PUBLISHABLE_KEY`                          | when auth on         | Clerk publishable key                                                                                                    |
-| `CLERK_SECRET_KEY`                                    | when auth on         | Clerk secret (server only)                                                                                               |
-| `TMDB_API_TOKEN`                                      | for movie/TV search  | TMDB Bearer token; without it search returns empty                                                                       |
-| `UPSTASH_REDIS_REST_URL` / `UPSTASH_URL`              | optional             | Redis REST URL for read-through cache                                                                                    |
-| `UPSTASH_REDIS_REST_TOKEN` / `UPSTASH_TOKEN`          | optional             | Redis REST token                                                                                                         |
-| `DATABASE_POOL_MAX`                                   | optional             | pg pool size per instance (default `5`)                                                                                  |
-| `VITE_PUBLIC_HOSTNAME`                                | optional             | Public host for OG / share cards                                                                                         |
-| `GOOGLE_GENERATIVE_AI_API_KEY` / `OPENROUTER_API_KEY` | for AI features      | Model provider keys; at least one enables the library AI features ([AI features](./ARCHITECTURE.md#ai-features))         |
-| `AI_MODELS`                                           | no                   | Model chain as `provider:model`, comma-separated, tried in order; default `openrouter:deepseek/deepseek-v4.1-flash-1017` |
-| `FIRECRAWL_API_KEY`                                   | for Trips + Research | Firecrawl API key; without it the trip agent has no web research and Research is off                                     |
+| Variable                                              | Required             | Purpose                                                                                                                                |
+| ----------------------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                        | Prod: yes            | Postgres connection string (required)                                                                                                  |
+| `VITE_AUTH_ENABLED`                                   | no                   | `"false"` disables Clerk (fail-closed — every request is rejected)                                                                     |
+| `VITE_CLERK_PUBLISHABLE_KEY`                          | when auth on         | Clerk publishable key                                                                                                                  |
+| `CLERK_SECRET_KEY`                                    | when auth on         | Clerk secret (server only)                                                                                                             |
+| `TMDB_API_TOKEN`                                      | for movie/TV search  | TMDB Bearer token; without it search returns empty                                                                                     |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_URL`              | optional             | Redis REST URL for read-through cache                                                                                                  |
+| `UPSTASH_REDIS_REST_TOKEN` / `UPSTASH_TOKEN`          | optional             | Redis REST token                                                                                                                       |
+| `DATABASE_POOL_MAX`                                   | optional             | pg pool size per instance (default `5`)                                                                                                |
+| `VITE_PUBLIC_HOSTNAME`                                | optional             | Public host for OG / share cards                                                                                                       |
+| `GOOGLE_GENERATIVE_AI_API_KEY` / `OPENROUTER_API_KEY` | for AI features      | Model provider keys; at least one is required, then `pnpm ai:grant <email> on` per user ([AI features](./ARCHITECTURE.md#ai-features)) |
+| `AI_MODELS`                                           | no                   | Model chain as `provider:model`, comma-separated, tried in order; default `openrouter:deepseek/deepseek-v4.1-flash-1017`               |
+| `FIRECRAWL_API_KEY`                                   | for Trips + Research | Firecrawl API key; without it the trip agent has no web research and Research is off                                                   |
 
 Env loading: `scripts/with-app-env.mjs` and `scripts/load-dotenv.mjs` load `.env` then `.env.local` before Vite/build/migrate. Never commit `.env`.
 
@@ -74,6 +74,7 @@ Env loading: `scripts/with-app-env.mjs` and `scripts/load-dotenv.mjs` load `.env
 | `pnpm preview`                       | Preview build (port **8081**)                                                                                               |
 | `pnpm db:up` / `db:down` / `db:logs` | Docker Compose Postgres lifecycle                                                                                           |
 | `pnpm db:migrate`                    | Apply pending `migrations/*.sql`                                                                                            |
+| `pnpm ai:grant <email> on` / `off`   | Turn library AI / trip agent / Research on or off for one user (starts off)                                                 |
 | `pnpm typecheck`                     | TypeScript check                                                                                                            |
 | `pnpm test`                          | `node --test` on `tests/**/*.test.mjs` (`tests/support/register.mjs` resolves `@/` imports, so server modules are testable) |
 | `pnpm lint`                          | ESLint                                                                                                                      |

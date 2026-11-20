@@ -114,6 +114,8 @@ export const userFeatureFlags = pgTable("user_feature_flags", {
     .primaryKey()
     .references(() => user.id, { onDelete: "cascade" }),
   sharing: boolean("sharing").notNull().default(false),
+  /** Library AI, trip agent, and Research. Off until `pnpm ai:grant`. */
+  ai: boolean("ai").notNull().default(false),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

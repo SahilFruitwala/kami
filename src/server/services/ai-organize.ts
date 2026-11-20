@@ -6,8 +6,7 @@ import { getDb } from "@/lib/db.server";
 import { enforceRateLimit } from "@/lib/rate-limit.server.ts";
 import { articles, folders } from "@/lib/schema";
 import { TAG_CATEGORIES } from "@/lib/tag-categories.ts";
-import { aiConfigured } from "@/lib/llm.server.ts";
-import { generateJson } from "@/server/ai";
+import { generateJson, userCanUseAi } from "@/server/ai";
 import { articleDocument, loadArticleForAi } from "@/server/services/ai-articles";
 import { patchLibraryItem } from "@/server/services/library";
 
@@ -58,7 +57,8 @@ export async function organizeBatch(
   userId: string,
   body: z.output<typeof organizeBody>,
 ): Promise<OrganizeProgress> {
-  if (!aiConfigured()) return { enabled: false, done: [], attempted: [], remaining: 0 };
+  if (!(await userCanUseAi(userId)))
+    return { enabled: false, done: [], attempted: [], remaining: 0 };
   const db = await getDb();
 
   const rows = await db

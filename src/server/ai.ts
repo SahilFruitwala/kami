@@ -1,7 +1,8 @@
 import "@tanstack/react-start/server-only";
 import { generateText, Output, type LanguageModel } from "ai";
 import { z } from "zod";
-import { aiLanguageModel } from "@/lib/llm.server.ts";
+import { userHasAiFlag } from "@/lib/feature-flags.server.ts";
+import { aiConfigured, aiLanguageModel } from "@/lib/llm.server.ts";
 import { HttpError } from "@/server/http";
 
 /**
@@ -28,6 +29,15 @@ export function requireAiModel(): LanguageModel {
   const model = aiLanguageModel();
   if (!model) throw new AiUnavailableError();
   return model;
+}
+
+/** A usable model is configured and this user is flagged in. */
+export async function userCanUseAi(userId: string): Promise<boolean> {
+  return aiConfigured() && (await userHasAiFlag(userId));
+}
+
+export async function requireUserAi(userId: string): Promise<void> {
+  if (!(await userCanUseAi(userId))) throw new AiUnavailableError();
 }
 
 /** Wrap untrusted text for a prompt. */

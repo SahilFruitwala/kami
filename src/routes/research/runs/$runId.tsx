@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button.tsx";
 import { IdeaCard } from "@/components/research/idea-card.tsx";
 import { PlanEditor } from "@/components/research/plan-editor.tsx";
 import { RunProgressPanel } from "@/components/research/run-progress.tsx";
-import { EmptyNote, StatePill } from "@/components/research/research-ui.tsx";
-import { useResearchRun, useResearchRefresh } from "@/hooks/use-research.ts";
+import { EmptyNote, ResearchUnavailable, StatePill } from "@/components/research/research-ui.tsx";
+import { useResearchStatus, useResearchRun, useResearchRefresh } from "@/hooks/use-research.ts";
 import { researchApi, type RunView } from "@/lib/api/research.ts";
 import { toastError } from "@/lib/errors";
 import type { LibraryItem } from "@/lib/library-item.ts";
@@ -24,6 +24,7 @@ export const Route = createFileRoute("/research/runs/$runId")({
 function RunPage() {
   const { runId } = Route.useParams();
   const navigate = Route.useNavigate();
+  const status = useResearchStatus();
   const query = useResearchRun(runId);
 
   function openItem(item: LibraryItem) {
@@ -34,6 +35,13 @@ function RunPage() {
   }
 
   const view = query.data;
+  if (status.data && !status.data.enabled) {
+    return (
+      <AppShell active="research" onOpenItem={openItem}>
+        <ResearchUnavailable />
+      </AppShell>
+    );
+  }
   return (
     <AppShell active="research" onOpenItem={openItem}>
       <div className="mx-auto flex w-full max-w-[1000px] flex-col gap-6 px-4 pt-8 pb-10 sm:px-8">

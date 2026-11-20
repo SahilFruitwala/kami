@@ -177,11 +177,11 @@ Private to one user (every table has `user_id` and cascades with the user). Buil
 
 ### Misc
 
-| Table                | Role                                          |
-| -------------------- | --------------------------------------------- |
-| `user_feature_flags` | e.g. sharing toggle                           |
-| `rate_limits`        | Simple key/window counters                    |
-| `_migrations`        | Migration bookkeeping (not in Drizzle schema) |
+| Table                | Role                                                                                                |
+| -------------------- | --------------------------------------------------------------------------------------------------- |
+| `user_feature_flags` | Per-user toggles: `sharing`; `ai` (library AI, trip agent, Research — default off, `pnpm ai:grant`) |
+| `rate_limits`        | Simple key/window counters                                                                          |
+| `_migrations`        | Migration bookkeeping (not in Drizzle schema)                                                       |
 
 ---
 

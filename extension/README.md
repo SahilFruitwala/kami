@@ -9,7 +9,8 @@ Right-click any link → **Save link to KAMI** saves it by URL instead.
 
 Right-click a page → **Summarize page with KAMI** (or **Alt+Shift+S**) captures
 it the same way but opens a quick AI summary first, with **Save to library**
-or **Skip**. Needs AI to be set up on your KAMI server.
+or **Skip**. Needs AI on your KAMI server and the `ai` flag on your account
+(`pnpm ai:grant`).
 
 ## Install (unpacked)
 

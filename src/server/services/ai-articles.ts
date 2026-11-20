@@ -8,7 +8,6 @@ import { invalidateUserCache } from "@/lib/cache.server.ts";
 import { getDb } from "@/lib/db.server";
 import { readStoredGist, shapeGist, type StoredGist } from "@/lib/gist.ts";
 import type { LibraryItem } from "@/lib/library-item";
-import { aiConfigured } from "@/lib/llm.server";
 import { clipText } from "@/lib/model-fallback.ts";
 import { articleAi, articles, folders } from "@/lib/schema";
 import { TAG_CATEGORIES } from "@/lib/tag-categories.ts";
@@ -19,7 +18,7 @@ import {
   type TidyOutcome,
   type TidyRecord,
 } from "@/lib/tidy-state";
-import { asDocument, generateJson } from "@/server/ai";
+import { asDocument, generateJson, requireUserAi, userCanUseAi } from "@/server/ai";
 import { runInBackground } from "@/server/background";
 import { badRequest, notFound } from "@/server/http";
 
@@ -138,6 +137,7 @@ export async function getArticleSummary(
 
 /** Generate (or regenerate) the summary and store it. */
 export async function summarizeArticle(userId: string, articleId: string): Promise<ArticleSummary> {
+  await requireUserAi(userId);
   const article = await loadArticleForAi(userId, articleId);
   const db = await getDb();
   const folderRows = await db
@@ -198,6 +198,7 @@ const tidySchema = z.object({
  * `failed` (the reader then offers "Retry clean-up") and rethrown.
  */
 export async function tidyArticle(userId: string, articleId: string): Promise<TidyResult> {
+  await requireUserAi(userId);
   const { splitBlocks, joinBlocks } = await import("@/lib/tidy-html.server.ts");
   const db = await getDb();
   const [row] = await db
@@ -256,12 +257,14 @@ export async function tidyArticle(userId: string, articleId: string): Promise<Ti
 
 /**
  * Tidy a freshly saved article after the response is sent, so saving stays
- * instant. Does nothing without a usable model; failures are recorded on the
- * article (`failed`) and logged.
+ * instant. Does nothing unless this user can use AI; failures are recorded on
+ * the article (`failed`) and logged.
  */
 export function tidyInBackground(userId: string, articleId: string): void {
-  if (!aiConfigured()) return;
-  runInBackground("tidy", () => tidyArticle(userId, articleId));
+  runInBackground("tidy", async () => {
+    if (!(await userCanUseAi(userId))) return;
+    await tidyArticle(userId, articleId);
+  });
 }
 
 /** The article's Original copy, for reviewing a clean-up. */
@@ -347,6 +350,7 @@ export async function autoTagArticle(
   userId: string,
   articleId: string,
 ): Promise<{ tags: string[] }> {
+  await requireUserAi(userId);
   const { patchLibraryItem } = await import("@/server/services/library");
   const article = await loadArticleForAi(userId, articleId);
   const { output } = await generateJson(autoTagSchema, {

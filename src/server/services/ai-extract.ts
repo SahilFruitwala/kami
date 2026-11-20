@@ -2,9 +2,8 @@ import "@tanstack/react-start/server-only";
 import { z } from "zod";
 import type { Article } from "@/lib/article-types.ts";
 import type { ExtractFallback } from "@/lib/extract.server.ts";
-import { aiConfigured } from "@/lib/llm.server.ts";
 import { enforceRateLimit, RateLimitError } from "@/lib/rate-limit.server.ts";
-import { asDocument, generateJson } from "@/server/ai";
+import { asDocument, generateJson, userCanUseAi } from "@/server/ai";
 
 /**
  * AI fallback for page extraction: when Readability can't find the article
@@ -26,9 +25,9 @@ const pickSchema = z.object({
     .describe("Inclusive ranges of block numbers that make up the piece, in order."),
 });
 
-export function aiExtractFallback(userId: string): ExtractFallback | undefined {
-  if (!aiConfigured()) return undefined;
+export function aiExtractFallback(userId: string): ExtractFallback {
   return async ({ html, url, source }): Promise<Article | null> => {
+    if (!(await userCanUseAi(userId))) return null;
     const { buildArticle } = await import("@/lib/article-build.server.ts");
     const { collectContentBlocks, joinContentBlocks } = await import("@/lib/tidy-html.server.ts");
     const page = collectContentBlocks(html);

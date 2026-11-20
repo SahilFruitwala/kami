@@ -18,6 +18,11 @@ Path parameters are written `:name`. For exact request/response shapes read the 
 
 ### ai
 
+`GET /api/ai/status` reports `enabled` only when a model is configured **and**
+the caller has `user_feature_flags.ai` (`pnpm ai:grant <email> on`). Spend
+routes return 503 with the same “not set up” message when the flag is off.
+Reading a cached summary or the Original copy is still allowed.
+
 | Method | Path                                    | Source                                               |
 | ------ | --------------------------------------- | ---------------------------------------------------- |
 | `POST` | `/api/ai/articles/:id/autotag`          | `src/routes/api/ai/articles/$id/autotag.ts`          |
@@ -92,7 +97,7 @@ Owner-only (404 for anyone else). `POST /api/narrations/run` is internal: it aut
 
 ### research
 
-Research (`/research`, spec in `docs/wayfinder/research/spec.md`). Every route but `status` answers 404 while Research is off (no `FIRECRAWL_API_KEY` or no AI model). Owner-only: another user's topic, idea or run is a 404. Drafting and starting a run (and pasting a link) count against the `research` rate-limit bucket; runs spend research credits, granted with `pnpm research:grant`. `POST /api/research/run` is internal: a run handing itself off to a fresh invocation, authenticated with `RESEARCH_RUN_SECRET`, not a session (see ADR 0001). The `/api/research/debug/*` routes back the operator's debug page and answer 404 unless the caller's email is in `RESEARCH_DEBUG_EMAILS`.
+Research (`/research`, spec in `docs/wayfinder/research/spec.md`). Every route but `status` answers 404 while Research is off (no `FIRECRAWL_API_KEY`, no AI model, or the caller lacks the `ai` feature flag). Owner-only: another user's topic, idea or run is a 404. Drafting and starting a run (and pasting a link) count against the `research` rate-limit bucket; runs spend research credits, granted with `pnpm research:grant`. `POST /api/research/run` is internal: a run handing itself off to a fresh invocation, authenticated with `RESEARCH_RUN_SECRET`, not a session (see ADR 0001). The `/api/research/debug/*` routes back the operator's debug page and answer 404 unless the caller's email is in `RESEARCH_DEBUG_EMAILS` and they have the `ai` flag.
 
 | Method   | Path                                 | Source                                            |
 | -------- | ------------------------------------ | ------------------------------------------------- |
