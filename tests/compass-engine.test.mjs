@@ -212,7 +212,7 @@ describe("streaks", () => {
     assert.equal(streak(h, logsOf(days), "2026-11-19", 1).current, 9);
   });
 
-  it("counts weeks for a times-a-week habit", () => {
+  it("counts check-ins in met weeks for a times-a-week habit", () => {
     const h = habit({ schedules: [{ startsOn: "2026-11-02", rule: "per_week", perWeek: 2 }] });
     const s = streak(
       h,
@@ -220,8 +220,40 @@ describe("streaks", () => {
       "2026-11-19",
       1,
     );
-    assert.equal(s.current, 2); // two full weeks; this week still open
+    assert.equal(s.current, 4); // two met weeks, two check-ins each; this week still open
+    assert.equal(s.best, 4);
     assert.equal(s.passesTotal, 3);
+    assert.equal(s.passesLeft, 3);
+  });
+
+  it("counts backfilled days once that week's target is met", () => {
+    // Started Monday, logged Mon / Wed / Fri. Three check-ins, one met week.
+    const h = habit({
+      createdOn: "2026-11-16",
+      schedules: [{ startsOn: "2026-11-16", rule: "per_week", perWeek: 3 }],
+    });
+    const open = streak(h, logsOf(["2026-11-16", "2026-11-18"]), "2026-11-20", 1);
+    assert.equal(open.current, 0); // 2 of 3, this week still open
+    assert.equal(open.passesLeft, 3);
+    const met = streak(h, logsOf(["2026-11-16", "2026-11-18", "2026-11-20"]), "2026-11-20", 1);
+    assert.equal(met.current, 3);
+    assert.equal(met.best, 3);
+    assert.equal(met.passesLeft, 3);
+  });
+
+  it("drops a missed week's check-ins and spends a pass", () => {
+    const h = habit({ schedules: [{ startsOn: "2026-11-02", rule: "per_week", perWeek: 2 }] });
+    const s = streak(
+      h,
+      logsOf(["2026-11-03", "2026-11-05", "2026-11-11", "2026-11-17", "2026-11-19"]),
+      "2026-11-19",
+      1,
+    );
+    // Week of Nov 9 has one check-in, so it misses: those don't count, a pass is spent.
+    // Week of Nov 2 (2) and this week (2, target met) do.
+    assert.equal(s.current, 4);
+    assert.equal(s.passesLeft, 2);
+    assert.equal(s.lastPassOn, "2026-11-09");
   });
 });
 
