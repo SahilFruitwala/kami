@@ -47,6 +47,8 @@ export type ShelfCard = {
   lastEpisode: string | null;
   /** Books only — 0–100. */
   progressPercent: number | null;
+  /** Movies/TV only — feeds the where-to-watch filter. */
+  tmdbId?: number | null;
   /** Wishlist only — the original product URL. */
   link?: string | null;
 };

@@ -13,4 +13,11 @@ export const lookupApi = {
 
   watchProviders: (tmdbId: string, kind: "movie" | "tv") =>
     http.get<CountryWatch[]>("/api/lookup/watch-providers", { tmdbId, kind }),
+
+  /** Where-to-watch for many titles at once, keyed by TMDB id. */
+  watchProvidersBatch: (tmdbIds: string[], kind: "movie" | "tv") =>
+    http.post<Record<string, CountryWatch[]>>("/api/lookup/watch-providers-batch", {
+      tmdbIds,
+      kind,
+    }),
 };

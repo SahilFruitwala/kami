@@ -96,6 +96,8 @@ export const queryKeys = {
     link: (url: string) => [...queryKeys.lookup.all, "link", url] as const,
     watchProviders: (kind: "movie" | "tv", tmdbId: string) =>
       [...queryKeys.lookup.all, "watch-providers", kind, tmdbId] as const,
+    watchProvidersBatch: (kind: "movie" | "tv", tmdbIds: string[]) =>
+      [...queryKeys.lookup.all, "watch-providers-batch", kind, tmdbIds.join(",")] as const,
   },
 } as const;
 

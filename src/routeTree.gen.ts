@@ -46,6 +46,7 @@ import { Route as ApiLookupBooksRouteImport } from './routes/api/lookup/books'
 import { Route as ApiLookupLinkRouteImport } from './routes/api/lookup/link'
 import { Route as ApiLookupTmdbRouteImport } from './routes/api/lookup/tmdb'
 import { Route as ApiLookupWatchProvidersRouteImport } from './routes/api/lookup/watch-providers'
+import { Route as ApiLookupWatchProvidersBatchRouteImport } from './routes/api/lookup/watch-providers-batch'
 import { Route as ApiNarrationsIdRouteImport } from './routes/api/narrations/$id'
 import { Route as ApiNarrationsRunRouteImport } from './routes/api/narrations/run'
 import { Route as ApiShelvesCountsRouteImport } from './routes/api/shelves/counts'
@@ -271,6 +272,12 @@ const ApiLookupWatchProvidersRoute = ApiLookupWatchProvidersRouteImport.update({
   path: '/api/lookup/watch-providers',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiLookupWatchProvidersBatchRoute =
+  ApiLookupWatchProvidersBatchRouteImport.update({
+    id: '/api/lookup/watch-providers-batch',
+    path: '/api/lookup/watch-providers-batch',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiNarrationsIdRoute = ApiNarrationsIdRouteImport.update({
   id: '/api/narrations/$id',
   path: '/api/narrations/$id',
@@ -510,6 +517,7 @@ export interface FileRoutesByFullPath {
   '/api/lookup/link': typeof ApiLookupLinkRoute
   '/api/lookup/tmdb': typeof ApiLookupTmdbRoute
   '/api/lookup/watch-providers': typeof ApiLookupWatchProvidersRoute
+  '/api/lookup/watch-providers-batch': typeof ApiLookupWatchProvidersBatchRoute
   '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
   '/api/narrations/run': typeof ApiNarrationsRunRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
@@ -587,6 +595,7 @@ export interface FileRoutesByTo {
   '/api/lookup/link': typeof ApiLookupLinkRoute
   '/api/lookup/tmdb': typeof ApiLookupTmdbRoute
   '/api/lookup/watch-providers': typeof ApiLookupWatchProvidersRoute
+  '/api/lookup/watch-providers-batch': typeof ApiLookupWatchProvidersBatchRoute
   '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
   '/api/narrations/run': typeof ApiNarrationsRunRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
@@ -666,6 +675,7 @@ export interface FileRoutesById {
   '/api/lookup/link': typeof ApiLookupLinkRoute
   '/api/lookup/tmdb': typeof ApiLookupTmdbRoute
   '/api/lookup/watch-providers': typeof ApiLookupWatchProvidersRoute
+  '/api/lookup/watch-providers-batch': typeof ApiLookupWatchProvidersBatchRoute
   '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
   '/api/narrations/run': typeof ApiNarrationsRunRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
@@ -746,6 +756,7 @@ export interface FileRouteTypes {
     | '/api/lookup/link'
     | '/api/lookup/tmdb'
     | '/api/lookup/watch-providers'
+    | '/api/lookup/watch-providers-batch'
     | '/api/narrations/$id'
     | '/api/narrations/run'
     | '/api/shelves/counts'
@@ -823,6 +834,7 @@ export interface FileRouteTypes {
     | '/api/lookup/link'
     | '/api/lookup/tmdb'
     | '/api/lookup/watch-providers'
+    | '/api/lookup/watch-providers-batch'
     | '/api/narrations/$id'
     | '/api/narrations/run'
     | '/api/shelves/counts'
@@ -901,6 +913,7 @@ export interface FileRouteTypes {
     | '/api/lookup/link'
     | '/api/lookup/tmdb'
     | '/api/lookup/watch-providers'
+    | '/api/lookup/watch-providers-batch'
     | '/api/narrations/$id'
     | '/api/narrations/run'
     | '/api/shelves/counts'
@@ -978,6 +991,7 @@ export interface RootRouteChildren {
   ApiLookupLinkRoute: typeof ApiLookupLinkRoute
   ApiLookupTmdbRoute: typeof ApiLookupTmdbRoute
   ApiLookupWatchProvidersRoute: typeof ApiLookupWatchProvidersRoute
+  ApiLookupWatchProvidersBatchRoute: typeof ApiLookupWatchProvidersBatchRoute
   ApiNarrationsIdRoute: typeof ApiNarrationsIdRouteWithChildren
   ApiNarrationsRunRoute: typeof ApiNarrationsRunRoute
   ApiShelvesCountsRoute: typeof ApiShelvesCountsRoute
@@ -1273,6 +1287,13 @@ declare module '@tanstack/react-router' {
       path: '/api/lookup/watch-providers'
       fullPath: '/api/lookup/watch-providers'
       preLoaderRoute: typeof ApiLookupWatchProvidersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/lookup/watch-providers-batch': {
+      id: '/api/lookup/watch-providers-batch'
+      path: '/api/lookup/watch-providers-batch'
+      fullPath: '/api/lookup/watch-providers-batch'
+      preLoaderRoute: typeof ApiLookupWatchProvidersBatchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/narrations/$id': {
@@ -1624,6 +1645,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLookupLinkRoute: ApiLookupLinkRoute,
   ApiLookupTmdbRoute: ApiLookupTmdbRoute,
   ApiLookupWatchProvidersRoute: ApiLookupWatchProvidersRoute,
+  ApiLookupWatchProvidersBatchRoute: ApiLookupWatchProvidersBatchRoute,
   ApiNarrationsIdRoute: ApiNarrationsIdRouteWithChildren,
   ApiNarrationsRunRoute: ApiNarrationsRunRoute,
   ApiShelvesCountsRoute: ApiShelvesCountsRoute,

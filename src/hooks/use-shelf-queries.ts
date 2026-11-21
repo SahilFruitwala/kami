@@ -1,4 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { lookupApi } from "@/lib/api/lookup";
 import {
   shelvesApi,
@@ -234,6 +239,17 @@ export function useWatchProviders(kind: "movie" | "tv", tmdbId: string) {
     queryKey: queryKeys.lookup.watchProviders(kind, tmdbId),
     queryFn: () => lookupApi.watchProviders(tmdbId, kind),
     staleTime: 12 * 60 * 60_000,
+  });
+}
+
+/** Where-to-watch for a whole shelf page, for filtering by service. */
+export function useWatchProvidersBatch(kind: "movie" | "tv", tmdbIds: string[], enabled: boolean) {
+  return useQuery({
+    queryKey: queryKeys.lookup.watchProvidersBatch(kind, tmdbIds),
+    queryFn: () => lookupApi.watchProvidersBatch(tmdbIds, kind),
+    enabled: enabled && tmdbIds.length > 0,
+    staleTime: 12 * 60 * 60_000,
+    placeholderData: keepPreviousData,
   });
 }
 

@@ -50,6 +50,19 @@ export const watchProvidersQuery = z.object({
   kind: z.enum(["movie", "tv"]),
 });
 
+export const watchProvidersBatchBody = z.object({
+  kind: z.enum(["movie", "tv"]),
+  // One shelf page at most; the client sends only items that have a TMDB id.
+  tmdbIds: z
+    .array(
+      z
+        .string()
+        .trim()
+        .regex(/^\d{1,12}$/, "Invalid TMDB id."),
+    )
+    .max(500),
+});
+
 export const bookSearchQuery = z.object({ q: z.string().max(200).default("") });
 
 export const linkPreviewQuery = z.object({ url: z.string().max(2000) });
@@ -252,6 +265,36 @@ export async function fetchWatchProviders(
     },
     { skipCache: (rows) => rows.length === 0 },
   );
+}
+
+/** Concurrent TMDB calls per batch: gentle on TMDB's per-IP limit, quick enough for a shelf. */
+const WATCH_BATCH_CONCURRENCY = 8;
+
+/**
+ * Where-to-watch for many titles in one request (the shelf's service filter).
+ * Each id goes through `fetchWatchProviders`, so cached ids cost a Redis hit
+ * and only cold ones reach TMDB, at most `WATCH_BATCH_CONCURRENCY` at a time.
+ */
+export async function fetchWatchProvidersBatch(
+  data: z.output<typeof watchProvidersBatchBody>,
+): Promise<Record<string, CountryWatch[]>> {
+  const ids = [...new Set(data.tmdbIds)];
+  const out: Record<string, CountryWatch[]> = {};
+  let next = 0;
+  async function worker() {
+    while (next < ids.length) {
+      const tmdbId = ids[next++];
+      try {
+        out[tmdbId] = await fetchWatchProviders({ tmdbId, kind: data.kind });
+      } catch {
+        out[tmdbId] = [];
+      }
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(WATCH_BATCH_CONCURRENCY, ids.length) }, worker),
+  );
+  return out;
 }
 
 type OpenLibraryDoc = {

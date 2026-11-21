@@ -13,6 +13,7 @@ import {
   SlidersHorizontal,
   Tv,
   Package,
+  X,
 } from "lucide-react";
 import { PosterGrid } from "@/components/library/poster-grid.tsx";
 import { AppShell } from "@/components/app-shell.tsx";
@@ -39,13 +40,15 @@ import {
   useShelfCounts,
   useShelfDetail,
   useShelfItems,
+  useWatchProvidersBatch,
 } from "@/hooks/use-shelf-queries.ts";
 import { useTilt } from "@/hooks/use-tilt.ts";
 import { mediaCoverSize, STATUS_DOT } from "@/lib/gloss/palette.ts";
 import { statusLabels, statusText } from "@/lib/shelf-labels.ts";
 import { type ShelfCard } from "@/lib/shelves.ts";
 import type { ShelvesSearch } from "@/lib/shelves-search.ts";
-import { usePersistedPref } from "@/lib/local-pref.ts";
+import { readLocal, usePersistedPref, writeLocal } from "@/lib/local-pref.ts";
+import type { CountryWatch } from "@/lib/api/types.ts";
 import { useShelfFilters } from "@/hooks/use-shelf-filters.ts";
 
 type MediaTab = "movie" | "tv" | "book" | "wishlist";
@@ -56,6 +59,42 @@ type Arrange = (typeof ARRANGES)[number];
 
 /** A shelf holds far more than a grid page; fetch in bigger bites. */
 const MEDIA_PAGE = SHELF_PAGE_SIZE * 5;
+function guessCountry(): string {
+  if (typeof navigator === "undefined") return "US";
+  for (const loc of navigator.languages ?? [navigator.language]) {
+    const region = loc.split("-")[1];
+    if (region && region.length === 2) return region.toUpperCase();
+  }
+  return "US";
+}
+
+const regionNames =
+  typeof Intl !== "undefined" && "DisplayNames" in Intl
+    ? new Intl.DisplayNames(["en"], { type: "region" })
+    : null;
+
+/** Per-device "where to watch" filter: a country plus one streaming service. */
+function useWatchFilter(tab: MediaTab) {
+  const [country, setCountryState] = useState(
+    () => readLocal("kami-watch-country") ?? guessCountry(),
+  );
+  const [service, setServiceState] = useState<string | null>(() =>
+    readLocal(`kami-${tab}-watch-service`),
+  );
+  return {
+    country,
+    service,
+    setCountry: (code: string) => {
+      setCountryState(code);
+      writeLocal("kami-watch-country", code);
+    },
+    setService: (name: string | null) => {
+      setServiceState(name);
+      writeLocal(`kami-${tab}-watch-service`, name);
+    },
+  };
+}
+
 const STATUS_ORDER: ShelfCard["status"][] = ["in_progress", "to_try", "done", "abandoned"];
 
 const COPY: Record<
@@ -136,14 +175,57 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
 
   const listSearch = urlSearch;
 
+  const watchable = tab === "movie" || tab === "tv";
+  const watch = useWatchFilter(tab);
+  const tmdbIds = useMemo(
+    () =>
+      watchable && items
+        ? [...new Set(items.flatMap((it) => (it.tmdbId != null ? [String(it.tmdbId)] : [])))].sort()
+        : [],
+    [watchable, items],
+  );
+  const providersQuery = useWatchProvidersBatch(
+    tab === "tv" ? "tv" : "movie",
+    tmdbIds,
+    watchable && (optionsOpen || watch.service != null),
+  );
+  const providers = providersQuery.data;
+  const countries = useMemo(() => {
+    const codes = new Set<string>([watch.country]);
+    for (const list of Object.values(providers ?? {})) for (const c of list) codes.add(c.code);
+    return [...codes]
+      .map((code) => ({ code, name: regionNames?.of(code) ?? code }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [providers, watch.country]);
+  const services = useMemo(() => {
+    const tally = new Map<string, number>();
+    for (const list of Object.values(providers ?? {})) {
+      const c = list.find((x) => x.code === watch.country);
+      for (const p of c?.streaming ?? []) tally.set(p.name, (tally.get(p.name) ?? 0) + 1);
+    }
+    if (watch.service && !tally.has(watch.service)) tally.set(watch.service, 0);
+    return [...tally].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [providers, watch.country, watch.service]);
+  const serviceFilter = watchable ? watch.service : null;
+  const watchPending = serviceFilter != null && !providers;
+
   const sorted = useMemo(() => {
     if (!items) return [];
-    const list = [...items];
+    let list = [...items];
+    if (serviceFilter && providers) {
+      list = list.filter((it) => {
+        const here: CountryWatch | undefined =
+          it.tmdbId == null
+            ? undefined
+            : providers[String(it.tmdbId)]?.find((c) => c.code === watch.country);
+        return here?.streaming.some((p) => p.name === serviceFilter) ?? false;
+      });
+    }
     if (arrange === "title") list.sort((a, b) => a.title.localeCompare(b.title));
     else if (arrange === "year") list.sort((a, b) => (b.year ?? 0) - (a.year ?? 0));
     else if (arrange === "added") list.sort((a, b) => b.createdAt - a.createdAt);
     return list;
-  }, [items, arrange]);
+  }, [items, arrange, serviceFilter, providers, watch.country]);
 
   const groups: ShelfGroup<ShelfCard>[] = useMemo(() => {
     if (arrange !== "status" || status !== "all") return [{ id: "all", items: sorted }];
@@ -187,7 +269,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
       ? (items?.find((it) => it.status === "in_progress") ?? null)
       : null;
   const statusChips = statusMeta(tab);
-  const animateKey = `${status}|${arrange}|${deferredQuery}`;
+  const animateKey = `${status}|${arrange}|${deferredQuery}|${serviceFilter ?? ""}`;
   const coverSize = mediaCoverSize(kind);
   const unitOne = copy.unit[0];
 
@@ -313,6 +395,48 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                   { id: "added", label: "Added" },
                 ]}
               />
+              {watchable ? (
+                <div className="mt-3 grid gap-2">
+                  <span className="font-sans text-sm text-ink-muted">Streaming on</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      aria-label="Country"
+                      className="g-btn g-btn--ghost h-9 px-3 text-sm"
+                      value={watch.country}
+                      onChange={(e) => watch.setCountry(e.target.value)}
+                    >
+                      {countries.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      aria-label="Streaming service"
+                      className="g-btn g-btn--ghost h-9 px-3 text-sm"
+                      value={watch.service ?? ""}
+                      onChange={(e) => watch.setService(e.target.value || null)}
+                    >
+                      <option value="">Any service</option>
+                      {services.map(([name, n]) => (
+                        <option key={name} value={name}>
+                          {name} ({n})
+                        </option>
+                      ))}
+                    </select>
+                    {providersQuery.isFetching ? (
+                      <LoaderCircle
+                        className="size-4 animate-spin text-ink-muted"
+                        aria-label="Checking where to watch"
+                      />
+                    ) : null}
+                  </div>
+                  <p className="font-sans text-xs text-ink-faint">
+                    Checks the {tmdbIds.length} {tmdbIds.length === 1 ? copy.unit[0] : copy.unit[1]}{" "}
+                    loaded with a TMDB match. Data from JustWatch via TMDB.
+                  </p>
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -344,6 +468,15 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 {s.label}
               </GlossChip>
             ))}
+            {serviceFilter ? (
+              <GlossChip
+                active
+                onClick={() => watch.setService(null)}
+                icon={<X className="size-3" aria-hidden="true" />}
+              >
+                On {serviceFilter}, {regionNames?.of(watch.country) ?? watch.country}
+              </GlossChip>
+            ) : null}
           </div>
         </GlossColumn>
 
@@ -412,8 +545,25 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
               </div>
             </section>
           ) : null}
-          {items == null ? (
+          {items == null || watchPending ? (
             <ShelfSkeleton kind={kind} />
+          ) : serviceFilter && items.length > 0 && sorted.length === 0 ? (
+            <div className="flex flex-col items-center py-16 text-center">
+              <p className="font-display text-[28px] tracking-tight text-ink">
+                Nothing here is on {serviceFilter}
+              </p>
+              <p className="mt-2 max-w-sm font-sans text-sm text-ink-muted">
+                None of these {copy.unit[1]} stream on {serviceFilter} in{" "}
+                {regionNames?.of(watch.country) ?? watch.country} right now.
+              </p>
+              <button
+                type="button"
+                className="g-btn g-btn--ghost mt-5"
+                onClick={() => watch.setService(null)}
+              >
+                Any service
+              </button>
+            </div>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center py-16 text-center">
               <p className="font-display text-[28px] tracking-tight text-ink">

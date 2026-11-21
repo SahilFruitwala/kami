@@ -110,6 +110,7 @@ const CARD_EXTRAS: { [K in ShelfKind]: (row: ShelfRow[K]) => CardExtras } = {
     subtitle: r.releaseYear ? String(r.releaseYear) : null,
     overview: r.overview,
     year: r.releaseYear,
+    tmdbId: r.tmdbId,
   }),
   tv: (r) => ({
     subtitle:
@@ -123,6 +124,7 @@ const CARD_EXTRAS: { [K in ShelfKind]: (row: ShelfRow[K]) => CardExtras } = {
     episodesWatched: r.episodesWatched,
     totalEpisodes: r.totalEpisodes,
     lastEpisode: r.lastEpisode,
+    tmdbId: r.tmdbId,
   }),
   book: (r) => ({
     subtitle: r.author ?? null,
