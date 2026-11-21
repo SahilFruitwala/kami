@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { useUser } from "@clerk/tanstack-react-start";
 import { toast } from "sonner";
+import { CharacterAvatar } from "@/components/character-avatar.tsx";
+import { useCharacter } from "@/hooks/use-character.ts";
 import { useCurrentUserState } from "@/lib/auth/use-current-user.ts";
+import { cn } from "@/lib/utils.ts";
 import { Card, FieldLabel } from "@/components/settings/settings-ui.tsx";
 
 export function AccountCard() {
   const { user } = useCurrentUserState();
   if (!user) return null;
-  const initial =
-    (user.displayName ?? user.primaryEmail ?? "?").trim().charAt(0).toUpperCase() || "?";
 
   return (
     <Card
@@ -17,20 +18,7 @@ export function AccountCard() {
       copy="Your name appears in your greeting on Home. Change it here anytime."
     >
       <div className="flex items-center gap-3">
-        {user.profileImageUrl ? (
-          <img
-            src={user.profileImageUrl}
-            alt=""
-            className="size-11 rounded-full object-cover shadow-[var(--shadow-border)]"
-          />
-        ) : (
-          <span
-            aria-hidden="true"
-            className="flex size-11 items-center justify-center rounded-full bg-hanko font-display text-lg font-medium text-paper"
-          >
-            {initial}
-          </span>
-        )}
+        <CharacterAvatar menu={false} className="size-11 shadow-[var(--shadow-border)]" />
         <div className="min-w-0 leading-tight">
           <p className="truncate font-sans text-sm font-semibold text-ink">
             {user.displayName ?? "Name not set"}
@@ -40,6 +28,7 @@ export function AccountCard() {
           ) : null}
         </div>
       </div>
+      <CharacterPicker />
       {user.isDevFallback ? (
         <p className="font-body text-sm text-ink-muted italic">
           Running without sign-in (dev mode) — connect Clerk to manage a real account.
@@ -51,7 +40,52 @@ export function AccountCard() {
   );
 }
 
-/** Edit the Clerk profile name inline (mounted only for real Clerk users). */
+function CharacterPicker() {
+  const { characters, displayId, saving, select } = useCharacter();
+  return (
+    <div>
+      <FieldLabel>Character</FieldLabel>
+      <p className="mt-1 font-body text-sm text-ink-muted">
+        Pick one of these instead of the default silhouette. You can change it anytime.
+      </p>
+      <div
+        className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-8"
+        role="radiogroup"
+        aria-label="Avatar character"
+      >
+        {characters.map((character) => {
+          const selected = character.id === displayId;
+          return (
+            <button
+              key={character.id}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              aria-label={`${character.label}, ${character.gloss}`}
+              disabled={saving}
+              onClick={() => void select(character.id)}
+              className={cn(
+                "flex flex-col items-center gap-1.5 rounded-xl p-1.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hanko/30 disabled:opacity-60",
+                selected ? "bg-paper-warm" : "hover:bg-paper-warm/60",
+              )}
+            >
+              <img
+                src={character.src}
+                alt=""
+                className={cn(
+                  "size-12 rounded-full object-cover sm:size-14",
+                  selected && "ring-2 ring-ink ring-offset-2 ring-offset-surface",
+                )}
+                draggable={false}
+              />
+              <span className="font-sans text-[11px] text-ink-muted">{character.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 /** Edit the Clerk profile name inline (mounted only for real Clerk users). */
 export function ClerkNameEditor({ currentName }: { currentName: string }) {

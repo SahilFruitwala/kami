@@ -18,7 +18,8 @@ import {
 } from "lucide-react";
 import { KAMI_GLYPH } from "@/components/kami.tsx";
 import { ThemeToggle } from "@/components/theme-toggle.tsx";
-import { Show, SignInButton, SignUpButton, UserButton } from "@/lib/auth/gates";
+import { CharacterAvatar } from "@/components/character-avatar.tsx";
+import { Show, SignInButton, SignUpButton } from "@/lib/auth/gates";
 import { useSlidePill } from "@/hooks/use-slide-pill.ts";
 import { cn } from "@/lib/utils.ts";
 
@@ -230,7 +231,7 @@ export function SiteHeader({
               <ThemeToggle className="rounded-full text-ink-muted hover:text-ink" />
               <Show when="signed-in">
                 <div className="ml-1.5 flex items-center gap-2">
-                  <UserButton />
+                  <CharacterAvatar />
                 </div>
               </Show>
               <Show when="signed-out">
@@ -274,7 +275,7 @@ export function SiteHeader({
             >
               <SettingsIcon className="size-4" aria-hidden="true" />
             </Link>
-            <UserButton />
+            <CharacterAvatar />
           </div>
         </div>
       </div>
