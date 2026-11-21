@@ -210,7 +210,10 @@ export type Streak = {
  * still open: missing it so far breaks nothing.
  *
  * - Every day / specific days: occurrences are scheduled days.
- * - Times a week: occurrences are weeks, met when the week's target is hit.
+ * - Times a week: occurrences are the check-ins inside a week that hit its
+ *   target. Skipping a day does not break the streak. A finished week that
+ *   misses its target spends a pass or resets it, and that week's check-ins
+ *   do not count. The current week counts as soon as its target is met.
  */
 export function streak(
   habit: EngineHabit,
@@ -244,8 +247,14 @@ export function streak(
       const rule = scheduleOn(habit, w);
       const stat = weekStat(habit, logs, w);
       if (stat.target === 0) continue;
-      if (stat.done >= stat.target) hit();
-      else if (w !== thisWeek) miss(w, quarterId(quarterOfWeek(w)), passesFor(rule));
+      if (stat.done >= stat.target) {
+        for (const d of weekDays(w)) {
+          if (d > today || !isActive(habit, d)) continue;
+          if (metOn(habit, logs, d)) hit();
+        }
+      } else if (w !== thisWeek) {
+        miss(w, quarterId(quarterOfWeek(w)), passesFor(rule));
+      }
     }
   } else {
     for (let d = habit.createdOn; d <= today; d = addDays(d, 1)) {
