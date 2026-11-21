@@ -535,14 +535,15 @@
 .article-body pre,
 .reader-body pre {
   margin: 0 0 1.1em;
-  padding: 0.9em 1em;
+  padding: 0.9em 1.15em;
   border: 1px solid var(--color-line);
   border-radius: 10px;
   background: var(--color-surface);
   overflow-x: auto;
   line-height: 1.55;
   tab-size: 2;
-  white-space: pre;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .dark .article-body pre,
@@ -560,7 +561,65 @@
   border-radius: 0;
   color: inherit;
   white-space: inherit;
+  line-height: 1.7;
 }
+
+/* Syntax highlighting (highlight.js tokens), tuned for light + dark paper. */
+.reader-body .hljs-comment,
+.reader-body .hljs-quote { color: #8a8073; font-style: italic; }
+.reader-body .hljs-keyword,
+.reader-body .hljs-selector-tag,
+.reader-body .hljs-built_in,
+.reader-body .hljs-meta .hljs-keyword { color: #a8432f; }
+.reader-body .hljs-string,
+.reader-body .hljs-regexp,
+.reader-body .hljs-addition { color: #4f7a3a; }
+.reader-body .hljs-number,
+.reader-body .hljs-literal,
+.reader-body .hljs-symbol { color: #9a5d12; }
+.reader-body .hljs-title,
+.reader-body .hljs-section,
+.reader-body .hljs-function .hljs-title { color: #2f5f8a; }
+.reader-body .hljs-attr,
+.reader-body .hljs-attribute,
+.reader-body .hljs-variable,
+.reader-body .hljs-template-variable,
+.reader-body .hljs-property { color: #7a4a8c; }
+.reader-body .hljs-type,
+.reader-body .hljs-class .hljs-title,
+.reader-body .hljs-tag,
+.reader-body .hljs-name { color: #2f7a78; }
+.reader-body .hljs-meta,
+.reader-body .hljs-deletion { color: #b0413e; }
+.reader-body .hljs-emphasis { font-style: italic; }
+.reader-body .hljs-strong { font-weight: 600; }
+
+.dark .reader-body .hljs-comment,
+.dark .reader-body .hljs-quote { color: #8f8578; }
+.dark .reader-body .hljs-keyword,
+.dark .reader-body .hljs-selector-tag,
+.dark .reader-body .hljs-built_in,
+.dark .reader-body .hljs-meta .hljs-keyword { color: #e58a6f; }
+.dark .reader-body .hljs-string,
+.dark .reader-body .hljs-regexp,
+.dark .reader-body .hljs-addition { color: #a6c97f; }
+.dark .reader-body .hljs-number,
+.dark .reader-body .hljs-literal,
+.dark .reader-body .hljs-symbol { color: #e3b26a; }
+.dark .reader-body .hljs-title,
+.dark .reader-body .hljs-section,
+.dark .reader-body .hljs-function .hljs-title { color: #87b4dc; }
+.dark .reader-body .hljs-attr,
+.dark .reader-body .hljs-attribute,
+.dark .reader-body .hljs-variable,
+.dark .reader-body .hljs-template-variable,
+.dark .reader-body .hljs-property { color: #c9a0dc; }
+.dark .reader-body .hljs-type,
+.dark .reader-body .hljs-class .hljs-title,
+.dark .reader-body .hljs-tag,
+.dark .reader-body .hljs-name { color: #7cc7c1; }
+.dark .reader-body .hljs-meta,
+.dark .reader-body .hljs-deletion { color: #e08a86; }
 
 /* Inline code — flat muted chip. */
 .article-body :not(pre) > code,
