@@ -163,7 +163,13 @@
   height: 30px;
   border-radius: 50%;
   flex: none;
-  background: linear-gradient(135deg, #7a5cff, #e0461a);
+  overflow: hidden;
+  background: var(--bg-2);
+}
+.rd-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .rd-avatar--sm {
   width: 24px;

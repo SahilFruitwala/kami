@@ -6,7 +6,7 @@ import { useCompass } from "@/hooks/use-compass.ts";
 import { useDeskStats } from "@/hooks/use-desk-stats.ts";
 import { useShelfCounts } from "@/hooks/use-shelf-queries.ts";
 import { useThemeStore } from "@/hooks/use-theme.ts";
-import { Show, UserButton } from "@/lib/auth/gates";
+import { CharacterAvatar } from "@/components/character-avatar.tsx";
 import { useCurrentUser } from "@/lib/auth/use-current-user.ts";
 
 type To =
@@ -132,9 +132,7 @@ export function SideRail({ active, onOpenTools }: { active: SitePane; onOpenTool
       <div className="rd-rail-foot">
         {item("settings", "/settings", "Settings", <Icon d={ICONS.settings} />)}
         <div className="rd-me">
-          <Show when="signed-in">
-            <UserButton />
-          </Show>
+          <CharacterAvatar className="rd-avatar" />
           <span>{user?.displayName?.split(" ")[0] ?? "You"}</span>
           <button
             type="button"
