@@ -85,10 +85,11 @@ export function SideRail({ active, onOpenTools }: { active: SitePane; onOpenTool
       <div className="rd-rail-actions">
         <button
           type="button"
-          className="rd-capture"
+          className="rd-add"
+          aria-label="Add"
           onClick={() => window.dispatchEvent(new Event("kami:open-palette"))}
         >
-          <Icon d={ICONS.search} /> Search <kbd>⌘K</kbd>
+          <Icon d={ICONS.search} /> <span>Add</span> <kbd>⌘K</kbd>
         </button>
         {onOpenTools ? (
           <button

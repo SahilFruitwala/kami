@@ -11,7 +11,7 @@ export const MAX_BULK_URLS = 50;
 //  so large pastes go out in chunks with progress between them. */
 const BULK_CHUNK = 10;
 
-export function useBulkSave() {
+export function useBulkSave(onSaved?: () => void) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -58,6 +58,7 @@ export function useBulkSave() {
         toast.success(parts.join(" · "));
         setOpen(false);
         reset();
+        onSaved?.();
       } else if (skippedCount > 0 && invalidCount === 0) {
         toast.message("Those links are already in your library.");
       } else {
@@ -71,6 +72,7 @@ export function useBulkSave() {
         toast.success(`Saved ${savedCount} before the connection dropped — retry for the rest.`);
         setOpen(false);
         reset();
+        onSaved?.();
       } else {
         toastError(err, "Could not save those links.");
       }

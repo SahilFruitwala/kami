@@ -203,8 +203,8 @@ export function SiteHeader({
               <button
                 type="button"
                 onClick={() => window.dispatchEvent(new Event("kami:open-palette"))}
-                aria-label="Search"
-                title="Search (⌘K)"
+                aria-label="Add"
+                title="Add (⌘K)"
                 className={ICON_BTN}
               >
                 <Search className="size-[18px]" aria-hidden="true" />
@@ -259,7 +259,7 @@ export function SiteHeader({
             <button
               type="button"
               onClick={() => window.dispatchEvent(new Event("kami:open-palette"))}
-              aria-label="Search"
+              aria-label="Add"
               className={ICON_BTN}
             >
               <Search className="size-[18px]" aria-hidden="true" />

@@ -2,28 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { addTransitionType, startTransition, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/app-shell.tsx";
-import { CaptureForm } from "@/components/library/capture-form.tsx";
-import {
-  HomeCaptureTabs,
-  ShelfQuickCapture,
-  type HomeCaptureType,
-} from "@/components/library/home-shelves.tsx";
-import { BulkSaveDialog, PasteDialog } from "@/components/library/library-dialogs.tsx";
+import { PasteDialog } from "@/components/library/library-dialogs.tsx";
 import { TodayHabits } from "@/components/compass/today-habits.tsx";
 import { TodayDate, TodayDesk, enter } from "@/components/home/today-desk.tsx";
 import { useDeskStats } from "@/hooks/use-desk-stats.ts";
 import { useCurrentUser } from "@/lib/auth/use-current-user.ts";
 import { usePasteImport } from "@/hooks/use-paste-import.ts";
-import { useBulkSave } from "@/hooks/use-bulk-save.ts";
-import { useSaveArticle } from "@/hooks/use-save-article.ts";
 import { articlesApi } from "@/lib/api/articles";
 import type { BookmarkletPayload } from "@/lib/bookmarklet.ts";
-import {
-  parseBulkUrls,
-  readDraftUrl,
-  takeStashedCapturePayload,
-  writeDraftUrl,
-} from "@/lib/session-article.ts";
+import { readDraftUrl, takeStashedCapturePayload, writeDraftUrl } from "@/lib/session-article.ts";
 import { persistArticleItem } from "@/lib/library-remote.ts";
 import { articleToItem, type LibraryItem } from "@/lib/library-item.ts";
 import { toastError } from "@/lib/errors";
@@ -123,35 +110,12 @@ function Home() {
   const openOnSave = (id: string | null) => {
     if (id) goRead(navigate, id);
   };
-  const save = useSaveArticle(openOnSave);
   const paste = usePasteImport(openOnSave);
-  const bulk = useBulkSave();
 
   const [capturing, setCapturing] = useState(false);
-  const [captureType, setCaptureType] = useState<HomeCaptureType>("article");
 
   function openItem(item: LibraryItem) {
     goRead(navigate, item.id);
-  }
-
-  function openPaste(seedUrl?: string) {
-    if (seedUrl) paste.setPasteUrl(seedUrl);
-    paste.setPasteOpen(true);
-  }
-
-  function openBulk(seedText?: string) {
-    if (seedText && !bulk.draft) bulk.setDraft(seedText);
-    bulk.setOpen(true);
-  }
-
-  function saveSingleOrBulk(next?: string) {
-    const raw = next ?? save.url;
-    if (parseBulkUrls(raw).length > 1) {
-      bulk.setDraft(raw);
-      bulk.setOpen(true);
-      return;
-    }
-    void save.save(next, true);
   }
 
   /**
@@ -210,8 +174,9 @@ function Home() {
       <PendingCapturePickup
         onCapture={(payload) => void autoImportCapture(payload)}
         onUrl={(url) => {
-          save.setUrl(url);
-          toast.message("Link ready — tap Save to add it to your list.");
+          // Hand the link to Add (the palette), pre-filled: saving still takes the
+          // reader's own Enter, never an automatic save.
+          window.dispatchEvent(new CustomEvent("kami:open-palette", { detail: { query: url } }));
         }}
       />
       <div className="rd-view rd-home">
@@ -222,29 +187,9 @@ function Home() {
           </div>
           <TodayDate waiting={waiting} />
         </div>
-        <div className="rd-capture-zone rd-enter" style={enter(70)}>
-          <HomeCaptureTabs value={captureType} onChange={setCaptureType} />
-          <div className="mt-3">
-            {captureType === "article" ? (
-              <CaptureForm
-                url={save.url}
-                busy={save.busy}
-                error={save.error}
-                onUrlChange={save.setUrl}
-                onClearError={() => save.setError("")}
-                onSave={saveSingleOrBulk}
-                onSaveLinkOnly={() => void save.saveLinkOnly()}
-                onOpenPaste={openPaste}
-                onOpenBulk={openBulk}
-              />
-            ) : (
-              <ShelfQuickCapture key={captureType} type={captureType} />
-            )}
-          </div>
-        </div>
-        {captureType === "article" && (save.busy || capturing) ? (
+        {capturing ? (
           <p className="mt-3 text-sm text-ink-muted" role="status" aria-live="polite">
-            {capturing ? "Importing captured page…" : "Saving a clean copy…"}
+            Importing captured page…
           </p>
         ) : null}
         <div style={{ marginTop: 32 }}>
@@ -264,17 +209,6 @@ function Home() {
         onBody={paste.setPasteBody}
         onUrl={paste.setPasteUrl}
         onImport={() => void paste.importPasted()}
-      />
-      <BulkSaveDialog
-        open={bulk.open}
-        onOpenChange={bulk.setOpen}
-        draft={bulk.draft}
-        urls={bulk.urls}
-        overflow={bulk.overflow}
-        busy={bulk.busy}
-        progress={bulk.progress}
-        onDraft={bulk.setDraft}
-        onSave={() => void bulk.saveAll()}
       />
     </AppShell>
   );
