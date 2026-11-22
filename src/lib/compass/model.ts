@@ -195,5 +195,10 @@ export function withLog(
 ): CompassSnapshot {
   const logs = snap.logs.filter((l) => !(l.habitId === habitId && l.day === day));
   if (value > 0) logs.push({ habitId, day, value });
-  return { ...snap, logs };
+  // Clearing a day also clears what linked reading added to it, as the server does.
+  const contributions =
+    value > 0
+      ? snap.contributions
+      : snap.contributions.filter((c) => !(c.habitId === habitId && c.day === day));
+  return { ...snap, logs, contributions };
 }

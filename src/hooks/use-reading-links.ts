@@ -17,30 +17,42 @@ export function useBookLinks(bookId: string) {
   });
 }
 
-export function useCreateLink(bookId: string) {
+/** The books feeding a habit. */
+export function useHabitLinks(habitId: string) {
+  return useQuery({
+    queryKey: queryKeys.readingLinks.habit(habitId),
+    queryFn: () => readingLinksApi.forHabit(habitId),
+  });
+}
+
+// A link shows up from both sides (the book's page and the habit), so any change refreshes both.
+const refreshLinks = (client: ReturnType<typeof useQueryClient>) =>
+  client.invalidateQueries({ queryKey: queryKeys.readingLinks.all });
+
+export function useCreateLink() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (input: LinkInput) => readingLinksApi.create(input),
-    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.readingLinks.book(bookId) }),
+    onSuccess: () => refreshLinks(client),
     onError: (err) => toastError(err, "Couldn't link that habit."),
   });
 }
 
-export function useSetLinkMode(bookId: string) {
+export function useSetLinkMode() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (v: { id: string; mode: LinkMode }) =>
       readingLinksApi.update(v.id, { mode: v.mode }),
-    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.readingLinks.book(bookId) }),
+    onSuccess: () => refreshLinks(client),
     onError: (err) => toastError(err, "Couldn't change that link."),
   });
 }
 
-export function useRemoveLink(bookId: string) {
+export function useRemoveLink() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => readingLinksApi.remove(id),
-    onSuccess: () => client.invalidateQueries({ queryKey: queryKeys.readingLinks.book(bookId) }),
+    onSuccess: () => refreshLinks(client),
     onError: (err) => toastError(err, "Couldn't remove that link."),
   });
 }
@@ -57,7 +69,7 @@ export const describeAmount = (e: LinkEvent) =>
  * timer, until you answer it, dismiss it, or save again. Nothing is shown for a
  * book with no links.
  */
-const noticesKey = (bookId: string) => [...queryKeys.readingLinks.book(bookId), "notices"] as const;
+const noticesKey = (bookId: string) => queryKeys.readingLinkNotices.book(bookId);
 
 export function useLinkNotices(bookId: string) {
   const client = useQueryClient();

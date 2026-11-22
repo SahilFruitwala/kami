@@ -14,6 +14,7 @@ import {
 import { confirmAction } from "@/lib/confirm.ts";
 import { cn } from "@/lib/utils.ts";
 import { DAY_LETTERS, DAY_NAMES, colorClass, currentRule, scheduleLabel } from "./compass-ui.tsx";
+import { HabitReadingLinks } from "./habit-reading-links.tsx";
 
 /** What the add/edit panel is showing, if anything. */
 export type SheetState =
@@ -389,6 +390,8 @@ function HabitForm({
           {error}
         </p>
       ) : null}
+
+      {h && h.kind === "check" ? <HabitReadingLinks habitId={h.id} /> : null}
 
       <div
         className="cp-sheet-foot"

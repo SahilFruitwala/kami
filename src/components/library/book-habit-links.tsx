@@ -24,9 +24,9 @@ const MODES: { mode: Exclude<LinkMode, "off">; label: string; hint: string }[] =
 export function BookHabitLinks({ bookId }: { bookId: string }) {
   const compass = useCompass();
   const links = useBookLinks(bookId);
-  const create = useCreateLink(bookId);
-  const setMode = useSetLinkMode(bookId);
-  const remove = useRemoveLink(bookId);
+  const create = useCreateLink();
+  const setMode = useSetLinkMode();
+  const remove = useRemoveLink();
   const { notices, accept, undo, dismiss } = useLinkNotices(bookId);
 
   // Only done / not-done habits can take a book for now.

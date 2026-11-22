@@ -1,5 +1,5 @@
 import "@tanstack/react-start/server-only";
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import { z } from "zod";
 import type { LinkEvent, LinkOutcome, ReadingLink } from "@/lib/api/reading-links";
 import {
@@ -14,6 +14,7 @@ import { readingCounts, readingDelta, type BookPosition } from "@/lib/compass/re
 import { getDb, type AppDb } from "@/lib/db.server";
 import { uid } from "@/lib/id";
 import {
+  books,
   compassHabits,
   compassLogContributions,
   compassLogs,
@@ -35,10 +36,11 @@ export { contributionInput, linkIdParams, linkInput, linkPatch, linkQuery };
  */
 
 type LinkRow = typeof entityLinks.$inferSelect;
-const toLink = (r: LinkRow): ReadingLink => ({
+const toLink = (r: LinkRow, sourceTitle: string | null = null): ReadingLink => ({
   id: r.id,
   sourceType: "book",
   sourceId: r.sourceId,
+  sourceTitle,
   habitId: r.targetId,
   mode: r.mode,
 });
@@ -75,18 +77,28 @@ export async function listLinks(
   q: z.output<typeof linkQuery>,
 ): Promise<ReadingLink[]> {
   const db = await getDb();
+  const where = [eq(entityLinks.userId, userId), eq(entityLinks.targetType, "habit")];
+  if (q.habitId) where.push(eq(entityLinks.targetId, q.habitId));
+  else where.push(eq(entityLinks.sourceType, "book"), eq(entityLinks.sourceId, q.sourceId ?? ""));
+
   const rows = await db
     .select()
     .from(entityLinks)
-    .where(
-      and(
-        eq(entityLinks.userId, userId),
-        eq(entityLinks.sourceType, q.sourceType),
-        eq(entityLinks.sourceId, q.sourceId),
-        eq(entityLinks.targetType, "habit"),
-      ),
-    );
-  return rows.map(toLink);
+    .where(and(...where));
+  // Titles come only from books this user's own links point at.
+  const titles = rows.length
+    ? await db
+        .select({ id: books.id, title: books.title })
+        .from(books)
+        .where(
+          inArray(
+            books.id,
+            rows.map((r) => r.sourceId),
+          ),
+        )
+    : [];
+  const titleOf = new Map(titles.map((t) => [t.id, t.title]));
+  return rows.map((r) => toLink(r, titleOf.get(r.sourceId) ?? null));
 }
 
 export async function createLink(

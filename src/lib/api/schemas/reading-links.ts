@@ -11,10 +11,16 @@ const id = z.string().min(1).max(200);
 export const LINK_MODES = ["ask", "auto", "off"] as const;
 export type LinkMode = (typeof LINK_MODES)[number];
 
-export const linkQuery = z.object({
-  sourceType: z.literal("book"),
-  sourceId: id,
-});
+/** Links for one book (`sourceType` + `sourceId`) or for one habit (`habitId`). */
+export const linkQuery = z
+  .object({
+    sourceType: z.literal("book").optional(),
+    sourceId: id.optional(),
+    habitId: id.optional(),
+  })
+  .refine((q) => !!q.habitId || (!!q.sourceType && !!q.sourceId), {
+    message: "Pass habitId, or sourceType and sourceId.",
+  });
 
 export const linkInput = z.object({
   sourceType: z.literal("book"),

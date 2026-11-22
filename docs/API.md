@@ -182,7 +182,7 @@ Habit create/patch bodies take an optional `startedOn` (up to 8 weeks back) to b
 | `DELETE` | `/api/reading-links/:id`              | `src/routes/api/reading-links/$id/index.ts`        |
 | `POST`   | `/api/reading-links/:id/contribution` | `src/routes/api/reading-links/$id/contribution.ts` |
 
-Opt-in links from a book to a done / not-done Compass habit (`GET` takes `sourceType=book&sourceId=`). `PUT /api/shelves/book/:id/progress` also returns `links: { applied, suggestions }` for the user's links on that book; a book with no links returns both empty. `contribution` adds reading to a day (negative takes it back) for "Yes" and "Undo", today and the 6 days before only.
+Opt-in links from a book to a done / not-done Compass habit (`GET` takes `sourceType=book&sourceId=` for a book's links, or `habitId=` for the books feeding a habit; each link carries the book's title). `PUT /api/shelves/book/:id/progress` also returns `links: { applied, suggestions }` for the user's links on that book; a book with no links returns both empty. `contribution` adds reading to a day (negative takes it back) for "Yes" and "Undo", today and the 6 days before only. Clearing a day with `PUT /api/compass/logs` (`value: 0`) also clears what linked reading added to it.
 
 ### trips
 

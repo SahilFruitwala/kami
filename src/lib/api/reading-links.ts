@@ -11,6 +11,8 @@ export type ReadingLink = {
   id: string;
   sourceType: "book";
   sourceId: string;
+  /** The book's title, so a habit can list what feeds it. */
+  sourceTitle: string | null;
   habitId: string;
   mode: LinkMode;
 };
@@ -37,6 +39,7 @@ export type LinkOutcome = {
 export const readingLinksApi = {
   forBook: (bookId: string) =>
     http.get<ReadingLink[]>("/api/reading-links", { sourceType: "book", sourceId: bookId }),
+  forHabit: (habitId: string) => http.get<ReadingLink[]>("/api/reading-links", { habitId }),
   create: (input: LinkInput) => http.post<ReadingLink>("/api/reading-links", input),
   update: (id: string, patch: LinkPatch) =>
     http.patch<ReadingLink>(`/api/reading-links/${seg(id)}`, patch),

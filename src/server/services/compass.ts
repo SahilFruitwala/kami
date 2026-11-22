@@ -678,6 +678,15 @@ export async function putLog(userId: string, input: z.output<typeof logInput>): 
     await db
       .delete(compassLogs)
       .where(and(eq(compassLogs.habitId, habit.id), eq(compassLogs.day, input.day)));
+    // A day linked reading ticked is cleared too, or the tick would come back.
+    await db
+      .delete(compassLogContributions)
+      .where(
+        and(
+          eq(compassLogContributions.habitId, habit.id),
+          eq(compassLogContributions.day, input.day),
+        ),
+      );
     return;
   }
   const value = habit.kind === "check" ? 1 : input.value;
