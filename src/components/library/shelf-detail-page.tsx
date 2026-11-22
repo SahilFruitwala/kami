@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { Hanko, KamiEyebrow, WashiTag } from "@/components/kami.tsx";
+import { BookHabitLinks } from "@/components/library/book-habit-links.tsx";
 import { BookProgress } from "@/components/library/book-progress.tsx";
 import { EpisodeTracker } from "@/components/library/episode-tracker.tsx";
 import { WatchWhere } from "@/components/library/watch-where.tsx";
@@ -313,6 +314,8 @@ function DetailBody({
             percent={detail.item.progressPercent}
           />
         ) : null}
+
+        {detail.type === "book" ? <BookHabitLinks bookId={detail.item.id} /> : null}
 
         {detail.type === "tv" ? (
           <section aria-labelledby="episodes-heading" className="kami-sheet p-4 sm:p-5">

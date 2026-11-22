@@ -32,6 +32,10 @@ export const queryKeys = {
   compass: {
     all: ["compass"] as const,
   },
+  readingLinks: {
+    all: ["reading-links"] as const,
+    book: (id: string) => [...queryKeys.readingLinks.all, "book", id] as const,
+  },
   narration: {
     all: ["narration"] as const,
     allowance: () => [...queryKeys.narration.all, "allowance"] as const,

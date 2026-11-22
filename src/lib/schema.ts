@@ -1092,6 +1092,60 @@ export const compassLogs = pgTable(
   ],
 );
 
+/** Reading → Compass links — `migrations/0031_entity_links.sql`. */
+export const entityLinks = pgTable(
+  "entity_links",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    sourceType: text("source_type").$type<"book" | "article" | "folder">().notNull(),
+    sourceId: text("source_id").notNull(),
+    targetType: text("target_type").$type<"habit" | "milestone">().notNull(),
+    targetId: text("target_id").notNull(),
+    mode: text("mode").$type<"ask" | "auto" | "off">().notNull().default("ask"),
+    threshold: real("threshold"),
+    linkedAt: timestamp("linked_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("entity_links_pair_idx").on(
+      t.userId,
+      t.sourceType,
+      t.sourceId,
+      t.targetType,
+      t.targetId,
+    ),
+    index("entity_links_target_idx").on(t.targetType, t.targetId),
+  ],
+);
+
+export const compassLogContributions = pgTable(
+  "compass_log_contributions",
+  {
+    // No foreign key: removing a link keeps the days it already ticked.
+    linkId: text("link_id").notNull(),
+    habitId: text("habit_id")
+      .notNull()
+      .references(() => compassHabits.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    day: date("day", { mode: "string" }).notNull(),
+    amount: real("amount").notNull(),
+    unit: text("unit").$type<"pages" | "percent" | "minutes" | "articles">().notNull(),
+    label: text("label"),
+    counted: boolean("counted").notNull().default(true),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.linkId, t.day] }),
+    index("compass_log_contributions_habit_idx").on(t.habitId, t.day),
+    index("compass_log_contributions_user_idx").on(t.userId, t.day),
+  ],
+);
+
 export type CompassGoalRow = typeof compassGoals.$inferSelect;
 export type CompassMilestoneRow = typeof compassMilestones.$inferSelect;
 export type CompassHabitRow = typeof compassHabits.$inferSelect;

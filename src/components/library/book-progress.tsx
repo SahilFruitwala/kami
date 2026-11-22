@@ -1,8 +1,8 @@
 import { useId, useState, type FormEvent } from "react";
-import { toast } from "sonner";
 import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button.tsx";
 import { Input } from "@/components/ui/input.tsx";
+import { useAnnounceLinks } from "@/hooks/use-reading-links.ts";
 import { useBookPageCountLookup, useSetBookProgress } from "@/hooks/use-shelf-queries.ts";
 import { cn } from "@/lib/utils.ts";
 import { toastError } from "@/lib/errors";
@@ -25,6 +25,7 @@ export function BookProgress({
   percent: number;
 }) {
   const save = useSetBookProgress();
+  const announceLinks = useAnnounceLinks(id);
   const lookup = useBookPageCountLookup(id, pageCount == null);
   const lookingUp = pageCount == null && lookup.isFetching;
   const fieldId = useId();
@@ -62,13 +63,7 @@ export function BookProgress({
     }
     try {
       const res = await save.mutateAsync(data);
-      toast.success(
-        res.status === "done"
-          ? "Finished — marked read"
-          : res.percent === 0
-            ? "Progress cleared"
-            : `Progress saved, ${res.percent}%`,
-      );
+      announceLinks(res.links);
     } catch (err) {
       toastError(err, "Couldn't save progress.");
     }

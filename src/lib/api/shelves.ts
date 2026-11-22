@@ -4,6 +4,7 @@ import type { BookCsvSource, GoodreadsBook } from "@/lib/goodreads";
 import type { ItemStatus } from "@/lib/schema";
 import type { ShelfCard, ShelfDetail, ShelfTab } from "@/lib/shelves";
 import { http, orNull, seg } from "./client";
+import type { LinkOutcome } from "./reading-links";
 import type { EpisodeRow, ShelfDuplicate, ShowSeasons } from "./types";
 
 /** Every shelf kind the API accepts (tabs plus the not-yet-surfaced ones). */
@@ -51,7 +52,10 @@ export const shelvesApi = {
 
   books: {
     setProgress: (id: string, progress: BookProgress) =>
-      http.put<{ status: ItemStatus; percent: number }>(`${book(id)}/progress`, progress),
+      http.put<{ status: ItemStatus; percent: number; links: LinkOutcome }>(
+        `${book(id)}/progress`,
+        progress,
+      ),
 
     /** Fill a missing page count from Open Library. */
     fillPageCount: (id: string) =>

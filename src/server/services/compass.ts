@@ -2,6 +2,7 @@ import "@tanstack/react-start/server-only";
 import { and, asc, eq, gte, inArray, isNull, lt, lte, sql } from "drizzle-orm";
 import { z } from "zod";
 import type {
+  CompassContribution,
   CompassGoal,
   CompassHabit,
   CompassRhythm,
@@ -35,6 +36,7 @@ import {
   type QuarterKey,
   type WeekStart,
 } from "@/lib/compass/dates";
+import { withAutoLogs } from "@/lib/compass/auto";
 import {
   BACKDATE_MAX_DAYS,
   EDIT_WINDOW_DAYS,
@@ -56,11 +58,13 @@ import {
   compassGoals,
   compassHabitSchedules,
   compassHabits,
+  compassLogContributions,
   compassLogs,
   compassMilestones,
   compassQuarters,
   compassReviews,
   compassSettings,
+  entityLinks,
   type CompassGoalRow,
   type CompassHabitRow,
   type CompassScheduleRow,
@@ -93,9 +97,9 @@ export {
 const DELETE_WINDOW_DAYS = 7;
 
 type Settings = { timezone: string; weekStart: WeekStart };
-type Clock = Settings & { today: IsoDay; quarter: QuarterKey };
+export type Clock = Settings & { today: IsoDay; quarter: QuarterKey };
 
-async function clockFor(db: AppDb, userId: string): Promise<Clock> {
+export async function clockFor(db: AppDb, userId: string): Promise<Clock> {
   const [row] = await db
     .select()
     .from(compassSettings)
@@ -246,6 +250,21 @@ export async function getCompass(userId: string): Promise<CompassSnapshot> {
         .where(inArray(compassLogs.habitId, habitIds))
     : [];
 
+  const contributions: CompassContribution[] = habitIds.length
+    ? await db
+        .select({
+          linkId: compassLogContributions.linkId,
+          habitId: compassLogContributions.habitId,
+          day: compassLogContributions.day,
+          amount: compassLogContributions.amount,
+          unit: compassLogContributions.unit,
+          label: compassLogContributions.label,
+          counted: compassLogContributions.counted,
+        })
+        .from(compassLogContributions)
+        .where(inArray(compassLogContributions.habitId, habitIds))
+    : [];
+
   const liveGoals = new Set(goals.map((g) => g.id));
   const habits: CompassHabit[] = habitRows
     .map((h) => ({
@@ -271,7 +290,8 @@ export async function getCompass(userId: string): Promise<CompassSnapshot> {
     quarter: clock.quarter,
     goals,
     habits,
-    logs: logRows,
+    logs: withAutoLogs(logRows, contributions, habits),
+    contributions,
     rhythm: await rhythmFor(db, userId, clock, quarter?.id ?? null),
   };
 }
@@ -630,6 +650,10 @@ export async function deleteHabit(userId: string, habitId: string): Promise<void
   if (daysBetween(addedOnOf(habit, clock), clock.today) >= DELETE_WINDOW_DAYS) {
     throw badRequest("This habit has history now. Archive it instead so its weeks stay intact.");
   }
+  // Links point at the habit without a foreign key, so remove them with it.
+  await db
+    .delete(entityLinks)
+    .where(and(eq(entityLinks.targetType, "habit"), eq(entityLinks.targetId, habitId)));
   await db.delete(compassHabits).where(eq(compassHabits.id, habitId));
 }
 

@@ -49,6 +49,7 @@ import { Route as ApiLookupWatchProvidersRouteImport } from './routes/api/lookup
 import { Route as ApiLookupWatchProvidersBatchRouteImport } from './routes/api/lookup/watch-providers-batch'
 import { Route as ApiNarrationsIdRouteImport } from './routes/api/narrations/$id'
 import { Route as ApiNarrationsRunRouteImport } from './routes/api/narrations/run'
+import { Route as ApiReadingLinksIndexRouteImport } from './routes/api/reading-links/index'
 import { Route as ApiShelvesCountsRouteImport } from './routes/api/shelves/counts'
 import { Route as CompassGoalIdRouteImport } from './routes/compass/goal.$id'
 import { Route as CompassQQuarterRouteImport } from './routes/compass/q.$quarter'
@@ -71,6 +72,8 @@ import { Route as ApiLibraryItemsIndexRouteImport } from './routes/api/library/i
 import { Route as ApiLibraryItemsIdRouteImport } from './routes/api/library/items/$id'
 import { Route as ApiNarrationsIdAudioRouteImport } from './routes/api/narrations/$id/audio'
 import { Route as ApiNarrationsIdPositionRouteImport } from './routes/api/narrations/$id/position'
+import { Route as ApiReadingLinksIdIndexRouteImport } from './routes/api/reading-links/$id/index'
+import { Route as ApiReadingLinksIdContributionRouteImport } from './routes/api/reading-links/$id/contribution'
 import { Route as ApiShelvesTypeIndexRouteImport } from './routes/api/shelves/$type/index'
 import { Route as ApiShelvesTypeIdRouteImport } from './routes/api/shelves/$type/$id'
 import { Route as ApiShelvesTypeDuplicatesRouteImport } from './routes/api/shelves/$type/duplicates'
@@ -288,6 +291,11 @@ const ApiNarrationsRunRoute = ApiNarrationsRunRouteImport.update({
   path: '/api/narrations/run',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiReadingLinksIndexRoute = ApiReadingLinksIndexRouteImport.update({
+  id: '/api/reading-links/',
+  path: '/api/reading-links/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiShelvesCountsRoute = ApiShelvesCountsRouteImport.update({
   id: '/api/shelves/counts',
   path: '/api/shelves/counts',
@@ -399,6 +407,17 @@ const ApiNarrationsIdPositionRoute = ApiNarrationsIdPositionRouteImport.update({
   path: '/position',
   getParentRoute: () => ApiNarrationsIdRoute,
 } as any)
+const ApiReadingLinksIdIndexRoute = ApiReadingLinksIdIndexRouteImport.update({
+  id: '/api/reading-links/$id/',
+  path: '/api/reading-links/$id/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiReadingLinksIdContributionRoute =
+  ApiReadingLinksIdContributionRouteImport.update({
+    id: '/api/reading-links/$id/contribution',
+    path: '/api/reading-links/$id/contribution',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiShelvesTypeIndexRoute = ApiShelvesTypeIndexRouteImport.update({
   id: '/api/shelves/$type/',
   path: '/api/shelves/$type/',
@@ -529,6 +548,7 @@ export interface FileRoutesByFullPath {
   '/api/allowance/': typeof ApiAllowanceIndexRoute
   '/api/compass/': typeof ApiCompassIndexRoute
   '/api/library/': typeof ApiLibraryIndexRoute
+  '/api/reading-links/': typeof ApiReadingLinksIndexRoute
   '/shelves/books/': typeof ShelvesBooksIndexRoute
   '/shelves/movies/': typeof ShelvesMoviesIndexRoute
   '/shelves/series/': typeof ShelvesSeriesIndexRoute
@@ -541,6 +561,7 @@ export interface FileRoutesByFullPath {
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
   '/api/narrations/$id/position': typeof ApiNarrationsIdPositionRoute
+  '/api/reading-links/$id/contribution': typeof ApiReadingLinksIdContributionRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
@@ -548,6 +569,7 @@ export interface FileRoutesByFullPath {
   '/api/compass/habits/': typeof ApiCompassHabitsIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
+  '/api/reading-links/$id/': typeof ApiReadingLinksIdIndexRoute
   '/api/shelves/$type/': typeof ApiShelvesTypeIndexRoute
   '/api/ai/articles/$id/autotag': typeof ApiAiArticlesIdAutotagRoute
   '/api/ai/articles/$id/original': typeof ApiAiArticlesIdOriginalRoute
@@ -607,6 +629,7 @@ export interface FileRoutesByTo {
   '/api/allowance': typeof ApiAllowanceIndexRoute
   '/api/compass': typeof ApiCompassIndexRoute
   '/api/library': typeof ApiLibraryIndexRoute
+  '/api/reading-links': typeof ApiReadingLinksIndexRoute
   '/shelves/books': typeof ShelvesBooksIndexRoute
   '/shelves/movies': typeof ShelvesMoviesIndexRoute
   '/shelves/series': typeof ShelvesSeriesIndexRoute
@@ -619,6 +642,7 @@ export interface FileRoutesByTo {
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
   '/api/narrations/$id/position': typeof ApiNarrationsIdPositionRoute
+  '/api/reading-links/$id/contribution': typeof ApiReadingLinksIdContributionRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
@@ -626,6 +650,7 @@ export interface FileRoutesByTo {
   '/api/compass/habits': typeof ApiCompassHabitsIndexRoute
   '/api/library/folders': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items': typeof ApiLibraryItemsIndexRoute
+  '/api/reading-links/$id': typeof ApiReadingLinksIdIndexRoute
   '/api/shelves/$type': typeof ApiShelvesTypeIndexRoute
   '/api/ai/articles/$id/autotag': typeof ApiAiArticlesIdAutotagRoute
   '/api/ai/articles/$id/original': typeof ApiAiArticlesIdOriginalRoute
@@ -687,6 +712,7 @@ export interface FileRoutesById {
   '/api/allowance/': typeof ApiAllowanceIndexRoute
   '/api/compass/': typeof ApiCompassIndexRoute
   '/api/library/': typeof ApiLibraryIndexRoute
+  '/api/reading-links/': typeof ApiReadingLinksIndexRoute
   '/shelves/books/': typeof ShelvesBooksIndexRoute
   '/shelves/movies/': typeof ShelvesMoviesIndexRoute
   '/shelves/series/': typeof ShelvesSeriesIndexRoute
@@ -699,6 +725,7 @@ export interface FileRoutesById {
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
   '/api/narrations/$id/position': typeof ApiNarrationsIdPositionRoute
+  '/api/reading-links/$id/contribution': typeof ApiReadingLinksIdContributionRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
   '/api/shelves/book/import': typeof ApiShelvesBookImportRoute
@@ -706,6 +733,7 @@ export interface FileRoutesById {
   '/api/compass/habits/': typeof ApiCompassHabitsIndexRoute
   '/api/library/folders/': typeof ApiLibraryFoldersIndexRoute
   '/api/library/items/': typeof ApiLibraryItemsIndexRoute
+  '/api/reading-links/$id/': typeof ApiReadingLinksIdIndexRoute
   '/api/shelves/$type/': typeof ApiShelvesTypeIndexRoute
   '/api/ai/articles/$id/autotag': typeof ApiAiArticlesIdAutotagRoute
   '/api/ai/articles/$id/original': typeof ApiAiArticlesIdOriginalRoute
@@ -768,6 +796,7 @@ export interface FileRouteTypes {
     | '/api/allowance/'
     | '/api/compass/'
     | '/api/library/'
+    | '/api/reading-links/'
     | '/shelves/books/'
     | '/shelves/movies/'
     | '/shelves/series/'
@@ -780,6 +809,7 @@ export interface FileRouteTypes {
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
     | '/api/narrations/$id/position'
+    | '/api/reading-links/$id/contribution'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
@@ -787,6 +817,7 @@ export interface FileRouteTypes {
     | '/api/compass/habits/'
     | '/api/library/folders/'
     | '/api/library/items/'
+    | '/api/reading-links/$id/'
     | '/api/shelves/$type/'
     | '/api/ai/articles/$id/autotag'
     | '/api/ai/articles/$id/original'
@@ -846,6 +877,7 @@ export interface FileRouteTypes {
     | '/api/allowance'
     | '/api/compass'
     | '/api/library'
+    | '/api/reading-links'
     | '/shelves/books'
     | '/shelves/movies'
     | '/shelves/series'
@@ -858,6 +890,7 @@ export interface FileRouteTypes {
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
     | '/api/narrations/$id/position'
+    | '/api/reading-links/$id/contribution'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
@@ -865,6 +898,7 @@ export interface FileRouteTypes {
     | '/api/compass/habits'
     | '/api/library/folders'
     | '/api/library/items'
+    | '/api/reading-links/$id'
     | '/api/shelves/$type'
     | '/api/ai/articles/$id/autotag'
     | '/api/ai/articles/$id/original'
@@ -925,6 +959,7 @@ export interface FileRouteTypes {
     | '/api/allowance/'
     | '/api/compass/'
     | '/api/library/'
+    | '/api/reading-links/'
     | '/shelves/books/'
     | '/shelves/movies/'
     | '/shelves/series/'
@@ -937,6 +972,7 @@ export interface FileRouteTypes {
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
     | '/api/narrations/$id/position'
+    | '/api/reading-links/$id/contribution'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
     | '/api/shelves/book/import'
@@ -944,6 +980,7 @@ export interface FileRouteTypes {
     | '/api/compass/habits/'
     | '/api/library/folders/'
     | '/api/library/items/'
+    | '/api/reading-links/$id/'
     | '/api/shelves/$type/'
     | '/api/ai/articles/$id/autotag'
     | '/api/ai/articles/$id/original'
@@ -1000,6 +1037,7 @@ export interface RootRouteChildren {
   ApiAllowanceIndexRoute: typeof ApiAllowanceIndexRoute
   ApiCompassIndexRoute: typeof ApiCompassIndexRoute
   ApiLibraryIndexRoute: typeof ApiLibraryIndexRoute
+  ApiReadingLinksIndexRoute: typeof ApiReadingLinksIndexRoute
   ApiCompassGoalsIdRoute: typeof ApiCompassGoalsIdRoute
   ApiCompassHabitsIdRoute: typeof ApiCompassHabitsIdRoute
   ApiCompassMilestonesIdRoute: typeof ApiCompassMilestonesIdRoute
@@ -1007,6 +1045,7 @@ export interface RootRouteChildren {
   ApiCompassYearYearRoute: typeof ApiCompassYearYearRoute
   ApiLibraryFoldersIdRoute: typeof ApiLibraryFoldersIdRoute
   ApiLibraryItemsIdRoute: typeof ApiLibraryItemsIdRoute
+  ApiReadingLinksIdContributionRoute: typeof ApiReadingLinksIdContributionRoute
   ApiShelvesTypeIdRoute: typeof ApiShelvesTypeIdRoute
   ApiShelvesTypeDuplicatesRoute: typeof ApiShelvesTypeDuplicatesRoute
   ApiShelvesBookImportRoute: typeof ApiShelvesBookImportRoute
@@ -1014,6 +1053,7 @@ export interface RootRouteChildren {
   ApiCompassHabitsIndexRoute: typeof ApiCompassHabitsIndexRoute
   ApiLibraryFoldersIndexRoute: typeof ApiLibraryFoldersIndexRoute
   ApiLibraryItemsIndexRoute: typeof ApiLibraryItemsIndexRoute
+  ApiReadingLinksIdIndexRoute: typeof ApiReadingLinksIdIndexRoute
   ApiShelvesTypeIndexRoute: typeof ApiShelvesTypeIndexRoute
   ApiAiArticlesIdAutotagRoute: typeof ApiAiArticlesIdAutotagRoute
   ApiAiArticlesIdOriginalRoute: typeof ApiAiArticlesIdOriginalRoute
@@ -1310,6 +1350,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiNarrationsRunRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/reading-links/': {
+      id: '/api/reading-links/'
+      path: '/api/reading-links'
+      fullPath: '/api/reading-links/'
+      preLoaderRoute: typeof ApiReadingLinksIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/shelves/counts': {
       id: '/api/shelves/counts'
       path: '/api/shelves/counts'
@@ -1463,6 +1510,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/api/narrations/$id/position'
       preLoaderRoute: typeof ApiNarrationsIdPositionRouteImport
       parentRoute: typeof ApiNarrationsIdRoute
+    }
+    '/api/reading-links/$id/': {
+      id: '/api/reading-links/$id/'
+      path: '/api/reading-links/$id'
+      fullPath: '/api/reading-links/$id/'
+      preLoaderRoute: typeof ApiReadingLinksIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/reading-links/$id/contribution': {
+      id: '/api/reading-links/$id/contribution'
+      path: '/api/reading-links/$id/contribution'
+      fullPath: '/api/reading-links/$id/contribution'
+      preLoaderRoute: typeof ApiReadingLinksIdContributionRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/shelves/$type/': {
       id: '/api/shelves/$type/'
@@ -1654,6 +1715,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAllowanceIndexRoute: ApiAllowanceIndexRoute,
   ApiCompassIndexRoute: ApiCompassIndexRoute,
   ApiLibraryIndexRoute: ApiLibraryIndexRoute,
+  ApiReadingLinksIndexRoute: ApiReadingLinksIndexRoute,
   ApiCompassGoalsIdRoute: ApiCompassGoalsIdRoute,
   ApiCompassHabitsIdRoute: ApiCompassHabitsIdRoute,
   ApiCompassMilestonesIdRoute: ApiCompassMilestonesIdRoute,
@@ -1661,6 +1723,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCompassYearYearRoute: ApiCompassYearYearRoute,
   ApiLibraryFoldersIdRoute: ApiLibraryFoldersIdRoute,
   ApiLibraryItemsIdRoute: ApiLibraryItemsIdRoute,
+  ApiReadingLinksIdContributionRoute: ApiReadingLinksIdContributionRoute,
   ApiShelvesTypeIdRoute: ApiShelvesTypeIdRoute,
   ApiShelvesTypeDuplicatesRoute: ApiShelvesTypeDuplicatesRoute,
   ApiShelvesBookImportRoute: ApiShelvesBookImportRoute,
@@ -1668,6 +1731,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCompassHabitsIndexRoute: ApiCompassHabitsIndexRoute,
   ApiLibraryFoldersIndexRoute: ApiLibraryFoldersIndexRoute,
   ApiLibraryItemsIndexRoute: ApiLibraryItemsIndexRoute,
+  ApiReadingLinksIdIndexRoute: ApiReadingLinksIdIndexRoute,
   ApiShelvesTypeIndexRoute: ApiShelvesTypeIndexRoute,
   ApiAiArticlesIdAutotagRoute: ApiAiArticlesIdAutotagRoute,
   ApiAiArticlesIdOriginalRoute: ApiAiArticlesIdOriginalRoute,

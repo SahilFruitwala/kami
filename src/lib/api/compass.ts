@@ -46,7 +46,22 @@ export type CompassHabit = {
   schedules: HabitSchedule[];
 };
 
-export type CompassLog = { habitId: string; day: IsoDay; value: number };
+/** `auto` marks a day ticked by linked reading rather than by hand. */
+export type CompassLog = { habitId: string; day: IsoDay; value: number; auto?: true };
+
+export type ContributionUnit = "pages" | "percent" | "minutes" | "articles";
+
+/** What a linked book or article added to a habit on one day. */
+export type CompassContribution = {
+  linkId: string;
+  habitId: string;
+  day: IsoDay;
+  amount: number;
+  unit: ContributionUnit;
+  label: string | null;
+  /** Whether that day counts as done for the habit. */
+  counted: boolean;
+};
 
 export type ReviewAnswers = { moved: string; blocked: string; change: string };
 
@@ -97,6 +112,8 @@ export type CompassSnapshot = {
   goals: CompassGoal[];
   habits: CompassHabit[];
   logs: CompassLog[];
+  /** Detail behind automatic ticks; the numbers above already include them. */
+  contributions: CompassContribution[];
   rhythm: CompassRhythm;
 };
 

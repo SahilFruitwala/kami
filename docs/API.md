@@ -172,6 +172,18 @@ Quarterly goals, habits and check-ins. `GET` returns raw rows; weekly totals, st
 
 Habit create/patch bodies take an optional `startedOn` (up to 8 weeks back) to backdate a habit. For a habit's first week, `PUT /api/compass/logs` accepts any day since that start; after that only today and the 6 days before.
 
+### reading-links
+
+| Method   | Path                                  | Source                                             |
+| -------- | ------------------------------------- | -------------------------------------------------- |
+| `GET`    | `/api/reading-links`                  | `src/routes/api/reading-links/index.ts`            |
+| `POST`   | `/api/reading-links`                  | `src/routes/api/reading-links/index.ts`            |
+| `PATCH`  | `/api/reading-links/:id`              | `src/routes/api/reading-links/$id/index.ts`        |
+| `DELETE` | `/api/reading-links/:id`              | `src/routes/api/reading-links/$id/index.ts`        |
+| `POST`   | `/api/reading-links/:id/contribution` | `src/routes/api/reading-links/$id/contribution.ts` |
+
+Opt-in links from a book to a done / not-done Compass habit (`GET` takes `sourceType=book&sourceId=`). `PUT /api/shelves/book/:id/progress` also returns `links: { applied, suggestions }` for the user's links on that book; a book with no links returns both empty. `contribution` adds reading to a day (negative takes it back) for "Yes" and "Undo", today and the 6 days before only.
+
 ### trips
 
 | Method   | Path                                | Source                                           |

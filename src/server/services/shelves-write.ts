@@ -20,6 +20,7 @@ import {
   tableForType,
 } from "@/lib/shelves-db.server.ts";
 import { badRequest, conflict, notFound } from "@/server/http";
+import { onBookProgress } from "@/server/services/reading-links";
 import {
   addShelfItemBody,
   bookProgressBody,
@@ -347,7 +348,11 @@ export async function setBookProgress(
 
   const db = await getDb();
   const [prev] = await db
-    .select({ completedAt: books.completedAt })
+    .select({
+      completedAt: books.completedAt,
+      currentPage: books.currentPage,
+      progressPercent: books.progressPercent,
+    })
     .from(books)
     .where(eq(books.id, data.id))
     .limit(1);
@@ -376,7 +381,14 @@ export async function setBookProgress(
   }
 
   await invalidateUserCache(userId, "shelves");
-  return { status, percent: finished ? 100 : Math.min(percent, 99) };
+  const saved = finished ? 100 : Math.min(percent, 99);
+  const links = await onBookProgress(
+    userId,
+    { id: item.id, title: item.title },
+    { currentPage: prev?.currentPage ?? null, progressPercent: prev?.progressPercent ?? 0 },
+    { currentPage: data.mode === "pages" ? data.currentPage : null, progressPercent: saved },
+  );
+  return { status, percent: saved, links };
 }
 
 const IMPORT_CHUNK = 500;
