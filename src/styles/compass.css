@@ -653,6 +653,12 @@
     background-color 180ms var(--ease),
     transform 120ms var(--ease);
 }
+/* The app scales every pressed button to 0.98 (redesign.css). On a full-width
+   row that shrinks the whole line by ~15px and snaps it back on release, which
+   reads as a jitter. Only the box gives press feedback here. */
+button.cp-check:active {
+  transform: none;
+}
 button.cp-check:active .cp-box,
 .cp-box:active {
   transform: scale(0.9);
