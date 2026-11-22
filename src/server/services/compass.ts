@@ -782,8 +782,9 @@ export async function closeQuarter(
         .where(and(eq(compassMilestones.goalId, goal.id), isNull(compassMilestones.doneAt)))
         .orderBy(asc(compassMilestones.sort));
       for (const [i, m] of open.entries()) {
+        const carriedId = uid();
         await db.insert(compassMilestones).values({
-          id: uid(),
+          id: carriedId,
           userId,
           goalId: nextId,
           title: m.title,
@@ -792,6 +793,17 @@ export async function closeQuarter(
           weight: m.weight,
           sort: i,
         });
+        // Books linked to the old milestone follow it to the carried one.
+        await db
+          .update(entityLinks)
+          .set({ targetId: carriedId })
+          .where(
+            and(
+              eq(entityLinks.userId, userId),
+              eq(entityLinks.targetType, "milestone"),
+              eq(entityLinks.targetId, m.id),
+            ),
+          );
       }
       await db
         .update(compassHabits)

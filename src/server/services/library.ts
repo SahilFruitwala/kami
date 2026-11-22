@@ -42,6 +42,7 @@ import {
 import { applyHighlightOps, applyTagOps } from "@/lib/item-ops.ts";
 import { asTidyState, onSave } from "@/lib/tidy-state";
 import { conflict, notFound } from "@/server/http";
+import { onArticleArchived } from "@/server/services/reading-links";
 
 export const articleIdParams = z.object({ id: z.string().min(1).max(L.id) });
 
@@ -340,6 +341,7 @@ export async function patchLibraryItem(
 
   // Read-modify-write under a row lock: two concurrent patches to the same
   // work serialize, so ops always apply to the latest tags/highlights.
+  let wasArchived = false;
   const next = await db.transaction(async (tx) => {
     const [current] = await tx
       .select()
@@ -350,6 +352,7 @@ export async function patchLibraryItem(
     if (!current) return null;
 
     const item = rowToItem(current, { includeBody: true });
+    wasArchived = current.archived;
     if (data.archived !== undefined) item.archived = data.archived;
     if (data.favorited !== undefined) item.favorited = data.favorited;
     if (data.note !== undefined) item.note = data.note;
@@ -377,6 +380,10 @@ export async function patchLibraryItem(
     return item;
   });
   if (!next) throw notFound("Article not found");
+  // Archiving counts toward habits linked to the article's folder.
+  if (next.archived !== wasArchived) {
+    await onArticleArchived(userId, { folderId: next.folderId ?? null }, next.archived);
+  }
   await invalidateUserCache(userId, "library");
   return next;
 }

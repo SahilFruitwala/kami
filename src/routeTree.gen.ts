@@ -50,6 +50,7 @@ import { Route as ApiLookupWatchProvidersBatchRouteImport } from './routes/api/l
 import { Route as ApiNarrationsIdRouteImport } from './routes/api/narrations/$id'
 import { Route as ApiNarrationsRunRouteImport } from './routes/api/narrations/run'
 import { Route as ApiReadingLinksIndexRouteImport } from './routes/api/reading-links/index'
+import { Route as ApiReadingLinksSuggestionsRouteImport } from './routes/api/reading-links/suggestions'
 import { Route as ApiShelvesCountsRouteImport } from './routes/api/shelves/counts'
 import { Route as CompassGoalIdRouteImport } from './routes/compass/goal.$id'
 import { Route as CompassQQuarterRouteImport } from './routes/compass/q.$quarter'
@@ -73,6 +74,7 @@ import { Route as ApiLibraryItemsIdRouteImport } from './routes/api/library/item
 import { Route as ApiNarrationsIdAudioRouteImport } from './routes/api/narrations/$id/audio'
 import { Route as ApiNarrationsIdPositionRouteImport } from './routes/api/narrations/$id/position'
 import { Route as ApiReadingLinksIdIndexRouteImport } from './routes/api/reading-links/$id/index'
+import { Route as ApiReadingLinksIdCompleteRouteImport } from './routes/api/reading-links/$id/complete'
 import { Route as ApiReadingLinksIdContributionRouteImport } from './routes/api/reading-links/$id/contribution'
 import { Route as ApiShelvesTypeIndexRouteImport } from './routes/api/shelves/$type/index'
 import { Route as ApiShelvesTypeIdRouteImport } from './routes/api/shelves/$type/$id'
@@ -296,6 +298,12 @@ const ApiReadingLinksIndexRoute = ApiReadingLinksIndexRouteImport.update({
   path: '/api/reading-links/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiReadingLinksSuggestionsRoute =
+  ApiReadingLinksSuggestionsRouteImport.update({
+    id: '/api/reading-links/suggestions',
+    path: '/api/reading-links/suggestions',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiShelvesCountsRoute = ApiShelvesCountsRouteImport.update({
   id: '/api/shelves/counts',
   path: '/api/shelves/counts',
@@ -412,6 +420,12 @@ const ApiReadingLinksIdIndexRoute = ApiReadingLinksIdIndexRouteImport.update({
   path: '/api/reading-links/$id/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiReadingLinksIdCompleteRoute =
+  ApiReadingLinksIdCompleteRouteImport.update({
+    id: '/api/reading-links/$id/complete',
+    path: '/api/reading-links/$id/complete',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiReadingLinksIdContributionRoute =
   ApiReadingLinksIdContributionRouteImport.update({
     id: '/api/reading-links/$id/contribution',
@@ -539,6 +553,7 @@ export interface FileRoutesByFullPath {
   '/api/lookup/watch-providers-batch': typeof ApiLookupWatchProvidersBatchRoute
   '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
   '/api/narrations/run': typeof ApiNarrationsRunRoute
+  '/api/reading-links/suggestions': typeof ApiReadingLinksSuggestionsRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
   '/compass/goal/$id': typeof CompassGoalIdRoute
   '/compass/q/$quarter': typeof CompassQQuarterRoute
@@ -561,6 +576,7 @@ export interface FileRoutesByFullPath {
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
   '/api/narrations/$id/position': typeof ApiNarrationsIdPositionRoute
+  '/api/reading-links/$id/complete': typeof ApiReadingLinksIdCompleteRoute
   '/api/reading-links/$id/contribution': typeof ApiReadingLinksIdContributionRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
@@ -620,6 +636,7 @@ export interface FileRoutesByTo {
   '/api/lookup/watch-providers-batch': typeof ApiLookupWatchProvidersBatchRoute
   '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
   '/api/narrations/run': typeof ApiNarrationsRunRoute
+  '/api/reading-links/suggestions': typeof ApiReadingLinksSuggestionsRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
   '/compass/goal/$id': typeof CompassGoalIdRoute
   '/compass/q/$quarter': typeof CompassQQuarterRoute
@@ -642,6 +659,7 @@ export interface FileRoutesByTo {
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
   '/api/narrations/$id/position': typeof ApiNarrationsIdPositionRoute
+  '/api/reading-links/$id/complete': typeof ApiReadingLinksIdCompleteRoute
   '/api/reading-links/$id/contribution': typeof ApiReadingLinksIdContributionRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
@@ -703,6 +721,7 @@ export interface FileRoutesById {
   '/api/lookup/watch-providers-batch': typeof ApiLookupWatchProvidersBatchRoute
   '/api/narrations/$id': typeof ApiNarrationsIdRouteWithChildren
   '/api/narrations/run': typeof ApiNarrationsRunRoute
+  '/api/reading-links/suggestions': typeof ApiReadingLinksSuggestionsRoute
   '/api/shelves/counts': typeof ApiShelvesCountsRoute
   '/compass/goal/$id': typeof CompassGoalIdRoute
   '/compass/q/$quarter': typeof CompassQQuarterRoute
@@ -725,6 +744,7 @@ export interface FileRoutesById {
   '/api/library/items/$id': typeof ApiLibraryItemsIdRoute
   '/api/narrations/$id/audio': typeof ApiNarrationsIdAudioRoute
   '/api/narrations/$id/position': typeof ApiNarrationsIdPositionRoute
+  '/api/reading-links/$id/complete': typeof ApiReadingLinksIdCompleteRoute
   '/api/reading-links/$id/contribution': typeof ApiReadingLinksIdContributionRoute
   '/api/shelves/$type/$id': typeof ApiShelvesTypeIdRoute
   '/api/shelves/$type/duplicates': typeof ApiShelvesTypeDuplicatesRoute
@@ -787,6 +807,7 @@ export interface FileRouteTypes {
     | '/api/lookup/watch-providers-batch'
     | '/api/narrations/$id'
     | '/api/narrations/run'
+    | '/api/reading-links/suggestions'
     | '/api/shelves/counts'
     | '/compass/goal/$id'
     | '/compass/q/$quarter'
@@ -809,6 +830,7 @@ export interface FileRouteTypes {
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
     | '/api/narrations/$id/position'
+    | '/api/reading-links/$id/complete'
     | '/api/reading-links/$id/contribution'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
@@ -868,6 +890,7 @@ export interface FileRouteTypes {
     | '/api/lookup/watch-providers-batch'
     | '/api/narrations/$id'
     | '/api/narrations/run'
+    | '/api/reading-links/suggestions'
     | '/api/shelves/counts'
     | '/compass/goal/$id'
     | '/compass/q/$quarter'
@@ -890,6 +913,7 @@ export interface FileRouteTypes {
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
     | '/api/narrations/$id/position'
+    | '/api/reading-links/$id/complete'
     | '/api/reading-links/$id/contribution'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
@@ -950,6 +974,7 @@ export interface FileRouteTypes {
     | '/api/lookup/watch-providers-batch'
     | '/api/narrations/$id'
     | '/api/narrations/run'
+    | '/api/reading-links/suggestions'
     | '/api/shelves/counts'
     | '/compass/goal/$id'
     | '/compass/q/$quarter'
@@ -972,6 +997,7 @@ export interface FileRouteTypes {
     | '/api/library/items/$id'
     | '/api/narrations/$id/audio'
     | '/api/narrations/$id/position'
+    | '/api/reading-links/$id/complete'
     | '/api/reading-links/$id/contribution'
     | '/api/shelves/$type/$id'
     | '/api/shelves/$type/duplicates'
@@ -1031,6 +1057,7 @@ export interface RootRouteChildren {
   ApiLookupWatchProvidersBatchRoute: typeof ApiLookupWatchProvidersBatchRoute
   ApiNarrationsIdRoute: typeof ApiNarrationsIdRouteWithChildren
   ApiNarrationsRunRoute: typeof ApiNarrationsRunRoute
+  ApiReadingLinksSuggestionsRoute: typeof ApiReadingLinksSuggestionsRoute
   ApiShelvesCountsRoute: typeof ApiShelvesCountsRoute
   CompassGoalIdRoute: typeof CompassGoalIdRoute
   CompassQQuarterRoute: typeof CompassQQuarterRoute
@@ -1045,6 +1072,7 @@ export interface RootRouteChildren {
   ApiCompassYearYearRoute: typeof ApiCompassYearYearRoute
   ApiLibraryFoldersIdRoute: typeof ApiLibraryFoldersIdRoute
   ApiLibraryItemsIdRoute: typeof ApiLibraryItemsIdRoute
+  ApiReadingLinksIdCompleteRoute: typeof ApiReadingLinksIdCompleteRoute
   ApiReadingLinksIdContributionRoute: typeof ApiReadingLinksIdContributionRoute
   ApiShelvesTypeIdRoute: typeof ApiShelvesTypeIdRoute
   ApiShelvesTypeDuplicatesRoute: typeof ApiShelvesTypeDuplicatesRoute
@@ -1357,6 +1385,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiReadingLinksIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/reading-links/suggestions': {
+      id: '/api/reading-links/suggestions'
+      path: '/api/reading-links/suggestions'
+      fullPath: '/api/reading-links/suggestions'
+      preLoaderRoute: typeof ApiReadingLinksSuggestionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/shelves/counts': {
       id: '/api/shelves/counts'
       path: '/api/shelves/counts'
@@ -1516,6 +1551,13 @@ declare module '@tanstack/react-router' {
       path: '/api/reading-links/$id'
       fullPath: '/api/reading-links/$id/'
       preLoaderRoute: typeof ApiReadingLinksIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/reading-links/$id/complete': {
+      id: '/api/reading-links/$id/complete'
+      path: '/api/reading-links/$id/complete'
+      fullPath: '/api/reading-links/$id/complete'
+      preLoaderRoute: typeof ApiReadingLinksIdCompleteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/reading-links/$id/contribution': {
@@ -1709,6 +1751,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLookupWatchProvidersBatchRoute: ApiLookupWatchProvidersBatchRoute,
   ApiNarrationsIdRoute: ApiNarrationsIdRouteWithChildren,
   ApiNarrationsRunRoute: ApiNarrationsRunRoute,
+  ApiReadingLinksSuggestionsRoute: ApiReadingLinksSuggestionsRoute,
   ApiShelvesCountsRoute: ApiShelvesCountsRoute,
   CompassGoalIdRoute: CompassGoalIdRoute,
   CompassQQuarterRoute: CompassQQuarterRoute,
@@ -1723,6 +1766,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiCompassYearYearRoute: ApiCompassYearYearRoute,
   ApiLibraryFoldersIdRoute: ApiLibraryFoldersIdRoute,
   ApiLibraryItemsIdRoute: ApiLibraryItemsIdRoute,
+  ApiReadingLinksIdCompleteRoute: ApiReadingLinksIdCompleteRoute,
   ApiReadingLinksIdContributionRoute: ApiReadingLinksIdContributionRoute,
   ApiShelvesTypeIdRoute: ApiShelvesTypeIdRoute,
   ApiShelvesTypeDuplicatesRoute: ApiShelvesTypeDuplicatesRoute,

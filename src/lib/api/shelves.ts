@@ -46,7 +46,10 @@ export const shelvesApi = {
     http.get<ShelfDuplicate[]>(`${shelf(type)}/duplicates`, { title, tmdbId }),
 
   setStatus: (type: ShelfType, id: string, status: ItemStatus) =>
-    http.patch<{ id: string; type: ShelfType; status: ItemStatus }>(item(type, id), { status }),
+    http.patch<{ id: string; type: ShelfType; status: ItemStatus; links?: LinkOutcome }>(
+      item(type, id),
+      { status },
+    ),
 
   remove: (type: ShelfType, id: string) => http.delete<{ deleted: boolean }>(item(type, id)),
 

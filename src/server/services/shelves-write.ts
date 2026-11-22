@@ -20,7 +20,7 @@ import {
   tableForType,
 } from "@/lib/shelves-db.server.ts";
 import { badRequest, conflict, notFound } from "@/server/http";
-import { onBookProgress } from "@/server/services/reading-links";
+import { onBookFinished, onBookProgress } from "@/server/services/reading-links";
 import {
   addShelfItemBody,
   bookProgressBody,
@@ -294,7 +294,13 @@ export async function setShelfItemStatus(
   }
 
   await invalidateUserCache(userId, "shelves");
-  return { id: data.id, type: data.type, status: data.status };
+  // Marking a book read completes any milestone it is linked to (habits count
+  // reading as it happens, so "Mark read" doesn't tick one).
+  const links =
+    data.type === "book" && data.status === "done" && item.status !== "done"
+      ? await onBookFinished(userId, { id: item.id, title: item.title })
+      : undefined;
+  return { id: data.id, type: data.type, status: data.status, links };
 }
 
 /** Remove a shelf item (watched episodes cascade for TV). */
@@ -382,12 +388,19 @@ export async function setBookProgress(
 
   await invalidateUserCache(userId, "shelves");
   const saved = finished ? 100 : Math.min(percent, 99);
+  const book = { id: item.id, title: item.title };
   const links = await onBookProgress(
     userId,
-    { id: item.id, title: item.title },
+    book,
     { currentPage: prev?.currentPage ?? null, progressPercent: prev?.progressPercent ?? 0 },
     { currentPage: data.mode === "pages" ? data.currentPage : null, progressPercent: saved },
   );
+  // Finishing the book also completes any milestone it is linked to.
+  if (status === "done" && item.status !== "done") {
+    const finished = await onBookFinished(userId, book);
+    links.applied.push(...finished.applied);
+    links.suggestions.push(...finished.suggestions);
+  }
   return { status, percent: saved, links };
 }
 

@@ -177,12 +177,14 @@ Habit create/patch bodies take an optional `startedOn` (up to 8 weeks back) to b
 | Method   | Path                                  | Source                                             |
 | -------- | ------------------------------------- | -------------------------------------------------- |
 | `GET`    | `/api/reading-links`                  | `src/routes/api/reading-links/index.ts`            |
+| `GET`    | `/api/reading-links/suggestions`      | `src/routes/api/reading-links/suggestions.ts`      |
 | `POST`   | `/api/reading-links`                  | `src/routes/api/reading-links/index.ts`            |
 | `PATCH`  | `/api/reading-links/:id`              | `src/routes/api/reading-links/$id/index.ts`        |
 | `DELETE` | `/api/reading-links/:id`              | `src/routes/api/reading-links/$id/index.ts`        |
 | `POST`   | `/api/reading-links/:id/contribution` | `src/routes/api/reading-links/$id/contribution.ts` |
+| `POST`   | `/api/reading-links/:id/complete`     | `src/routes/api/reading-links/$id/complete.ts`     |
 
-Opt-in links from a book to a done / not-done Compass habit (`GET` takes `sourceType=book&sourceId=` for a book's links, or `habitId=` for the books feeding a habit; each link carries the book's title). `PUT /api/shelves/book/:id/progress` also returns `links: { applied, suggestions }` for the user's links on that book; a book with no links returns both empty. `contribution` adds reading to a day (negative takes it back) for "Yes" and "Undo", today and the 6 days before only. Clearing a day with `PUT /api/compass/logs` (`value: 0`) also clears what linked reading added to it.
+Opt-in links from reading to Compass: a book to a done / not-done habit (as its progress moves) or to a milestone (when finished), and a saved-post folder to a habit (when an article in it is archived) (`GET` takes `sourceType` + `sourceId` for a source's links, or `targetType` + `targetId` for what feeds a habit or milestone; each link carries the source's title and, for books, status). `complete` marks a linked milestone done or takes that back. Folder links are `auto` or `off` only. `GET /api/reading-links/suggestions?bookId=` lists habits a finished book fed, offered for a book being read; it never creates a link. `PUT /api/shelves/book/:id/progress` also returns `links: { applied, suggestions }` for the user's links on that book, and `PATCH /api/shelves/book/:id` does when marking it read (milestones only); a book with no links returns both empty. `contribution` adds reading to a day (negative takes it back) for "Yes" and "Undo", today and the 6 days before only. Clearing a day with `PUT /api/compass/logs` (`value: 0`) also clears what linked reading added to it.
 
 ### trips
 

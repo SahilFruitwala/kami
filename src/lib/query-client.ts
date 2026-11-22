@@ -36,6 +36,7 @@ export const queryKeys = {
     all: ["reading-links"] as const,
     book: (id: string) => [...queryKeys.readingLinks.all, "book", id] as const,
     habit: (id: string) => [...queryKeys.readingLinks.all, "habit", id] as const,
+    suggestions: (id: string) => [...queryKeys.readingLinks.all, "suggestions", id] as const,
   },
   /** What the last book update did for linked habits; deliberately not under readingLinks, so refetching links never clears it. */
   readingLinkNotices: {

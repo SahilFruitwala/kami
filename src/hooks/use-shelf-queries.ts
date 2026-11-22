@@ -1,9 +1,4 @@
-import {
-  keepPreviousData,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { lookupApi } from "@/lib/api/lookup";
 import {
   shelvesApi,
@@ -13,6 +8,7 @@ import {
 } from "@/lib/api/shelves";
 import type { ItemStatus } from "@/lib/schema";
 import type { ShelfTab } from "@/lib/shelves";
+import { announceLinks } from "@/hooks/use-reading-links.ts";
 import { invalidateShelves, queryKeys } from "@/lib/query-client";
 import { toastError } from "@/lib/errors";
 import type { BookCsvSource, GoodreadsBook } from "@/lib/goodreads";
@@ -118,7 +114,11 @@ export function useSetShelfItemStatus() {
   return useMutation({
     mutationFn: (data: { type: ShelfTab; id: string; status: ItemStatus }) =>
       shelvesApi.setStatus(data.type, data.id, data.status),
-    onSuccess: () => invalidateShelves(client),
+    onSuccess: (res, vars) => {
+      // Marking a book read can complete a milestone it is linked to.
+      if (vars.type === "book") announceLinks(client, vars.id, res.links);
+      return invalidateShelves(client);
+    },
   });
 }
 

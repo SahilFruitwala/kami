@@ -38,3 +38,27 @@ export function readingCounts(
   if (amount <= 0) return false;
   return threshold == null || unit !== "pages" ? true : amount >= threshold;
 }
+
+export type FinishedLink = { habitId: string; mode: "ask" | "auto"; bookId: string };
+export type FinishedBook = { id: string; title: string; completedAt: number | null };
+
+/**
+ * Habits that a finished book fed, as suggestions for the next book. One per
+ * habit, from the most recently finished book, keeping the mode it had. A
+ * suggestion only ever offers a link; it never creates one.
+ */
+export function suggestFromFinished(
+  links: FinishedLink[],
+  finished: FinishedBook[],
+): { habitId: string; mode: "ask" | "auto"; fromTitle: string }[] {
+  const done = new Map(finished.map((b) => [b.id, b]));
+  const best = new Map<string, { mode: "ask" | "auto"; fromTitle: string; at: number }>();
+  for (const l of links) {
+    const book = done.get(l.bookId);
+    if (!book) continue;
+    const at = book.completedAt ?? 0;
+    const cur = best.get(l.habitId);
+    if (!cur || at > cur.at) best.set(l.habitId, { mode: l.mode, fromTitle: book.title, at });
+  }
+  return [...best].map(([habitId, v]) => ({ habitId, mode: v.mode, fromTitle: v.fromTitle }));
+}
