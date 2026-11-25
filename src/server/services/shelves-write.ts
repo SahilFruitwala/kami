@@ -23,13 +23,15 @@ import { badRequest, conflict, notFound } from "@/server/http";
 import { onBookFinished, onBookProgress } from "@/server/services/reading-links";
 import {
   addShelfItemBody,
+  bookEditBody,
   bookProgressBody,
   importBooksBody,
+  shelfPatchBody,
   statusBody,
 } from "@/lib/api/schemas/shelves";
 
 // Request bodies are shared with the browser client.
-export { addShelfItemBody, bookProgressBody, importBooksBody, statusBody };
+export { addShelfItemBody, bookProgressBody, importBooksBody, shelfPatchBody, statusBody };
 
 /** `GET /api/shelves/:type/duplicates?title=&tmdbId=` */
 export const duplicatesQuery = z.object({
@@ -301,6 +303,41 @@ export async function setShelfItemStatus(
       ? await onBookFinished(userId, { id: item.id, title: item.title })
       : undefined;
   return { id: data.id, type: data.type, status: data.status, links };
+}
+
+/**
+ * Edit a book's record (title, author, year, synopsis, page count). Status and
+ * reading progress have their own endpoints. A page count smaller than the
+ * page the reader is on pulls the current page back to the last page.
+ */
+export async function updateBook(
+  userId: string,
+  data: { type: ShelfType; id: string },
+  fields: z.output<typeof bookEditBody>,
+) {
+  if (data.type !== "book") throw badRequest("Only books can be edited");
+  const item = await findOwnedItem(userId, "book", data.id);
+  if (!item) throw notFound("Item not found");
+
+  const db = await getDb();
+  await db
+    .update(books)
+    .set({
+      title: fields.title,
+      normalizedTitle: normalizeTitle(fields.title),
+      author: fields.author || null,
+      publishYear: fields.publishYear,
+      overview: fields.overview || null,
+      pageCount: fields.pageCount,
+      // `least()` would turn a missing current page into the last page, so test explicitly.
+      currentPage: fields.pageCount
+        ? sql`case when ${books.currentPage} > ${fields.pageCount} then ${fields.pageCount} else ${books.currentPage} end`
+        : books.currentPage,
+    })
+    .where(eq(books.id, data.id));
+
+  await invalidateUserCache(userId, "shelves");
+  return { id: data.id, type: data.type };
 }
 
 /** Remove a shelf item (watched episodes cascade for TV). */

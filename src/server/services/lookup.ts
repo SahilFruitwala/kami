@@ -9,7 +9,7 @@ import {
   normalizeCacheQuery,
   invalidateUserCache,
 } from "@/lib/cache.server.ts";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db.server";
 import { books } from "@/lib/schema";
 import { findOwnedItem } from "@/lib/shelves-db.server.ts";
@@ -291,9 +291,7 @@ export async function fetchWatchProvidersBatch(
       }
     }
   }
-  await Promise.all(
-    Array.from({ length: Math.min(WATCH_BATCH_CONCURRENCY, ids.length) }, worker),
-  );
+  await Promise.all(Array.from({ length: Math.min(WATCH_BATCH_CONCURRENCY, ids.length) }, worker));
   return out;
 }
 
@@ -634,4 +632,118 @@ export async function fillBookPageCount(
     .where(and(eq(books.id, data.id), isNull(books.pageCount)));
   await invalidateUserCache(userId, "shelves");
   return { pageCount: pages };
+}
+
+type OpenLibraryDescription = string | { value?: string } | undefined;
+
+/** Open Library descriptions end with source links and "----" rules; keep the prose. */
+function cleanSynopsis(raw: OpenLibraryDescription): string | null {
+  const text = typeof raw === "string" ? raw : raw?.value;
+  if (!text) return null;
+  const prose = text
+    .split(/\r?\n\s*-{3,}|\r?\n\s*\[\d+\]:/)[0]!
+    .replace(/\(\[source\]\[\d+\]\)/gi, "")
+    .replace(/\*\*|__/g, "")
+    .trim();
+  return prose.length >= 20 ? prose.slice(0, 2000) : null;
+}
+
+/**
+ * Open Library's description of a work: by its exact work key when the book
+ * was added from search, else the best title + author match. `undefined`
+ * means Open Library could not be reached (not cached).
+ */
+async function openLibrarySynopsis(book: {
+  link: string | null;
+  title: string;
+  author: string | null;
+}): Promise<{ synopsis: string | null } | undefined> {
+  const linkedKey = book.link ? OPEN_LIBRARY_WORK.exec(book.link)?.[1] : undefined;
+  const lookup = linkedKey ?? `${book.title}|${book.author ?? ""}`;
+  return cached(
+    cacheKey("lookup", "book-synopsis-v2", hashKeyPart(normalizeCacheQuery(lookup))),
+    CacheTTL.bookSearch,
+    async () => {
+      try {
+        let workKey = linkedKey;
+        if (!workKey) {
+          const url = new URL("https://openlibrary.org/search.json");
+          url.searchParams.set("title", book.title);
+          if (book.author) url.searchParams.set("author", book.author);
+          url.searchParams.set("limit", "1");
+          url.searchParams.set("fields", "key");
+          const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+          if (!res.ok) return undefined;
+          const json = (await res.json()) as { docs?: { key?: string }[] };
+          const key = json.docs?.[0]?.key;
+          workKey = key && /^\/works\/OL\d+W$/.test(key) ? key : undefined;
+        }
+        if (!workKey) return { synopsis: null };
+        const res = await fetch(`https://openlibrary.org${workKey}.json`, {
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (!res.ok) return res.status === 404 ? { synopsis: null } : undefined;
+        const work = (await res.json()) as { description?: OpenLibraryDescription };
+        const fromWork = cleanSynopsis(work.description);
+        if (fromWork) return { synopsis: fromWork };
+
+        // Newer books often have no work-level description but one edition does.
+        const editions = await fetch(`https://openlibrary.org${workKey}/editions.json?limit=50`, {
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (!editions.ok) return { synopsis: null };
+        const list = (await editions.json()) as {
+          entries?: { description?: OpenLibraryDescription }[];
+        };
+        const best = (list.entries ?? [])
+          .map((e) => cleanSynopsis(e.description))
+          .filter((t): t is string => t != null)
+          .sort((a, b) => b.length - a.length)[0];
+        return { synopsis: best ?? null };
+      } catch {
+        return undefined;
+      }
+    },
+    // Cache "no description" too; only network failures retry.
+    { skipCache: (v) => v === undefined },
+  );
+}
+
+/**
+ * Fill a book's missing synopsis from Open Library and keep it in the
+ * database, so each book is looked up once. Never overwrites one the reader
+ * wrote or edited. Returns the stored synopsis (or null if none is known).
+ */
+export async function fillBookOverview(
+  userId: string,
+  id: string,
+): Promise<{ overview: string | null }> {
+  const owned = await findOwnedItem(userId, "book", id);
+  if (!owned) throw notFound("Item not found");
+
+  const db = await getDb();
+  const [book] = await db
+    .select({
+      title: books.title,
+      author: books.author,
+      link: books.link,
+      overview: books.overview,
+    })
+    .from(books)
+    .where(eq(books.id, id))
+    .limit(1);
+  if (!book) throw notFound("Item not found");
+  if (book.overview?.trim()) return { overview: book.overview };
+
+  const found = await openLibrarySynopsis(book);
+  const synopsis = found?.synopsis ?? null;
+  if (!synopsis) return { overview: null };
+
+  // The guard means an overview saved meanwhile wins over the lookup.
+  await db
+    .update(books)
+    .set({ overview: synopsis })
+    .where(and(eq(books.id, id), or(isNull(books.overview), eq(books.overview, ""))));
+  await invalidateUserCache(userId, "shelves");
+  return { overview: synopsis };
 }

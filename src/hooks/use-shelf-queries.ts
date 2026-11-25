@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { lookupApi } from "@/lib/api/lookup";
 import {
   shelvesApi,
+  type BookEdit,
   type BookProgress,
   type NewShelfItem,
   type ShelfType,
@@ -225,6 +226,35 @@ export function useBookPageCountLookup(id: string, enabled: boolean) {
     queryFn: async () => {
       const res = await shelvesApi.books.fillPageCount(id);
       if (res.pageCount) await invalidateShelves(client);
+      return res;
+    },
+    enabled,
+    staleTime: Infinity,
+    retry: false,
+  });
+}
+
+/** Edit a book's title, author, year, synopsis and page count. */
+export function useUpdateBook() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (data: { id: string; fields: BookEdit }) =>
+      shelvesApi.books.update(data.id, data.fields),
+    onSuccess: () => invalidateShelves(client),
+  });
+}
+
+/**
+ * Lazy synopsis for a book that has none: Open Library is asked once, the
+ * answer is saved server-side, then shelves refetch to show it.
+ */
+export function useBookOverviewLookup(id: string, enabled: boolean) {
+  const client = useQueryClient();
+  return useQuery({
+    queryKey: ["book-overview", id],
+    queryFn: async () => {
+      const res = await shelvesApi.books.fillOverview(id);
+      if (res.overview) await invalidateShelves(client);
       return res;
     },
     enabled,

@@ -40,6 +40,18 @@ export const addShelfItemBody = z.preprocess(clampShelfItemInput, addShelfItemFi
 
 export const statusBody = z.object({ status: shelfStatus });
 
+/** `PATCH /api/shelves/book/:id` with these fields: edit a book's record. */
+export const bookEditBody = z.object({
+  title: z.string().trim().min(1).max(300),
+  author: z.string().trim().max(300).nullable(),
+  publishYear: z.number().int().min(1).max(3000).nullable(),
+  overview: z.string().trim().max(4000).nullable(),
+  pageCount: z.number().int().min(1).max(100_000).nullable(),
+});
+
+/** `PATCH /api/shelves/:type/:id`: a status change, or (books only) an edit. */
+export const shelfPatchBody = z.union([statusBody, bookEditBody]);
+
 export const bookProgressBody = z
   .union([
     z.object({

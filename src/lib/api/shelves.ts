@@ -1,5 +1,10 @@
 import type { z } from "zod";
-import type { addShelfItemFields, bookProgressBody, shelfType } from "./schemas/shelves";
+import type {
+  addShelfItemFields,
+  bookEditBody,
+  bookProgressBody,
+  shelfType,
+} from "./schemas/shelves";
 import type { BookCsvSource, GoodreadsBook } from "@/lib/goodreads";
 import type { ItemStatus } from "@/lib/schema";
 import type { ShelfCard, ShelfDetail, ShelfTab } from "@/lib/shelves";
@@ -13,6 +18,8 @@ export type ShelfType = z.output<typeof shelfType>;
 export type NewShelfItem = z.input<typeof addShelfItemFields>;
 
 export type BookProgress = z.input<typeof bookProgressBody>;
+
+export type BookEdit = z.input<typeof bookEditBody>;
 
 const shelf = (type: ShelfType) => `/api/shelves/${seg(type)}`;
 const item = (type: ShelfType, id: string) => `${shelf(type)}/${seg(id)}`;
@@ -59,6 +66,13 @@ export const shelvesApi = {
         `${book(id)}/progress`,
         progress,
       ),
+
+    /** Edit a book's record: title, author, year, synopsis, page count. */
+    update: (id: string, fields: BookEdit) =>
+      http.patch<{ id: string; type: ShelfType }>(item("book", id), fields),
+
+    /** Fill a missing synopsis from Open Library (saved, so it is looked up once). */
+    fillOverview: (id: string) => http.post<{ overview: string | null }>(`${book(id)}/overview`),
 
     /** Fill a missing page count from Open Library. */
     fillPageCount: (id: string) =>

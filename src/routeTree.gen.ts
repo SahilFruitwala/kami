@@ -85,6 +85,7 @@ import { Route as ApiAiArticlesIdOriginalRouteImport } from './routes/api/ai/art
 import { Route as ApiAiArticlesIdRestoreOriginalRouteImport } from './routes/api/ai/articles/$id/restore-original'
 import { Route as ApiAiArticlesIdSummaryRouteImport } from './routes/api/ai/articles/$id/summary'
 import { Route as ApiAiArticlesIdTidyRouteImport } from './routes/api/ai/articles/$id/tidy'
+import { Route as ApiShelvesBookIdOverviewRouteImport } from './routes/api/shelves/book/$id/overview'
 import { Route as ApiShelvesBookIdPageCountRouteImport } from './routes/api/shelves/book/$id/page-count'
 import { Route as ApiShelvesBookIdProgressRouteImport } from './routes/api/shelves/book/$id/progress'
 import { Route as ApiShelvesTvIdWatchedRouteImport } from './routes/api/shelves/tv/$id/watched'
@@ -479,6 +480,12 @@ const ApiAiArticlesIdTidyRoute = ApiAiArticlesIdTidyRouteImport.update({
   path: '/api/ai/articles/$id/tidy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiShelvesBookIdOverviewRoute =
+  ApiShelvesBookIdOverviewRouteImport.update({
+    id: '/api/shelves/book/$id/overview',
+    path: '/api/shelves/book/$id/overview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiShelvesBookIdPageCountRoute =
   ApiShelvesBookIdPageCountRouteImport.update({
     id: '/api/shelves/book/$id/page-count',
@@ -592,6 +599,7 @@ export interface FileRoutesByFullPath {
   '/api/ai/articles/$id/restore-original': typeof ApiAiArticlesIdRestoreOriginalRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
+  '/api/shelves/book/$id/overview': typeof ApiShelvesBookIdOverviewRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
   '/api/shelves/book/$id/progress': typeof ApiShelvesBookIdProgressRoute
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
@@ -675,6 +683,7 @@ export interface FileRoutesByTo {
   '/api/ai/articles/$id/restore-original': typeof ApiAiArticlesIdRestoreOriginalRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
+  '/api/shelves/book/$id/overview': typeof ApiShelvesBookIdOverviewRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
   '/api/shelves/book/$id/progress': typeof ApiShelvesBookIdProgressRoute
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
@@ -760,6 +769,7 @@ export interface FileRoutesById {
   '/api/ai/articles/$id/restore-original': typeof ApiAiArticlesIdRestoreOriginalRoute
   '/api/ai/articles/$id/summary': typeof ApiAiArticlesIdSummaryRoute
   '/api/ai/articles/$id/tidy': typeof ApiAiArticlesIdTidyRoute
+  '/api/shelves/book/$id/overview': typeof ApiShelvesBookIdOverviewRoute
   '/api/shelves/book/$id/page-count': typeof ApiShelvesBookIdPageCountRoute
   '/api/shelves/book/$id/progress': typeof ApiShelvesBookIdProgressRoute
   '/api/shelves/tv/$id/watched': typeof ApiShelvesTvIdWatchedRoute
@@ -846,6 +856,7 @@ export interface FileRouteTypes {
     | '/api/ai/articles/$id/restore-original'
     | '/api/ai/articles/$id/summary'
     | '/api/ai/articles/$id/tidy'
+    | '/api/shelves/book/$id/overview'
     | '/api/shelves/book/$id/page-count'
     | '/api/shelves/book/$id/progress'
     | '/api/shelves/tv/$id/watched'
@@ -929,6 +940,7 @@ export interface FileRouteTypes {
     | '/api/ai/articles/$id/restore-original'
     | '/api/ai/articles/$id/summary'
     | '/api/ai/articles/$id/tidy'
+    | '/api/shelves/book/$id/overview'
     | '/api/shelves/book/$id/page-count'
     | '/api/shelves/book/$id/progress'
     | '/api/shelves/tv/$id/watched'
@@ -1013,6 +1025,7 @@ export interface FileRouteTypes {
     | '/api/ai/articles/$id/restore-original'
     | '/api/ai/articles/$id/summary'
     | '/api/ai/articles/$id/tidy'
+    | '/api/shelves/book/$id/overview'
     | '/api/shelves/book/$id/page-count'
     | '/api/shelves/book/$id/progress'
     | '/api/shelves/tv/$id/watched'
@@ -1088,6 +1101,7 @@ export interface RootRouteChildren {
   ApiAiArticlesIdRestoreOriginalRoute: typeof ApiAiArticlesIdRestoreOriginalRoute
   ApiAiArticlesIdSummaryRoute: typeof ApiAiArticlesIdSummaryRoute
   ApiAiArticlesIdTidyRoute: typeof ApiAiArticlesIdTidyRoute
+  ApiShelvesBookIdOverviewRoute: typeof ApiShelvesBookIdOverviewRoute
   ApiShelvesBookIdPageCountRoute: typeof ApiShelvesBookIdPageCountRoute
   ApiShelvesBookIdProgressRoute: typeof ApiShelvesBookIdProgressRoute
   ApiShelvesTvIdWatchedRoute: typeof ApiShelvesTvIdWatchedRoute
@@ -1630,6 +1644,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAiArticlesIdTidyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/shelves/book/$id/overview': {
+      id: '/api/shelves/book/$id/overview'
+      path: '/api/shelves/book/$id/overview'
+      fullPath: '/api/shelves/book/$id/overview'
+      preLoaderRoute: typeof ApiShelvesBookIdOverviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/shelves/book/$id/page-count': {
       id: '/api/shelves/book/$id/page-count'
       path: '/api/shelves/book/$id/page-count'
@@ -1782,6 +1803,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAiArticlesIdRestoreOriginalRoute: ApiAiArticlesIdRestoreOriginalRoute,
   ApiAiArticlesIdSummaryRoute: ApiAiArticlesIdSummaryRoute,
   ApiAiArticlesIdTidyRoute: ApiAiArticlesIdTidyRoute,
+  ApiShelvesBookIdOverviewRoute: ApiShelvesBookIdOverviewRoute,
   ApiShelvesBookIdPageCountRoute: ApiShelvesBookIdPageCountRoute,
   ApiShelvesBookIdProgressRoute: ApiShelvesBookIdProgressRoute,
   ApiShelvesTvIdWatchedRoute: ApiShelvesTvIdWatchedRoute,

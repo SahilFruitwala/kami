@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   ArrowLeft,
   BookOpen,
@@ -7,10 +8,12 @@ import {
   RotateCcw,
   ExternalLink,
   LoaderCircle,
+  Pencil,
   Trash2,
 } from "lucide-react";
 import { AppShell } from "@/components/app-shell.tsx";
 import { Hanko, KamiEyebrow, WashiTag } from "@/components/kami.tsx";
+import { BookEditDialog } from "@/components/library/book-edit-dialog.tsx";
 import { BookHabitLinks } from "@/components/library/book-habit-links.tsx";
 import { BookProgress } from "@/components/library/book-progress.tsx";
 import { EpisodeTracker } from "@/components/library/episode-tracker.tsx";
@@ -19,7 +22,7 @@ import { Button } from "@/components/ui/button.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { useShelfItemActions } from "@/hooks/use-shelf-item-actions.ts";
 import { statusText } from "@/lib/shelf-labels.ts";
-import { useShelfDetail } from "@/hooks/use-shelf-queries.ts";
+import { useBookOverviewLookup, useShelfDetail } from "@/hooks/use-shelf-queries.ts";
 import { cn } from "@/lib/utils.ts";
 import { shelfPath, type ShelfDetail, type ShelfTab } from "@/lib/shelves.ts";
 import type { ShelvesSearch } from "@/lib/shelves-search.ts";
@@ -122,6 +125,11 @@ function DetailBody({
       void navigate({ to: shelfPath(tab), search: listSearch, replace: true });
     },
   );
+  const [editing, setEditing] = useState(false);
+  // Books saved before synopses were stored get one from Open Library on first view.
+  const isBook = detail.type === "book";
+  const synopsisLookup = useBookOverviewLookup(item.id, isBook && !item.overview);
+  const lookingForSynopsis = isBook && !item.overview && synopsisLookup.isFetching;
   const isDone = item.status === "done";
   const isActive = item.status === "in_progress";
   const isDropped = item.status === "abandoned";
@@ -267,6 +275,20 @@ function DetailBody({
               {detail.type === "book" ? "Abandon book" : "Drop series"}
             </Button>
           ) : null}
+          {detail.type === "book" ? (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setEditing(true)}
+                className="text-ink-muted hover:text-ink"
+              >
+                <Pencil className="size-4" aria-hidden="true" />
+                Edit
+              </Button>
+              <BookEditDialog book={detail.item} open={editing} onOpenChange={setEditing} />
+            </>
+          ) : null}
           <Button
             type="button"
             variant="ghost"
@@ -284,6 +306,11 @@ function DetailBody({
             <p className="max-w-prose font-display text-[17px] leading-relaxed text-ink-soft text-pretty">
               {item.overview}
             </p>
+          </section>
+        ) : lookingForSynopsis ? (
+          <section aria-label="Overview" aria-busy="true">
+            <Skeleton className="h-5 w-full max-w-prose" />
+            <Skeleton className="mt-2 h-5 w-2/3 max-w-prose" />
           </section>
         ) : null}
 

@@ -29,7 +29,15 @@ import {
   ShelfDivider,
   type ShelfGroup,
 } from "@/components/gloss/index.ts";
-import { MediaCover, MediaSpine, type MediaKind } from "@/components/gloss/media.tsx";
+import {
+  MediaCover,
+  MediaPage,
+  MediaSpine,
+  MediaSpineFace,
+  type MediaKind,
+} from "@/components/gloss/media.tsx";
+import { SpineCarousel } from "@/components/gloss/spine-carousel.tsx";
+import { ShelfDetail } from "@/components/gloss/shelf-detail.tsx";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog.tsx";
 import { Skeleton } from "@/components/ui/skeleton.tsx";
 import { AddShelfDialog } from "@/components/library/add-shelf-dialog.tsx";
@@ -37,6 +45,9 @@ import { ShelfFolio } from "@/components/library/shelf-folio.tsx";
 import { statusMeta, statusToApi } from "@/lib/shelf-status.ts";
 import {
   SHELF_PAGE_SIZE,
+  useDeleteShelfItem,
+  useBookOverviewLookup,
+  useSetShelfItemStatus,
   useShelfCounts,
   useShelfDetail,
   useShelfItems,
@@ -146,6 +157,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
     useShelfFilters(tab, search, MEDIA_PAGE);
   const kind: MediaKind = KIND[tab];
   const copy = COPY[tab];
+  const isBook = tab === "book";
   const labels = statusLabels(tab);
   const [view, setView] = usePersistedPref<View>(`kami-${tab}-view-v2`, VIEWS, "posters");
   const [arrange, setArrange] = usePersistedPref<Arrange>(
@@ -156,7 +168,12 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
   const [addOpen, setAddOpen] = useState(false);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [picked, setPicked] = useState<{ id: string; from: DOMRect } | null>(null);
+  const setStatusMutation = useSetShelfItemStatus();
+  const deleteMutation = useDeleteShelfItem();
   const tilt = useTilt();
+  // Books keep two views, Posters and Shelf; a saved "covers" choice falls back to Posters.
+  const shownView: View = isBook && view === "covers" ? "posters" : view;
 
   const detailQuery = useShelfDetail(tab, detailId);
   const countsQuery = useShelfCounts();
@@ -262,15 +279,12 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
     });
   }
 
-  const resume =
-    (tab === "tv" || tab === "book") &&
-    (status === "all" || status === "in_progress") &&
-    !deferredQuery
-      ? (items?.find((it) => it.status === "in_progress") ?? null)
-      : null;
   const statusChips = statusMeta(tab);
   const animateKey = `${status}|${arrange}|${deferredQuery}|${serviceFilter ?? ""}`;
   const coverSize = mediaCoverSize(kind);
+  const pickedItem = picked ? (items?.find((it) => it.id === picked.id) ?? null) : null;
+  // A book opened from the shelf without a synopsis gets one from Open Library.
+  useBookOverviewLookup(picked?.id ?? "", isBook && pickedItem != null && !pickedItem.overview);
   const unitOne = copy.unit[0];
 
   return (
@@ -333,7 +347,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
           <div className="mt-8 flex flex-wrap items-center gap-3">
             <Segmented<View>
               label="Shelf view"
-              value={view}
+              value={shownView}
               onChange={setView}
               options={[
                 {
@@ -346,18 +360,22 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                   label: "Shelf",
                   icon: <Layers className="size-4" aria-hidden="true" />,
                 },
-                {
-                  id: "covers",
-                  label:
-                    kind === "vhs"
-                      ? "Sleeves"
-                      : kind === "dvd"
-                        ? "Cases"
-                        : kind === "gift"
-                          ? "Boxes"
-                          : "Covers",
-                  icon: <Package className="size-4" aria-hidden="true" />,
-                },
+                ...(isBook
+                  ? []
+                  : [
+                      {
+                        id: "covers" as const,
+                        label:
+                          kind === "vhs"
+                            ? "Sleeves"
+                            : kind === "dvd"
+                              ? "Cases"
+                              : kind === "gift"
+                                ? "Boxes"
+                                : "Covers",
+                        icon: <Package className="size-4" aria-hidden="true" />,
+                      },
+                    ]),
               ]}
             />
             <GlossSearch
@@ -481,70 +499,6 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
         </GlossColumn>
 
         <GlossColumn className="pt-6 pb-16">
-          {resume ? (
-            <section
-              aria-label="Pick up where you left off"
-              className="kami-sheet-raised g-rise mb-10 flex items-center gap-5 p-4 sm:gap-7 sm:p-6"
-            >
-              <div className="w-20 shrink-0 sm:w-28">
-                {" "}
-                <button
-                  type="button"
-                  className="g-tilt w-full"
-                  style={{ aspectRatio: `${coverSize.w} / ${coverSize.h}` }}
-                  aria-label={`Open ${resume.title}`}
-                  onClick={() => openItem(resume)}
-                  {...tilt}
-                >
-                  <MediaCover kind={kind} item={resume} />
-                </button>
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="font-sans text-sm text-ink-muted">Pick up where you left off</p>
-                <p className="mt-1 line-clamp-2 font-display text-2xl leading-tight tracking-tight sm:text-[28px]">
-                  {resume.title}
-                </p>
-                <p className="mt-1 font-sans text-sm text-ink-soft">
-                  {tab === "tv"
-                    ? resume.lastEpisode
-                      ? `Last watched ${resume.lastEpisode}`
-                      : resume.totalEpisodes
-                        ? `${resume.episodesWatched ?? 0} of ${resume.totalEpisodes} episodes`
-                        : "In progress"
-                    : resume.progressPercent
-                      ? `${resume.progressPercent}% read`
-                      : "In progress"}
-                </p>
-                {(() => {
-                  const pct =
-                    tab === "tv"
-                      ? resume.totalEpisodes
-                        ? Math.round(((resume.episodesWatched ?? 0) / resume.totalEpisodes) * 100)
-                        : 0
-                      : (resume.progressPercent ?? 0);
-                  return pct > 0 ? (
-                    <div
-                      className="mt-3 h-1 max-w-xs overflow-hidden rounded-full bg-line"
-                      role="img"
-                      aria-label={`${pct}% done`}
-                    >
-                      <div
-                        className="landing-grow h-full rounded-full bg-persimmon"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  ) : null;
-                })()}
-                <button
-                  type="button"
-                  className="g-btn g-btn--ink mt-4 h-10"
-                  onClick={() => openItem(resume)}
-                >
-                  Open
-                </button>
-              </div>
-            </section>
-          ) : null}
           {items == null || watchPending ? (
             <ShelfSkeleton kind={kind} />
           ) : serviceFilter && items.length > 0 && sorted.length === 0 ? (
@@ -600,9 +554,25 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 </button>
               )}
             </div>
-          ) : view === "posters" ? (
+          ) : shownView === "posters" ? (
             <PosterGrid items={sorted} tab={tab} filtered={status !== "all"} onOpen={openItem} />
-          ) : view === "shelf" ? (
+          ) : shownView === "shelf" && isBook ? (
+            <>
+              <SpineCarousel<ShelfCard>
+                key={animateKey}
+                items={groups.flatMap((g) => g.items)}
+                getId={(it) => it.id}
+                ariaLabel={`${copy.title} shelf`}
+                renderSpine={(it) => <MediaSpineFace kind={kind} item={it} />}
+                renderCover={(it) => <MediaCover kind={kind} item={it} />}
+                caption={(it) => [it.title, it.subtitle].filter(Boolean).join(" · ")}
+                onOpen={(it, from) => setPicked({ id: it.id, from })}
+              />
+              <p className="mt-4 text-center font-sans text-[13px] text-ink-muted">
+                Swipe or use the arrow keys to walk the shelf, click the middle book to open it.
+              </p>
+            </>
+          ) : shownView === "shelf" ? (
             <>
               <Shelf<ShelfCard>
                 ariaLabel={`${copy.title} shelf`}
@@ -697,6 +667,39 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
             </div>
           ) : null}
         </GlossColumn>
+
+        {picked && pickedItem ? (
+          <ShelfDetail
+            key={picked.id}
+            from={picked.from}
+            label={pickedItem.title}
+            cover={<MediaCover kind={kind} item={pickedItem} />}
+            page={(api) => (
+              <MediaPage
+                api={api}
+                item={pickedItem}
+                kind={kind}
+                loading={false}
+                busy={setStatusMutation.isPending || deleteMutation.isPending}
+                onOpenDetails={() => api.dissolve(() => openItem(pickedItem))}
+                onToggleDone={() =>
+                  setStatusMutation.mutate({
+                    type: tab,
+                    id: pickedItem.id,
+                    status: pickedItem.status === "done" ? "to_try" : "done",
+                  })
+                }
+                onRemove={() =>
+                  deleteMutation.mutate(
+                    { type: tab, id: pickedItem.id },
+                    { onSuccess: () => api.close() },
+                  )
+                }
+              />
+            )}
+            onClosed={() => setPicked(null)}
+          />
+        ) : null}
 
         <Dialog open={detailId != null} onOpenChange={(open) => !open && setDetailId(null)}>
           <DialogContent className="max-h-[85dvh] overflow-y-auto overscroll-contain sm:max-w-lg">
