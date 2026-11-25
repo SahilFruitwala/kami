@@ -37,7 +37,8 @@ export const ReaderBody = memo(function ReaderBody({
       if (code.children.length) {
         // Source-site highlighter spans / <br>s: flatten to plain text first.
         for (const br of code.querySelectorAll("br")) br.replaceWith("\n");
-        code.textContent = code.textContent;
+        const text = code.textContent;
+        code.textContent = text;
       }
       hljs.highlightElement(code);
     }
