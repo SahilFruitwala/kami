@@ -306,7 +306,7 @@ export async function setShelfItemStatus(
 }
 
 /**
- * Edit a book's record (title, author, year, synopsis, page count). Status and
+ * Edit a book's record (title, author, year, synopsis, page count, cover). Status and
  * reading progress have their own endpoints. A page count smaller than the
  * page the reader is on pulls the current page back to the last page.
  */
@@ -318,12 +318,18 @@ export async function updateBook(
   if (data.type !== "book") throw badRequest("Only books can be edited");
   const item = await findOwnedItem(userId, "book", data.id);
   if (!item) throw notFound("Item not found");
+  let imageUrl: string | null | undefined;
+  if (fields.imageUrl !== undefined) {
+    imageUrl = fields.imageUrl ? safeHttpUrl(fields.imageUrl) : null;
+    if (imageUrl === undefined) throw badRequest("Cover must be an http(s) image address");
+  }
 
   const db = await getDb();
   await db
     .update(books)
     .set({
       title: fields.title,
+      ...(imageUrl !== undefined ? { imageUrl } : {}),
       normalizedTitle: normalizeTitle(fields.title),
       author: fields.author || null,
       publishYear: fields.publishYear,

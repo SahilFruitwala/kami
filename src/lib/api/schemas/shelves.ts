@@ -47,6 +47,8 @@ export const bookEditBody = z.object({
   publishYear: z.number().int().min(1).max(3000).nullable(),
   overview: z.string().trim().max(4000).nullable(),
   pageCount: z.number().int().min(1).max(100_000).nullable(),
+  /** Cover image; left out keeps the current one, null removes it. */
+  imageUrl: z.string().trim().max(2000).nullable().optional(),
 });
 
 /** `PATCH /api/shelves/:type/:id`: a status change, or (books only) an edit. */

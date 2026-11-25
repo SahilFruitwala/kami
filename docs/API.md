@@ -75,12 +75,13 @@ Reading a cached summary or the Original copy is still allowed.
 
 ### lookup
 
-| Method | Path                          | Source                                     |
-| ------ | ----------------------------- | ------------------------------------------ |
-| `GET`  | `/api/lookup/books`           | `src/routes/api/lookup/books.ts`           |
-| `GET`  | `/api/lookup/link`            | `src/routes/api/lookup/link.ts`            |
-| `GET`  | `/api/lookup/tmdb`            | `src/routes/api/lookup/tmdb.ts`            |
-| `GET`  | `/api/lookup/watch-providers` | `src/routes/api/lookup/watch-providers.ts` |
+| Method | Path                                | Source                                           |
+| ------ | ----------------------------------- | ------------------------------------------------ |
+| `GET`  | `/api/lookup/books`                 | `src/routes/api/lookup/books.ts`                 |
+| `GET`  | `/api/lookup/link`                  | `src/routes/api/lookup/link.ts`                  |
+| `GET`  | `/api/lookup/tmdb`                  | `src/routes/api/lookup/tmdb.ts`                  |
+| `GET`  | `/api/lookup/watch-providers`       | `src/routes/api/lookup/watch-providers.ts`       |
+| `POST` | `/api/lookup/watch-providers-batch` | `src/routes/api/lookup/watch-providers-batch.ts` |
 
 ### narrations
 
@@ -139,6 +140,7 @@ Research (`/research`, spec in `docs/wayfinder/research/spec.md`). Every route b
 | `GET`    | `/api/shelves/:type/duplicates`       | `src/routes/api/shelves/$type/duplicates.ts`       |
 | `GET`    | `/api/shelves/:type`                  | `src/routes/api/shelves/$type/index.ts`            |
 | `POST`   | `/api/shelves/:type`                  | `src/routes/api/shelves/$type/index.ts`            |
+| `POST`   | `/api/shelves/book/:id/overview`      | `src/routes/api/shelves/book/$id/overview.ts`      |
 | `POST`   | `/api/shelves/book/:id/page-count`    | `src/routes/api/shelves/book/$id/page-count.ts`    |
 | `PUT`    | `/api/shelves/book/:id/progress`      | `src/routes/api/shelves/book/$id/progress.ts`      |
 | `POST`   | `/api/shelves/book/import`            | `src/routes/api/shelves/book/import.ts`            |
