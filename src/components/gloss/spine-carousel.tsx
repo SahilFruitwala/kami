@@ -91,7 +91,8 @@ export function SpineCarousel<T>({
   ariaLabel: string;
 }) {
   const n = items.length;
-  const loop = n <= LOOP_MAX;
+  // A lone book has nothing to wrap to: no repeated neighbours, no stepping.
+  const loop = n > 1 && n <= LOOP_MAX;
   const copies = loop ? 3 : 1;
   const total = copies * n;
   const start = loop ? n : 0;
@@ -456,10 +457,12 @@ export function SpineCarousel<T>({
       <p ref={captionRef} aria-live="polite" className="sr-only">
         {caption(items[start % n]!)}
       </p>
-      <div className="flex items-center gap-3">
-        <StepButton label="Previous book" onClick={() => step(-1)} dir="prev" />
-        <StepButton label="Next book" onClick={() => step(1)} dir="next" />
-      </div>
+      {n > 1 ? (
+        <div className="flex items-center gap-3">
+          <StepButton label="Previous book" onClick={() => step(-1)} dir="prev" />
+          <StepButton label="Next book" onClick={() => step(1)} dir="next" />
+        </div>
+      ) : null}
     </div>
   );
 }

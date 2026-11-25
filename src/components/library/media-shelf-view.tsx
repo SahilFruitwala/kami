@@ -524,7 +524,7 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 </button>
               )}
             </div>
-          ) : shownView === "posters" || shelfItems.length === 1 ? (
+          ) : shownView === "posters" ? (
             <PosterGrid items={sorted} tab={tab} filtered={status !== "all"} onOpen={openItem} />
           ) : (
             <>
