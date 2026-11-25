@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
+import { PanelLeftOpen } from "lucide-react";
 import { toast } from "sonner";
 import { AppGate, LibraryGate } from "@/components/app-gate.tsx";
 import { DirectionalTransition } from "@/components/directional-transition.tsx";
@@ -10,6 +11,9 @@ import { SiteHeader, type SitePane } from "@/components/site-header.tsx";
 import { useCaptureTools } from "@/hooks/use-capture-tools.ts";
 import { flushAllSyncQueues, pendingSyncCount, subscribeSyncQueues } from "@/lib/sync-queue.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
+import { usePersistedPref } from "@/lib/local-pref.ts";
+
+const RAIL_STATES = ["open", "closed"] as const;
 
 // ⌘K palette is heavy (~600 lines + shelf lookup hooks) and unused until
 // opened — keep it out of the initial authenticated shell chunk.
@@ -44,13 +48,20 @@ export function AppShell({
   requireLibrary?: boolean;
 }) {
   const tools = useCaptureTools();
+  const [rail, setRail] = usePersistedPref("kami-rail", RAIL_STATES, "open");
   return (
     <AppGate>
       <DirectionalTransition>
-        <div className="rd-ui rd-shell">
-          <div className="rd-shell-rail">
-            <SideRail active={active} onOpenTools={() => tools.setToolsOpen(true)} />
-          </div>
+        <div className="rd-ui rd-shell" data-rail={rail}>
+          {rail === "open" ? (
+            <div className="rd-shell-rail">
+              <SideRail
+                active={active}
+                onOpenTools={() => tools.setToolsOpen(true)}
+                onCollapse={() => setRail("closed")}
+              />
+            </div>
+          ) : null}
           <main
             id="main"
             className="kami-desk relative flex min-h-dvh min-w-0 flex-col overflow-x-hidden [touch-action:manipulation]"
@@ -61,6 +72,17 @@ export function AppShell({
             >
               Skip to content
             </a>
+            {rail === "closed" ? (
+              <button
+                type="button"
+                className="rd-rail-open"
+                onClick={() => setRail("open")}
+                aria-label="Open sidebar"
+                title="Open sidebar"
+              >
+                <PanelLeftOpen size={17} aria-hidden="true" />
+              </button>
+            ) : null}
             <SiteHeader
               active={active}
               onOpenTools={() => tools.setToolsOpen(true)}

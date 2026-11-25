@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { PanelLeftClose } from "lucide-react";
 import type { ReactNode } from "react";
 import { KAMI_GLYPH } from "@/components/kami.tsx";
 import type { SitePane } from "@/components/site-header.tsx";
@@ -56,7 +57,15 @@ const ICONS = {
  * Desktop navigation: a spine down the left edge. Phones keep the compact top
  * row and bottom tab bar from SiteHeader.
  */
-export function SideRail({ active, onOpenTools }: { active: SitePane; onOpenTools?: () => void }) {
+export function SideRail({
+  active,
+  onOpenTools,
+  onCollapse,
+}: {
+  active: SitePane;
+  onOpenTools?: () => void;
+  onCollapse?: () => void;
+}) {
   const stats = useDeskStats();
   const counts = useShelfCounts().data;
   const toggleTheme = useThemeStore((s) => s.toggleTheme);
@@ -81,6 +90,17 @@ export function SideRail({ active, onOpenTools }: { active: SitePane; onOpenTool
         </span>
         <b>Kami</b>
       </Link>
+      {onCollapse ? (
+        <button
+          type="button"
+          className="rd-rail-collapse"
+          onClick={onCollapse}
+          aria-label="Collapse sidebar"
+          title="Collapse sidebar"
+        >
+          <PanelLeftClose size={17} aria-hidden="true" />
+        </button>
+      ) : null}
 
       <div className="rd-rail-actions">
         <button
