@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useState } from "react";
 import {
   BookOpen,
   Clapperboard,
@@ -12,7 +12,6 @@ import {
   Plus,
   SlidersHorizontal,
   Tv,
-  Package,
   X,
 } from "lucide-react";
 import { PosterGrid } from "@/components/library/poster-grid.tsx";
@@ -25,14 +24,10 @@ import {
   GlossSearch,
   GlossStats,
   Segmented,
-  Shelf,
-  ShelfDivider,
-  type ShelfGroup,
 } from "@/components/gloss/index.ts";
 import {
   MediaCover,
   MediaPage,
-  MediaSpine,
   MediaSpineFace,
   type MediaKind,
 } from "@/components/gloss/media.tsx";
@@ -53,9 +48,8 @@ import {
   useShelfItems,
   useWatchProvidersBatch,
 } from "@/hooks/use-shelf-queries.ts";
-import { useTilt } from "@/hooks/use-tilt.ts";
-import { mediaCoverSize, STATUS_DOT } from "@/lib/gloss/palette.ts";
-import { statusLabels, statusText } from "@/lib/shelf-labels.ts";
+import { STATUS_DOT } from "@/lib/gloss/palette.ts";
+import { statusLabels } from "@/lib/shelf-labels.ts";
 import { type ShelfCard } from "@/lib/shelves.ts";
 import type { ShelvesSearch } from "@/lib/shelves-search.ts";
 import { readLocal, usePersistedPref, writeLocal } from "@/lib/local-pref.ts";
@@ -63,7 +57,7 @@ import type { CountryWatch } from "@/lib/api/types.ts";
 import { useShelfFilters } from "@/hooks/use-shelf-filters.ts";
 
 type MediaTab = "movie" | "tv" | "book" | "wishlist";
-const VIEWS = ["posters", "shelf", "covers"] as const;
+const VIEWS = ["posters", "shelf"] as const;
 const ARRANGES = ["status", "title", "year", "added"] as const;
 type View = (typeof VIEWS)[number];
 type Arrange = (typeof ARRANGES)[number];
@@ -171,9 +165,8 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
   const [picked, setPicked] = useState<{ id: string; from: DOMRect } | null>(null);
   const setStatusMutation = useSetShelfItemStatus();
   const deleteMutation = useDeleteShelfItem();
-  const tilt = useTilt();
-  // Books keep two views, Posters and Shelf; a saved "covers" choice falls back to Posters.
-  const shownView: View = isBook && view === "covers" ? "posters" : view;
+  // Only books offer a view choice; movies, series and the wishlist are always poster/card grids.
+  const shownView: View = isBook ? view : "posters";
 
   const detailQuery = useShelfDetail(tab, detailId);
   const countsQuery = useShelfCounts();
@@ -244,21 +237,13 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
     return list;
   }, [items, arrange, serviceFilter, providers, watch.country]);
 
-  const groups: ShelfGroup<ShelfCard>[] = useMemo(() => {
-    if (arrange !== "status" || status !== "all") return [{ id: "all", items: sorted }];
-    return STATUS_ORDER.map((s) => ({
-      id: s,
-      items: sorted.filter((it) => it.status === s),
-      label: (
-        <ShelfDivider
-          label={statusText(labels, s)}
-          count={sorted.filter((it) => it.status === s).length}
-          color={STATUS_DOT[s]}
-          height={170}
-        />
-      ),
-    })).filter((g) => g.items.length > 0);
-  }, [sorted, arrange, status, labels]);
+  const shelfItems = useMemo(
+    () =>
+      arrange !== "status" || status !== "all"
+        ? sorted
+        : STATUS_ORDER.flatMap((st) => sorted.filter((it) => it.status === st)),
+    [sorted, arrange, status],
+  );
 
   /** Wishlist items open the product page (or a dialog); everything else opens its own page. */
   function openItem(card: ShelfCard) {
@@ -281,7 +266,6 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
 
   const statusChips = statusMeta(tab);
   const animateKey = `${status}|${arrange}|${deferredQuery}|${serviceFilter ?? ""}`;
-  const coverSize = mediaCoverSize(kind);
   const pickedItem = picked ? (items?.find((it) => it.id === picked.id) ?? null) : null;
   // A book opened from the shelf without a synopsis gets one from Open Library.
   useBookOverviewLookup(picked?.id ?? "", isBook && pickedItem != null && !pickedItem.overview);
@@ -345,39 +329,25 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
           </div>
 
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Segmented<View>
-              label="Shelf view"
-              value={shownView}
-              onChange={setView}
-              options={[
-                {
-                  id: "posters",
-                  label: tab === "wishlist" ? "Cards" : "Posters",
-                  icon: <LayoutGrid className="size-4" aria-hidden="true" />,
-                },
-                {
-                  id: "shelf",
-                  label: "Shelf",
-                  icon: <Layers className="size-4" aria-hidden="true" />,
-                },
-                ...(isBook
-                  ? []
-                  : [
-                      {
-                        id: "covers" as const,
-                        label:
-                          kind === "vhs"
-                            ? "Sleeves"
-                            : kind === "dvd"
-                              ? "Cases"
-                              : kind === "gift"
-                                ? "Boxes"
-                                : "Covers",
-                        icon: <Package className="size-4" aria-hidden="true" />,
-                      },
-                    ]),
-              ]}
-            />
+            {isBook ? (
+              <Segmented<View>
+                label="Shelf view"
+                value={shownView}
+                onChange={setView}
+                options={[
+                  {
+                    id: "posters",
+                    label: "Posters",
+                    icon: <LayoutGrid className="size-4" aria-hidden="true" />,
+                  },
+                  {
+                    id: "shelf",
+                    label: "Shelf",
+                    icon: <Layers className="size-4" aria-hidden="true" />,
+                  },
+                ]}
+              />
+            ) : null}
             <GlossSearch
               id="media-search"
               value={query}
@@ -556,11 +526,11 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
             </div>
           ) : shownView === "posters" ? (
             <PosterGrid items={sorted} tab={tab} filtered={status !== "all"} onOpen={openItem} />
-          ) : shownView === "shelf" && isBook ? (
+          ) : (
             <>
               <SpineCarousel<ShelfCard>
                 key={animateKey}
-                items={groups.flatMap((g) => g.items)}
+                items={shelfItems}
                 getId={(it) => it.id}
                 ariaLabel={`${copy.title} shelf`}
                 renderSpine={(it) => <MediaSpineFace kind={kind} item={it} />}
@@ -572,84 +542,6 @@ export function MediaShelfView({ tab, search }: { tab: MediaTab; search: Shelves
                 Swipe or use the arrow keys to walk the shelf, click the middle book to open it.
               </p>
             </>
-          ) : shownView === "shelf" ? (
-            <>
-              <Shelf<ShelfCard>
-                ariaLabel={`${copy.title} shelf`}
-                variant={kind === "vhs" || kind === "dvd" ? "media" : "book"}
-                groups={groups}
-                getId={(it) => it.id}
-                animateKey={animateKey}
-                renderSpine={(it) => <MediaSpine kind={kind} item={it} />}
-                tooltip={(it) => {
-                  const sub = [
-                    it.year,
-                    statusText(labels, it.status),
-                    tab === "tv" && it.totalEpisodes
-                      ? `${it.episodesWatched ?? 0}/${it.totalEpisodes} eps`
-                      : null,
-                    tab === "book" && it.progressPercent && it.status !== "done"
-                      ? `${it.progressPercent}% read`
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(", ");
-                  return { title: it.title, sub, label: `${it.title}, ${sub}` };
-                }}
-                onPick={openItem}
-              />
-              <p className="mt-6 font-sans text-[13px] text-ink-muted">
-                Click a{" "}
-                {kind === "vhs"
-                  ? "tape"
-                  : kind === "dvd"
-                    ? "case"
-                    : kind === "gift"
-                      ? "box"
-                      : "book"}{" "}
-                to open it. Arrow keys walk the shelf.
-              </p>
-            </>
-          ) : (
-            <div
-              key={animateKey}
-              className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-5"
-            >
-              {sorted.map((it, i) => (
-                <div
-                  key={it.id}
-                  className="g-topic-card !bg-transparent !shadow-none"
-                  style={{ "--i": Math.min(i, 16) } as CSSProperties}
-                >
-                  <button
-                    type="button"
-                    className="g-tilt"
-                    style={{ aspectRatio: `${coverSize.w} / ${coverSize.h}` }}
-                    data-gloss-id={it.id}
-                    aria-label={`${it.title}${it.year ? `, ${it.year}` : ""}, ${statusText(labels, it.status)}`}
-                    onClick={() => openItem(it)}
-                    {...tilt}
-                  >
-                    <MediaCover kind={kind} item={it} />
-                  </button>
-                  <p className="mt-2.5 line-clamp-1 font-display text-[15px] text-ink">
-                    {it.title}
-                  </p>
-                  <p className="mt-0.5 flex items-center gap-1.5 font-sans text-[12px] text-ink-muted">
-                    <span
-                      className="size-1.5 rounded-full"
-                      style={{ background: STATUS_DOT[it.status] }}
-                      aria-hidden="true"
-                    />
-                    {statusText(labels, it.status)}
-                    {it.year ? `, ${it.year}` : ""}
-                    {tab === "tv" && it.totalEpisodes
-                      ? `, ${it.episodesWatched ?? 0}/${it.totalEpisodes}`
-                      : ""}
-                  </p>
-                </div>
-              ))}
-            </div>
           )}
           {hasMore ? (
             <div className="mt-10 flex justify-center">
