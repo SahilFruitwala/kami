@@ -1,16 +1,7 @@
 import { useDeferredValue, useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  CheckSquare,
-  Layers,
-  LayoutGrid,
-  LibraryBig,
-  List,
-  SlidersHorizontal,
-  Tags,
-} from "lucide-react";
+import { Layers, LayoutGrid, LibraryBig, SlidersHorizontal } from "lucide-react";
 import { CoverGrid } from "@/components/library/cover-grid.tsx";
 import { toast } from "sonner";
-import { ArticleList } from "@/components/article-list.tsx";
 import { LibraryFilters } from "@/components/library-filters.tsx";
 import {
   GlossChip,
@@ -19,24 +10,12 @@ import {
   GlossPage,
   GlossSearch,
   GlossStats,
-  PullOut,
   Segmented,
-  Shelf,
-  ShelfDivider,
-  type ShelfGroup,
 } from "@/components/gloss/index.ts";
-import {
-  BookCover,
-  BookPage,
-  BookSpine,
-  BookSpineFace,
-  Endpaper,
-  LyingBooks,
-  TopicIcon,
-} from "@/components/gloss/book.tsx";
-import { TopicPage, TopicsGrid } from "@/components/gloss/topics.tsx";
+import { SpineCarousel } from "@/components/gloss/spine-carousel.tsx";
+import { ShelfDetail } from "@/components/gloss/shelf-detail.tsx";
+import { BookCover, BookPage, BookSpineFace, TopicIcon } from "@/components/gloss/book.tsx";
 import { useAutoOrganize } from "@/hooks/use-ai.ts";
-import { useCurrentUserState } from "@/lib/auth/use-current-user.ts";
 import { minutesLabel } from "@/lib/gloss/format.ts";
 import {
   countByArchive,
@@ -51,7 +30,6 @@ import { loadMoreLibrary } from "@/lib/library-remote.ts";
 import type { LibraryItem } from "@/lib/library-item.ts";
 import { useLibraryStore } from "@/lib/store.ts";
 import { usePersistedPref } from "@/lib/local-pref.ts";
-import { cn } from "@/lib/utils.ts";
 import { stampToast } from "@/components/gloss/stamp-toast.tsx";
 import {
   arrangeShelf,
@@ -59,7 +37,6 @@ import {
   libraryStats,
   type ShelfArrange,
 } from "@/lib/library-shelves.ts";
-import { useLibrarySelection } from "@/hooks/use-library-selection.ts";
 
 const SORT_LABELS: { id: LibrarySort; label: string }[] = [
   { id: "newest", label: "Newest" },
@@ -69,7 +46,7 @@ const SORT_LABELS: { id: LibrarySort; label: string }[] = [
   { id: "title", label: "Title A–Z" },
 ];
 
-const VIEWS = ["covers", "shelf", "topics", "list"] as const;
+const VIEWS = ["covers", "shelf"] as const;
 const ARRANGES = ["topic", "colour", "recent", "length"] as const satisfies readonly ShelfArrange[];
 type View = (typeof VIEWS)[number];
 type Arrange = (typeof ARRANGES)[number];
@@ -89,12 +66,12 @@ type ShelfFilters = {
   onSort: (sort: LibrarySort) => void;
 };
 
-type Picked = { id: string; kind: "spine" | "cover" };
+type Picked = { id: string; from: DOMRect };
 
 /**
- * Library as a bookshelf (Gloss): spines grouped by topic, a Topics grid,
- * and the classic list. Clicking a spine pulls the book off the shelf, turns
- * it to its cover and opens it; "Read in Kami" dissolves into the reader.
+ * Library as a bookshelf (Gloss): a cover grid, and a rail of spines where the
+ * middle book turns to face you. Choosing the middle book opens it from its
+ * cover; "Read in Kami" dissolves into the reader.
  */
 export function LibraryHome({
   filters,
@@ -112,11 +89,8 @@ export function LibraryHome({
   const library = useLibraryStore((s) => s.library);
   const libraryTotal = useLibraryStore((s) => s.libraryTotal);
   const libraryComplete = useLibraryStore((s) => s.libraryComplete);
-  const removeItem = useLibraryStore((s) => s.removeItem);
   const archiveItem = useLibraryStore((s) => s.archiveItem);
   const setFavorited = useLibraryStore((s) => s.setFavorited);
-  const folders = useLibraryStore((s) => s.folders);
-  const { user } = useCurrentUserState();
 
   const counts = countByArchive(library);
   useAutoOrganize();
@@ -135,14 +109,7 @@ export function LibraryHome({
     "topic",
   );
   const [topic, setTopic] = useState<TopicId | "all">("all");
-  const [topicPage, setTopicPage] = useState<TopicId | null>(null);
   const [picked, setPicked] = useState<Picked | null>(null);
-  const selection = useLibrarySelection();
-
-  function setView(next: View) {
-    setViewState(next);
-    if (next !== "list") selection.exit();
-  }
 
   const baseVisible = useMemo(
     () =>
@@ -168,29 +135,13 @@ export function LibraryHome({
   // A chip for a topic that just emptied (search, archive) falls back to All.
   useEffect(() => {
     if (topic !== "all" && !buckets.some((b) => b.topic === topic)) setTopic("all");
-    if (topicPage && !buckets.some((b) => b.topic === topicPage)) setTopicPage(null);
-  }, [buckets, topic, topicPage]);
+  }, [buckets, topic]);
 
-  const shelfGroups: ShelfGroup<LibraryItem>[] = useMemo(() => {
+  const shelfItems = useMemo(() => {
+    if (topic === "all" && arrange === "topic") return buckets.flatMap((b) => b.items);
     const scoped =
       topic === "all" ? baseVisible : baseVisible.filter((it) => topicById.get(it.id) === topic);
-    if (topic === "all" && arrange === "topic") {
-      return buckets.map((b) => ({
-        id: b.topic,
-        items: b.items,
-        label: (
-          <ShelfDivider
-            label={topicLabel(b.topic, b.items[0]?.tags)}
-            count={b.items.length}
-            color={topicFamily(b.topic).dark}
-            icon={<TopicIcon topic={b.topic} className="size-3.5" />}
-            height={190}
-          />
-        ),
-      }));
-    }
-    const sorted = arrangeShelf(scoped, arrange, topicById);
-    return [{ id: String(topic), items: sorted }];
+    return arrangeShelf(scoped, arrange, topicById);
   }, [baseVisible, buckets, topic, arrange, topicById]);
 
   const coverItems = useMemo(
@@ -202,17 +153,12 @@ export function LibraryHome({
     [baseVisible, topic, topicById, filters.sort],
   );
 
-  const listVisible = useMemo(
-    () => sortLibraryItems(baseVisible, filters.sort),
-    [baseVisible, filters.sort],
-  );
-
   const stats = useMemo(() => libraryStats(library), [library]);
 
   const pickedItem = picked ? (library.find((it) => it.id === picked.id) ?? null) : null;
   const pickedTopic = pickedItem ? topicOf(pickedItem) : "unsorted";
 
-  const animateKey = `${filters.tab}|${topic}|${arrange}|${filters.folderFilter}|${filters.tagFilter}|${filters.favoritesOnly}`;
+  const shelfKey = `${filters.tab}|${topic}|${arrange}|${filters.folderFilter}|${filters.tagFilter}|${filters.favoritesOnly}|${deferredQuery}`;
   const totalShown = baseVisible.length;
   const emptyCopy =
     filters.tab === "archive"
@@ -252,7 +198,7 @@ export function LibraryHome({
           <Segmented<View>
             label="Library view"
             value={view}
-            onChange={setView}
+            onChange={setViewState}
             options={[
               {
                 id: "covers",
@@ -264,12 +210,6 @@ export function LibraryHome({
                 label: "Shelf",
                 icon: <Layers className="size-4" aria-hidden="true" />,
               },
-              {
-                id: "topics",
-                label: "Tags",
-                icon: <Tags className="size-4" aria-hidden="true" />,
-              },
-              { id: "list", label: "List", icon: <List className="size-4" aria-hidden="true" /> },
             ]}
           />
           <GlossSearch
@@ -326,7 +266,7 @@ export function LibraryHome({
                     ]}
                   />
                 </div>
-              ) : view === "list" || view === "covers" ? (
+              ) : view === "covers" ? (
                 <div className="grid gap-2">
                   <label className="font-sans text-sm text-ink-muted" htmlFor="library-sort">
                     Sort by
@@ -348,21 +288,6 @@ export function LibraryHome({
               <div className="grid gap-2">
                 <span className="font-sans text-sm text-ink-muted">Actions</span>
                 <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    className="g-btn g-btn--ghost h-9 px-3 text-[13px]"
-                    aria-pressed={selection.active}
-                    onClick={() => {
-                      if (selection.active) selection.exit();
-                      else {
-                        setView("list");
-                        selection.start();
-                      }
-                    }}
-                  >
-                    <CheckSquare className="size-3.5" aria-hidden="true" />
-                    {selection.active ? "Done" : "Select"}
-                  </button>
                   {onOpenBulk ? (
                     <button
                       type="button"
@@ -418,72 +343,31 @@ export function LibraryHome({
           ) : (
             <CoverGrid items={coverItems} onOpen={onOpenItem} />
           )
-        ) : view === "shelf" ? (
-          totalShown === 0 ? (
-            <EmptyShelf copy={emptyCopy} />
-          ) : (
-            <>
-              <Shelf<LibraryItem>
-                ariaLabel="Bookshelf"
-                groups={shelfGroups}
-                getId={(it) => it.id}
-                animateKey={animateKey}
-                renderSpine={(it) => (
-                  <BookSpine item={it} topic={topicById.get(it.id) ?? "unsorted"} />
-                )}
-                tooltip={(it) => ({
-                  title: it.title,
-                  sub: [it.author || it.siteName, minutesLabel(it.readingMinutes)]
-                    .filter(Boolean)
-                    .join(", "),
-                  label: `${it.title}${it.author ? ` by ${it.author}` : ""}, ${minutesLabel(it.readingMinutes)}`,
-                })}
-                onPick={onOpenItem}
-                decoration={topic !== "all" ? <LyingBooks topic={topic} seed={topic} /> : undefined}
-              />
-              <p className="mt-6 font-sans text-[13px] text-ink-muted">
-                Hover a book to face it, click to read it. Arrow keys walk the shelf.
-              </p>
-            </>
-          )
-        ) : view === "topics" ? (
-          topicPage ? (
-            <TopicPage
-              topic={topicPage}
-              items={buckets.find((b) => b.topic === topicPage)?.items ?? []}
-              onBack={() => setTopicPage(null)}
-              onPick={(it) => setPicked({ id: it.id, kind: "cover" })}
-            />
-          ) : (
-            <TopicsGrid buckets={buckets} onOpen={setTopicPage} />
-          )
+        ) : totalShown === 0 ? (
+          <EmptyShelf copy={emptyCopy} />
         ) : (
           <>
-            {selection.active ? (
-              <SelectBar
-                count={selection.selectedIds.length}
-                archiveLabel={filters.tab === "archive" ? "Move to inbox" : "Archive"}
-                folders={folders}
-                onArchive={() => selection.archive(filters.tab !== "archive")}
-                onFavorite={selection.favorite}
-                onFolder={selection.file}
-                onDelete={() => selection.remove(listVisible)}
-                onClear={selection.exit}
-              />
-            ) : null}
-            <div className="mt-2">
-              <ArticleList
-                items={listVisible}
-                emptyTitle={filters.tab === "archive" ? "Nothing filed away yet" : "Inbox zero"}
-                emptyGlyph={filters.tab === "archive" || deferredQuery ? undefined : "済"}
-                emptyCopy={emptyCopy}
-                onOpen={onOpenItem}
-                onRemove={removeItem}
-                selectMode={selection.active}
-                selectedIds={selection.selectedSet}
-                onToggleSelect={selection.toggle}
-              />
-            </div>
+            <SpineCarousel<LibraryItem>
+              key={shelfKey}
+              items={shelfItems}
+              getId={(it) => it.id}
+              ariaLabel="Bookshelf"
+              renderSpine={(it) => (
+                <BookSpineFace item={it} topic={topicById.get(it.id) ?? "unsorted"} />
+              )}
+              renderCover={(it) => (
+                <BookCover item={it} topic={topicById.get(it.id) ?? "unsorted"} />
+              )}
+              caption={(it) =>
+                [it.title, it.author || it.siteName, minutesLabel(it.readingMinutes)]
+                  .filter(Boolean)
+                  .join(" · ")
+              }
+              onOpen={(it, from) => setPicked({ id: it.id, from })}
+            />
+            <p className="mt-4 text-center font-sans text-[13px] text-ink-muted">
+              Swipe or use the arrow keys to walk the shelf, click the middle book to open it.
+            </p>
           </>
         )}
         {!libraryComplete ? (
@@ -492,24 +376,11 @@ export function LibraryHome({
       </GlossColumn>
 
       {picked && pickedItem ? (
-        <PullOut
+        <ShelfDetail
           key={picked.id}
-          source={picked}
+          from={picked.from}
           label={pickedItem.title}
-          coverSize={{ w: 430, h: 620 }}
-          depthRatio={0.06}
-          spineFace={<BookSpineFace item={pickedItem} topic={pickedTopic} />}
           cover={<BookCover item={pickedItem} topic={pickedTopic} />}
-          inside={
-            <Endpaper
-              topic={pickedTopic}
-              number={library.filter((r) => r.savedAt <= pickedItem.savedAt).length}
-              shelvedAt={pickedItem.savedAt}
-              owner={
-                user?.displayName ? `${user.displayName.split(/\s+/)[0]}’s copy` : "A Kami reader"
-              }
-            />
-          }
           page={(api) => (
             <BookPage
               api={api}
@@ -544,83 +415,6 @@ function EmptyShelf({ copy }: { copy: string }) {
       </div>
       <p className="mt-8 font-display text-2xl italic text-ink-soft">An empty shelf</p>
       <p className="mt-2 max-w-sm font-sans text-sm text-ink-muted">{copy}</p>
-    </div>
-  );
-}
-
-function SelectBar({
-  count,
-  archiveLabel,
-  folders,
-  onArchive,
-  onFavorite,
-  onFolder,
-  onDelete,
-  onClear,
-}: {
-  count: number;
-  archiveLabel: string;
-  folders: { id: string; name: string }[];
-  onArchive: () => void;
-  onFavorite: () => void;
-  onFolder: (folderId: string | null) => void;
-  onDelete: () => void;
-  onClear: () => void;
-}) {
-  const btn = "g-btn g-btn--ghost h-8 px-3 text-[13px] disabled:opacity-40";
-  return (
-    <div
-      className="sticky top-32 z-30 mb-4 flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface p-2.5 shadow-[var(--g-shadow-card)] lg:top-20"
-      role="toolbar"
-      aria-label="Bulk actions"
-    >
-      <span className="px-2 font-sans text-[13px] font-medium text-ink" role="status">
-        {count} selected
-      </span>
-      <button type="button" disabled={count === 0} onClick={onArchive} className={btn}>
-        {archiveLabel}
-      </button>
-      <button type="button" disabled={count === 0} onClick={onFavorite} className={btn}>
-        Favorite
-      </button>
-      <label className="sr-only" htmlFor="bulk-folder">
-        File selected into folder
-      </label>
-      <select
-        id="bulk-folder"
-        disabled={count === 0}
-        defaultValue=""
-        onChange={(e) => {
-          if (e.target.value !== "") onFolder(e.target.value === "none" ? null : e.target.value);
-          e.target.value = "";
-        }}
-        className={cn(btn, "appearance-none")}
-      >
-        <option value="" disabled>
-          File into…
-        </option>
-        <option value="none">Unfiled</option>
-        {folders.map((f) => (
-          <option key={f.id} value={f.id}>
-            {f.name}
-          </option>
-        ))}
-      </select>
-      <button
-        type="button"
-        disabled={count === 0}
-        onClick={onDelete}
-        className="g-btn h-8 bg-danger/10 px-3 text-[13px] text-danger hover:bg-danger/20 disabled:opacity-40"
-      >
-        Delete
-      </button>
-      <button
-        type="button"
-        onClick={onClear}
-        className="ml-auto px-3 font-sans text-[13px] text-ink-muted underline underline-offset-2 hover:text-ink"
-      >
-        Clear
-      </button>
     </div>
   );
 }

@@ -1712,3 +1712,158 @@
     animation: none;
   }
 }
+
+/* ——— Spine carousel (library shelf view) ——— */
+.g-car {
+  --H: clamp(240px, min(34vw, 64vh), 460px);
+  position: relative;
+  width: 100%;
+  height: calc(var(--H) + 90px);
+  overflow: hidden;
+  touch-action: pan-y;
+  user-select: none;
+  outline: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+}
+.g-car:focus-visible {
+  border-radius: 12px;
+  box-shadow: 0 0 0 2px var(--g-accent-red);
+}
+@media (max-width: 639px) {
+  .g-car {
+    --H: clamp(240px, 78vw, 400px);
+  }
+}
+.g-car-probe {
+  position: absolute;
+  top: 0;
+  left: -9999px;
+  width: 1px;
+  height: var(--H);
+  visibility: hidden;
+}
+.g-car-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  isolation: isolate;
+  opacity: 0;
+  transition: opacity 400ms var(--g-ease-out);
+}
+.g-car-stage[data-ready] {
+  opacity: 1;
+}
+.g-car-tape {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 0;
+  height: 0;
+  cursor: pointer;
+  transform-style: preserve-3d;
+}
+.g-car-face {
+  position: absolute;
+  height: var(--hpx);
+  top: calc(var(--hpx) * -0.5);
+  overflow: hidden;
+  border-radius: 2px;
+  backface-visibility: hidden;
+}
+/* Unlit faces dim toward black; the script drives --shade. */
+.g-car-face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: #000;
+  opacity: var(--shade, 0);
+  pointer-events: none;
+}
+.g-car-sp {
+  width: var(--ws);
+  left: calc(var(--ws) * -0.5);
+  transform: translateZ(calc(var(--dd) / 2));
+  container-type: size;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.18),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.18);
+}
+.g-car-cv {
+  width: var(--dd);
+  left: calc(var(--dd) * -0.5);
+  transform: rotateY(90deg) translateZ(calc(var(--ws) / 2));
+  box-shadow: 0 30px 60px -28px rgba(20, 16, 10, 0.55);
+}
+@media (prefers-reduced-motion: reduce) {
+  .g-car-stage {
+    transition-duration: 1ms;
+  }
+}
+
+/* ——— Shelf detail (opens from the carousel cover) ——— */
+.g-shelf-detail {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-auto-rows: max-content;
+  align-content: start;
+  justify-items: center;
+  gap: 24px;
+  padding: 64px 20px 32px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--g-paper);
+  color: var(--g-ink);
+  outline: none;
+}
+.g-shelf-detail-cover {
+  width: min(62vw, 300px);
+  aspect-ratio: 430 / 620;
+  filter: drop-shadow(0 30px 40px rgba(20, 16, 10, 0.35));
+}
+.g-shelf-detail-page {
+  width: 100%;
+  max-width: 560px;
+  background: transparent;
+}
+@media (min-width: 720px) {
+  .g-shelf-detail {
+    grid-template-columns: 1fr 1fr;
+    align-content: center;
+    align-items: center;
+    gap: 4vw;
+    padding: 72px 5vw 48px;
+    overflow: hidden;
+  }
+  .g-shelf-detail-cover {
+    justify-self: center;
+    width: min(100%, calc(min(78vh, 720px) * 0.694));
+  }
+  .g-shelf-detail-page {
+    justify-self: start;
+    height: min(78vh, 720px);
+  }
+}
+/* The page still scrolls if a long summary needs it, but no scrollbar is drawn
+   for the sliver of overflow a fitting page can have. */
+.g-shelf-detail-page .g-page-scroll {
+  scrollbar-width: none;
+}
+.g-shelf-detail-page .g-page-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* On the shelf rail and the opened book, the banner is shown whole: a wide
+   frame and no cropping, so a title inside the banner image isn't cut off. */
+:is(.g-car-cv, .g-shelf-detail-cover) .g-cover-art:not(.g-cover-art--plain) {
+  aspect-ratio: 1.91;
+}
+:is(.g-car-cv, .g-shelf-detail-cover) .g-cover-art:not(.g-cover-art--plain) img {
+  object-fit: contain;
+}
