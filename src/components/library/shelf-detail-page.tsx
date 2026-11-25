@@ -272,7 +272,7 @@ function DetailBody({
               className="text-ink-muted hover:text-ink"
             >
               <CircleSlash className="size-4" aria-hidden="true" />
-              {detail.type === "book" ? "Abandon book" : "Drop series"}
+              {detail.type === "book" ? "Pause book" : "Drop series"}
             </Button>
           ) : null}
           {detail.type === "book" ? (

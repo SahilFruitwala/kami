@@ -14,7 +14,7 @@ export function statusLabels(type: ShelfTab) {
   if (type === "book")
     return {
       inProgress: "Reading",
-      abandoned: "Abandoned",
+      abandoned: "Paused",
       done: "Read",
       toTry: "To read",
       markDone: "Mark read",

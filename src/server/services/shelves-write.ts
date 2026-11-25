@@ -268,17 +268,20 @@ export async function setShelfItemStatus(
     })
     .where(eq(table.id, data.id));
 
-  // Keep book progress in step with the ends of the scale: read = 100%,
-  // back to "to read" = start over. Reading/abandoned keep their place.
+  // Keep book progress in step with the ends of the scale: read = 100%.
+  // Unmarking a finished book starts it over (100% was only a stand-in);
+  // any other move to "to read" keeps the reader's place, as do reading and paused.
   if (data.type === "book" && (data.status === "done" || data.status === "to_try")) {
     const finished = data.status === "done";
-    await db
-      .update(books)
-      .set({
-        progressPercent: finished ? 100 : 0,
-        currentPage: finished ? sql`${books.pageCount}` : null,
-      })
-      .where(eq(books.id, data.id));
+    if (finished || item.status === "done") {
+      await db
+        .update(books)
+        .set({
+          progressPercent: finished ? 100 : 0,
+          currentPage: finished ? sql`${books.pageCount}` : null,
+        })
+        .where(eq(books.id, data.id));
+    }
   }
 
   // Starting a book/series is not worth an activity entry.

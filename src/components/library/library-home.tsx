@@ -337,7 +337,7 @@ export function LibraryHome({
       </GlossColumn>
 
       <GlossColumn className="pt-6 pb-16">
-        {view === "covers" ? (
+        {view === "covers" || (totalShown === 1 && coverItems.length === 1) ? (
           coverItems.length === 0 ? (
             <EmptyShelf copy={emptyCopy} />
           ) : (
